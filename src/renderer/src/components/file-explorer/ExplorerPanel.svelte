@@ -29,7 +29,7 @@
   let showSettings = $state(false);
 
   async function handleAddProjectFolder(): Promise<void> {
-    const folderPath = prompt("Enter project folder path:");
+    const folderPath = await window.api.showOpenDialog();
     if (!folderPath) return;
 
     try {
@@ -119,7 +119,7 @@
         <p class="mt-1 text-xs">Add a project folder to get started</p>
       </div>
     {:else}
-      {#each projectState.projectFolders as folder (folder.id)}
+      {#each projectState.projectFolders as folder, index (index)}
         {@const tree = projectState.folderTrees[folder.id]}
         {#if tree}
           <TreeNode

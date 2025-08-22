@@ -1,7 +1,7 @@
 // src/main/index.ts
 import path from "node:path";
 import fs from "node:fs/promises";
-import { app, shell, BrowserWindow, ipcMain } from "electron";
+import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
@@ -79,6 +79,14 @@ app.whenReady().then(async () => {
   // IPC handlers
   ipcMain.handle("get-trpc-url", () => {
     return trpcServer?.getTrpcUrl() || null;
+  });
+
+  ipcMain.handle("show-open-dialog", async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory"],
+      title: "Select Project Folder",
+    });
+    return result.canceled ? null : result.filePaths[0];
   });
 
   ipcMain.on("ping", () => console.log("pong"));

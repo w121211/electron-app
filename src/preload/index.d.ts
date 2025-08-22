@@ -7,6 +7,7 @@ declare global {
     // api: unknown
     api: {
       getTrpcUrl: () => Promise<string | null>;
+      showOpenDialog: () => Promise<string | null>;
     };
   }
 }
