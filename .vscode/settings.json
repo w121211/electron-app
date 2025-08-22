@@ -16,5 +16,6 @@
     "javascript",
     "javascriptreact",
     "svelte"
-  ]
+  ],
+  "editor.formatOnSave": true
 }

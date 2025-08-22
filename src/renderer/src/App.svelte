@@ -1,26 +1,69 @@
+<!-- src/renderer/src/App.svelte -->
 <script lang="ts">
-  import Versions from './components/Versions.svelte'
-  import electronLogo from './assets/electron.svg'
+  import { Logger } from "tslog";
 
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+  // import Demo from "./components/Demo.svelte";
+  import MainLayout from "./components/MainLayout.svelte";
+  // import MainLayoutDemo from "./components/MainLayoutDemo.svelte";
+  // import ToolCallDemo from "./components/ToolCallDemo.svelte";
+  import ToastProvider from "./components/ToastProvider.svelte";
+  // import ErrorBoundary from "./components/ErrorBoundary.svelte";
+  // import DevPanel from "./components/shared/DevPanel.svelte";
+  import Versions from "./components/Versions.svelte";
+  import { eventService } from "./services/event-service";
+  // import { keyboardManager } from "./lib/keyboard";
+  // import { DevelopmentTools } from "./lib/development";
+
+  const logger = new Logger({ name: "App" });
+
+  // Use $effect instead of onMount for Svelte 5
+  $effect(() => {
+    logger.info("App mounted, initializing systems...");
+
+    // Start event subscriptions
+    eventService.start();
+
+    // Initialize development tools in dev mode
+    // if (isDev) {
+    //   DevelopmentTools.getInstance();
+    // }
+
+    // Setup keyboard shortcuts
+    // keyboardManager.enable();
+
+    // Cleanup on destroy
+    return () => {
+      logger.info("App unmounting, cleaning up...");
+      eventService.stop();
+      // keyboardManager.destroy();
+    };
+  });
+
+  function handleError(error: Error, errorInfo: any) {
+    logger.error("Application error:", error, errorInfo);
+
+    // Send error to monitoring service in production
+    // if (import.meta.env.PROD) {
+    //   sendErrorToMonitoring(error, errorInfo)
+    // }
+  }
 </script>
 
-<img alt="logo" class="logo" src={electronLogo} />
-<div class="creator">Powered by electron-vite</div>
-<div class="text">
-  Build an Electron app with
-  <span class="svelte">Svelte</span>
-  and
-  <span class="ts">TypeScript</span>
-</div>
-<p class="tip">Please try pressing <code>F12</code> to open the devTool</p>
-<div class="actions">
-  <div class="action">
-    <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">Documentation</a>
-  </div>
-  <div class="action">
-    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions a11y-missing-attribute-->
-    <a target="_blank" rel="noreferrer" on:click={ipcHandle}>Send IPC</a>
-  </div>
-</div>
+<ToastProvider>
+  <MainLayout />
+</ToastProvider>
+
 <Versions />
+
+<!-- <ErrorBoundary onError={handleError}>
+  <ToastProvider>
+    {#if showDemo}
+      <Demo />
+    {:else}
+      <MainLayout />
+    {/if}
+
+    Development tools (only shown in dev mode)
+    <DevPanel />
+  </ToastProvider>
+</ErrorBoundary> -->
