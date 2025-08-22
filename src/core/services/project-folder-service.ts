@@ -1,4 +1,4 @@
-// packages/events-core/src/services/project-folder-service.ts
+// src/core/services/project-folder-service.ts
 import path from "node:path";
 import fs from "node:fs/promises";
 import { v4 as uuidv4 } from "uuid";

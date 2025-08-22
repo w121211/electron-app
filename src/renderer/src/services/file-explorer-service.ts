@@ -1,58 +1,67 @@
-// apps/my-app-svelte/src/services/file-explorer-service.ts
+// src/renderer/src/services/file-explorer-service.ts
 import { Logger } from "tslog";
-import { projectService } from "./project-service";
-import { showToast } from "../stores/ui-store.svelte";
-import { closeContextMenu, showRenameDialog, closeRenameDialog } from "../stores/file-explorer-store.svelte";
+import {
+  closeContextMenu,
+  showRenameDialog,
+  closeRenameDialog,
+} from "../stores/file-explorer-store.svelte.js";
+import { showToast } from "../stores/ui-store.svelte.js";
+import { projectService } from "./project-service.js";
 
 export class FileExplorerService {
   private logger = new Logger({ name: "FileExplorerService" });
 
   // File Action Handlers
   async handleFileAction(action: string, path: string) {
-    console.log("🎯 FileExplorerService: Handling action:", action, "for:", path);
-    
+    console.log(
+      "🎯 FileExplorerService: Handling action:",
+      action,
+      "for:",
+      path,
+    );
+
     try {
       switch (action) {
-        case 'add-to-chat':
+        case "add-to-chat":
           showToast("Add to current chat: Not yet implemented", "info");
           break;
-          
-        case 'add-to-project':
+
+        case "add-to-project":
           showToast("Add to project context: Not yet implemented", "info");
           break;
-          
-        case 'copy-reference':
+
+        case "copy-reference":
           showToast("Copy reference: Not yet implemented", "info");
           break;
-          
-        case 'rename':
+
+        case "rename":
           // Close context menu first, then show rename dialog with delay
           closeContextMenu();
           setTimeout(() => {
             showRenameDialog(path);
           }, 50);
           break;
-          
-        case 'duplicate':
+
+        case "duplicate":
           closeContextMenu();
           await projectService.duplicateFile(path);
           break;
-          
-        case 'delete':
+
+        case "delete":
           closeContextMenu();
           if (confirm("Are you sure you want to delete this file?")) {
             await projectService.deleteFile(path);
           }
           break;
-          
-        case 'create-folder':
+
+        case "create-folder":
           closeContextMenu();
           const folderName = prompt("Enter folder name:");
           if (folderName && folderName.trim()) {
             await projectService.createFolder(path, folderName.trim());
           }
           break;
-          
+
         default:
           this.logger.warn("Unknown file action:", action);
       }

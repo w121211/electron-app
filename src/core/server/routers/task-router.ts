@@ -1,7 +1,7 @@
-// packages/events-core/src/server/routers/task-router.ts
+// src/core/server/routers/task-router.ts
 import { z } from "zod";
 import { TaskService } from "../../services/task-service.js";
-import { router, publicProcedure } from "../trpc-server.js";
+import { router, publicProcedure } from "../trpc-init.js";
 
 // Task schemas
 export const createTaskSchema = z.object({

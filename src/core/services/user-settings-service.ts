@@ -1,4 +1,4 @@
-// packages/events-core/src/services/user-settings-service.ts
+// src/core/services/user-settings-service.ts
 import { Logger, ILogObj } from "tslog";
 import type {
   UserSettingsRepository,

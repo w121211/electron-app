@@ -1,22 +1,6 @@
-<!-- apps/my-app-svelte/src/components/ChatPanel.svelte -->
+<!-- src/renderer/src/components/ChatPanel.svelte -->
 <script lang="ts">
   import { tick } from "svelte";
-  import FileSearchDropdown from "./file-explorer/FileSearchDropdown.svelte";
-  import ChatMessage from "./ChatMessage.svelte";
-  import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
-  import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
-  import {
-    chatState,
-    updateMessageInput,
-  } from "../stores/chat-store.svelte.js";
-  import { projectState } from "../stores/project-store.svelte.js";
-  import {
-    uiState,
-    showToast,
-  } from "../stores/ui-store.svelte.js";
-  import { chatService } from "../services/chat-service.js";
-  import { fileSearchService } from "../services/file-search-service.js";
-  import { fileSearchState } from "../stores/file-search-store.svelte.js";
   import {
     Send,
     Paperclip,
@@ -28,12 +12,28 @@
     ArrowClockwise,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
+  import { chatService } from "../services/chat-service.js";
+  import { fileSearchService } from "../services/file-search-service.js";
+  import {
+    chatState,
+    updateMessageInput,
+  } from "../stores/chat-store.svelte.js";
+  import { uiState, showToast } from "../stores/ui-store.svelte.js";
+  import { fileSearchState } from "../stores/file-search-store.svelte.js";
+  import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
+  import ChatMessage from "./ChatMessage.svelte";
+  import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
+  import FileSearchDropdown from "./file-explorer/FileSearchDropdown.svelte";
 
   const logger = new Logger({ name: "ChatPanel" });
 
   // Derived loading states
-  const isLoadingOpenChat = $derived(uiState.loadingStates["openChat"] || false);
-  const isLoadingSubmitMessage = $derived(uiState.loadingStates["submitMessage"] || false);
+  const isLoadingOpenChat = $derived(
+    uiState.loadingStates["openChat"] || false,
+  );
+  const isLoadingSubmitMessage = $derived(
+    uiState.loadingStates["submitMessage"] || false,
+  );
 
   // Derived chat states
   const hasCurrentChat = $derived(chatState.currentChat !== null);
@@ -54,8 +54,7 @@
 
   let messageInputElement = $state<HTMLTextAreaElement>();
   let messagesContainer = $state<HTMLDivElement>();
-  let draftTimeout: NodeJS.Timeout;
-
+  let draftTimeout: ReturnType<typeof setTimeout>;
 
   // Auto-scroll to bottom when new messages arrive using $effect
   $effect(() => {
@@ -89,8 +88,7 @@
     previousChatId = currentChatId;
   });
 
-
-  async function handleSendMessage() {
+  async function handleSendMessage(): Promise<void> {
     if (!chatState.messageInput.trim() || !chatState.currentChat) return;
 
     const message = chatState.messageInput.trim();
@@ -107,11 +105,11 @@
     }
   }
 
-  function handleInputChange(value: string) {
+  function handleInputChange(value: string): void {
     updateMessageInput(value);
 
     // Handle @ file reference detection
-    fileSearchService.detectFileReference(value, messageInputElement);
+    fileSearchService.detectFileReference(value, messageInputElement ?? null);
 
     // Save draft when user actively types (including clearing content)
     if (chatState.currentChat) {
@@ -123,29 +121,29 @@
   }
 
   // Handle file selection from dropdown
-  function handleFileSelect(file: any) {
+  function handleFileSelect(file: any): void {
     fileSearchService.handleFileSelect(
       file,
-      messageInputElement,
+      messageInputElement ?? null,
       chatState.messageInput,
     );
   }
 
   // Handle search menu cancel
-  function handleSearchCancel() {
-    fileSearchService.handleSearchCancel(messageInputElement);
+  function handleSearchCancel(): void {
+    fileSearchService.handleSearchCancel(messageInputElement ?? null);
   }
 
   // Handle search menu hover (for keyboard navigation)
-  function handleSearchHover(index: number) {
+  function handleSearchHover(index: number): void {
     fileSearchService.handleSearchHover(index);
   }
 
-  function handleKeyPress(event: KeyboardEvent) {
+  function handleKeyPress(event: KeyboardEvent): void {
     // Handle search menu navigation
     const handled = fileSearchService.handleSearchKeydown(
       event,
-      messageInputElement,
+      messageInputElement ?? null,
       chatState.messageInput,
     );
 
@@ -158,20 +156,20 @@
     }
   }
 
-  function handleRefreshChat() {
+  function handleRefreshChat(): void {
     if (!chatState.currentChat) return;
 
     chatService.openChatFile(chatState.currentChat.absoluteFilePath);
   }
 
-  function handleWhatsNext() {
+  function handleWhatsNext(): void {
     showToast(
       "What's Next: Analyze your recent code changes for patterns.",
       "info",
     );
   }
 
-  function handleSummarize() {
+  function handleSummarize(): void {
     showToast("Chat summary functionality coming soon", "info");
   }
 
@@ -249,7 +247,8 @@
 
       <!-- Tool Call Confirmation Block -->
       {#if chatState.currentChat?.sessionStatus === "waiting_confirmation"}
-        {@const lastMessage = currentChatMessages[currentChatMessages.length - 1]?.message}
+        {@const lastMessage =
+          currentChatMessages[currentChatMessages.length - 1]?.message}
         <ToolCallConfirmation
           chatId={chatState.currentChat.id}
           absoluteFilePath={chatState.currentChat.absoluteFilePath}
@@ -270,7 +269,8 @@
           placeholder="Type your message... Use @ to reference files"
           class="bg-input-background border-input-border focus:border-accent placeholder-muted text-foreground w-full resize-none rounded-md border px-3 py-3 text-[15px] focus:outline-none"
           rows="3"
-          disabled={isLoadingSubmitMessage || chatState.currentChat?.sessionStatus !== "idle"}
+          disabled={isLoadingSubmitMessage ||
+            chatState.currentChat?.sessionStatus !== "idle"}
         ></textarea>
 
         <!-- File Search Dropdown -->
@@ -300,7 +300,7 @@
           bind:value={chatState.chatMode}
           class="bg-panel border-border hover:bg-hover focus:border-accent text-muted rounded border px-3 py-1 text-xs focus:outline-none"
         >
-          {#each chatModeOptions as option}
+          {#each chatModeOptions as option, index (index)}
             <option value={option.value}>{option.label}</option>
           {/each}
         </select>
@@ -310,7 +310,7 @@
           bind:value={chatState.selectedModel}
           class="bg-panel border-border hover:bg-hover focus:border-accent text-muted rounded border px-3 py-1 text-xs focus:outline-none"
         >
-          {#each modelOptions as option}
+          {#each modelOptions as option, index (index)}
             <option value={option.value}>{option.label}</option>
           {/each}
         </select>
@@ -334,8 +334,10 @@
         <!-- Send button -->
         <button
           onclick={handleSendMessage}
-          disabled={!chatState.messageInput.trim() || isLoadingSubmitMessage || chatState.currentChat?.sessionStatus !== "idle"}
-          class="hover:bg-accent/80 bg-accent text-white ml-auto rounded px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!chatState.messageInput.trim() ||
+            isLoadingSubmitMessage ||
+            chatState.currentChat?.sessionStatus !== "idle"}
+          class="hover:bg-accent/80 bg-accent ml-auto rounded px-3 py-1.5 text-white disabled:cursor-not-allowed disabled:opacity-50"
           title="Send"
         >
           <Send class="text-base" />

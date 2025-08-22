@@ -1,6 +1,11 @@
-<!-- apps/my-app-svelte/src/components/ChatMessage.svelte -->
+<!-- src/renderer/src/components/ChatMessage.svelte -->
 <script lang="ts">
-  import type { ModelMessage, AssistantContent, UserContent, ToolContent } from "ai";
+  import type {
+    ModelMessage,
+    AssistantContent,
+    UserContent,
+    ToolContent,
+  } from "ai";
   import {
     Copy,
     Pencil,
@@ -11,7 +16,7 @@
   import { showToast } from "../stores/ui-store.svelte.js";
   import { extractFileReferences } from "../stores/chat-store.svelte.js";
   import ToolResultDisplay from "./ToolResultDisplay.svelte";
-  import type { ChatMessage } from "@repo/events-core/services/chat-engine/chat-session-repository";
+  import type { ChatMessage } from "../../../core/services/chat-engine/chat-session-repository.js";
 
   interface Props {
     chatMessage: ChatMessage;
@@ -35,21 +40,21 @@
     });
   }
 
-  function handleCopyMessage(message: ModelMessage) {
+  function handleCopyMessage(message: ModelMessage): void {
     const textContent = getTextContent(message);
     navigator.clipboard.writeText(textContent);
     showToast("Message copied to clipboard", "success");
   }
 
-  function handleEditMessage() {
+  function handleEditMessage(): void {
     showToast("Edit functionality not implemented yet", "info");
   }
 
-  function handleMoreAction(action: string) {
+  function handleMoreAction(action: string): void {
     showToast(`${action} functionality coming soon`, "info");
   }
 
-  function handleFileReference(filePath: string) {
+  function handleFileReference(filePath: string): void {
     showToast(`Open ${filePath} functionality coming soon`, "info");
   }
 
@@ -62,7 +67,7 @@
     if (Array.isArray(message.content)) {
       return message.content
         .filter((part) => part.type === "text")
-        .map((part) => part.type === "text" ? part.text : "")
+        .map((part) => (part.type === "text" ? part.text : ""))
         .join("");
     }
 
@@ -70,20 +75,22 @@
   }
 
   // Helper to get content parts for rendering
-  function getContentParts(content: AssistantContent | UserContent | ToolContent) {
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  function getContentParts(
+    content: AssistantContent | UserContent | ToolContent,
+  ) {
     if (typeof content === "string") {
       return [{ type: "text" as const, text: content }];
     }
     return Array.isArray(content) ? content : [];
   }
-
 </script>
 
 {#if isSystem}
   <!-- System Message -->
-  <div class="flex justify-center my-2">
+  <div class="my-2 flex justify-center">
     <div
-      class="bg-muted/20 text-muted-foreground px-3 py-1 rounded-full text-xs"
+      class="bg-muted/20 text-muted-foreground rounded-full px-3 py-1 text-xs"
     >
       System: {typeof message.content === "string"
         ? message.content
@@ -98,14 +105,14 @@
     >
       <!-- Content Parts -->
       <div class="leading-normal">
-        {#each getContentParts(message.content) as part}
+        {#each getContentParts(message.content) as part, index (index)}
           {#if part.type === "text"}
             {@const fileReferences = extractFileReferences(part.text)}
-            
+
             <!-- File References -->
             {#if fileReferences.length > 0}
               <div class="mb-2 flex flex-wrap gap-1">
-                {#each fileReferences as ref}
+                {#each fileReferences as ref (ref.path)}
                   <button
                     onclick={() => handleFileReference(ref.path)}
                     class="text-sm underline {ref.syntax === '@'
@@ -117,17 +124,21 @@
                 {/each}
               </div>
             {/if}
-            
+
             <div class="whitespace-pre-wrap">{part.text}</div>
           {:else if part.type === "image"}
             <img
-              src={typeof part.image === "string" ? part.image : part.image instanceof URL ? part.image.toString() : ""}
+              src={typeof part.image === "string"
+                ? part.image
+                : part.image instanceof URL
+                  ? part.image.toString()
+                  : ""}
               alt=""
               class="max-w-full rounded"
             />
           {:else if part.type === "file"}
-            <div class="border rounded p-2 my-1">
-              <FileEarmark class="inline text-sm mr-1" />
+            <div class="my-1 rounded border p-2">
+              <FileEarmark class="mr-1 inline text-sm" />
               File: {part.filename || "Uploaded file"}
             </div>
           {:else}
@@ -146,7 +157,7 @@
 
     <!-- Message Actions -->
     <div
-      class="mt-1 flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100 mr-2"
+      class="mt-1 mr-2 flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100"
     >
       <button
         onclick={() => handleEditMessage()}
@@ -174,7 +185,11 @@
 {:else if isAssistant}
   <!-- Assistant Message -->
   {@const contentParts = getContentParts(message.content)}
-  {@const hasArtifacts = contentParts.some(part => part.type === "text" && (part.text.includes("artifact") || part.text.includes("wireframe")))}
+  {@const hasArtifacts = contentParts.some(
+    (part) =>
+      part.type === "text" &&
+      (part.text.includes("artifact") || part.text.includes("wireframe")),
+  )}
 
   <div class="group flex flex-col items-start">
     <div class="mb-0.5 flex items-center gap-2">
@@ -191,32 +206,32 @@
 
     <div class="text-foreground pl-7 leading-normal">
       <!-- Content Parts -->
-      {#each contentParts as part}
+      {#each contentParts as part, index (index)}
         {#if part.type === "text"}
           <div class="whitespace-pre-wrap">{part.text}</div>
         {:else if part.type === "file"}
-          <div class="border rounded p-2 my-1">
-            <FileEarmark class="inline text-sm mr-1" />
+          <div class="my-1 rounded border p-2">
+            <FileEarmark class="mr-1 inline text-sm" />
             File: {part.filename || "Generated file"}
           </div>
         {:else if part.type === "reasoning"}
           <div
-            class="bg-muted/10 border-l-2 border-muted pl-3 py-1 my-2 text-sm text-muted-foreground"
+            class="bg-muted/10 border-muted text-muted-foreground my-2 border-l-2 py-1 pl-3 text-sm"
           >
             <strong>Reasoning:</strong>
             {part.text}
           </div>
         {:else if part.type === "tool-call"}
-          <div class="bg-blue-50 border border-blue-200 rounded p-2 my-1">
+          <div class="my-1 rounded border border-blue-200 bg-blue-50 p-2">
             <div class="text-sm font-medium text-blue-800">
               🔧 Calling {part.toolName}
             </div>
-            <div class="text-xs text-blue-600 mt-1">
+            <div class="mt-1 text-xs text-blue-600">
               {JSON.stringify(part.input, null, 2)}
             </div>
           </div>
         {:else if part.type === "tool-result"}
-          <div class="bg-green-50 border border-green-200 rounded p-2 my-1">
+          <div class="my-1 rounded border border-green-200 bg-green-50 p-2">
             <div class="text-sm font-medium text-green-800">✅ Tool Result</div>
             <ToolResultDisplay output={part.output} />
           </div>
@@ -252,7 +267,7 @@
 
     <!-- Message Actions -->
     <div
-      class="mt-1 flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100 ml-7"
+      class="mt-1 ml-7 flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100"
     >
       <button
         onclick={() => handleEditMessage()}
@@ -279,12 +294,12 @@
   </div>
 {:else if isTool}
   <!-- Tool Message -->
-  <div class="flex justify-center my-2">
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 max-w-lg">
-      <div class="text-sm font-medium text-yellow-800 mb-1">
+  <div class="my-2 flex justify-center">
+    <div class="max-w-lg rounded-lg border border-yellow-200 bg-yellow-50 p-3">
+      <div class="mb-1 text-sm font-medium text-yellow-800">
         🔧 Tool Results
       </div>
-      {#each Array.isArray(message.content) ? message.content : [] as part}
+      {#each Array.isArray(message.content) ? message.content : [] as part, index (index)}
         {#if part.type === "tool-result"}
           <div class="text-xs text-yellow-700">
             <strong>Tool:</strong>
@@ -304,9 +319,9 @@
   </div>
 {:else}
   <!-- Unknown message type -->
-  <div class="flex justify-center my-2">
+  <div class="my-2 flex justify-center">
     <div
-      class="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-600"
+      class="rounded border border-red-200 bg-red-50 p-2 text-xs text-red-600"
     >
       Unknown message type: {(message as any).role}
       <pre class="mt-1">{JSON.stringify(message, null, 2)}</pre>

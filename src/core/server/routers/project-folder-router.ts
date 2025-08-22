@@ -1,8 +1,8 @@
-// packages/events-core/src/server/routers/project-folder-router.ts
-import { z } from "zod";
+// src/core/server/routers/project-folder-router.ts
 import path from "node:path";
-import { router, publicProcedure } from "../trpc-server.js";
+import { z } from "zod";
 import { ProjectFolderService } from "../../services/project-folder-service.js";
+import { router, publicProcedure } from "../trpc-init.js";
 
 // Validation helper for absolute paths
 const absolutePathSchema = z
@@ -77,14 +77,14 @@ export const createFolderSchema = z.object({
 });
 
 export function createProjectFolderRouter(
-  projectFolderService: ProjectFolderService
+  projectFolderService: ProjectFolderService,
 ) {
   return router({
     getFolderTree: publicProcedure
       .input(folderTreeRequestSchema)
       .query(async ({ input }) => {
         return projectFolderService.getFolderTree(
-          input.absoluteProjectFolderPath
+          input.absoluteProjectFolderPath,
         );
       }),
 
@@ -93,7 +93,7 @@ export function createProjectFolderRouter(
       .mutation(async ({ input }) => {
         return projectFolderService.addProjectFolder(
           input.absoluteProjectFolderPath,
-          input.correlationId
+          input.correlationId,
         );
       }),
 
@@ -102,7 +102,7 @@ export function createProjectFolderRouter(
       .mutation(async ({ input }) => {
         return projectFolderService.removeProjectFolder(
           input.projectFolderId,
-          input.correlationId
+          input.correlationId,
         );
       }),
 
@@ -114,7 +114,7 @@ export function createProjectFolderRouter(
       .input(startWatchingAllProjectFoldersSchema)
       .mutation(async ({ input }) => {
         const count = await projectFolderService.startWatchingAllProjectFolders(
-          input.correlationId
+          input.correlationId,
         );
         return { count };
       }),
@@ -125,7 +125,7 @@ export function createProjectFolderRouter(
         return projectFolderService.searchFilesInProject(
           input.query,
           input.projectId,
-          input.limit
+          input.limit,
         );
       }),
 
@@ -135,7 +135,7 @@ export function createProjectFolderRouter(
         await projectFolderService.copyFile(
           input.sourceAbsolutePath,
           input.destinationAbsolutePath,
-          input.correlationId
+          input.correlationId,
         );
       }),
 
@@ -145,7 +145,7 @@ export function createProjectFolderRouter(
         await projectFolderService.moveFile(
           input.sourceAbsolutePath,
           input.destinationAbsolutePath,
-          input.correlationId
+          input.correlationId,
         );
       }),
 
@@ -155,7 +155,7 @@ export function createProjectFolderRouter(
         await projectFolderService.renameFile(
           input.absolutePath,
           input.newName,
-          input.correlationId
+          input.correlationId,
         );
       }),
 
@@ -164,7 +164,7 @@ export function createProjectFolderRouter(
       .mutation(async ({ input }) => {
         await projectFolderService.deleteFile(
           input.absolutePath,
-          input.correlationId
+          input.correlationId,
         );
       }),
 
@@ -174,7 +174,7 @@ export function createProjectFolderRouter(
         const newPath = await projectFolderService.duplicateFile(
           input.sourceAbsolutePath,
           input.newName,
-          input.correlationId
+          input.correlationId,
         );
         return { newPath };
       }),
@@ -185,7 +185,7 @@ export function createProjectFolderRouter(
         await projectFolderService.createFolder(
           input.parentPath,
           input.folderName,
-          input.correlationId
+          input.correlationId,
         );
       }),
   });

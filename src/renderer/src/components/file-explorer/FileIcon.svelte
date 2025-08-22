@@ -1,6 +1,7 @@
-<!-- apps/my-app-svelte/src/components/FileIcon.svelte -->
+<!-- src/renderer/src/components/file-explorer/FileIcon.svelte -->
 <script lang="ts">
   import {
+    ChatDots,
     Folder,
     Folder2Open,
     FileEarmark,
@@ -9,7 +10,6 @@
     FileEarmarkImage,
     FileEarmarkPdf,
     FileEarmarkZip,
-    ChatDots,
   } from "svelte-bootstrap-icons";
 
   interface FileIconProps {
@@ -28,6 +28,7 @@
     className = "",
   }: FileIconProps = $props();
 
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   function getIconComponent() {
     if (isDirectory) {
       return isExpanded ? Folder2Open : Folder;
@@ -71,7 +72,7 @@
     }
   }
 
-  function getIconColor() {
+  function getIconColor(): string {
     if (isDirectory) {
       return "text-blue-400";
     }

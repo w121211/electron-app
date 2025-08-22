@@ -1,10 +1,10 @@
-// apps/my-app-svelte/src/services/event-service.ts
+// src/renderer/src/services/event-service.ts
 import { Logger } from "tslog";
-import { trpcClient } from "../lib/trpc-client";
-import { projectService } from "./project-service";
-import { chatService } from "./chat-service";
-import { taskService } from "./task-service";
-import { setConnectionState } from "../stores/ui-store.svelte";
+import { trpcClient } from "../lib/trpc-client.js";
+import { setConnectionState } from "../stores/ui-store.svelte.js";
+import { chatService } from "./chat-service.js";
+import { projectService } from "./project-service.js";
+import { taskService } from "./task-service.js";
 
 interface Subscription {
   unsubscribe: () => void;

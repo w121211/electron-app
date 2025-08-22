@@ -1,5 +1,6 @@
-// packages/events-core/src/client/client-demo.ts
+// src/core/client/trpc-client-demo.ts
 // Run with: `pnpm run trpc-server` (trpc server), then `pnpm tsx src/client/client-demo.ts` (this client)
+
 import path from "node:path";
 import process from "node:process";
 import fs from "node:fs/promises";
@@ -10,14 +11,15 @@ import {
   loggerLink,
   splitLink,
 } from "@trpc/client";
-import SuperJSON from "superjson";
-import { Logger } from "tslog";
-import { v4 as uuidv4 } from "uuid";
+
 // Import EventSource polyfill for Node.js
 import { EventSourcePolyfill } from "event-source-polyfill";
-import type { AppRouter } from "../server/root-router.js";
 
-// Create a logger
+import superjson from "superjson";
+import { Logger } from "tslog";
+import { v4 as uuidv4 } from "uuid";
+import type { TrpcRouter } from "../server/root-router.js";
+
 const logger = new Logger({ name: "TRPCClient" });
 
 // Server configuration
@@ -32,7 +34,7 @@ const getUrl = () => {
 };
 
 // Create tRPC client
-const trpc = createTRPCClient<AppRouter>({
+const trpc = createTRPCClient<TrpcRouter>({
   links: [
     // Add pretty logs to your console in development and logs errors in production
     loggerLink({
@@ -49,13 +51,13 @@ const trpc = createTRPCClient<AppRouter>({
       condition: (op) => op.type === "subscription",
       true: httpSubscriptionLink({
         url: getUrl(),
-        transformer: SuperJSON,
+        transformer: superjson,
         // Use EventSource polyfill for Node.js environment
         EventSource: EventSourcePolyfill,
       }),
       false: httpBatchStreamLink({
         url: getUrl(),
-        transformer: SuperJSON,
+        transformer: superjson,
       }),
     }),
   ],

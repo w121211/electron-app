@@ -1,6 +1,6 @@
-<!-- apps/my-app-svelte/src/components/AiGenerationDisplay.svelte -->
+<!-- src/renderer/src/components/AiGenerationDisplay.svelte -->
 <script lang="ts">
-  import type { ChatSessionData } from "@repo/events-core/services/chat-engine/chat-session-repository";
+  import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository.js";
 
   interface Props {
     chatSession: ChatSessionData;
@@ -23,7 +23,7 @@
   const isProcessing = $derived(() => generationStage() !== null);
 </script>
 
-{#if isProcessing}
+{#if isProcessing()}
   <div class="group flex flex-col items-start">
     <div class="mb-0.5 flex items-center gap-2">
       <span
@@ -42,16 +42,14 @@
     <div class="text-foreground pl-7 leading-normal">
       <!-- Processing stage -->
       <div class="flex items-center gap-2">
-        <div class="animate-pulse text-muted">Thinking...</div>
+        <div class="text-muted animate-pulse">Thinking...</div>
         <div class="flex space-x-1">
+          <div class="bg-muted h-1 w-1 animate-pulse rounded-full"></div>
           <div
-            class="h-1 w-1 bg-muted rounded-full animate-pulse"
+            class="bg-muted h-1 w-1 animate-pulse rounded-full delay-75"
           ></div>
           <div
-            class="h-1 w-1 bg-muted rounded-full animate-pulse delay-75"
-          ></div>
-          <div
-            class="h-1 w-1 bg-muted rounded-full animate-pulse delay-150"
+            class="bg-muted h-1 w-1 animate-pulse rounded-full delay-150"
           ></div>
         </div>
       </div>

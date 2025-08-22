@@ -1,4 +1,4 @@
-// packages/events-core/src/event-bus.ts
+// src/core/event-bus.ts
 import { Logger, ILogObj } from "tslog";
 
 // Base event interface

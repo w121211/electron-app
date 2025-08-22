@@ -1,9 +1,8 @@
-// packages/events-core/src/services/chat-engine/ai-provider-utils.ts
-
+// src/core/services/chat-engine/ai-provider-utils.ts
 import { createProviderRegistry, customProvider } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
+// import { anthropic } from "@ai-sdk/anthropic";
+// import { openai } from "@ai-sdk/openai";
+// import { google } from "@ai-sdk/google";
 import type { ProviderRegistryProvider } from "ai";
 import type { ProviderV2 } from "@ai-sdk/provider";
 import type { UserSettings } from "../user-settings-repository.js";
@@ -17,11 +16,11 @@ export async function buildProviderRegistry(
   if (userSettings.providers?.openai?.enabled) {
     providers.openai = customProvider({
       languageModels: {
-        "gpt-4": openai("gpt-4"),
-        "gpt-4-turbo": openai("gpt-4-turbo"),
-        "gpt-3.5-turbo": openai("gpt-3.5-turbo"),
+        // "gpt-4": openai("gpt-4"),
+        // "gpt-4-turbo": openai("gpt-4-turbo"),
+        // "gpt-3.5-turbo": openai("gpt-3.5-turbo"),
       },
-      fallbackProvider: openai,
+      // fallbackProvider: openai,
     });
   }
 
@@ -29,12 +28,12 @@ export async function buildProviderRegistry(
   if (userSettings.providers?.anthropic?.enabled) {
     providers.anthropic = customProvider({
       languageModels: {
-        "claude-3-sonnet": anthropic("claude-3-sonnet-20240229"),
-        "claude-3-opus": anthropic("claude-3-opus-20240229"),
-        "claude-3-haiku": anthropic("claude-3-haiku-20240307"),
-        "claude-3.5-sonnet": anthropic("claude-3-5-sonnet-20241022"),
+        // "claude-3-sonnet": anthropic("claude-3-sonnet-20240229"),
+        // "claude-3-opus": anthropic("claude-3-opus-20240229"),
+        // "claude-3-haiku": anthropic("claude-3-haiku-20240307"),
+        // "claude-3.5-sonnet": anthropic("claude-3-5-sonnet-20241022"),
       },
-      fallbackProvider: anthropic,
+      // fallbackProvider: anthropic,
     });
   }
 
@@ -42,10 +41,10 @@ export async function buildProviderRegistry(
   if (userSettings.providers?.google?.enabled) {
     providers.google = customProvider({
       languageModels: {
-        "gemini-pro": google("gemini-pro"),
-        "gemini-1.5-pro": google("gemini-1.5-pro"),
+        // "gemini-pro": google("gemini-pro"),
+        // "gemini-1.5-pro": google("gemini-1.5-pro"),
       },
-      fallbackProvider: google,
+      // fallbackProvider: google,
     });
   }
 

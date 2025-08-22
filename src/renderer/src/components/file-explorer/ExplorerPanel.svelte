@@ -1,15 +1,12 @@
-<!-- apps/my-app-svelte/src/components/ExplorerPanel.svelte -->
+<!-- src/renderer/src/components/file-explorer/ExplorerPanel.svelte -->
 <script lang="ts">
   import { PlusLg, Gear } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { projectState } from "../../stores/project-store.svelte.js";
-  import {
-    uiState,
-    showToast,
-  } from "../../stores/ui-store.svelte";
-  import { projectService } from "../../services/project-service";
-  import { chatService } from "../../services/chat-service";
-  import { showContextMenu } from "../../stores/file-explorer-store.svelte";
+  import { uiState, showToast } from "../../stores/ui-store.svelte.js";
+  import { projectService } from "../../services/project-service.js";
+  import { chatService } from "../../services/chat-service.js";
+  import { showContextMenu } from "../../stores/file-explorer-store.svelte.js";
   import TreeNode from "./TreeNode.svelte";
   import FileIcon from "./FileIcon.svelte";
   import ContextMenu from "./ContextMenu.svelte";
@@ -19,13 +16,19 @@
   const logger = new Logger({ name: "ExplorerPanel" });
 
   // Derived loading states
-  const isLoadingAddProjectFolder = $derived(uiState.loadingStates["addProjectFolder"] || false);
-  const isLoadingProjectFolders = $derived(uiState.loadingStates["projectFolders"] || false);
-  const isLoadingCreateChat = $derived(uiState.loadingStates["createChat"] || false);
+  const isLoadingAddProjectFolder = $derived(
+    uiState.loadingStates["addProjectFolder"] || false,
+  );
+  const isLoadingProjectFolders = $derived(
+    uiState.loadingStates["projectFolders"] || false,
+  );
+  const isLoadingCreateChat = $derived(
+    uiState.loadingStates["createChat"] || false,
+  );
 
   let showSettings = $state(false);
 
-  async function handleAddProjectFolder() {
+  async function handleAddProjectFolder(): Promise<void> {
     const folderPath = prompt("Enter project folder path:");
     if (!folderPath) return;
 
@@ -36,7 +39,7 @@
     }
   }
 
-  async function handleNewChat(targetPath: string) {
+  async function handleNewChat(targetPath: string): Promise<void> {
     try {
       await chatService.createEmptyChat(targetPath);
     } catch (error) {
@@ -48,7 +51,7 @@
    * Handle tree node clicks - now delegates to service layer
    * Service will handle the business logic of what to do with different file types
    */
-  async function handleNodeClick(node: any) {
+  async function handleNodeClick(node: any): Promise<void> {
     try {
       await projectService.handleTreeNodeClick(node);
     } catch (error) {
@@ -57,8 +60,17 @@
     }
   }
 
-  function handleContextMenu(path: string, isDirectory: boolean, event: MouseEvent) {
-    console.log("🎯 ExplorerPanel: Context menu requested for:", path, "isDirectory:", isDirectory);
+  function handleContextMenu(
+    path: string,
+    isDirectory: boolean,
+    event: MouseEvent,
+  ): void {
+    console.log(
+      "🎯 ExplorerPanel: Context menu requested for:",
+      path,
+      "isDirectory:",
+      isDirectory,
+    );
     event.preventDefault();
     event.stopPropagation();
 
@@ -66,11 +78,11 @@
     showContextMenu(path, isDirectory, event.clientX, event.clientY);
   }
 
-  function handleStopTask(_path: string) {
+  function handleStopTask(path: string): void {
     showToast("Stop task functionality coming soon", "info");
   }
 
-  function handleOpenSettings() {
+  function handleOpenSettings(): void {
     showSettings = true;
   }
 </script>
@@ -78,7 +90,7 @@
 <div class="bg-surface border-border flex h-full w-64 flex-col border-r">
   <!-- Header -->
   <div class="border-border flex items-center justify-between border-b p-3">
-    <span class="text-muted text-xs font-semibold uppercase tracking-wide">
+    <span class="text-muted text-xs font-semibold tracking-wide uppercase">
       Projects
     </span>
     <button
@@ -96,7 +108,7 @@
     {#if isLoadingProjectFolders}
       <div class="text-muted p-4 text-sm">Loading project folders...</div>
     {:else if projectState.projectFolders.length === 0}
-      <div class="text-muted text-center p-4 text-sm">
+      <div class="text-muted p-4 text-center text-sm">
         <FileIcon
           fileName=""
           isDirectory={true}
@@ -104,7 +116,7 @@
           className="mx-auto mb-2"
         />
         <p>No project folders</p>
-        <p class="text-xs mt-1">Add a project folder to get started</p>
+        <p class="mt-1 text-xs">Add a project folder to get started</p>
       </div>
     {:else}
       {#each projectState.projectFolders as folder (folder.id)}
@@ -129,8 +141,8 @@
     <div class="text-muted space-y-1 text-xs">
       <div class="flex items-center">
         <div
-          class="mr-2 h-2 w-2 rounded-full {uiState.connectionStates.fileWatcher ===
-          'connected'
+          class="mr-2 h-2 w-2 rounded-full {uiState.connectionStates
+            .fileWatcher === 'connected'
             ? 'bg-green-500'
             : uiState.connectionStates.fileWatcher === 'connecting'
               ? 'bg-yellow-500'
@@ -142,8 +154,8 @@
       </div>
       <div class="flex items-center">
         <div
-          class="mr-2 h-2 w-2 rounded-full {uiState.connectionStates.taskEvents ===
-          'connected'
+          class="mr-2 h-2 w-2 rounded-full {uiState.connectionStates
+            .taskEvents === 'connected'
             ? 'bg-green-500'
             : uiState.connectionStates.taskEvents === 'connecting'
               ? 'bg-yellow-500'
@@ -160,7 +172,7 @@
   <div class="border-border border-t p-3">
     <button
       onclick={handleOpenSettings}
-      class="text-muted hover:text-accent cursor-pointer flex w-full items-center justify-center px-3 py-2 text-xs font-medium"
+      class="text-muted hover:text-accent flex w-full cursor-pointer items-center justify-center px-3 py-2 text-xs font-medium"
     >
       <Gear class="mr-2 text-sm" />
       Settings
@@ -175,6 +187,6 @@
 
   <!-- Settings Modal -->
   {#if showSettings}
-    <UserSettings {showSettings} onClose={() => showSettings = false} />
+    <UserSettings {showSettings} onClose={() => (showSettings = false)} />
   {/if}
 </div>

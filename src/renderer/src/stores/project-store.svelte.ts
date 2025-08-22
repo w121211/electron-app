@@ -1,4 +1,4 @@
-// apps/my-app-svelte/src/stores/project-store.svelte.ts
+// src/renderer/src/stores/project-store.svelte.ts
 
 export interface ProjectFolder {
   id: string;

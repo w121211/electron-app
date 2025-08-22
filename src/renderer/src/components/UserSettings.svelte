@@ -1,11 +1,10 @@
-<!-- apps/my-app-svelte/src/components/UserSettings.svelte -->
+<!-- src/renderer/src/components/UserSettings.svelte -->
 <script lang="ts">
-  import { userSettingsState } from "../stores/user-settings-store.svelte.js";
+  import { Gear, X, Plus, Trash, Pencil } from "svelte-bootstrap-icons";
+  import { projectService } from "../services/project-service.js";
   import { userSettingsService } from "../services/user-settings-service.js";
   import { projectState } from "../stores/project-store.svelte.js";
-  import { projectService } from "../services/project-service.js";
-  import { onMount } from "svelte";
-  import { Gear, X, Plus, Trash, Pencil } from "svelte-bootstrap-icons";
+  import { userSettingsState } from "../stores/user-settings-store.svelte.js";
 
   let {
     showSettings = false,
@@ -36,24 +35,24 @@
     },
   ]);
 
-  onMount(() => {
+  $effect(() => {
     userSettingsService.loadSettings();
   });
 
-  function toggleSettings() {
+  function toggleSettings(): void {
     if (onClose) {
       onClose();
     }
   }
 
-  function toggleAddProjectFolder() {
+  function toggleAddProjectFolder(): void {
     showAddProjectFolder = !showAddProjectFolder;
     if (!showAddProjectFolder) {
       newProjectFolder = "";
     }
   }
 
-  async function addProjectFolder() {
+  async function addProjectFolder(): Promise<void> {
     if (!newProjectFolder.trim()) return;
 
     try {
@@ -65,7 +64,7 @@
     }
   }
 
-  async function removeProjectFolder(folderId: string) {
+  async function removeProjectFolder(folderId: string): Promise<void> {
     try {
       await projectService.removeProjectFolder(folderId);
     } catch (error) {
@@ -73,7 +72,7 @@
     }
   }
 
-  function handleKeyDown(event: KeyboardEvent) {
+  function handleKeyDown(event: KeyboardEvent): void {
     if (event.key === "Enter") {
       addProjectFolder();
     } else if (event.key === "Escape") {
@@ -82,11 +81,11 @@
     }
   }
 
-  function toggleProvider(providerKey: string) {
+  function toggleProvider(providerKey: string): void {
     providers[providerKey].enabled = !providers[providerKey].enabled;
   }
 
-  function toggleMcpServer(serverId: string) {
+  function toggleMcpServer(serverId: string): void {
     const server = mcpServers.find((s) => s.id === serverId);
     if (server) {
       server.enabled = !server.enabled;
@@ -96,29 +95,29 @@
 
 <button
   onclick={toggleSettings}
-  class="p-2 text-gray-400 hover:text-gray-300 transition-colors"
+  class="p-2 text-gray-400 transition-colors hover:text-gray-300"
   title="User Settings"
   aria-label="Open settings"
 >
-  <Gear class="w-5 h-5" />
+  <Gear class="h-5 w-5" />
 </button>
 
 {#if showSettings}
-  <div class="fixed inset-0 z-50 bg-black bg-opacity-50">
+  <div class="bg-opacity-50 fixed inset-0 z-50 bg-black">
     <div class="bg-background text-foreground h-screen overflow-hidden">
       <!-- Header -->
       <header
-        class="bg-surface border-b border-border flex h-12 shrink-0 items-center gap-2 px-4"
+        class="bg-surface border-border flex h-12 shrink-0 items-center gap-2 border-b px-4"
       >
-        <Gear class="w-5 h-5 text-muted" />
+        <Gear class="text-muted h-5 w-5" />
         <span class="font-semibold">Settings</span>
         <div class="flex-1"></div>
         <button
           onclick={toggleSettings}
-          class="text-muted hover:text-foreground transition-colors cursor-pointer"
+          class="text-muted hover:text-foreground cursor-pointer transition-colors"
           aria-label="Close settings"
         >
-          <X class="w-6 h-6" />
+          <X class="h-6 w-6" />
         </button>
       </header>
 
@@ -126,11 +125,11 @@
       <div class="overflow-y-auto p-6" style="height: calc(100vh - 48px);">
         <div class="mx-auto max-w-3xl space-y-10">
           {#if userSettingsState.loading}
-            <div class="text-center py-4">
+            <div class="py-4 text-center">
               <div
-                class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto"
+                class="border-accent mx-auto h-8 w-8 animate-spin rounded-full border-b-2"
               ></div>
-              <p class="mt-2 text-sm text-muted">Loading settings...</p>
+              <p class="text-muted mt-2 text-sm">Loading settings...</p>
             </div>
           {:else}
             <!-- Project Management Section -->
@@ -148,7 +147,7 @@
                     onclick={toggleAddProjectFolder}
                     class="bg-surface hover:bg-hover border-border text-foreground cursor-pointer rounded-md border px-3 py-1 text-sm font-medium"
                   >
-                    <Plus class="inline w-3 h-3 mr-1" />
+                    <Plus class="mr-1 inline h-3 w-3" />
                     Add Folder
                   </button>
                 </div>
@@ -166,13 +165,13 @@
                       <button
                         onclick={addProjectFolder}
                         disabled={!newProjectFolder.trim()}
-                        class="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        class="rounded-md bg-green-600 px-3 py-1 text-sm text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Add
                       </button>
                       <button
                         onclick={toggleAddProjectFolder}
-                        class="px-3 py-1 bg-border text-foreground text-sm rounded-md hover:bg-selected transition-colors"
+                        class="bg-border text-foreground hover:bg-selected rounded-md px-3 py-1 text-sm transition-colors"
                       >
                         Cancel
                       </button>
@@ -181,23 +180,23 @@
                 {/if}
 
                 <ul class="divide-border divide-y">
-                  {#each projectState.projectFolders as folder}
+                  {#each projectState.projectFolders as folder (folder.id)}
                     <li class="flex items-center justify-between px-3 py-2">
                       <p class="font-mono text-sm">{folder.path}</p>
                       <button
                         onclick={() => removeProjectFolder(folder.id)}
-                        class="text-muted hover:text-red-500 cursor-pointer"
+                        class="text-muted cursor-pointer hover:text-red-500"
                         title="Remove"
                         aria-label="Remove folder"
                       >
-                        <Trash class="w-4 h-4" />
+                        <Trash class="h-4 w-4" />
                       </button>
                     </li>
                   {/each}
 
                   {#if projectState.projectFolders.length === 0}
                     <li class="px-3 py-2">
-                      <p class="text-sm text-muted italic">
+                      <p class="text-muted text-sm italic">
                         No project folders added
                       </p>
                     </li>
@@ -212,9 +211,7 @@
               <p class="text-muted mt-1 text-sm">
                 Configure API keys for the AI models you want to use.
               </p>
-              <div
-                class="border-border mt-4 overflow-hidden rounded-lg border"
-              >
+              <div class="border-border mt-4 overflow-hidden rounded-lg border">
                 <table class="w-full">
                   <thead class="bg-surface/50">
                     <tr>
@@ -247,7 +244,7 @@
                         <input
                           type="checkbox"
                           bind:checked={providers.openai.enabled}
-                          class="w-4 h-4"
+                          class="h-4 w-4"
                         />
                       </td>
                     </tr>
@@ -265,7 +262,7 @@
                         <input
                           type="checkbox"
                           bind:checked={providers.anthropic.enabled}
-                          class="w-4 h-4"
+                          class="h-4 w-4"
                         />
                       </td>
                     </tr>
@@ -283,7 +280,7 @@
                         <input
                           type="checkbox"
                           bind:checked={providers.google.enabled}
-                          class="w-4 h-4"
+                          class="h-4 w-4"
                         />
                       </td>
                     </tr>
@@ -306,12 +303,12 @@
                   <button
                     class="bg-surface hover:bg-hover border-border text-foreground cursor-pointer rounded-md border px-3 py-1 text-sm font-medium"
                   >
-                    <Plus class="inline w-3 h-3 mr-1" />
+                    <Plus class="mr-1 inline h-3 w-3" />
                     Add Server
                   </button>
                 </div>
                 <ul class="divide-border divide-y">
-                  {#each mcpServers as server}
+                  {#each mcpServers as server (server.id)}
                     <li class="flex items-center justify-between px-3 py-2">
                       <div>
                         <p class="font-medium">{server.name}</p>
@@ -336,14 +333,14 @@
                           title="Edit"
                           aria-label="Edit server"
                         >
-                          <Pencil class="w-4 h-4" />
+                          <Pencil class="h-4 w-4" />
                         </button>
                         <button
-                          class="text-muted hover:text-red-500 cursor-pointer"
+                          class="text-muted cursor-pointer hover:text-red-500"
                           title="Remove"
                           aria-label="Remove server"
                         >
-                          <Trash class="w-4 h-4" />
+                          <Trash class="h-4 w-4" />
                         </button>
                       </div>
                     </li>
@@ -354,7 +351,7 @@
           {/if}
 
           {#if userSettingsState.error}
-            <div class="p-3 bg-red-600/10 border border-red-600/20 rounded-md">
+            <div class="rounded-md border border-red-600/20 bg-red-600/10 p-3">
               <p class="text-sm text-red-400">{userSettingsState.error}</p>
             </div>
           {/if}
@@ -363,4 +360,3 @@
     </div>
   </div>
 {/if}
-

@@ -1,4 +1,4 @@
-// packages/events-core/src/services/file-watcher-service.ts
+// src/core/services/file-watcher-service.ts
 import path from "node:path";
 import chokidar, { FSWatcher, ChokidarOptions } from "chokidar";
 import { Logger, ILogObj } from "tslog";

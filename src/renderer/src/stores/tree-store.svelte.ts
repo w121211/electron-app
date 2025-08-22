@@ -1,4 +1,4 @@
-// apps/my-app-svelte/src/stores/tree-store.svelte.ts
+// src/renderer/src/stores/tree-store.svelte.ts
 
 interface TreeState {
   selectedNode: string | null;
@@ -20,9 +20,8 @@ export const treeState = $state<TreeState>({
   // Drag and drop state
   draggedNode: null,
   dropTarget: null,
-  isDragging: false
+  isDragging: false,
 });
-
 
 // Internal store functions - used by service layer
 // These handle only the state updates, not business logic
@@ -66,17 +65,17 @@ export function expandNode(nodePath: string) {
  * Expand all parent directories of a given file path
  */
 export function expandParentDirectories(filePath: string) {
-  const pathParts = filePath.split('/');
+  const pathParts = filePath.split("/");
   const parentPaths: string[] = [];
-  
+
   // Build all parent directory paths
   for (let i = 1; i < pathParts.length; i++) {
-    const parentPath = pathParts.slice(0, i + 1).join('/');
+    const parentPath = pathParts.slice(0, i + 1).join("/");
     parentPaths.push(parentPath);
   }
-  
+
   // Expand all parent directories
-  parentPaths.forEach(path => {
+  parentPaths.forEach((path) => {
     if (!treeState.expandedNodePaths.includes(path)) {
       treeState.expandedNodePaths.push(path);
     }
@@ -147,10 +146,10 @@ export function clearDragState() {
 export function canDropOn(draggedPath: string, targetPath: string): boolean {
   // Cannot drop on self
   if (draggedPath === targetPath) return false;
-  
+
   // Cannot drop parent into child (would create circular reference)
-  if (targetPath.startsWith(draggedPath + '/')) return false;
-  
+  if (targetPath.startsWith(draggedPath + "/")) return false;
+
   return true;
 }
 

@@ -1,4 +1,4 @@
-// packages/events-core/src/services/task-service.ts
+// src/core/services/task-service.ts
 import { ILogObj, Logger } from "tslog";
 import { v4 as uuidv4 } from "uuid";
 import type { IEventBus, BaseEvent } from "../event-bus.js";

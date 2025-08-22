@@ -1,5 +1,4 @@
-// packages/events-core/src/services/chat-engine/chat-client.ts
-
+// src/core/services/chat-engine/chat-client.ts
 import { ILogObj, Logger } from "tslog";
 import { v4 as uuidv4 } from "uuid";
 import type { StreamTextResult, ToolSet, UserModelMessage } from "ai";

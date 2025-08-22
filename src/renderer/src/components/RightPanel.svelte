@@ -1,11 +1,5 @@
-<!-- apps/my-app-svelte/src/components/RightPanel.svelte -->
+<!-- src/renderer/src/components/RightPanel.svelte -->
 <script lang="ts">
-  import { Logger } from "tslog";
-  import { showToast, uiState } from "../stores/ui-store.svelte";
-  import { treeState } from "../stores/tree-store.svelte";
-  import { fileService } from "../services/file-service";
-  import { projectService } from "../services/project-service";
-  import UserSettings from "./UserSettings.svelte";
   import {
     Pencil,
     CheckLg,
@@ -15,17 +9,25 @@
     ArrowClockwise,
     Share,
   } from "svelte-bootstrap-icons";
+  import { Logger } from "tslog";
+  import { showToast, uiState } from "../stores/ui-store.svelte.js";
+  import { treeState } from "../stores/tree-store.svelte.js";
+  import { fileService } from "../services/file-service.js";
+  import { projectService } from "../services/project-service.js";
+  import UserSettings from "./UserSettings.svelte";
 
   const logger = new Logger({ name: "RightPanel" });
 
   // Derived loading state
-  const isLoadingOpenFile = $derived(uiState.loadingStates["openFile"] || false);
+  const isLoadingOpenFile = $derived(
+    uiState.loadingStates["openFile"] || false,
+  );
 
   // Context management state
   let projectContext = $state(`#<demo-project>/demo.md #/path/to/outside/file.md
 Text is also allowed here for additional context.`);
   let isEditingContext = $state(false);
-  let contextInput = $state('');
+  let contextInput = $state("");
 
   // Preview state
   let fileContent = $state<any>(null);
@@ -54,7 +56,7 @@ Text is also allowed here for additional context.`);
     }
   });
 
-  async function loadFileContent(filePath: string) {
+  async function loadFileContent(filePath: string): Promise<void> {
     fileContent = null;
     fileLoadError = null;
 
@@ -67,56 +69,60 @@ Text is also allowed here for additional context.`);
     }
   }
 
-  function handleEditContext() {
+  function handleEditContext(): void {
     contextInput = projectContext;
     isEditingContext = true;
   }
 
-  function handleSaveContext() {
+  function handleSaveContext(): void {
     projectContext = contextInput;
     isEditingContext = false;
     showToast("Project context updated", "success");
   }
 
-  function handleCancelEdit() {
+  function handleCancelEdit(): void {
     contextInput = projectContext;
     isEditingContext = false;
   }
 
-  function handleDownloadArtifact(fileName: string) {
+  function handleDownloadArtifact(fileName: string): void {
     showToast(`Download ${fileName} functionality coming soon`, "info");
   }
 
-  function handlePreviewFile(filePath: string) {
+  function handlePreviewFile(filePath: string): void {
     // This would trigger the preview overlay
     showToast(`Preview ${filePath} functionality coming soon`, "info");
   }
 
-  function handleDownload() {
+  function handleDownload(): void {
     showToast("Download functionality coming soon", "info");
   }
 
-  function handleShare() {
+  function handleShare(): void {
     showToast("Share functionality coming soon", "info");
   }
 
-  function handleEdit() {
+  function handleEdit(): void {
     showToast("Edit functionality coming soon", "info");
   }
 
-  function handleRefresh() {
+  function handleRefresh(): void {
     if (treeState.selectedPreviewFile) {
       loadFileContent(treeState.selectedPreviewFile);
     }
   }
 
-  function clearPreview() {
+  function clearPreview(): void {
     projectService.clearSelection();
     fileContent = null;
     fileLoadError = null;
   }
 
-  function renderContextContent(text: string) {
+  function renderContextContent(text: string): Array<{
+    type: string;
+    content: string;
+    key: number;
+  }> {
     const parts = text.split(/(#[^\s]+)/g);
 
     return parts.map((part, index) => {
@@ -147,12 +153,14 @@ Text is also allowed here for additional context.`);
   }
 </script>
 
-<div class="w-96 bg-surface border-l border-border flex flex-col relative">
+<div class="bg-surface border-border relative flex w-96 flex-col border-l">
   <!-- Base Layer: Chat Control Panel -->
   <div class="flex h-full flex-col">
     <!-- Panel Header -->
-    <div class="border-border flex h-12 items-center justify-between border-b px-4">
-      <span class="text-muted text-xs font-semibold uppercase tracking-wide">
+    <div
+      class="border-border flex h-12 items-center justify-between border-b px-4"
+    >
+      <span class="text-muted text-xs font-semibold tracking-wide uppercase">
         Chat Control
       </span>
       <UserSettings />
@@ -197,7 +205,7 @@ Text is also allowed here for additional context.`);
         {#if !isEditingContext}
           <div
             onclick={handleEditContext}
-            onkeydown={(e) => e.key === 'Enter' && handleEditContext()}
+            onkeydown={(e) => e.key === "Enter" && handleEditContext()}
             role="button"
             tabindex="0"
             class="bg-input-background border-input-border text-muted hover:border-accent/50 min-h-[100px] cursor-text rounded border p-3 text-sm transition-colors"
@@ -250,7 +258,8 @@ Text is also allowed here for additional context.`);
             <div
               class="bg-panel hover:bg-hover group flex cursor-pointer items-center justify-between rounded p-2"
               onclick={() => handlePreviewFile(artifact.fileName)}
-              onkeydown={(e) => e.key === 'Enter' && handlePreviewFile(artifact.fileName)}
+              onkeydown={(e) =>
+                e.key === "Enter" && handlePreviewFile(artifact.fileName)}
               role="button"
               tabindex="0"
             >
@@ -295,7 +304,7 @@ Text is also allowed here for additional context.`);
 
   <!-- Overlay Layer: Preview Panel -->
   {#if treeState.selectedPreviewFile}
-    <div class="absolute inset-0 bg-surface z-20">
+    <div class="bg-surface absolute inset-0 z-20">
       <div class="flex h-full flex-col">
         <!-- Header -->
         <div
@@ -360,7 +369,7 @@ Text is also allowed here for additional context.`);
               <p class="text-muted mb-3 text-sm">
                 {treeState.selectedPreviewFile?.split("/").pop()}
               </p>
-              <p class="text-red-400 mb-3 text-sm">{fileLoadError}</p>
+              <p class="mb-3 text-sm text-red-400">{fileLoadError}</p>
               <button
                 onclick={handleRefresh}
                 class="rounded border border-red-600/40 bg-red-600/20 px-3 py-1 text-sm text-red-400 hover:bg-red-600/30"
@@ -385,10 +394,10 @@ Text is also allowed here for additional context.`);
                 {#if fileContent.fileType === "markdown"}
                   <!-- For markdown files, we could add proper markdown rendering here -->
                   <pre
-                    class="text-foreground whitespace-pre-wrap break-words font-mono text-sm">{fileContent.content}</pre>
+                    class="text-foreground font-mono text-sm break-words whitespace-pre-wrap">{fileContent.content}</pre>
                 {:else}
                   <pre
-                    class="text-foreground whitespace-pre-wrap break-words font-mono text-sm">{fileContent.content}</pre>
+                    class="text-foreground font-mono text-sm break-words whitespace-pre-wrap">{fileContent.content}</pre>
                 {/if}
               </div>
             {/if}

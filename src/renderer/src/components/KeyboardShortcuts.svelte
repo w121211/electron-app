@@ -1,15 +1,12 @@
-<!-- apps/my-app-svelte/src/components/shared/KeyboardShortcuts.svelte -->
+<!-- src/renderer/src/components/KeyboardShortcuts.svelte -->
 <script lang="ts">
-  import { keyboardManager } from "../lib/keyboard";
   import { Keyboard } from "svelte-bootstrap-icons";
+  import { keyboardManager } from "../lib/keyboard.js";
 
   let showShortcuts = $state(false);
-  let shortcuts = $state<Array<{ key: string; description: string }>>([]);
-
-  // Use $effect instead of onMount for Svelte 5
-  $effect(() => {
-    shortcuts = keyboardManager.getShortcuts().map((s) => {
-      const keys = [];
+  let shortcuts = $derived(
+    keyboardManager.getShortcuts().map((s) => {
+      const keys: string[] = [];
       if (s.ctrlKey) keys.push("Ctrl");
       if (s.shiftKey) keys.push("Shift");
       if (s.altKey) keys.push("Alt");
@@ -20,10 +17,10 @@
         key: keys.join("+"),
         description: s.description,
       };
-    });
-  });
+    }),
+  );
 
-  function toggleShortcuts() {
+  function toggleShortcuts(): void {
     showShortcuts = !showShortcuts;
   }
 </script>
@@ -56,11 +53,11 @@
       </div>
 
       <div class="space-y-2">
-        {#each shortcuts as shortcut}
+        {#each shortcuts as shortcut (shortcut.key)}
           <div class="flex items-center justify-between">
             <span class="text-muted text-sm">{shortcut.description}</span>
             <kbd
-              class="bg-panel border-border rounded border px-2 py-1 text-xs font-mono"
+              class="bg-panel border-border rounded border px-2 py-1 font-mono text-xs"
             >
               {shortcut.key}
             </kbd>
@@ -68,7 +65,7 @@
         {/each}
       </div>
 
-      <div class="mt-4 pt-4 border-t border-border">
+      <div class="border-border mt-4 border-t pt-4">
         <p class="text-muted text-xs">
           Press <kbd class="bg-panel border-border rounded border px-1"
             >Ctrl+/</kbd

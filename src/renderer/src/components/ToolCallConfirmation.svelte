@@ -1,9 +1,8 @@
-<!-- apps/my-app-svelte/src/components/ToolCallConfirmation.svelte -->
+<!-- src/renderer/src/components/ToolCallConfirmation.svelte -->
 <script lang="ts">
+  import { Logger } from "tslog";
   import type { ModelMessage } from "ai";
   import { chatService } from "../services/chat-service.js";
-  import { showToast } from "../stores/ui-store.svelte.js";
-  import { Logger } from "tslog";
 
   interface Props {
     chatId: string;
@@ -25,20 +24,22 @@
       return [];
     }
 
-    return lastAssistantMessage.content.filter(part => part.type === "tool-call");
+    return lastAssistantMessage.content.filter(
+      (part) => part.type === "tool-call",
+    );
   });
 
   async function handleToolCallConfirmation(
     toolCallId: string,
-    outcome: "yes" | "no" | "yes_always"
-  ) {
+    outcome: "yes" | "no" | "yes_always",
+  ): Promise<void> {
     try {
       logger.info("Confirming tool call:", toolCallId, outcome);
       await chatService.confirmToolCall(
         absoluteFilePath,
         chatId,
         toolCallId,
-        outcome
+        outcome,
       );
     } catch (error) {
       logger.error("Failed to confirm tool call:", error);
@@ -51,43 +52,53 @@
   <div class="group flex flex-col items-start">
     <div class="mb-0.5 flex items-center gap-2">
       <span
-        class="bg-orange-500 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white"
+        class="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white"
       >
         🔧
       </span>
-      <span class="text-muted text-xs font-medium">Tool Confirmation Required</span>
+      <span class="text-muted text-xs font-medium"
+        >Tool Confirmation Required</span
+      >
     </div>
 
     <div class="text-foreground pl-7 leading-normal">
-      <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
-        <p class="text-sm text-orange-800 font-medium">
-          Claude wants to use tools to help with your request. Please review and approve:
+      <div
+        class="space-y-3 rounded-lg border border-orange-200 bg-orange-50 p-4"
+      >
+        <p class="text-sm font-medium text-orange-800">
+          Claude wants to use tools to help with your request. Please review and
+          approve:
         </p>
-        
-        {#each toolCalls() as toolCall}
-          <div class="bg-white border border-orange-300 rounded p-3 space-y-2">
+
+        {#each toolCalls() as toolCall (toolCall.toolCallId)}
+          <div class="space-y-2 rounded border border-orange-300 bg-white p-3">
             <div class="text-sm font-medium text-orange-900">
               🔧 {toolCall.toolName}
             </div>
-            <div class="text-xs text-orange-700 bg-orange-50 rounded p-2 overflow-x-auto">
+            <div
+              class="overflow-x-auto rounded bg-orange-50 p-2 text-xs text-orange-700"
+            >
               <pre>{JSON.stringify(toolCall.input, null, 2)}</pre>
             </div>
             <div class="flex gap-2">
               <button
-                onclick={() => handleToolCallConfirmation(toolCall.toolCallId, "yes")}
-                class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium"
+                onclick={() =>
+                  handleToolCallConfirmation(toolCall.toolCallId, "yes")}
+                class="rounded bg-green-600 px-3 py-1 text-sm font-medium text-white hover:bg-green-700"
               >
                 Yes
               </button>
               <button
-                onclick={() => handleToolCallConfirmation(toolCall.toolCallId, "no")}
-                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium"
+                onclick={() =>
+                  handleToolCallConfirmation(toolCall.toolCallId, "no")}
+                class="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700"
               >
                 No
               </button>
               <button
-                onclick={() => handleToolCallConfirmation(toolCall.toolCallId, "yes_always")}
-                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium"
+                onclick={() =>
+                  handleToolCallConfirmation(toolCall.toolCallId, "yes_always")}
+                class="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
               >
                 Always Allow
               </button>

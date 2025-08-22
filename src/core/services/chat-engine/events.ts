@@ -1,5 +1,4 @@
-// packages/events-core/src/services/chat-engine/events.ts
-
+// src/core/services/chat-engine/events.ts
 import type { BaseEvent } from "../../event-bus.js";
 import type {
   ChatMessage,

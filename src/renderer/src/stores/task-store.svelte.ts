@@ -1,5 +1,5 @@
-// apps/my-app-svelte/src/stores/task-store.svelte.ts
-import type { Task } from "../services/task-service";
+// src/renderer/src/stores/task-store.svelte.ts
+import type { Task } from "../services/task-service.js";
 
 // Core task state
 export const tasks = $state<Task[]>([]);
@@ -33,7 +33,7 @@ export function removeTask(taskId: string) {
   if (index !== -1) {
     const removedTask = tasks[index];
     tasks.splice(index, 1);
-    
+
     // Remove from path mapping
     if (removedTask?.absoluteDirectoryPath) {
       tasksByPath.delete(removedTask.absoluteDirectoryPath);

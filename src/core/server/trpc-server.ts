@@ -1,111 +1,131 @@
-// packages/events-core/src/server/trpc-server.ts
-// Run with: `AI_GATEWAY_API_KEY="your_api_key" pnpm tsx --watch src/server/trpc-server.ts`
-import {
-  CreateHTTPContextOptions,
-  createHTTPServer,
-} from "@trpc/server/adapters/standalone";
-import { initTRPC } from "@trpc/server";
-import superjson from "superjson";
-import { Logger } from "tslog";
-// import { createAppRouter } from "./root-router.js";
+// src/core/server/http-server.ts
+import { createHTTPServer } from "@trpc/server/adapters/standalone";
+import cors from "cors";
+import { ILogObj, Logger } from "tslog";
+import { createContext } from "./trpc-init.js";
+import { createTrpcRouter } from "./root-router.js";
 
-const logger = new Logger({ name: "Server" });
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3333;
+const logger: Logger<ILogObj> = new Logger({ name: "HttpTrpcServer" });
 
-// Create context type
-function createContext(opts: CreateHTTPContextOptions) {
-  return {};
+interface ServerConfig {
+  port?: number;
+  userDataDir: string;
 }
-type Context = Awaited<ReturnType<typeof createContext>>;
 
-// Initialize tRPC with context
-const t = initTRPC.context<Context>().create({
-  transformer: superjson,
-  errorFormatter({ shape }) {
-    return shape;
-  },
-  sse: {
-    maxDurationMs: 5 * 60 * 1_000, // 5 minutes
-    ping: {
-      enabled: true,
-      intervalMs: 3_000,
-    },
-    client: {
-      reconnectAfterInactivityMs: 5_000,
-    },
-  },
-});
+export class HttpTrpcServer {
+  private server: any = null;
+  private port: number = 0;
+  private userDataDir: string;
 
-// Export base tRPC elements
-export const router = t.router;
-export const mergeRouters = t.mergeRouters;
-export const createCallerFactory = t.createCallerFactory;
+  constructor(config: ServerConfig) {
+    this.userDataDir = config.userDataDir;
+    logger.info(`Using user data directory: ${this.userDataDir}`);
+  }
 
-/**
- * Create an unprotected procedure
- * @see https://trpc.io/docs/v11/procedures
- **/
-export const publicProcedure = t.procedure.use(
-  async function artificialDelayInDevelopment(opts) {
-    const res = opts.next(opts);
-
-    if (process.env.NODE_ENV === "development") {
-      const randomNumber = (min: number, max: number) =>
-        Math.floor(Math.random() * (max - min + 1)) + min;
-
-      const delay = randomNumber(300, 1_000);
-      logger.debug(
-        `ℹ️ doing artificial delay of ${delay} ms before returning ${opts.path}`,
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
+  async start(preferredPort: number = 0): Promise<number> {
+    if (this.server) {
+      logger.warn("Server is already running");
+      return this.port;
     }
 
-    return res;
-  },
-);
+    try {
+      logger.info("Starting embedded tRPC server...");
 
-// async function startServer() {
-//   logger.info("Starting server...");
+      // Create the app router
+      const trpcRouter = await createTrpcRouter(this.userDataDir);
 
-//   try {
-//     // Get user data directory from environment or use default
-//     const userDataDir = process.cwd() + "/my-demo-space/user-data";
-//     const appRouter = await createAppRouter(userDataDir);
+      // Create HTTP server with tRPC handler (no CORS needed for Electron)
+      this.server = createHTTPServer({
+        middleware: cors(),
+        router: trpcRouter,
+        createContext,
+        basePath: "/api/trpc/",
+      });
 
-//     // Create HTTP server with tRPC handler
-//     const server = createHTTPServer({
-//       middleware: cors(),
-//       router: appRouter,
-//       createContext,
-//       basePath: "/api/trpc/",
-//     });
+      // Find available port
+      const actualPort = await this.findAvailablePort(preferredPort);
 
-//     // Start the server
-//     server.listen(PORT, () => {
-//       logger.info(`Server listening on http://localhost:${PORT}`);
-//       logger.info(
-//         `tRPC endpoint available at http://localhost:${PORT}/api/trpc`,
-//       );
-//     });
+      return new Promise<number>((resolve, reject) => {
+        this.server.listen(actualPort, "127.0.0.1", () => {
+          this.port = actualPort;
+          logger.info(
+            `Http tRPC server listening on http://127.0.0.1:${this.port}`,
+          );
+          logger.info(`tRPC endpoint: http://127.0.0.1:${this.port}/api/trpc`);
+          resolve(this.port);
+        });
 
-//     // Handle shutdown
-//     const shutdown = () => {
-//       logger.info("Shutting down server...");
-//       server.close();
-//       process.exit(0);
-//     };
+        this.server.on("error", (error: any) => {
+          logger.error("Failed to start http server:", error);
+          reject(error);
+        });
+      });
+    } catch (error) {
+      logger.error("Failed to initialize http server:", error);
+      throw error;
+    }
+  }
 
-//     process.on("SIGTERM", shutdown);
-//     process.on("SIGINT", shutdown);
-//   } catch (error) {
-//     logger.error("Failed to start server:", error);
-//     process.exit(1);
-//   }
-// }
+  async stop(): Promise<void> {
+    if (!this.server) {
+      return;
+    }
 
-// Start the server
-// startServer().catch((error) => {
-//   logger.fatal("Fatal server error:", error);
-//   process.exit(1);
-// });
+    return new Promise<void>((resolve) => {
+      logger.info("Stopping embedded tRPC server...");
+      this.server.close(() => {
+        this.server = null;
+        this.port = 0;
+        logger.info("Embedded tRPC server stopped");
+        resolve();
+      });
+    });
+  }
+
+  getPort(): number {
+    return this.port;
+  }
+
+  isRunning(): boolean {
+    return this.server !== null;
+  }
+
+  getBaseUrl(): string {
+    return `http://127.0.0.1:${this.port}`;
+  }
+
+  getTrpcUrl(): string {
+    return `${this.getBaseUrl()}/api/trpc`;
+  }
+
+  private async findAvailablePort(preferredPort: number): Promise<number> {
+    const net = await import("net");
+
+    return new Promise((resolve, reject) => {
+      const server = net.createServer();
+
+      server.listen(preferredPort, () => {
+        const port = (server.address() as any)?.port;
+        server.close(() => {
+          resolve(port);
+        });
+      });
+
+      server.on("error", (err: any) => {
+        if (err.code === "EADDRINUSE") {
+          // Try with port 0 to get any available port
+          const fallbackServer = net.createServer();
+          fallbackServer.listen(0, () => {
+            const port = (fallbackServer.address() as any)?.port;
+            fallbackServer.close(() => {
+              resolve(port);
+            });
+          });
+          fallbackServer.on("error", reject);
+        } else {
+          reject(err);
+        }
+      });
+    });
+  }
+}

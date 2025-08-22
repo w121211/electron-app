@@ -1,25 +1,20 @@
-// apps/my-app-svelte/src/services/chat-service.ts
+// src/renderer/src/services/chat-service.ts
 import { Logger } from "tslog";
-import type {
-  ChatSessionData,
-  ChatMessage,
-} from "@repo/events-core/services/chat-engine/chat-session-repository";
-import type { ChatUpdatedEvent } from "@repo/events-core/services/chat-engine/events";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
   chatState,
   setCurrentChat,
   clearCurrentChat,
-  updateMessageInput,
   clearMessageInput,
-} from "../stores/chat-store.svelte";
+} from "../stores/chat-store.svelte.js";
 import { projectState } from "../stores/project-store.svelte.js";
 import {
   selectFile,
   expandParentDirectories,
-} from "../stores/tree-store.svelte";
-import { setLoading, showToast } from "../stores/ui-store.svelte";
+} from "../stores/tree-store.svelte.js";
+import { setLoading, showToast } from "../stores/ui-store.svelte.js";
 import { projectService } from "./project-service.js";
+import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
 
 class ChatService {
   private logger = new Logger({ name: "ChatService" });
@@ -169,7 +164,7 @@ class ChatService {
         toolCallId,
         outcome,
       });
-      
+
       // Update current chat with the returned session data
       setCurrentChat(result.updatedChatSession);
       this.logger.info("Tool call confirmed successfully");

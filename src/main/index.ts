@@ -1,13 +1,14 @@
 // src/main/index.ts
-
+import path from "node:path";
+import fs from "node:fs/promises";
 import { app, shell, BrowserWindow, ipcMain } from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
-import { EmbeddedTrpcServer } from "../core/server/embedded-trpc-server.js";
+import { HttpTrpcServer } from "../core/server/trpc-server.js";
 
 // Global server instance
-let trpcServer: EmbeddedTrpcServer | null = null;
+let trpcServer: HttpTrpcServer | null = null;
 
 function createWindow(): void {
   // Create the browser window.
@@ -53,9 +54,13 @@ app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId("com.electron");
 
+  // Use Electron's userData directory by default and ensure it exists
+  const userDataDir = path.join(app.getPath("userData"), "user-data");
+  await fs.mkdir(userDataDir, { recursive: true });
+
   // Start embedded tRPC server
   try {
-    trpcServer = new EmbeddedTrpcServer();
+    trpcServer = new HttpTrpcServer({ userDataDir });
     const port = await trpcServer.start(3333); // Prefer port 3333, fallback to any available
     console.log(`tRPC server started on port ${port}`);
   } catch (error) {

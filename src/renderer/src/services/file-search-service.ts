@@ -1,8 +1,6 @@
-// apps/my-app-svelte/src/services/file-search-service.ts
+// src/renderer/src/services/file-search-service.ts
 import { Logger } from "tslog";
-import { trpcClient } from "../lib/trpc-client";
-import { projectState } from "../stores/project-store.svelte.js";
-import { treeState } from "../stores/tree-store.svelte.js";
+import { trpcClient } from "../lib/trpc-client.js";
 import {
   fileSearchState,
   setSearchResults,
@@ -16,6 +14,8 @@ import {
   resetSearch,
   type FileSearchResult,
 } from "../stores/file-search-store.svelte.js";
+import { projectState } from "../stores/project-store.svelte.js";
+import { treeState } from "../stores/tree-store.svelte.js";
 
 class FileSearchService {
   private logger = new Logger({ name: "FileSearchService" });
@@ -26,10 +26,10 @@ class FileSearchService {
   async searchFiles(query: string, projectId?: string, limit: number = 10) {
     try {
       this.logger.debug("Searching files:", { query, projectId, limit });
-      
+
       // Use the provided projectId or find the selected project folder
       let targetProjectId = projectId;
-      
+
       if (!targetProjectId) {
         // Find selected project folder based on current tree selection
         const selectedNode = treeState.selectedNode;
@@ -41,13 +41,13 @@ class FileSearchService {
           );
           targetProjectId = selectedProject?.id;
         }
-        
+
         // Fallback to first project folder if no selection
         if (!targetProjectId && projectState.projectFolders.length > 0) {
           targetProjectId = projectState.projectFolders[0].id;
         }
       }
-      
+
       if (!targetProjectId) {
         this.logger.warn("No project folder available for search");
         return [];
@@ -68,9 +68,13 @@ class FileSearchService {
   }
 
   // File search methods for chat panel
-  async performFileSearch(query: string, projectId?: string, limit: number = 20): Promise<void> {
+  async performFileSearch(
+    query: string,
+    projectId?: string,
+    limit: number = 20,
+  ): Promise<void> {
     setSearching(true);
-    
+
     try {
       const results = await this.searchFiles(query, projectId, limit);
       setSearchResults(results);
@@ -82,7 +86,10 @@ class FileSearchService {
     }
   }
 
-  detectFileReference(inputValue: string, inputElement: HTMLTextAreaElement | null): void {
+  detectFileReference(
+    inputValue: string,
+    inputElement: HTMLTextAreaElement | null,
+  ): void {
     if (!inputElement) return;
 
     const cursorPos = inputElement.selectionStart || 0;
@@ -92,39 +99,43 @@ class FileSearchService {
     if (atMatch) {
       const query = atMatch[1] || "";
       const searchStart = cursorPos - atMatch[1].length;
-      
+
       setSearchQuery(query);
       setCursorPosition(cursorPos);
       setSearchStartPosition(searchStart);
       setShowMenu(true);
-      
+
       this.performFileSearch(query);
     } else {
       setShowMenu(false);
     }
   }
 
-  handleFileSelect(file: FileSearchResult, inputElement: HTMLTextAreaElement | null, currentInput: string): void {
+  handleFileSelect(
+    file: FileSearchResult,
+    inputElement: HTMLTextAreaElement | null,
+    currentInput: string,
+  ): void {
     if (!inputElement) return;
 
     const searchStart = fileSearchState.searchStartPosition;
     const searchEnd = fileSearchState.cursorPosition;
-    
+
     // Replace @query with file reference
     const beforeSearch = currentInput.substring(0, searchStart - 1); // -1 to remove @
     const afterSearch = currentInput.substring(searchEnd);
     const fileReference = `#${file.relativePath}`;
-    
+
     const newValue = beforeSearch + fileReference + afterSearch;
-    
+
     // Update input value and cursor position
     inputElement.value = newValue;
     const newCursorPos = beforeSearch.length + fileReference.length;
     inputElement.setSelectionRange(newCursorPos, newCursorPos);
-    
+
     // Trigger input event to update store
-    inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-    
+    inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+
     setShowMenu(false);
     inputElement.focus();
   }
@@ -143,7 +154,7 @@ class FileSearchService {
   handleSearchKeydown(
     event: KeyboardEvent,
     inputElement: HTMLTextAreaElement | null,
-    currentInput: string
+    currentInput: string,
   ): boolean {
     if (!fileSearchState.showMenu) return false;
 
@@ -152,28 +163,30 @@ class FileSearchService {
         event.preventDefault();
         moveSelectionUp();
         return true;
-      
+
       case "ArrowDown":
         event.preventDefault();
         moveSelectionDown();
         return true;
-      
+
       case "Enter":
       case "Tab":
         event.preventDefault();
-        const selectedFile = fileSearchState.selectedIndex >= 0 && fileSearchState.selectedIndex < fileSearchState.results.length
-          ? fileSearchState.results[fileSearchState.selectedIndex]
-          : null;
+        const selectedFile =
+          fileSearchState.selectedIndex >= 0 &&
+          fileSearchState.selectedIndex < fileSearchState.results.length
+            ? fileSearchState.results[fileSearchState.selectedIndex]
+            : null;
         if (selectedFile) {
           this.handleFileSelect(selectedFile, inputElement, currentInput);
         }
         return true;
-      
+
       case "Escape":
         event.preventDefault();
         this.handleSearchCancel(inputElement);
         return true;
-      
+
       default:
         return false;
     }

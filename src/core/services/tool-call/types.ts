@@ -1,5 +1,4 @@
-// packages/events-core/src/services/tool-call/types.ts
-
+// src/core/services/tool-call/types.ts
 export type ToolCallStatus =
   | "validating"
   | "scheduled"

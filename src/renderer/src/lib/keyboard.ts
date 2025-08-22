@@ -1,13 +1,8 @@
-// apps/my-app-svelte/src/lib/keyboard.ts
-import { get } from "svelte/store";
-import {
-  selectedTreeNode,
-  selectedChatFile,
-  selectedPreviewFile,
-} from "../stores/tree-store.svelte";
-import { chatService } from "../services/chat-service";
-import { projectService } from "../services/project-service";
-import { showToast } from "../stores/ui-store.svelte";
+// src/renderer/src/lib/keyboard.ts
+import { treeState } from "../stores/tree-store.svelte.js";
+import { chatService } from "../services/chat-service.js";
+import { projectService } from "../services/project-service.js";
+import { showToast } from "../stores/ui-store.svelte.js";
 
 export interface KeyboardShortcut {
   key: string;
@@ -138,7 +133,7 @@ export class KeyboardManager {
 
   // Shortcut handlers
   private async handleNewChat() {
-    const selected = get(selectedTreeNode);
+    const selected = treeState.selectedNode;
     if (!selected) {
       showToast("Select a folder first", "warning");
       return;
@@ -186,9 +181,9 @@ export class KeyboardManager {
 
   private handleEscape() {
     // Close preview if open
-    const preview = get(selectedPreviewFile);
+    const preview = treeState.selectedPreviewFile;
     if (preview) {
-      selectedPreviewFile.set(null);
+      treeState.selectedPreviewFile = null;
       return;
     }
 
@@ -205,7 +200,7 @@ export class KeyboardManager {
   private handleShowShortcuts() {
     const shortcutList = this.shortcuts
       .map((s) => {
-        const keys = [];
+        const keys: string[] = [];
         if (s.ctrlKey) keys.push("Ctrl");
         if (s.shiftKey) keys.push("Shift");
         if (s.altKey) keys.push("Alt");
@@ -231,7 +226,7 @@ export class KeyboardManager {
   }
 
   private handleCopyPath() {
-    const selected = get(selectedTreeNode);
+    const selected = treeState.selectedNode;
     if (selected) {
       navigator.clipboard.writeText(selected);
       showToast(`Path copied: ${selected}`, "success");

@@ -1,3 +1,4 @@
+// src/core/event-types.ts
 export type SubtaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED";
 
 export type ChatStatus = "ACTIVE" | "CLOSED";

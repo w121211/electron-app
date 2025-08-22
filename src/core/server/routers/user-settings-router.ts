@@ -1,7 +1,7 @@
-// packages/events-core/src/server/routers/user-settings-router.ts
+// src/core/server/routers/user-settings-router.ts
 import { z } from "zod";
 import { UserSettingsService } from "../../services/user-settings-service.js";
-import { router, publicProcedure } from "../trpc-server.js";
+import { router, publicProcedure } from "../trpc-init.js";
 
 export function createUserSettingsRouter(
   userSettingsService: UserSettingsService,

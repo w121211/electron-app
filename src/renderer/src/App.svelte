@@ -1,7 +1,6 @@
 <!-- src/renderer/src/App.svelte -->
 <script lang="ts">
   import { Logger } from "tslog";
-
   // import Demo from "./components/Demo.svelte";
   import MainLayout from "./components/MainLayout.svelte";
   // import MainLayoutDemo from "./components/MainLayoutDemo.svelte";
@@ -10,7 +9,7 @@
   // import ErrorBoundary from "./components/ErrorBoundary.svelte";
   // import DevPanel from "./components/shared/DevPanel.svelte";
   import Versions from "./components/Versions.svelte";
-  import { eventService } from "./services/event-service";
+  import { eventService } from "./services/event-service.js";
   // import { keyboardManager } from "./lib/keyboard";
   // import { DevelopmentTools } from "./lib/development";
 

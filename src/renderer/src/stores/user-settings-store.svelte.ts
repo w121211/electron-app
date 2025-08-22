@@ -1,5 +1,5 @@
-// apps/my-app-svelte/src/stores/user-settings-store.svelte.ts
-import type { UserSettings } from '@repo/events-core/services/user-settings-repository';
+// src/renderer/src/stores/user-settings-store.svelte.ts
+import type { UserSettings } from "../../../core/services/user-settings-repository.js";
 
 interface UserSettingsState {
   settings: UserSettings;
@@ -11,10 +11,10 @@ interface UserSettingsState {
 export const userSettingsState = $state<UserSettingsState>({
   settings: {
     projectFolders: [],
-    providers: {}
+    providers: {},
   },
   loading: false,
-  error: null
+  error: null,
 });
 
 // Internal store functions - used by service layer
@@ -46,6 +46,6 @@ export function setUserSettingsError(error: string | null) {
 /**
  * Update providers configuration
  */
-export function updateProviders(providers: UserSettings['providers']) {
+export function updateProviders(providers: UserSettings["providers"]) {
   userSettingsState.settings.providers = { ...providers };
 }

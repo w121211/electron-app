@@ -1,24 +1,24 @@
-// apps/my-app-svelte/src/services/project-service.ts
+// src/renderer/src/services/project-service.ts
 import { Logger } from "tslog";
-import { trpcClient } from "../lib/trpc-client";
+import { trpcClient } from "../lib/trpc-client.js";
+import {
+  setTreeSelectionState,
+  toggleNodeExpansion,
+  expandParentDirectories,
+} from "../stores/tree-store.svelte.js";
 import {
   projectState,
   setProjectFolders,
   addProjectFolder,
   setFolderTree,
   removeFolderTree,
-  updateFolderTrees,
-  type ProjectFolder,
-  type FolderTreeNode,
 } from "../stores/project-store.svelte.js";
-import {
-  treeState,
-  setTreeSelectionState,
-  toggleNodeExpansion as toggleNodeExpansionStore,
-  expandParentDirectories,
-} from "../stores/tree-store.svelte.js";
-import { setLoading, showToast } from "../stores/ui-store.svelte";
-import { chatService } from "./chat-service";
+import { setLoading, showToast } from "../stores/ui-store.svelte.js";
+import { chatService } from "./chat-service.js";
+import type {
+  ProjectFolder,
+  FolderTreeNode,
+} from "../stores/project-store.svelte.js";
 
 interface FileWatcherEvent {
   eventType:
@@ -181,14 +181,10 @@ class ProjectService {
    */
   async handleTreeNodeClick(node: FolderTreeNode) {
     if (node.isDirectory) {
-      this.toggleNodeExpansion(node.path);
+      toggleNodeExpansion(node.path);
     } else {
       await this.selectFile(node.path);
     }
-  }
-
-  toggleNodeExpansion(nodePath: string) {
-    toggleNodeExpansionStore(nodePath);
   }
 
   /**

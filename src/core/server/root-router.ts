@@ -1,6 +1,5 @@
 // src/core/server/root-router.ts
 import { ILogObj, Logger } from "tslog";
-import { router } from "./trpc-server.js";
 import { createServerEventBus } from "../event-bus.js";
 import { ChatSessionRepositoryImpl } from "../services/chat-engine/chat-session-repository.js";
 import { FileService } from "../services/file-service.js";
@@ -20,8 +19,9 @@ import { createFileRouter } from "./routers/file-router.js";
 import { createUserSettingsRouter } from "./routers/user-settings-router.js";
 // import { createToolCallRouter } from "./routers/tool-call-router.js";
 import { createChatClientRouter } from "./routers/chat-client-router.js";
+import { router } from "./trpc-init.js";
 
-export async function createAppRouter(userDataDir: string) {
+export async function createTrpcRouter(userDataDir: string) {
   // Setup logger
   const logger: Logger<ILogObj> = new Logger({ name: "AppServer" });
 
@@ -97,4 +97,4 @@ export async function createAppRouter(userDataDir: string) {
   });
 }
 
-export type AppRouter = Awaited<ReturnType<typeof createAppRouter>>;
+export type TrpcRouter = Awaited<ReturnType<typeof createTrpcRouter>>;

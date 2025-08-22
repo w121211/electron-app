@@ -1,5 +1,4 @@
-// packages/events-core/src/services/chat-engine/message-processor.ts
-
+// src/core/services/chat-engine/message-processor.ts
 import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
 import { ILogObj, Logger } from "tslog";

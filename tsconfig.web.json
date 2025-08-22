@@ -9,7 +9,7 @@
   "compilerOptions": {
     "verbatimModuleSyntax": true,
     "useDefineForClassFields": true,
-    "strict": false,
+    // "strict": false,
     "allowJs": true,
     "checkJs": true,
     "lib": [

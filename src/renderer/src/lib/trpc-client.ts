@@ -1,4 +1,4 @@
-// apps/my-app-svelte/src/lib/trpc-client.ts
+// src/renderer/src/lib/trpc-client.ts
 import {
   createTRPCClient,
   httpBatchStreamLink,
@@ -8,35 +8,43 @@ import {
 } from "@trpc/client";
 import superjson from "superjson";
 import { Logger } from "tslog";
-import type { AppRouter } from "../../../core/server/root-router.js";
+import type { TrpcRouter } from "../../../core/server/root-router.js";
 
 const logger = new Logger({ name: "TrpcClient" });
 
-const getUrl = () => "http://localhost:3333/api/trpc";
+// Create client asynchronously
+async function createClient() {
+  const url = await window.api.getTrpcUrl();
+  if (!url) {
+    throw new Error("tRPC server URL not available");
+  }
 
-export const trpcClient = createTRPCClient<AppRouter>({
-  links: [
-    loggerLink({
-      enabled: (opts) =>
-        import.meta.env.DEV ||
-        (opts.direction === "down" && opts.result instanceof Error),
-      console: {
-        log: (...args) => logger.info(...args),
-        error: (...args) => logger.error(...args),
-      },
-    }),
-    splitLink({
-      condition: (op) => op.type === "subscription",
-      true: httpSubscriptionLink({
-        url: getUrl(),
-        transformer: superjson,
+  return createTRPCClient<TrpcRouter>({
+    links: [
+      loggerLink({
+        enabled: (opts) =>
+          import.meta.env.DEV ||
+          (opts.direction === "down" && opts.result instanceof Error),
+        console: {
+          log: (...args) => logger.info(...args),
+          error: (...args) => logger.error(...args),
+        },
       }),
-      false: httpBatchStreamLink({
-        url: getUrl(),
-        transformer: superjson,
+      splitLink({
+        condition: (op) => op.type === "subscription",
+        true: httpSubscriptionLink({
+          transformer: superjson,
+          url,
+        }),
+        false: httpBatchStreamLink({
+          transformer: superjson,
+          url,
+        }),
       }),
-    }),
-  ],
-});
+    ],
+  });
+}
+
+export const trpcClient = await createClient();
 
 export type TrpcClient = typeof trpcClient;

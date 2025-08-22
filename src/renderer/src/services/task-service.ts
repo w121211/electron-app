@@ -1,8 +1,13 @@
-// apps/my-app-svelte/src/services/task-service.ts
+// src/renderer/src/services/task-service.ts
 import { Logger } from "tslog";
-import { trpcClient } from "../lib/trpc-client";
-import { tasksByPath, addTask, updateTask, clearTasks } from "../stores/task-store.svelte";
-import { setLoading, showToast } from "../stores/ui-store.svelte";
+import { trpcClient } from "../lib/trpc-client.js";
+import {
+  tasksByPath,
+  addTask,
+  updateTask,
+  clearTasks,
+} from "../stores/task-store.svelte.js";
+import { setLoading, showToast } from "../stores/ui-store.svelte.js";
 
 export interface Task {
   id: string;
@@ -56,7 +61,10 @@ class TaskService {
       };
     } catch (error) {
       this.logger.error("Failed to create task:", error);
-      showToast(`Failed to create task: ${error instanceof Error ? error.message : String(error)}`, "error");
+      showToast(
+        `Failed to create task: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
       throw error;
     } finally {
       setLoading("createTask", false);
@@ -81,7 +89,10 @@ class TaskService {
       return updatedTask;
     } catch (error) {
       this.logger.error("Failed to start task:", error);
-      showToast(`Failed to start task: ${error instanceof Error ? error.message : String(error)}`, "error");
+      showToast(
+        `Failed to start task: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
       throw error;
     } finally {
       setLoading("startTask", false);
@@ -99,7 +110,10 @@ class TaskService {
       return task;
     } catch (error) {
       this.logger.error("Failed to get task by ID:", error);
-      showToast(`Failed to get task: ${error instanceof Error ? error.message : String(error)}`, "error");
+      showToast(
+        `Failed to get task: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
       throw error;
     }
   }
@@ -113,7 +127,7 @@ class TaskService {
 
       // Update tasks store
       clearTasks();
-      allTasks.forEach(task => addTask(task));
+      allTasks.forEach((task) => addTask(task));
 
       // Update tasksByPath mapping
       const pathMapping = new Map<string, Task>();
@@ -128,7 +142,10 @@ class TaskService {
       return allTasks;
     } catch (error) {
       this.logger.error("Failed to load tasks:", error);
-      showToast(`Failed to load tasks: ${error instanceof Error ? error.message : String(error)}`, "error");
+      showToast(
+        `Failed to load tasks: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
       throw error;
     } finally {
       setLoading("loadTasks", false);

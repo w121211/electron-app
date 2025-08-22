@@ -1,5 +1,4 @@
-// packages/events-core/src/services/chat-engine/chat-session.ts
-
+// src/core/services/chat-engine/chat-session.ts
 import { gateway } from "@ai-sdk/gateway";
 import { streamText } from "ai";
 import { v4 as uuidv4 } from "uuid";

@@ -1,7 +1,7 @@
-// packages/events-core/src/server/routers/file-router.ts
+// src/core/server/routers/file-router.ts
 import { z } from "zod";
 import { FileService } from "../../services/file-service.js";
-import { router, publicProcedure } from "../trpc-server.js";
+import { router, publicProcedure } from "../trpc-init.js";
 
 // File schemas
 export const openFileSchema = z.object({

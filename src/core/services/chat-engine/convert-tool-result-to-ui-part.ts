@@ -1,3 +1,4 @@
+// src/core/services/chat-engine/convert-tool-result-to-ui-part.ts
 // // import { ToolResult } from '@ai-sdk/provider-utils';
 // // import { ToolUIPart, UITools } from 'ai/ui';
 // // import { ProviderMetadata } from 'ai/types';
@@ -11,7 +12,7 @@
 //   ToolUIPart,
 // } from "ai";
 
-// export function convertToolResultToUIPart<
+// export function convertToolResultToUIPart<>
 //   // NAME extends string,
 //   // INPUT,
 //   // OUTPUT,
@@ -43,7 +44,7 @@
 //  * @param options - Optional configuration
 //  * @returns A ToolUIPart with error state
 //  */
-// export function convertToolResultToErrorUIPart<
+// export function convertToolResultToErrorUIPart<>
 //   NAME extends string,
 //   INPUT,
 //   OUTPUT,
@@ -80,7 +81,7 @@
 //  * @param options - Optional configuration
 //  * @returns A ToolUIPart with input-available state
 //  */
-// export function convertToolInputToUIPart<
+// export function convertToolInputToUIPart<>
 //   NAME extends string,
 //   INPUT,
 //   TOOLS extends UITools = UITools,

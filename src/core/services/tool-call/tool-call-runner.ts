@@ -1,10 +1,10 @@
+// src/core/services/tool-call/tool-call-runner.ts
 import type {
   TypedToolCall,
   TypedToolError,
   TypedToolResult,
   ToolSet,
   ModelMessage,
-  DynamicToolResult,
 } from "ai";
 import type { IEventBus } from "../../event-bus.js";
 import type { ToolCallConfirmation } from "./tool-call-confirmation.js";

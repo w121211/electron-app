@@ -1,4 +1,4 @@
-// apps/my-app-svelte/src/stores/ui-store.svelte.ts
+// src/renderer/src/stores/ui-store.svelte.ts
 
 // Toast notifications
 export interface Toast {
@@ -13,7 +13,10 @@ interface UiState {
   loadingStates: Record<string, boolean>;
   toasts: Toast[];
   modals: Record<string, boolean>;
-  connectionStates: Record<string, "idle" | "connecting" | "connected" | "error">;
+  connectionStates: Record<
+    string,
+    "idle" | "connecting" | "connected" | "error"
+  >;
 }
 
 // Unified state object
@@ -39,7 +42,9 @@ export function getIsLoading(operation: string) {
 }
 
 export function clearAllLoading() {
-  Object.keys(uiState.loadingStates).forEach(key => delete uiState.loadingStates[key]);
+  Object.keys(uiState.loadingStates).forEach(
+    (key) => delete uiState.loadingStates[key],
+  );
 }
 
 // Toast functions
@@ -69,7 +74,7 @@ export function showToast(
 }
 
 export function removeToast(toastId: string) {
-  const index = uiState.toasts.findIndex(toast => toast.id === toastId);
+  const index = uiState.toasts.findIndex((toast) => toast.id === toastId);
   if (index !== -1) {
     uiState.toasts.splice(index, 1);
   }
@@ -97,7 +102,7 @@ export function getIsModalOpen(modalName: string) {
 }
 
 export function closeAllModals() {
-  Object.keys(uiState.modals).forEach(key => delete uiState.modals[key]);
+  Object.keys(uiState.modals).forEach((key) => delete uiState.modals[key]);
 }
 
 // Connection state functions

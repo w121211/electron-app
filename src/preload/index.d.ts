@@ -1,3 +1,4 @@
+// src/preload/index.d.ts
 import { ElectronAPI } from "@electron-toolkit/preload";
 
 declare global {

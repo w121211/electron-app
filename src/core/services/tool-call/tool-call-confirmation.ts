@@ -1,5 +1,4 @@
-// packages/events-core/src/services/tool-call/tool-wrapper.ts
-
+// src/core/services/tool-call/tool-call-confirmation.ts
 import type { Tool } from "ai";
 
 export type ToolCallConfirmationOutcome = "yes" | "yes_always" | "no";

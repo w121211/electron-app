@@ -1,17 +1,17 @@
-<!-- apps/my-app-svelte/src/components/MainLayout.svelte -->
+<!-- src/renderer/src/components/MainLayout.svelte -->
 <script lang="ts">
   import { Logger } from "tslog";
+  import { projectService } from "../services/project-service.js";
+  import { taskService } from "../services/task-service.js";
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
   import ChatPanel from "./ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
-  import { projectService } from "../services/project-service";
-  import { taskService } from "../services/task-service";
 
   const logger = new Logger({ name: "MainLayout" });
 
   // Use $effect instead of onMount for Svelte 5
   $effect(() => {
-    async function initializeData() {
+    async function initializeData(): Promise<void> {
       logger.info("MainLayout mounted, initializing app data...");
 
       try {
@@ -31,7 +31,7 @@
   });
 </script>
 
-<div class="h-screen flex bg-background text-foreground font-sans">
+<div class="bg-background text-foreground flex h-screen font-sans">
   <!-- Left Panel: File Explorer -->
   <ExplorerPanel />
 

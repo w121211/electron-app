@@ -1,5 +1,4 @@
-// packages/events-core/src/services/tool-call/tool-registry.ts
-
+// src/core/services/tool-call/tool-registry.ts
 import { experimental_createMCPClient as createMCPClient } from "ai";
 import type { Tool, ToolSet } from "ai";
 import { Logger, type ILogObj } from "tslog";

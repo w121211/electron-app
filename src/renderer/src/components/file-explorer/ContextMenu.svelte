@@ -1,18 +1,27 @@
-<!-- apps/my-app-svelte/src/components/file-explorer/ContextMenu.svelte -->
+<!-- src/renderer/src/components/file-explorer/ContextMenu.svelte -->
 <script lang="ts">
-  import { Link45deg, Pencil, Files, Trash, FolderPlus } from "svelte-bootstrap-icons";
-  import { fileExplorerService } from "../../services/file-explorer-service";
+  import {
+    Link45deg,
+    Pencil,
+    Files,
+    Trash,
+    FolderPlus,
+  } from "svelte-bootstrap-icons";
+  import { fileExplorerService } from "../../services/file-explorer-service.js";
   import {
     fileExplorerState,
     closeContextMenu,
-  } from "../../stores/file-explorer-store.svelte";
+  } from "../../stores/file-explorer-store.svelte.js";
 
-  function handleAction(action: string) {
+  function handleAction(action: string): void {
     console.log("🎯 ContextMenu handleAction called with action:", action);
-    fileExplorerService.handleFileAction(action, fileExplorerState.contextMenu.targetPath);
+    fileExplorerService.handleFileAction(
+      action,
+      fileExplorerState.contextMenu.targetPath,
+    );
   }
 
-  function handleClickOutside(event: MouseEvent) {
+  function handleClickOutside(event: MouseEvent): void {
     if (
       fileExplorerState.contextMenu.isVisible &&
       !(event.target as Element).closest(".context-menu")
@@ -28,17 +37,19 @@
         document.removeEventListener("click", handleClickOutside);
       };
     }
+    return undefined;
   });
 </script>
 
 {#if fileExplorerState.contextMenu.isVisible}
   <div
     class="context-menu bg-panel border-border fixed z-50 w-48 rounded-md border py-1 shadow-lg"
-    style="left: {fileExplorerState.contextMenu.x}px; top: {fileExplorerState.contextMenu.y}px;"
+    style="left: {fileExplorerState.contextMenu.x}px; top: {fileExplorerState
+      .contextMenu.y}px;"
   >
     <!-- Add to current chat -->
     <button
-      class="w-full text-left text-foreground hover:bg-hover flex cursor-pointer items-center px-3 py-1.5 text-sm"
+      class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
       onclick={(e) => {
         e.stopPropagation();
         handleAction("add-to-chat");
@@ -51,7 +62,7 @@
 
     <!-- Add to project context -->
     <button
-      class="w-full text-left text-foreground hover:bg-hover flex cursor-pointer items-center px-3 py-1.5 text-sm"
+      class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
       onclick={(e) => {
         e.stopPropagation();
         handleAction("add-to-project");
@@ -64,7 +75,7 @@
 
     <!-- Copy reference -->
     <button
-      class="w-full text-left text-foreground hover:bg-hover flex cursor-pointer items-center px-3 py-1.5 text-sm"
+      class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
       onclick={(e) => {
         e.stopPropagation();
         handleAction("copy-reference");
@@ -81,7 +92,7 @@
     <!-- Create new folder (only for directories) -->
     {#if fileExplorerState.contextMenu.isDirectory}
       <button
-        class="w-full text-left text-foreground hover:bg-hover flex cursor-pointer items-center px-3 py-1.5 text-sm"
+        class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
         onclick={(e) => {
           e.stopPropagation();
           handleAction("create-folder");
@@ -95,7 +106,7 @@
 
     <!-- Rename -->
     <button
-      class="w-full text-left text-foreground hover:bg-hover flex cursor-pointer items-center px-3 py-1.5 text-sm"
+      class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
       onclick={(e) => {
         e.stopPropagation();
         handleAction("rename");
@@ -108,7 +119,7 @@
 
     <!-- Duplicate -->
     <button
-      class="w-full text-left text-foreground hover:bg-hover flex cursor-pointer items-center px-3 py-1.5 text-sm"
+      class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
       onclick={(e) => {
         e.stopPropagation();
         handleAction("duplicate");
@@ -121,7 +132,7 @@
 
     <!-- Delete -->
     <button
-      class="w-full text-left text-foreground hover:bg-hover flex cursor-pointer items-center px-3 py-1.5 text-sm"
+      class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
       onclick={(e) => {
         e.stopPropagation();
         handleAction("delete");

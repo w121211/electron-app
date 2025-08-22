@@ -1,7 +1,6 @@
-// packages/events-core/src/server/routers/chat-client-router.ts
+// src/core/server/routers/chat-client-router.ts
 
 import { z } from "zod";
-import { router, publicProcedure } from "../trpc-server.js";
 import { ChatClient } from "../../services/chat-engine/chat-client.js";
 import type { IEventBus } from "../../event-bus.js";
 import type { ChatSessionData } from "../../services/chat-engine/chat-session-repository.js";
@@ -13,6 +12,7 @@ import type { FileService } from "../../services/file-service.js";
 import type { ToolRegistry } from "../../services/tool-call/tool-registry.js";
 import type { ChatSessionRepository } from "../../services/chat-engine/chat-session-repository.js";
 import { TurnResult } from "../../services/chat-engine/chat-session.js";
+import { router, publicProcedure } from "../trpc-init.js";
 
 const createChatSessionConfigSchema: z.ZodType<CreateChatSessionConfig> =
   z.object({
@@ -182,7 +182,6 @@ export function createChatClientRouter(
         );
         return session.toJSON();
       }),
-
 
     rerunChat: publicProcedure
       .input(

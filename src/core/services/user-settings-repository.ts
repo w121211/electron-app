@@ -1,4 +1,4 @@
-// packages/events-core/src/services/user-settings-repository.ts
+// src/core/services/user-settings-repository.ts
 import path from "node:path";
 import { Logger, ILogObj } from "tslog";
 import { fileExists, readJsonFile, writeJsonFile } from "../file-helpers.js";

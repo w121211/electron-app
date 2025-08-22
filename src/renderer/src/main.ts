@@ -1,3 +1,4 @@
+// src/renderer/src/main.ts
 import { mount } from "svelte";
 import "./app.css";
 import App from "./App.svelte";

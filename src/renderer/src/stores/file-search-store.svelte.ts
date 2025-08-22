@@ -1,4 +1,4 @@
-// apps/my-app-svelte/src/stores/file-search-store.svelte.ts
+// src/renderer/src/stores/file-search-store.svelte.ts
 
 export interface FileSearchResult {
   name: string;
@@ -28,7 +28,6 @@ export const fileSearchState = $state<FileSearchState>({
   cursorPosition: -1,
   searchStartPosition: -1,
 });
-
 
 // Mutation functions
 export function setSearchResults(results: FileSearchResult[]) {

@@ -1,4 +1,4 @@
-// apps/my-app-svelte/src/stores/file-explorer-store.svelte.ts
+// src/renderer/src/stores/file-explorer-store.svelte.ts
 
 export interface ContextMenuState {
   isVisible: boolean;
@@ -35,18 +35,27 @@ export const fileExplorerState = $state<FileExplorerState>({
   },
 });
 
-
 // Context Menu Actions
-export function showContextMenu(path: string, isDirectory: boolean, x: number, y: number) {
-  console.log("🎯 FileExplorerStore: Showing context menu for:", path, "isDirectory:", isDirectory);
-  
+export function showContextMenu(
+  path: string,
+  isDirectory: boolean,
+  x: number,
+  y: number,
+) {
+  console.log(
+    "🎯 FileExplorerStore: Showing context menu for:",
+    path,
+    "isDirectory:",
+    isDirectory,
+  );
+
   // Adjust position if menu would go off screen
   const menuWidth = 192; // w-48 = 12rem = 192px
   const menuHeight = 200; // approximate height
-  
+
   const finalX = x + menuWidth > window.innerWidth ? x - menuWidth : x;
   const finalY = y + menuHeight > window.innerHeight ? y - menuHeight : y;
-  
+
   fileExplorerState.contextMenu.isVisible = true;
   fileExplorerState.contextMenu.targetPath = path;
   fileExplorerState.contextMenu.isDirectory = isDirectory;
@@ -60,9 +69,9 @@ export function closeContextMenu() {
 
 // Dialog Actions
 export function showRenameDialog(path: string) {
-  const fileName = path.split('/').pop() || '';
+  const fileName = path.split("/").pop() || "";
   console.log("🎯 FileExplorerStore: Showing rename dialog for:", fileName);
-  
+
   fileExplorerState.renameDialog.isVisible = true;
   fileExplorerState.renameDialog.targetPath = path;
   fileExplorerState.renameDialog.currentName = fileName;

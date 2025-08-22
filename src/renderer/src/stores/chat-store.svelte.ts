@@ -1,9 +1,9 @@
-// apps/my-app-svelte/src/stores/chat-store.svelte.ts
+// src/renderer/src/stores/chat-store.svelte.ts
 import type {
   ChatSessionData,
   ChatMessage,
   ChatMode,
-} from "@repo/events-core/services/chat-engine/chat-session-repository";
+} from "../../../core/services/chat-engine/chat-session-repository.js";
 
 interface ChatState {
   currentChat: ChatSessionData | null;
@@ -21,9 +21,6 @@ export const chatState = $state<ChatState>({
   selectedModel: "claude",
   isSubmittingMessage: false,
 });
-
-
-
 
 // Helper functions for working with chat stores
 export function setCurrentChat(chat: ChatSessionData | null) {
@@ -121,4 +118,3 @@ export function extractFileReferences(
 
   return references;
 }
-
