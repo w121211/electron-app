@@ -14,9 +14,29 @@ export interface RenameDialogState {
   currentName: string;
 }
 
+export interface InlineFolderCreationState {
+  isActive: boolean;
+  parentPath: string;
+  placeholderName: string;
+}
+
+export interface InlineNewProjectFolderState {
+  isActive: boolean;
+  placeholderName: string;
+  needsWorkspaceDirectory: boolean;
+}
+
+export interface WorkspaceSetupState {
+  needsSetup: boolean;
+  isSettingUp: boolean;
+}
+
 interface FileExplorerState {
   contextMenu: ContextMenuState;
   renameDialog: RenameDialogState;
+  inlineFolderCreation: InlineFolderCreationState;
+  inlineNewProjectFolder: InlineNewProjectFolderState;
+  workspaceSetup: WorkspaceSetupState;
 }
 
 // Unified state object
@@ -32,6 +52,20 @@ export const fileExplorerState = $state<FileExplorerState>({
     isVisible: false,
     targetPath: "",
     currentName: "",
+  },
+  inlineFolderCreation: {
+    isActive: false,
+    parentPath: "",
+    placeholderName: "New folder",
+  },
+  inlineNewProjectFolder: {
+    isActive: false,
+    placeholderName: "New project",
+    needsWorkspaceDirectory: false,
+  },
+  workspaceSetup: {
+    needsSetup: false,
+    isSettingUp: false,
   },
 });
 
@@ -79,4 +113,49 @@ export function showRenameDialog(path: string) {
 
 export function closeRenameDialog() {
   fileExplorerState.renameDialog.isVisible = false;
+}
+
+// Inline Folder Creation Actions
+export function startInlineFolderCreation(parentPath: string) {
+  console.log("🎯 FileExplorerStore: Starting inline folder creation for:", parentPath);
+  
+  fileExplorerState.inlineFolderCreation.isActive = true;
+  fileExplorerState.inlineFolderCreation.parentPath = parentPath;
+  fileExplorerState.inlineFolderCreation.placeholderName = "New folder";
+}
+
+export function cancelInlineFolderCreation() {
+  fileExplorerState.inlineFolderCreation.isActive = false;
+  fileExplorerState.inlineFolderCreation.parentPath = "";
+}
+
+export function updateInlineFolderName(name: string) {
+  fileExplorerState.inlineFolderCreation.placeholderName = name;
+}
+
+// Inline New Project Folder Actions
+export function startInlineNewProjectFolderCreation(needsWorkspaceDirectory = false) {
+  console.log("🎯 FileExplorerStore: Starting inline new project folder creation");
+  
+  fileExplorerState.inlineNewProjectFolder.isActive = true;
+  fileExplorerState.inlineNewProjectFolder.placeholderName = "New project";
+  fileExplorerState.inlineNewProjectFolder.needsWorkspaceDirectory = needsWorkspaceDirectory;
+}
+
+export function cancelInlineNewProjectFolderCreation() {
+  fileExplorerState.inlineNewProjectFolder.isActive = false;
+  fileExplorerState.inlineNewProjectFolder.needsWorkspaceDirectory = false;
+}
+
+export function updateInlineNewProjectFolderName(name: string) {
+  fileExplorerState.inlineNewProjectFolder.placeholderName = name;
+}
+
+// Workspace Setup Actions
+export function setWorkspaceSetupNeeded(needsSetup: boolean) {
+  fileExplorerState.workspaceSetup.needsSetup = needsSetup;
+}
+
+export function setWorkspaceSettingUp(isSettingUp: boolean) {
+  fileExplorerState.workspaceSetup.isSettingUp = isSettingUp;
 }

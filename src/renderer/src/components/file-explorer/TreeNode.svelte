@@ -16,6 +16,12 @@
   } from "../../stores/tree-store.svelte.js";
   import { tasksByPath } from "../../stores/task-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
+  import {
+    fileExplorerState,
+    cancelInlineFolderCreation,
+    updateInlineFolderName,
+  } from "../../stores/file-explorer-store.svelte.js";
+  import { fileExplorerService } from "../../services/file-explorer-service.js";
   import TreeNode from "./TreeNode.svelte";
   import FileIcon from "./FileIcon.svelte";
   import type { FolderTreeNode } from "../../stores/project-store.svelte.js";
@@ -49,6 +55,19 @@
   const isSelected = $derived(treeState.selectedNode === node.path);
   const task = $derived(tasksByPath.get(node.path));
   const isTaskDir = $derived(isTaskFolder(node.name));
+
+  // Inline folder creation state
+  const showPlaceholderFolder = $derived(
+    fileExplorerState.inlineFolderCreation.isActive &&
+      fileExplorerState.inlineFolderCreation.parentPath === node.path &&
+      node.isDirectory,
+  );
+
+  let folderNameInput = $state<HTMLInputElement>();
+  let placeholderName = $state(
+    fileExplorerState.inlineFolderCreation.placeholderName,
+  );
+  let isCreatingFolder = $state(false);
 
   // Drag and drop computed values
   const isDragged = $derived(treeState.draggedNode === node.path);
@@ -196,6 +215,80 @@
   function handleDragEnd(): void {
     clearDragState();
   }
+
+  // Inline folder creation handlers
+  function handleFolderNameKeydown(e: KeyboardEvent): void {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleCreateFolder();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelFolderCreation();
+    }
+  }
+
+  function handleFolderNameBlur(): void {
+    // Prevent duplicate creation if already in progress
+    if (isCreatingFolder) {
+      return;
+    }
+
+    if (placeholderName.trim()) {
+      handleCreateFolder();
+    } else {
+      handleCancelFolderCreation();
+    }
+  }
+
+  async function handleCreateFolder(): Promise<void> {
+    const trimmedName = placeholderName.trim();
+    if (!trimmedName || isCreatingFolder) {
+      if (!trimmedName) {
+        handleCancelFolderCreation();
+      }
+      return;
+    }
+
+    isCreatingFolder = true;
+    try {
+      const result = await fileExplorerService.createFolderInline(
+        node.path,
+        trimmedName,
+      );
+      if (result.success) {
+        // Success - service already handled closing the placeholder
+        console.log("Folder created successfully");
+      } else {
+        // Error - keep placeholder open, user can try again
+        console.error("Failed to create folder:", result.error);
+      }
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+    } finally {
+      isCreatingFolder = false;
+    }
+  }
+
+  function handleCancelFolderCreation(): void {
+    cancelInlineFolderCreation();
+  }
+
+  // Update placeholder name when input changes
+  function handlePlaceholderNameChange(e: Event): void {
+    const target = e.target as HTMLInputElement;
+    placeholderName = target.value;
+    updateInlineFolderName(target.value);
+  }
+
+  // Auto-focus the input when placeholder appears
+  $effect(() => {
+    if (showPlaceholderFolder && folderNameInput) {
+      setTimeout(() => {
+        folderNameInput?.focus();
+        folderNameInput?.select();
+      }, 10);
+    }
+  });
 </script>
 
 <div>
@@ -289,17 +382,55 @@
   </div>
 
   <!-- Children -->
-  {#if node.isDirectory && isExpanded && node.children}
-    {#each node.children as child (child.path)}
-      <TreeNode
-        node={child}
-        level={level + 1}
-        {isCreatingChat}
-        {onclick}
-        {onNewChat}
-        {onContextMenu}
-        {onStopTask}
-      />
-    {/each}
+  {#if node.isDirectory && isExpanded}
+    <!-- Placeholder folder creation input -->
+    {#if showPlaceholderFolder}
+      <div
+        class="flex min-h-[28px] w-full items-center rounded px-1 py-0.5 text-[13px] {isCreatingFolder
+          ? 'bg-selected opacity-75'
+          : 'bg-hover'}"
+        style="padding-left: {(level + 1) * 16 + 8}px"
+      >
+        <!-- Folder Icon -->
+        <div class="mr-2">
+          <FileIcon fileName="" isDirectory={true} isExpanded={false} />
+        </div>
+
+        <!-- Input Field -->
+        <input
+          bind:this={folderNameInput}
+          bind:value={placeholderName}
+          oninput={handlePlaceholderNameChange}
+          onkeydown={handleFolderNameKeydown}
+          onblur={handleFolderNameBlur}
+          disabled={isCreatingFolder}
+          class="bg-input-background border-accent text-foreground focus:ring-accent/50 flex-1 rounded border px-1 py-0 text-sm focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          type="text"
+          placeholder="Folder name"
+        />
+
+        <!-- Loading indicator -->
+        {#if isCreatingFolder}
+          <div
+            class="border-accent ml-2 h-3 w-3 animate-spin rounded-full border border-t-transparent"
+          ></div>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Regular children -->
+    {#if node.children}
+      {#each node.children as child (child.path)}
+        <TreeNode
+          node={child}
+          level={level + 1}
+          {isCreatingChat}
+          {onclick}
+          {onNewChat}
+          {onContextMenu}
+          {onStopTask}
+        />
+      {/each}
+    {/if}
   {/if}
 </div>

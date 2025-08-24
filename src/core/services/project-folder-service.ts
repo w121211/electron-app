@@ -833,6 +833,54 @@ export class ProjectFolderService {
   }
 
   /**
+   * Create a new project folder in the workspace directory and add it to project folders
+   */
+  public async createNewProjectFolder(
+    folderName: string,
+    correlationId?: string,
+  ): Promise<ProjectFolder> {
+    this.logger.info(`Creating new project folder: ${folderName}`);
+
+    // Get current settings to determine workspace directory
+    const settings = await this.userSettingsRepository.getSettings();
+    
+    // Check if workspace directory is configured
+    if (!settings.workspaceDirectory) {
+      throw new Error("No workspace directory configured. Please set a workspace directory first.");
+    }
+    
+    const targetWorkspaceDirectory = settings.workspaceDirectory;
+
+    // Validate workspace directory still exists
+    const isWorkspaceValid = await this.validateProjectFolderPath(targetWorkspaceDirectory);
+    if (!isWorkspaceValid) {
+      throw new Error(`Workspace directory no longer exists or is not accessible: ${targetWorkspaceDirectory}`);
+    }
+
+    // Use existing createFolder method to create the folder
+    await this.createFolder(targetWorkspaceDirectory, folderName, correlationId);
+
+    // Build the full path and add as project folder
+    const newProjectFolderPath = path.join(targetWorkspaceDirectory, folderName);
+    const projectFolder = await this.addProjectFolder(newProjectFolderPath, correlationId);
+
+    return projectFolder;
+  }
+
+  /**
+   * Check if workspace directory is configured and valid
+   */
+  public async isWorkspaceDirectoryValid(): Promise<boolean> {
+    const settings = await this.userSettingsRepository.getSettings();
+    
+    if (!settings.workspaceDirectory) {
+      return false;
+    }
+
+    return this.validateProjectFolderPath(settings.workspaceDirectory);
+  }
+
+  /**
    * Generate a unique filename in the given directory
    */
   private async generateUniqueFileName(

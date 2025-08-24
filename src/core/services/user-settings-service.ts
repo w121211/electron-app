@@ -1,4 +1,7 @@
 // src/core/services/user-settings-service.ts
+import fs from "node:fs/promises";
+import path from "node:path";
+import { safeStorage } from "electron";
 import { Logger, ILogObj } from "tslog";
 import type {
   UserSettingsRepository,
@@ -42,6 +45,100 @@ export class UserSettingsService {
 
     this.logger.info("User settings updated successfully");
     return updatedSettings;
+  }
+
+  public async setWorkspaceDirectory(workspaceDirectory: string): Promise<UserSettings> {
+    this.logger.info(`Setting workspace directory: ${workspaceDirectory}`);
+
+    // Validate workspace directory path
+    if (!workspaceDirectory.trim()) {
+      throw new Error("Workspace directory cannot be empty");
+    }
+
+    // Validate that the path is absolute
+    if (!path.isAbsolute(workspaceDirectory)) {
+      throw new Error(`Workspace directory must be absolute, received: ${workspaceDirectory}`);
+    }
+
+    // Validate that the directory exists and is actually a directory
+    const isValid = await this.validateWorkspaceDirectory(workspaceDirectory);
+    if (!isValid) {
+      throw new Error(`Invalid workspace directory path: ${workspaceDirectory}`);
+    }
+
+    return this.updateUserSettings({ workspaceDirectory });
+  }
+
+  public async getWorkspaceDirectory(): Promise<string | null> {
+    const settings = await this.userSettingsRepository.getSettings();
+    return settings.workspaceDirectory || null;
+  }
+
+  public async setProviderApiKey(provider: string, apiKey: string, enabled = true): Promise<UserSettings> {
+    this.logger.info(`Setting ${provider} API key`);
+
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error("Encryption is not available on this system");
+    }
+
+    if (!apiKey.trim()) {
+      throw new Error("API key cannot be empty");
+    }
+
+    const encryptedKey = safeStorage.encryptString(apiKey.trim());
+    const encryptedKeyString = encryptedKey.toString('base64');
+
+    const currentSettings = await this.userSettingsRepository.getSettings();
+    
+    return this.updateUserSettings({
+      providers: {
+        ...currentSettings.providers,
+        [provider]: {
+          enabled,
+          apiKey: encryptedKeyString,
+        },
+      },
+    });
+  }
+
+  public async getProviderApiKey(provider: string): Promise<string | null> {
+    const settings = await this.userSettingsRepository.getSettings();
+    
+    if (!settings.providers[provider]?.apiKey) {
+      return null;
+    }
+
+    try {
+      const encryptedBuffer = Buffer.from(settings.providers[provider].apiKey, 'base64');
+      const decryptedKey = safeStorage.decryptString(encryptedBuffer);
+      return decryptedKey;
+    } catch (error) {
+      this.logger.error(`Error decrypting ${provider} API key: ${error}`);
+      return null;
+    }
+  }
+
+  public async clearProviderApiKey(provider: string): Promise<UserSettings> {
+    this.logger.info(`Clearing ${provider} API key`);
+    
+    const currentSettings = await this.userSettingsRepository.getSettings();
+    
+    return this.updateUserSettings({
+      providers: {
+        ...currentSettings.providers,
+        [provider]: undefined,
+      },
+    });
+  }
+
+  private async validateWorkspaceDirectory(workspaceDirectory: string): Promise<boolean> {
+    try {
+      const stats = await fs.stat(workspaceDirectory);
+      return stats.isDirectory();
+    } catch (error) {
+      this.logger.error(`Error validating workspace directory: ${error}`);
+      return false;
+    }
   }
 }
 

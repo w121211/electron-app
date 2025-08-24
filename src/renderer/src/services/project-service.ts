@@ -14,6 +14,11 @@ import {
   removeFolderTree,
 } from "../stores/project-store.svelte.js";
 import { setLoading, showToast } from "../stores/ui-store.svelte.js";
+import {
+  fileExplorerState,
+  cancelInlineFolderCreation,
+  setWorkspaceSetupNeeded,
+} from "../stores/file-explorer-store.svelte.js";
 import { chatService } from "./chat-service.js";
 import type {
   ProjectFolder,
@@ -47,9 +52,17 @@ class ProjectService {
 
     try {
       this.logger.info("Loading project folders...");
-      const folders =
-        await trpcClient.projectFolder.getAllProjectFolders.query();
+      
+      // Check workspace directory status (don't block loading)
+      try {
+        const isWorkspaceValid = await trpcClient.projectFolder.isWorkspaceDirectoryValid.query();
+        setWorkspaceSetupNeeded(!isWorkspaceValid);
+      } catch (error) {
+        this.logger.warn("Failed to check workspace directory status:", error);
+        setWorkspaceSetupNeeded(false);
+      }
 
+      const folders = await trpcClient.projectFolder.getAllProjectFolders.query();
       setProjectFolders(folders);
       this.logger.info(`Loaded ${folders.length} project folders`);
 
@@ -265,6 +278,25 @@ class ProjectService {
     }
   }
 
+  // Helper method to check if a file event matches an active inline folder creation
+  private checkAndCancelMatchingInlineFolderCreation(absoluteFilePath: string) {
+    if (!fileExplorerState.inlineFolderCreation.isActive) {
+      return; // No active inline folder creation
+    }
+
+    const { parentPath, placeholderName } = fileExplorerState.inlineFolderCreation;
+    const expectedPath = `${parentPath}/${placeholderName}`;
+
+    if (absoluteFilePath === expectedPath) {
+      this.logger.debug(
+        "File watcher detected folder creation that matches active inline creation:",
+        absoluteFilePath
+      );
+      // Cancel the inline folder creation since the folder was successfully created
+      cancelInlineFolderCreation();
+    }
+  }
+
   // Event handlers
   handleFileEvent(event: FileWatcherEvent) {
     this.logger.debug(
@@ -274,6 +306,11 @@ class ProjectService {
       "isDirectory:",
       event.isDirectory,
     );
+
+    // Check if this addDir event matches an active inline folder creation
+    if (event.eventType === "addDir") {
+      this.checkAndCancelMatchingInlineFolderCreation(event.absoluteFilePath);
+    }
 
     // Find which project folder this file belongs to
     const folders = projectState.projectFolders;
@@ -627,6 +664,44 @@ class ProjectService {
       setLoading("createFolder", false);
     }
   }
+
+  async createNewProjectFolder(folderName: string): Promise<ProjectFolder> {
+    setLoading("createNewProjectFolder", true);
+
+    try {
+      this.logger.info(`Creating new project folder: ${folderName}`);
+      const newFolder = await trpcClient.projectFolder.createNewProjectFolder.mutate({
+        folderName,
+      });
+
+      // Update project folders list
+      addProjectFolder(newFolder);
+
+      // Load folder tree for new project
+      await this.loadFolderTree(newFolder.id, newFolder.path);
+
+      showToast("New project folder created successfully", "success");
+      this.logger.info("New project folder created:", newFolder.name);
+
+      return newFolder;
+    } catch (error) {
+      this.logger.error("Failed to create new project folder:", error);
+      
+      // Check if error is about workspace directory not being configured
+      if (error instanceof Error && error.message.includes("No workspace directory configured")) {
+        showToast("Please set a workspace directory in Settings first", "error");
+      } else {
+        showToast(
+          `Failed to create new project folder: ${error instanceof Error ? error.message : String(error)}`,
+          "error",
+        );
+      }
+      throw error;
+    } finally {
+      setLoading("createNewProjectFolder", false);
+    }
+  }
+
 }
 
 export const projectService = new ProjectService();

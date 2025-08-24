@@ -4,7 +4,9 @@ import {
   closeContextMenu,
   showRenameDialog,
   closeRenameDialog,
+  startInlineFolderCreation,
 } from "../stores/file-explorer-store.svelte.js";
+import { expandNode } from "../stores/tree-store.svelte.js";
 import { showToast } from "../stores/ui-store.svelte.js";
 import { projectService } from "./project-service.js";
 
@@ -56,10 +58,9 @@ export class FileExplorerService {
 
         case "create-folder":
           closeContextMenu();
-          const folderName = prompt("Enter folder name:");
-          if (folderName && folderName.trim()) {
-            await projectService.createFolder(path, folderName.trim());
-          }
+          // Expand the parent node first so the inline input is visible
+          expandNode(path);
+          startInlineFolderCreation(path);
           break;
 
         default:
@@ -78,6 +79,19 @@ export class FileExplorerService {
     } catch (error) {
       this.logger.error("Rename failed:", error);
       // Error handling is done in projectService
+    }
+  }
+
+  async createFolderInline(parentPath: string, folderName: string) {
+    try {
+      await projectService.createFolder(parentPath, folderName);
+      // Don't cancel inline creation here - let the file watcher handle it
+      // when it detects the folder was actually created
+      return { success: true };
+    } catch (error) {
+      this.logger.error("Inline folder creation failed:", error);
+      // Don't close inline creation on error - let user try again or cancel
+      return { success: false, error };
     }
   }
 }

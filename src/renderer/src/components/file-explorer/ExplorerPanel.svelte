@@ -1,12 +1,20 @@
 <!-- src/renderer/src/components/file-explorer/ExplorerPanel.svelte -->
 <script lang="ts">
-  import { PlusLg, Gear } from "svelte-bootstrap-icons";
+  import { PlusLg, Gear, FolderPlus } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { projectState } from "../../stores/project-store.svelte.js";
   import { uiState, showToast } from "../../stores/ui-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
   import { chatService } from "../../services/chat-service.js";
-  import { showContextMenu } from "../../stores/file-explorer-store.svelte.js";
+  import { userSettingsService } from "../../services/user-settings-service.js";
+  import { 
+    showContextMenu,
+    startInlineNewProjectFolderCreation,
+    fileExplorerState,
+    cancelInlineNewProjectFolderCreation,
+    updateInlineNewProjectFolderName,
+    setWorkspaceSetupNeeded
+  } from "../../stores/file-explorer-store.svelte.js";
   import TreeNode from "./TreeNode.svelte";
   import FileIcon from "./FileIcon.svelte";
   import ContextMenu from "./ContextMenu.svelte";
@@ -19,6 +27,9 @@
   const isLoadingAddProjectFolder = $derived(
     uiState.loadingStates["addProjectFolder"] || false,
   );
+  const isLoadingCreateNewProjectFolder = $derived(
+    uiState.loadingStates["createNewProjectFolder"] || false,
+  );
   const isLoadingProjectFolders = $derived(
     uiState.loadingStates["projectFolders"] || false,
   );
@@ -27,6 +38,15 @@
   );
 
   let showSettings = $state(false);
+  let newProjectFolderInput = $state<HTMLInputElement>();
+
+  // Focus the input when inline creation becomes active
+  $effect(() => {
+    if (fileExplorerState.inlineNewProjectFolder.isActive && newProjectFolderInput) {
+      newProjectFolderInput.focus();
+      newProjectFolderInput.select();
+    }
+  });
 
   async function handleAddProjectFolder(): Promise<void> {
     const folderPath = await window.api.showOpenDialog();
@@ -37,6 +57,10 @@
     } catch (error) {
       // Error handling done in service
     }
+  }
+
+  function handleNewProjectFolder(): void {
+    startInlineNewProjectFolderCreation();
   }
 
   async function handleNewChat(targetPath: string): Promise<void> {
@@ -85,6 +109,43 @@
   function handleOpenSettings(): void {
     showSettings = true;
   }
+
+  async function handleCreateNewProjectFolder(folderName: string): Promise<void> {
+    try {
+      await projectService.createNewProjectFolder(folderName);
+      cancelInlineNewProjectFolderCreation();
+    } catch (error) {
+      logger.error("Failed to create new project folder:", error);
+      // Error handling done in service, but keep the placeholder active for retry
+    }
+  }
+
+  function handleCancelNewProjectFolder(): void {
+    cancelInlineNewProjectFolderCreation();
+  }
+
+  function handleKeydownNewProjectFolder(event: KeyboardEvent): void {
+    if (event.key === "Escape") {
+      handleCancelNewProjectFolder();
+    } else if (event.key === "Enter") {
+      const folderName = fileExplorerState.inlineNewProjectFolder.placeholderName.trim();
+      if (folderName) {
+        handleCreateNewProjectFolder(folderName);
+      }
+    }
+  }
+
+  async function handleSetupWorkspace(): Promise<void> {
+    try {
+      const result = await userSettingsService.setupWorkspaceDirectory();
+      if (result) {
+        setWorkspaceSetupNeeded(false);
+        showToast("Workspace directory set successfully", "success");
+      }
+    } catch (error) {
+      // Error handling already done in service
+    }
+  }
 </script>
 
 <div class="bg-surface border-border flex h-full w-64 flex-col border-r">
@@ -93,46 +154,89 @@
     <span class="text-muted text-xs font-semibold tracking-wide uppercase">
       Projects
     </span>
-    <button
-      onclick={handleAddProjectFolder}
-      disabled={isLoadingAddProjectFolder}
-      class="text-muted hover:text-accent p-1 disabled:opacity-50"
-      title="Add Project"
-    >
-      <PlusLg class="text-base" />
-    </button>
+    <div class="flex items-center gap-1">
+      <button
+        onclick={handleAddProjectFolder}
+        disabled={isLoadingAddProjectFolder}
+        class="text-muted hover:text-accent p-1 disabled:opacity-50"
+        title="Add Existing Project"
+      >
+        <PlusLg class="text-base" />
+      </button>
+      <button
+        onclick={handleNewProjectFolder}
+        disabled={isLoadingCreateNewProjectFolder}
+        class="text-muted hover:text-accent p-1 disabled:opacity-50"
+        title="Create New Project"
+      >
+        <FolderPlus class="text-base" />
+      </button>
+    </div>
   </div>
 
   <!-- Tree Content -->
   <div class="flex-1 overflow-y-auto p-1">
     {#if isLoadingProjectFolders}
       <div class="text-muted p-4 text-sm">Loading project folders...</div>
-    {:else if projectState.projectFolders.length === 0}
-      <div class="text-muted p-4 text-center text-sm">
-        <FileIcon
-          fileName=""
-          isDirectory={true}
-          size="text-3xl"
-          className="mx-auto mb-2"
-        />
-        <p>No project folders</p>
-        <p class="mt-1 text-xs">Add a project folder to get started</p>
-      </div>
     {:else}
-      {#each projectState.projectFolders as folder, index (index)}
-        {@const tree = projectState.folderTrees[folder.id]}
-        {#if tree}
-          <TreeNode
-            node={tree}
-            level={0}
-            isCreatingChat={isLoadingCreateChat}
-            onclick={handleNodeClick}
-            onNewChat={handleNewChat}
-            onContextMenu={handleContextMenu}
-            onStopTask={handleStopTask}
+      <!-- Workspace Setup Prompt -->
+      {#if fileExplorerState.workspaceSetup.needsSetup}
+        <div class="bg-accent/10 border-accent/30 mx-1 mb-2 rounded border p-3">
+          <div class="text-accent mb-2 text-sm font-medium">Setup Required</div>
+          <div class="text-muted mb-3 text-xs">
+            Set a workspace directory to create new project folders.
+          </div>
+          <button
+            onclick={handleSetupWorkspace}
+            class="bg-accent text-accent-foreground hover:bg-accent/80 rounded px-3 py-1.5 text-xs font-medium transition-colors"
+          >
+            Select Workspace Folder
+          </button>
+        </div>
+      {/if}
+
+      <!-- Inline New Project Folder Creation -->
+      {#if fileExplorerState.inlineNewProjectFolder.isActive}
+        <div class="flex items-center gap-1 px-2 py-1">
+          <FileIcon fileName="" isDirectory={true} size="text-sm" />
+          <input
+            bind:this={newProjectFolderInput}
+            type="text"
+            bind:value={fileExplorerState.inlineNewProjectFolder.placeholderName}
+            onkeydown={handleKeydownNewProjectFolder}
+            onblur={handleCancelNewProjectFolder}
+            class="border-border bg-background text-foreground flex-1 rounded border px-1 py-0.5 text-sm focus:border-accent focus:outline-none"
           />
-        {/if}
-      {/each}
+        </div>
+      {/if}
+
+      {#if projectState.projectFolders.length === 0 && !fileExplorerState.inlineNewProjectFolder.isActive}
+        <div class="text-muted p-4 text-center text-sm">
+          <FileIcon
+            fileName=""
+            isDirectory={true}
+            size="text-3xl"
+            className="mx-auto mb-2"
+          />
+          <p>No project folders</p>
+          <p class="mt-1 text-xs">Add a project folder to get started</p>
+        </div>
+      {:else}
+        {#each projectState.projectFolders as folder, index (index)}
+          {@const tree = projectState.folderTrees[folder.id]}
+          {#if tree}
+            <TreeNode
+              node={tree}
+              level={0}
+              isCreatingChat={isLoadingCreateChat}
+              onclick={handleNodeClick}
+              onNewChat={handleNewChat}
+              onContextMenu={handleContextMenu}
+              onStopTask={handleStopTask}
+            />
+          {/if}
+        {/each}
+      {/if}
     {/if}
   </div>
 

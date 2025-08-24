@@ -5,6 +5,7 @@
   import { userSettingsService } from "../services/user-settings-service.js";
   import { projectState } from "../stores/project-store.svelte.js";
   import { userSettingsState } from "../stores/user-settings-store.svelte.js";
+  import ProviderApiKeyRow from "./ProviderApiKeyRow.svelte";
 
   let {
     showSettings = false,
@@ -13,12 +14,6 @@
 
   let newProjectFolder = $state("");
   let showAddProjectFolder = $state(false);
-
-  let providers = $state({
-    openai: { enabled: true, apiKey: "" },
-    anthropic: { enabled: true, apiKey: "" },
-    google: { enabled: false, apiKey: "" },
-  });
 
   let mcpServers = $state([
     {
@@ -55,21 +50,9 @@
   async function addProjectFolder(): Promise<void> {
     if (!newProjectFolder.trim()) return;
 
-    try {
-      await projectService.addProjectFolder(newProjectFolder.trim());
-      newProjectFolder = "";
-      showAddProjectFolder = false;
-    } catch (error) {
-      console.error("Failed to add project folder:", error);
-    }
-  }
-
-  async function removeProjectFolder(folderId: string): Promise<void> {
-    try {
-      await projectService.removeProjectFolder(folderId);
-    } catch (error) {
-      console.error("Failed to remove project folder:", error);
-    }
+    await projectService.addProjectFolder(newProjectFolder.trim());
+    newProjectFolder = "";
+    showAddProjectFolder = false;
   }
 
   function handleKeyDown(event: KeyboardEvent): void {
@@ -81,16 +64,6 @@
     }
   }
 
-  function toggleProvider(providerKey: string): void {
-    providers[providerKey].enabled = !providers[providerKey].enabled;
-  }
-
-  function toggleMcpServer(serverId: string): void {
-    const server = mcpServers.find((s) => s.id === serverId);
-    if (server) {
-      server.enabled = !server.enabled;
-    }
-  }
 </script>
 
 <button
@@ -132,6 +105,47 @@
               <p class="text-muted mt-2 text-sm">Loading settings...</p>
             </div>
           {:else}
+            <!-- Workspace Directory Section -->
+            <section>
+              <h2 class="text-lg font-semibold">Workspace Directory</h2>
+              <p class="text-muted mt-1 text-sm">
+                Set the main workspace directory for your projects.
+              </p>
+              <div class="border-border mt-4 rounded-lg border">
+                <div class="border-border border-b p-3">
+                  <h3 class="text-sm font-medium">Current Workspace</h3>
+                </div>
+                <div class="p-3">
+                  {#if userSettingsState.settings.workspaceDirectory}
+                    <div class="flex items-center justify-between">
+                      <p class="font-mono text-sm">
+                        {userSettingsState.settings.workspaceDirectory}
+                      </p>
+                      <button
+                        onclick={userSettingsService.setupWorkspaceDirectory}
+                        class="bg-surface hover:bg-hover border-border text-foreground cursor-pointer rounded-md border px-3 py-1 text-sm font-medium"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  {:else}
+                    <div class="flex items-center justify-between">
+                      <p class="text-muted text-sm italic">
+                        No workspace directory set
+                      </p>
+                      <button
+                        onclick={userSettingsService.setupWorkspaceDirectory}
+                        class="cursor-pointer rounded-md bg-blue-600 px-3 py-1 text-sm text-white transition-colors hover:bg-blue-700"
+                      >
+                        <Plus class="mr-1 inline h-3 w-3" />
+                        Set Workspace
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            </section>
+
             <!-- Project Management Section -->
             <section>
               <h2 class="text-lg font-semibold">Project Management</h2>
@@ -184,7 +198,8 @@
                     <li class="flex items-center justify-between px-3 py-2">
                       <p class="font-mono text-sm">{folder.path}</p>
                       <button
-                        onclick={() => removeProjectFolder(folder.id)}
+                        onclick={() =>
+                          projectService.removeProjectFolder(folder.id)}
                         class="text-muted cursor-pointer hover:text-red-500"
                         title="Remove"
                         aria-label="Remove folder"
@@ -211,81 +226,46 @@
               <p class="text-muted mt-1 text-sm">
                 Configure API keys for the AI models you want to use.
               </p>
-              <div class="border-border mt-4 overflow-hidden rounded-lg border">
-                <table class="w-full">
-                  <thead class="bg-surface/50">
-                    <tr>
-                      <th
-                        class="text-muted w-1/4 p-3 text-left text-xs font-semibold uppercase"
-                        >Provider</th
-                      >
-                      <th
-                        class="text-muted w-2/4 p-3 text-left text-xs font-semibold uppercase"
-                        >API Key</th
-                      >
-                      <th
-                        class="text-muted w-1/4 p-3 text-left text-xs font-semibold uppercase"
-                        >Enabled</th
-                      >
-                    </tr>
-                  </thead>
-                  <tbody class="divide-border divide-y">
-                    <tr class="hover:bg-hover">
-                      <td class="p-3 font-medium">OpenAI</td>
-                      <td class="p-3">
-                        <input
-                          type="password"
-                          bind:value={providers.openai.apiKey}
-                          placeholder="Enter your OpenAI API key"
-                          class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none"
-                        />
-                      </td>
-                      <td class="p-3">
-                        <input
-                          type="checkbox"
-                          bind:checked={providers.openai.enabled}
-                          class="h-4 w-4"
-                        />
-                      </td>
-                    </tr>
-                    <tr class="hover:bg-hover">
-                      <td class="p-3 font-medium">Anthropic</td>
-                      <td class="p-3">
-                        <input
-                          type="password"
-                          bind:value={providers.anthropic.apiKey}
-                          placeholder="Enter your Anthropic API key"
-                          class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none"
-                        />
-                      </td>
-                      <td class="p-3">
-                        <input
-                          type="checkbox"
-                          bind:checked={providers.anthropic.enabled}
-                          class="h-4 w-4"
-                        />
-                      </td>
-                    </tr>
-                    <tr class="hover:bg-hover">
-                      <td class="p-3 font-medium">Google</td>
-                      <td class="p-3">
-                        <input
-                          type="password"
-                          bind:value={providers.google.apiKey}
-                          placeholder="Enter your Google API key"
-                          class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none"
-                        />
-                      </td>
-                      <td class="p-3">
-                        <input
-                          type="checkbox"
-                          bind:checked={providers.google.enabled}
-                          class="h-4 w-4"
-                        />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="border-border mt-4 rounded-lg border">
+                <div
+                  class="border-border flex items-center justify-between border-b p-3"
+                >
+                  <h3 class="text-sm font-medium">Configured Providers</h3>
+                </div>
+                <ul class="divide-border divide-y">
+                  <ProviderApiKeyRow
+                    provider="aiGateway"
+                    displayName="AI Gateway"
+                    apiKey={userSettingsState.settings.providers?.aiGateway
+                      ?.apiKey}
+                    enabled={userSettingsState.settings.providers?.aiGateway
+                      ?.enabled || false}
+                  />
+                  <ProviderApiKeyRow
+                    provider="openai"
+                    displayName="OpenAI"
+                    apiKey={userSettingsState.settings.providers?.openai
+                      ?.apiKey}
+                    enabled={userSettingsState.settings.providers?.openai
+                      ?.enabled || false}
+                  />
+                  <ProviderApiKeyRow
+                    provider="anthropic"
+                    displayName="Anthropic"
+                    apiKey={userSettingsState.settings.providers?.anthropic
+                      ?.apiKey}
+                    enabled={userSettingsState.settings.providers?.anthropic
+                      ?.enabled || false}
+                  />
+                  <ProviderApiKeyRow
+                    provider="google"
+                    displayName="Google"
+                    apiKey={userSettingsState.settings.providers?.google
+                      ?.apiKey}
+                    enabled={userSettingsState.settings.providers?.google
+                      ?.enabled || false}
+                  />
+                </ul>
               </div>
             </section>
 

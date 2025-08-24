@@ -17,5 +17,6 @@
     "javascriptreact",
     "svelte"
   ],
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "kiroAgent.configureMCP": "Disabled"
 }

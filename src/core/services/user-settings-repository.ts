@@ -11,16 +11,19 @@ export interface ProviderConfig {
 
 export interface UserSettings {
   projectFolders: ProjectFolder[];
+  workspaceDirectory?: string;
   providers: {
     openai?: ProviderConfig;
     anthropic?: ProviderConfig;
     google?: ProviderConfig;
     openrouter?: ProviderConfig;
+    aiGateway?: ProviderConfig;
   };
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   projectFolders: [],
+  workspaceDirectory: undefined,
   providers: {},
 };
 

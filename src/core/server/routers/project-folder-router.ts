@@ -76,6 +76,12 @@ export const createFolderSchema = z.object({
   correlationId: z.string().optional(),
 });
 
+export const createNewProjectFolderSchema = z.object({
+  folderName: z.string().min(1, "Folder name cannot be empty"),
+  correlationId: z.string().optional(),
+});
+
+
 export function createProjectFolderRouter(
   projectFolderService: ProjectFolderService,
 ) {
@@ -188,5 +194,19 @@ export function createProjectFolderRouter(
           input.correlationId,
         );
       }),
+
+    createNewProjectFolder: publicProcedure
+      .input(createNewProjectFolderSchema)
+      .mutation(async ({ input }) => {
+        return projectFolderService.createNewProjectFolder(
+          input.folderName,
+          input.correlationId,
+        );
+      }),
+
+    isWorkspaceDirectoryValid: publicProcedure.query(async () => {
+      return projectFolderService.isWorkspaceDirectoryValid();
+    }),
+
   });
 }
