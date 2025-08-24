@@ -27,7 +27,7 @@ export const addProjectFolderSchema = z.object({
 });
 
 export const removeProjectFolderSchema = z.object({
-  projectFolderId: z.string(),
+  projectFolderPath: absolutePathSchema,
   correlationId: z.string().optional(),
 });
 
@@ -37,7 +37,7 @@ export const startWatchingAllProjectFoldersSchema = z.object({
 
 export const searchFilesSchema = z.object({
   query: z.string(),
-  projectId: z.string(),
+  projectPath: absolutePathSchema,
   limit: z.number().optional().default(20),
 });
 
@@ -107,7 +107,7 @@ export function createProjectFolderRouter(
       .input(removeProjectFolderSchema)
       .mutation(async ({ input }) => {
         return projectFolderService.removeProjectFolder(
-          input.projectFolderId,
+          input.projectFolderPath,
           input.correlationId,
         );
       }),
@@ -130,7 +130,7 @@ export function createProjectFolderRouter(
       .query(async ({ input }) => {
         return projectFolderService.searchFilesInProject(
           input.query,
-          input.projectId,
+          input.projectPath,
           input.limit,
         );
       }),

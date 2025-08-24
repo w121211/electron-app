@@ -7,13 +7,13 @@
   import { projectService } from "../../services/project-service.js";
   import { chatService } from "../../services/chat-service.js";
   import { userSettingsService } from "../../services/user-settings-service.js";
-  import { 
+  import {
     showContextMenu,
     startInlineNewProjectFolderCreation,
     fileExplorerState,
     cancelInlineNewProjectFolderCreation,
     updateInlineNewProjectFolderName,
-    setWorkspaceSetupNeeded
+    setWorkspaceSetupNeeded,
   } from "../../stores/file-explorer-store.svelte.js";
   import TreeNode from "./TreeNode.svelte";
   import FileIcon from "./FileIcon.svelte";
@@ -42,7 +42,10 @@
 
   // Focus the input when inline creation becomes active
   $effect(() => {
-    if (fileExplorerState.inlineNewProjectFolder.isActive && newProjectFolderInput) {
+    if (
+      fileExplorerState.inlineNewProjectFolder.isActive &&
+      newProjectFolderInput
+    ) {
       newProjectFolderInput.focus();
       newProjectFolderInput.select();
     }
@@ -88,18 +91,19 @@
     path: string,
     isDirectory: boolean,
     event: MouseEvent,
+    isProjectFolder = false,
   ): void {
-    console.log(
-      "🎯 ExplorerPanel: Context menu requested for:",
-      path,
-      "isDirectory:",
-      isDirectory,
-    );
     event.preventDefault();
     event.stopPropagation();
 
     // Use store function directly
-    showContextMenu(path, isDirectory, event.clientX, event.clientY);
+    showContextMenu(
+      path,
+      isDirectory,
+      event.clientX,
+      event.clientY,
+      isProjectFolder,
+    );
   }
 
   function handleStopTask(path: string): void {
@@ -110,7 +114,9 @@
     showSettings = true;
   }
 
-  async function handleCreateNewProjectFolder(folderName: string): Promise<void> {
+  async function handleCreateNewProjectFolder(
+    folderName: string,
+  ): Promise<void> {
     try {
       await projectService.createNewProjectFolder(folderName);
       cancelInlineNewProjectFolderCreation();
@@ -128,7 +134,8 @@
     if (event.key === "Escape") {
       handleCancelNewProjectFolder();
     } else if (event.key === "Enter") {
-      const folderName = fileExplorerState.inlineNewProjectFolder.placeholderName.trim();
+      const folderName =
+        fileExplorerState.inlineNewProjectFolder.placeholderName.trim();
       if (folderName) {
         handleCreateNewProjectFolder(folderName);
       }
@@ -202,10 +209,12 @@
           <input
             bind:this={newProjectFolderInput}
             type="text"
-            bind:value={fileExplorerState.inlineNewProjectFolder.placeholderName}
+            bind:value={
+              fileExplorerState.inlineNewProjectFolder.placeholderName
+            }
             onkeydown={handleKeydownNewProjectFolder}
             onblur={handleCancelNewProjectFolder}
-            class="border-border bg-background text-foreground flex-1 rounded border px-1 py-0.5 text-sm focus:border-accent focus:outline-none"
+            class="border-border bg-background text-foreground focus:border-accent flex-1 rounded border px-1 py-0.5 text-sm focus:outline-none"
           />
         </div>
       {/if}
@@ -223,7 +232,7 @@
         </div>
       {:else}
         {#each projectState.projectFolders as folder, index (index)}
-          {@const tree = projectState.folderTrees[folder.id]}
+          {@const tree = projectState.folderTrees[folder.path]}
           {#if tree}
             <TreeNode
               node={tree}

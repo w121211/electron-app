@@ -194,12 +194,12 @@
                 {/if}
 
                 <ul class="divide-border divide-y">
-                  {#each projectState.projectFolders as folder (folder.id)}
+                  {#each projectState.projectFolders as folder (folder.path)}
                     <li class="flex items-center justify-between px-3 py-2">
                       <p class="font-mono text-sm">{folder.path}</p>
                       <button
                         onclick={() =>
-                          projectService.removeProjectFolder(folder.id)}
+                          projectService.removeProjectFolder(folder.path)}
                         class="text-muted cursor-pointer hover:text-red-500"
                         title="Remove"
                         aria-label="Remove folder"

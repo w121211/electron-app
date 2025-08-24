@@ -130,18 +130,32 @@
       <span>Duplicate</span>
     </button>
 
-    <!-- Delete -->
-    <button
-      class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
-      onclick={(e) => {
-        e.stopPropagation();
-        handleAction("delete");
-      }}
-      tabindex="0"
-    >
-      <Trash class="text-muted mr-2 text-xs" />
-      <span>Delete</span>
-    </button>
+    <!-- Delete or Remove from Projects -->
+    {#if fileExplorerState.contextMenu.isProjectFolder}
+      <button
+        class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
+        onclick={(e) => {
+          e.stopPropagation();
+          handleAction("remove-from-projects");
+        }}
+        tabindex="0"
+      >
+        <Trash class="text-muted mr-2 text-xs" />
+        <span>Remove from projects</span>
+      </button>
+    {:else}
+      <button
+        class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
+        onclick={(e) => {
+          e.stopPropagation();
+          handleAction("delete");
+        }}
+        tabindex="0"
+      >
+        <Trash class="text-muted mr-2 text-xs" />
+        <span>Delete</span>
+      </button>
+    {/if}
   </div>
 {/if}
 

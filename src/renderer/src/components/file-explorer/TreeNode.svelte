@@ -36,6 +36,7 @@
       path: string,
       isDirectory: boolean,
       event: MouseEvent,
+      isProjectFolder?: boolean,
     ) => void;
     onStopTask?: (path: string) => void;
   }
@@ -55,6 +56,7 @@
   const isSelected = $derived(treeState.selectedNode === node.path);
   const task = $derived(tasksByPath.get(node.path));
   const isTaskDir = $derived(isTaskFolder(node.name));
+  const isProjectFolder = $derived(level === 0);
 
   // Inline folder creation state
   const showPlaceholderFolder = $derived(
@@ -102,7 +104,7 @@
   function handleContextMenu(e: MouseEvent): void {
     console.log("🌳 TreeNode handleContextMenu called for:", node.path);
     e.stopPropagation();
-    onContextMenu(node.path, node.isDirectory, e);
+    onContextMenu(node.path, node.isDirectory, e, isProjectFolder);
   }
 
   function handleStopTask(e: MouseEvent): void {

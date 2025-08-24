@@ -56,6 +56,14 @@ export class FileExplorerService {
           }
           break;
 
+        case "remove-from-projects":
+          closeContextMenu();
+          if (confirm("Are you sure you want to remove this project folder?")) {
+            // Remove project folder directly using path
+            await projectService.removeProjectFolder(path);
+          }
+          break;
+
         case "create-folder":
           closeContextMenu();
           // Expand the parent node first so the inline input is visible

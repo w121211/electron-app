@@ -1,7 +1,6 @@
 // src/core/services/project-folder-service.ts
 import path from "node:path";
 import fs from "node:fs/promises";
-import { v4 as uuidv4 } from "uuid";
 import { Logger, ILogObj } from "tslog";
 import fuzzysort from "fuzzysort";
 import walk from "ignore-walk";
@@ -11,7 +10,6 @@ import { FileWatcherService } from "./file-watcher-service.js";
 
 // Define types for ProjectFolderService
 export interface ProjectFolder {
-  id: string;
   name: string;
   path: string;
 }
@@ -173,7 +171,6 @@ export class ProjectFolderService {
     // Create the new project folder
     const folderName = path.basename(absoluteProjectFolderPath);
     const projectFolder: ProjectFolder = {
-      id: uuidv4(),
       name: folderName,
       path: absoluteProjectFolderPath,
     };
@@ -205,26 +202,26 @@ export class ProjectFolderService {
   }
 
   public async removeProjectFolder(
-    projectFolderId: string,
+    projectFolderPath: string,
     correlationId?: string,
   ): Promise<ProjectFolder[]> {
-    this.logger.info(`Removing project folder with ID: ${projectFolderId}`);
+    this.logger.info(`Removing project folder: ${projectFolderPath}`);
 
     // Get current settings
     const settings = await this.userSettingsRepository.getSettings();
 
-    // Find the project folder by ID
+    // Find the project folder by path
     const projectFolder = settings.projectFolders.find(
-      (folder) => folder.id === projectFolderId,
+      (folder) => folder.path === projectFolderPath,
     );
 
     if (!projectFolder) {
-      throw new Error(`Project folder with ID ${projectFolderId} not found`);
+      throw new Error(`Project folder not found: ${projectFolderPath}`);
     }
 
     // Remove project folder from settings
     settings.projectFolders = settings.projectFolders.filter(
-      (folder) => folder.id !== projectFolderId,
+      (folder) => folder.path !== projectFolderPath,
     );
 
     // Save updated settings
@@ -353,21 +350,21 @@ export class ProjectFolderService {
 
   public async searchFilesInProject(
     query: string,
-    projectId: string,
+    projectPath: string,
     limit: number = 20,
   ): Promise<FileSearchResult[]> {
     this.logger.info(
-      `Searching files in project ${projectId} with query: ${query}`,
+      `Searching files in project ${projectPath} with query: ${query}`,
     );
 
-    // Find the project folder by ID
+    // Find the project folder by path
     const settings = await this.userSettingsRepository.getSettings();
     const projectFolder = settings.projectFolders.find(
-      (folder) => folder.id === projectId,
+      (folder) => folder.path === projectPath,
     );
 
     if (!projectFolder) {
-      throw new Error(`Project folder with ID ${projectId} not found`);
+      throw new Error(`Project folder not found: ${projectPath}`);
     }
 
     // Get searchable files using .gitignore rules

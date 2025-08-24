@@ -4,6 +4,7 @@ export interface ContextMenuState {
   isVisible: boolean;
   targetPath: string;
   isDirectory: boolean;
+  isProjectFolder: boolean;
   x: number;
   y: number;
 }
@@ -45,6 +46,7 @@ export const fileExplorerState = $state<FileExplorerState>({
     isVisible: false,
     targetPath: "",
     isDirectory: false,
+    isProjectFolder: false,
     x: 0,
     y: 0,
   },
@@ -75,14 +77,8 @@ export function showContextMenu(
   isDirectory: boolean,
   x: number,
   y: number,
+  isProjectFolder = false,
 ) {
-  console.log(
-    "🎯 FileExplorerStore: Showing context menu for:",
-    path,
-    "isDirectory:",
-    isDirectory,
-  );
-
   // Adjust position if menu would go off screen
   const menuWidth = 192; // w-48 = 12rem = 192px
   const menuHeight = 200; // approximate height
@@ -93,6 +89,7 @@ export function showContextMenu(
   fileExplorerState.contextMenu.isVisible = true;
   fileExplorerState.contextMenu.targetPath = path;
   fileExplorerState.contextMenu.isDirectory = isDirectory;
+  fileExplorerState.contextMenu.isProjectFolder = isProjectFolder;
   fileExplorerState.contextMenu.x = finalX;
   fileExplorerState.contextMenu.y = finalY;
 }
@@ -117,8 +114,11 @@ export function closeRenameDialog() {
 
 // Inline Folder Creation Actions
 export function startInlineFolderCreation(parentPath: string) {
-  console.log("🎯 FileExplorerStore: Starting inline folder creation for:", parentPath);
-  
+  console.log(
+    "🎯 FileExplorerStore: Starting inline folder creation for:",
+    parentPath,
+  );
+
   fileExplorerState.inlineFolderCreation.isActive = true;
   fileExplorerState.inlineFolderCreation.parentPath = parentPath;
   fileExplorerState.inlineFolderCreation.placeholderName = "New folder";
@@ -134,12 +134,13 @@ export function updateInlineFolderName(name: string) {
 }
 
 // Inline New Project Folder Actions
-export function startInlineNewProjectFolderCreation(needsWorkspaceDirectory = false) {
-  console.log("🎯 FileExplorerStore: Starting inline new project folder creation");
-  
+export function startInlineNewProjectFolderCreation(
+  needsWorkspaceDirectory = false,
+) {
   fileExplorerState.inlineNewProjectFolder.isActive = true;
   fileExplorerState.inlineNewProjectFolder.placeholderName = "New project";
-  fileExplorerState.inlineNewProjectFolder.needsWorkspaceDirectory = needsWorkspaceDirectory;
+  fileExplorerState.inlineNewProjectFolder.needsWorkspaceDirectory =
+    needsWorkspaceDirectory;
 }
 
 export function cancelInlineNewProjectFolderCreation() {
