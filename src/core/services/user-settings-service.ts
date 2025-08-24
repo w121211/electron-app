@@ -12,6 +12,13 @@ import type {
 type SafeUserSettingsUpdate = Omit<Partial<UserSettings>, "projectFolders"> &
   Record<string, unknown>;
 
+const envVarMap: Record<string, string> = {
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  google: "GOOGLE_API_KEY",
+  aiGateway: "AI_GATEWAY_API_KEY",
+};
+
 export class UserSettingsService {
   private readonly logger: Logger<ILogObj>;
   private readonly userSettingsRepository: UserSettingsRepository;
@@ -26,7 +33,7 @@ export class UserSettingsService {
   }
 
   public async updateUserSettings(
-    settingsUpdate: SafeUserSettingsUpdate // Type-safe: prevents projectFolders updates at compile time
+    settingsUpdate: SafeUserSettingsUpdate, // Type-safe: prevents projectFolders updates at compile time
   ): Promise<UserSettings> {
     this.logger.info("Updating user settings");
 
@@ -47,7 +54,9 @@ export class UserSettingsService {
     return updatedSettings;
   }
 
-  public async setWorkspaceDirectory(workspaceDirectory: string): Promise<UserSettings> {
+  public async setWorkspaceDirectory(
+    workspaceDirectory: string,
+  ): Promise<UserSettings> {
     this.logger.info(`Setting workspace directory: ${workspaceDirectory}`);
 
     // Validate workspace directory path
@@ -57,13 +66,17 @@ export class UserSettingsService {
 
     // Validate that the path is absolute
     if (!path.isAbsolute(workspaceDirectory)) {
-      throw new Error(`Workspace directory must be absolute, received: ${workspaceDirectory}`);
+      throw new Error(
+        `Workspace directory must be absolute, received: ${workspaceDirectory}`,
+      );
     }
 
     // Validate that the directory exists and is actually a directory
     const isValid = await this.validateWorkspaceDirectory(workspaceDirectory);
     if (!isValid) {
-      throw new Error(`Invalid workspace directory path: ${workspaceDirectory}`);
+      throw new Error(
+        `Invalid workspace directory path: ${workspaceDirectory}`,
+      );
     }
 
     return this.updateUserSettings({ workspaceDirectory });
@@ -74,7 +87,11 @@ export class UserSettingsService {
     return settings.workspaceDirectory || null;
   }
 
-  public async setProviderApiKey(provider: string, apiKey: string, enabled = true): Promise<UserSettings> {
+  public async setProviderApiKey(
+    provider: string,
+    apiKey: string,
+    enabled = true,
+  ): Promise<UserSettings> {
     this.logger.info(`Setting ${provider} API key`);
 
     if (!safeStorage.isEncryptionAvailable()) {
@@ -86,11 +103,11 @@ export class UserSettingsService {
     }
 
     const encryptedKey = safeStorage.encryptString(apiKey.trim());
-    const encryptedKeyString = encryptedKey.toString('base64');
+    const encryptedKeyString = encryptedKey.toString("base64");
 
     const currentSettings = await this.userSettingsRepository.getSettings();
-    
-    return this.updateUserSettings({
+
+    const updatedSettings = await this.updateUserSettings({
       providers: {
         ...currentSettings.providers,
         [provider]: {
@@ -99,17 +116,25 @@ export class UserSettingsService {
         },
       },
     });
+
+    // Load the updated API key to environment
+    await this.loadApiKeysToEnvironment();
+
+    return updatedSettings;
   }
 
   public async getProviderApiKey(provider: string): Promise<string | null> {
     const settings = await this.userSettingsRepository.getSettings();
-    
+
     if (!settings.providers[provider]?.apiKey) {
       return null;
     }
 
     try {
-      const encryptedBuffer = Buffer.from(settings.providers[provider].apiKey, 'base64');
+      const encryptedBuffer = Buffer.from(
+        settings.providers[provider].apiKey,
+        "base64",
+      );
       const decryptedKey = safeStorage.decryptString(encryptedBuffer);
       return decryptedKey;
     } catch (error) {
@@ -120,9 +145,9 @@ export class UserSettingsService {
 
   public async clearProviderApiKey(provider: string): Promise<UserSettings> {
     this.logger.info(`Clearing ${provider} API key`);
-    
+
     const currentSettings = await this.userSettingsRepository.getSettings();
-    
+
     return this.updateUserSettings({
       providers: {
         ...currentSettings.providers,
@@ -131,7 +156,31 @@ export class UserSettingsService {
     });
   }
 
-  private async validateWorkspaceDirectory(workspaceDirectory: string): Promise<boolean> {
+  public async loadApiKeysToEnvironment(): Promise<void> {
+    this.logger.info("Loading provider API keys to environment variables");
+
+    const settings = await this.userSettingsRepository.getSettings();
+
+    for (const [provider, config] of Object.entries(settings.providers)) {
+      if (config?.apiKey && config.enabled) {
+        const apiKey = await this.getProviderApiKey(provider);
+        if (apiKey) {
+          // const envVarName = envVarMap.
+          if (!envVarMap.hasOwnProperty(provider)) {
+            throw new Error(`Unknown provider: ${provider}`);
+          }
+          const envVarName = envVarMap[provider];
+          process.env[envVarName] = apiKey;
+          this.logger.info(`Set ${envVarName} environment variable`);
+        }
+      }
+    }
+    this.logger.debug(process.env);
+  }
+
+  private async validateWorkspaceDirectory(
+    workspaceDirectory: string,
+  ): Promise<boolean> {
     try {
       const stats = await fs.stat(workspaceDirectory);
       return stats.isDirectory();
@@ -143,7 +192,7 @@ export class UserSettingsService {
 }
 
 export function createUserSettingsService(
-  userSettingsRepository: UserSettingsRepository
+  userSettingsRepository: UserSettingsRepository,
 ): UserSettingsService {
   return new UserSettingsService(userSettingsRepository);
 }

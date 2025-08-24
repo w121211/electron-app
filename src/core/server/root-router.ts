@@ -63,6 +63,11 @@ export async function createTrpcRouter(userDataDir: string) {
   const fileService = new FileService(eventBus);
   const userSettingsService = createUserSettingsService(userSettingsRepo);
 
+  // Load API keys to environment variables
+  userSettingsService.loadApiKeysToEnvironment().catch((err) =>
+    logger.error("Failed to load API keys to environment:", err)
+  );
+
   // Initialize tool registry
   // Note: ToolCallRunner is instantiated per chat session, not globally here.
   const toolRegistry = new ToolRegistryImpl(eventBus, logger);

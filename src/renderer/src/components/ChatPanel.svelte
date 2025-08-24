@@ -115,7 +115,7 @@
     if (chatState.currentChat) {
       clearTimeout(draftTimeout);
       draftTimeout = setTimeout(() => {
-        chatService.savePromptDraft(chatState.currentChat!.id, value);
+        chatService.savePromptDraft(chatState.currentChat!.absoluteFilePath, value);
       }, 1500);
     }
   }
