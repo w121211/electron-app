@@ -1,26 +1,27 @@
-// packages/events-core/examples/new-chat-client-demo.ts
-// Run with: `AI_GATEWAY_API_KEY="your_api_key" pnpm dlx tsx examples/new-chat-client-demo.ts`
+// examples/new-chat-client-demo.ts
+// Run with: `AI_GATEWAY_API_KEY="your_api_key" pnpm dlx tsx examples/chat-client-demo.ts`
 
 import { tool } from "ai";
 import { Logger } from "tslog";
 import { z } from "zod";
 import type { ToolSet, UserModelMessage } from "ai";
 import type { ILogObj } from "tslog";
-import { EventBus } from "../src/event-bus.js";
-import { ChatClient } from "../src/services/chat-engine/chat-client.js";
-import { ChatSessionRepositoryImpl } from "../src/services/chat-engine/chat-session-repository.js";
-import { ToolRegistry } from "../src/services/tool-call/tool-registry.js";
-import { TaskService } from "../src/services/task-service.js";
-import { ProjectFolderService } from "../src/services/project-folder-service.js";
-import { UserSettingsService } from "../src/services/user-settings-service.js";
-import { FileService } from "../src/services/file-service.js";
-import { UserSettingsRepository } from "../src/services/user-settings-repository.js";
-import { FileWatcherService } from "../src/services/file-watcher-service.js";
-import { TaskRepository } from "../src/services/task-repository.js";
+import { EventBus } from "../src/core/event-bus.js";
+import { ChatClient } from "../src/core/services/chat-engine/chat-client.js";
+import { ChatSessionRepositoryImpl } from "../src/core/services/chat-engine/chat-session-repository.js";
+import { ToolRegistryImpl } from "../src/core/services/tool-call/tool-registry.js";
+import { TaskService } from "../src/core/services/task-service.js";
+import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
+import { UserSettingsService } from "../src/core/services/user-settings-service.js";
+import { FileService } from "../src/core/services/file-service.js";
+import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";
+import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
+import { TaskRepository } from "../src/core/services/task-repository.js";
+import type { ToolRegistry } from "../src/core/services/tool-call/tool-registry.js";
 import type {
   TurnResult,
   ChatSession,
-} from "../src/services/chat-engine/chat-session.js";
+} from "../src/core/services/chat-engine/chat-session.js";
 
 interface DemoServices {
   projectFolderService: ProjectFolderService;
@@ -79,7 +80,7 @@ async function setupServices(): Promise<DemoServices> {
   const fileService = new FileService(eventBus);
 
   const chatSessionRepository = new ChatSessionRepositoryImpl();
-  const toolRegistry = new ToolRegistry(eventBus, logger);
+  const toolRegistry = new ToolRegistryImpl(eventBus, logger);
 
   return {
     projectFolderService,
@@ -189,7 +190,7 @@ async function runChatDemo(): Promise<{
   logger.info("Creating new chat session...");
 
   // 1. Create a new chat with openai/gpt-4o model
-  const chatSession = await chatClient.createChat(tempDir, {
+  const chatSession = await chatClient.createChatSession(tempDir, {
     modelId: "openai/gpt-4o",
     mode: "chat",
     prompt: "You are a helpful assistant with access to a calculator tool.",
@@ -209,7 +210,7 @@ async function runChatDemo(): Promise<{
 
   logger.info("Sending user message:", userMessage);
 
-  const result1 = await chatClient.sendMessage(
+  const { turnResult: result1 } = await chatClient.sendMessage(
     chatSession.absoluteFilePath,
     chatSession.id,
     userMessage,
@@ -231,7 +232,7 @@ async function runChatDemo(): Promise<{
         input: toolCall.input,
       });
 
-      const confirmResult = await chatClient.confirmToolCall(
+      const { turnResult: confirmResult } = await chatClient.confirmToolCall(
         chatSession.absoluteFilePath,
         chatSession.id,
         toolCall.toolCallId,
@@ -267,7 +268,7 @@ async function runChatDemo(): Promise<{
     content: "Now calculate what 10% of that final result would be.",
   };
 
-  const result2 = await chatClient.sendMessage(
+  const { turnResult: result2 } = await chatClient.sendMessage(
     chatSession.absoluteFilePath,
     chatSession.id,
     userMessage2,
@@ -282,7 +283,7 @@ async function runChatDemo(): Promise<{
     result2.toolCallsAwaitingConfirmation.length > 0
   ) {
     for (const toolCall of result2.toolCallsAwaitingConfirmation) {
-      const confirmResult = await chatClient.confirmToolCall(
+      const { turnResult: confirmResult } = await chatClient.confirmToolCall(
         chatSession.absoluteFilePath,
         chatSession.id,
         toolCall.toolCallId,
@@ -317,6 +318,21 @@ async function testRerunFunction(
   logger.info(`Chat file path: ${chatSession.absoluteFilePath}`);
   logger.info("Messages before rerun:", chatSession.messages.length);
 
+  // Store original conversation for comparison
+  const originalMessages = [...chatSession.messages];
+
+  logger.info("=== ORIGINAL CONVERSATION ===");
+  originalMessages.forEach((msg, index) => {
+    const content =
+      typeof msg.message.content === "string"
+        ? msg.message.content.substring(0, 100) + "..."
+        : "[complex content]";
+    logger.info(
+      `Original Message ${index + 1} [${msg.message.role}]:`,
+      content,
+    );
+  });
+
   // Test the rerun functionality on the existing session
   logger.info("Testing rerunChat function...");
 
@@ -327,6 +343,16 @@ async function testRerunFunction(
 
   logTurnResult("Rerun result:", rerunResult);
   logger.info("Messages after rerun:", chatSession.messages.length);
+
+  // Print rerun conversation for comparison
+  logger.info("=== RERUN CONVERSATION ===");
+  chatSession.messages.forEach((msg, index) => {
+    const content =
+      typeof msg.message.content === "string"
+        ? msg.message.content.substring(0, 100) + "..."
+        : "[complex content]";
+    logger.info(`Rerun Message ${index + 1} [${msg.message.role}]:`, content);
+  });
 
   logger.info("=== Rerun function test completed successfully! ===");
 

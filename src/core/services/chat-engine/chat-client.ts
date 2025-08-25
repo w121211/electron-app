@@ -117,14 +117,15 @@ export class ChatClient<TOOLS extends ToolSet> {
       );
     }
 
-    // Reset session to allow rerun
-    session.currentTurn = 0;
-    session.sessionStatus = "idle";
-
-    // Filter user messages directly from session history
+    // Store user messages before clearing
     const userMessages = session.messages.filter(
       (msg) => msg.message.role === "user",
     );
+
+    // Reset session state and clear messages
+    session.currentTurn = 0;
+    session.sessionStatus = "idle";
+    session.messages = [];
 
     if (userMessages.length === 0) {
       throw new Error("No user messages found in session history to rerun");

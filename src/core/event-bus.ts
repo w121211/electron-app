@@ -10,7 +10,7 @@ export interface BaseEvent {
 
 // Handler type for both sync and async event handlers
 export type EventHandler<T extends BaseEvent> = (
-  event: T
+  event: T,
 ) => void | Promise<void>;
 
 // Core event bus interface
@@ -18,15 +18,15 @@ export interface IEventBus {
   emit<T extends BaseEvent>(event: T): Promise<void>;
   subscribe<T extends BaseEvent>(
     eventKind: string,
-    handler: EventHandler<T>
+    handler: EventHandler<T>,
   ): () => void;
   unsubscribe<T extends BaseEvent>(
     eventKind: string,
-    handler: EventHandler<T>
+    handler: EventHandler<T>,
   ): void;
   toIterable<T extends BaseEvent>(
     eventKind: string,
-    opts?: { signal?: AbortSignal }
+    opts?: { signal?: AbortSignal },
   ): AsyncIterable<[T]>;
 }
 
@@ -51,7 +51,7 @@ export class EventBus implements IEventBus {
 
   public subscribe<T extends BaseEvent>(
     eventKind: string,
-    handler: EventHandler<T>
+    handler: EventHandler<T>,
   ): () => void {
     if (!this.handlers.has(eventKind)) {
       this.handlers.set(eventKind, new Set());
@@ -65,7 +65,7 @@ export class EventBus implements IEventBus {
 
   public unsubscribe<T extends BaseEvent>(
     eventKind: string,
-    handler: EventHandler<T>
+    handler: EventHandler<T>,
   ): void {
     if (!this.handlers.has(eventKind)) {
       return;
@@ -84,14 +84,14 @@ export class EventBus implements IEventBus {
     const handlers = this.handlers.get(eventKind);
 
     if (!handlers || handlers.size === 0) {
-      this.logger.warn(
-        `No handlers found for ${eventKind} - event will not be processed`
-      );
+      // this.logger.warn(
+      //   `No handlers found for ${eventKind} - event will not be processed`
+      // );
       return;
     }
 
     const promises = Array.from(handlers).map((handler) =>
-      this.executeHandler(handler, event)
+      this.executeHandler(handler, event),
     );
 
     await Promise.all(promises);
@@ -99,7 +99,7 @@ export class EventBus implements IEventBus {
 
   public toIterable<T extends BaseEvent>(
     eventKind: string,
-    opts?: { signal?: AbortSignal }
+    opts?: { signal?: AbortSignal },
   ): AsyncIterable<[T]> {
     interface QueueItem {
       resolve: (value: IteratorResult<[T], any>) => void;
@@ -177,7 +177,7 @@ export class EventBus implements IEventBus {
 
   private async executeHandler<T extends BaseEvent>(
     handler: EventHandler<T>,
-    event: T
+    event: T,
   ): Promise<void> {
     const result = handler(event);
     if (result instanceof Promise) {
@@ -188,14 +188,14 @@ export class EventBus implements IEventBus {
 
 // Factory functions for creating environment-specific event buses
 export const createClientEventBus = (
-  options: Omit<EventBusOptions, "environment"> = {}
+  options: Omit<EventBusOptions, "environment"> = {},
 ) => {
   const logger = options.logger || new Logger({ name: "EventBus-client" });
   return new EventBus({ ...options, logger, environment: "client" });
 };
 
 export const createServerEventBus = (
-  options: Omit<EventBusOptions, "environment"> = {}
+  options: Omit<EventBusOptions, "environment"> = {},
 ) => {
   const logger = options.logger || new Logger({ name: "EventBus-server" });
   return new EventBus({ ...options, logger, environment: "server" });
