@@ -6,6 +6,7 @@
     ThreeDotsVertical,
     ChatDots,
     StopFill,
+    ArrowClockwise,
   } from "svelte-bootstrap-icons";
   import {
     treeState,
@@ -16,6 +17,9 @@
   } from "../../stores/tree-store.svelte.js";
   import { tasksByPath } from "../../stores/task-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
+  import { chatService } from "../../services/chat-service.js";
+  import { chatState } from "../../stores/chat-store.svelte.js";
+  import { uiState } from "../../stores/ui-store.svelte.js";
   import {
     fileExplorerState,
     cancelInlineFolderCreation,
@@ -57,6 +61,13 @@
   const task = $derived(tasksByPath.get(node.path));
   const isTaskDir = $derived(isTaskFolder(node.name));
   const isProjectFolder = $derived(level === 0);
+  const isChatFile = $derived(node.name.endsWith(".chat.json"));
+  const isCurrentChatFile = $derived(
+    isChatFile && chatState.currentChat?.absoluteFilePath === node.path
+  );
+  const isLoadingRerunChat = $derived(
+    uiState.loadingStates["rerunChat"] || false
+  );
 
   // Inline folder creation state
   const showPlaceholderFolder = $derived(
@@ -111,6 +122,30 @@
     e.stopPropagation();
     if (onStopTask) {
       onStopTask(node.path);
+    }
+  }
+
+  async function handleRerunChat(e: MouseEvent): Promise<void> {
+    e.stopPropagation();
+    if (!isChatFile) return;
+    
+    try {
+      // If this chat file is not currently open, open it first
+      if (!isCurrentChatFile) {
+        await chatService.openChatFile(node.path);
+      }
+      
+      // Now rerun the chat
+      const currentChat = chatState.currentChat;
+      if (currentChat) {
+        await chatService.rerunChat(
+          currentChat.absoluteFilePath,
+          currentChat.id
+        );
+      }
+    } catch (error) {
+      // Error handling is done in the service
+      console.error("Failed to rerun chat:", error);
     }
   }
 
@@ -358,27 +393,57 @@
       {/if}
     {/if}
 
+    <!-- Chat File Status -->  
+    {#if isChatFile && isCurrentChatFile}
+      {@const sessionStatus = chatState.currentChat?.sessionStatus || "idle"}
+      {#if sessionStatus === "processing"}
+        <span
+          class="ml-2 rounded border border-blue-600/40 bg-blue-600/20 px-2 py-0.5 font-mono text-xs text-blue-400"
+        >
+          processing
+        </span>
+      {:else if sessionStatus === "waiting_confirmation"}
+        <span
+          class="ml-2 rounded border border-orange-600/40 bg-orange-600/20 px-2 py-0.5 font-mono text-xs text-orange-400"
+        >
+          waiting
+        </span>
+      {/if}
+    {/if}
+
     <!-- Actions -->
     <div class="flex items-center">
+      <!-- Rerun Chat Button for Chat Files -->
+      {#if isChatFile}
+        <button
+          onclick={handleRerunChat}
+          disabled={isLoadingRerunChat}
+          class="text-muted hover:text-accent ml-auto mr-1 cursor-pointer opacity-0 group-hover:opacity-100 disabled:opacity-50"
+          title="Rerun Chat"
+        >
+          <ArrowClockwise class="text-xs" />
+        </button>
+      {/if}
+
       <!-- New Chat Button for Directories -->
       {#if node.isDirectory}
         <button
           onclick={handleNewChat}
           disabled={isCreatingChat}
-          class="hover:bg-hover mr-1 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100 disabled:opacity-30"
+          class="text-muted hover:text-accent ml-auto mr-1 cursor-pointer opacity-0 group-hover:opacity-100 disabled:opacity-30"
           title="New Chat"
         >
-          <ChatDots class="text-muted hover:text-accent text-xs" />
+          <ChatDots class="text-xs" />
         </button>
       {/if}
 
       <!-- Context Menu Button -->
       <button
         onclick={handleContextMenu}
-        class="hover:bg-hover cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
+        class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100"
         title="More options"
       >
-        <ThreeDotsVertical class="text-muted text-xs" />
+        <ThreeDotsVertical class="text-xs" />
       </button>
     </div>
   </div>

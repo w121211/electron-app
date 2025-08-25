@@ -1,12 +1,6 @@
 <!-- src/renderer/src/components/file-explorer/FileSearchDropdown.svelte -->
 <script lang="ts">
-  interface FileSearchResult {
-    name: string;
-    relativePath: string;
-    absolutePath: string;
-    score?: number;
-    highlight?: string;
-  }
+  import type { FileSearchResult } from "../../../../core/services/project-folder-service.js";
 
   interface Props {
     results: FileSearchResult[];
@@ -70,7 +64,17 @@
           >
             <div class="flex flex-col">
               <div class="text-foreground text-sm font-medium">
-                {result.highlight ?? result.name}
+                {#if result.highlightTokens}
+                  {#each result.highlightTokens as token, index (index)}
+                    {#if token.isHighlighted}
+                      <mark>{token.text}</mark>
+                    {:else}
+                      {token.text}
+                    {/if}
+                  {/each}
+                {:else}
+                  {result.name}
+                {/if}
               </div>
               {#if result.relativePath !== result.name}
                 <div class="text-muted text-xs">

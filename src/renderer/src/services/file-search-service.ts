@@ -23,14 +23,14 @@ class FileSearchService {
   /**
    * Search files within a project folder
    */
-  async searchFiles(query: string, projectId?: string, limit: number = 10) {
+  async searchFiles(query: string, projectPath?: string, limit: number = 10) {
     try {
-      this.logger.debug("Searching files:", { query, projectId, limit });
+      this.logger.debug("Searching files:", { query, projectPath, limit });
 
-      // Use the provided projectId or find the selected project folder
-      let targetProjectId = projectId;
+      // Use the provided projectPath or find the selected project folder
+      let targetProjectPath = projectPath;
 
-      if (!targetProjectId) {
+      if (!targetProjectPath) {
         // Find selected project folder based on current tree selection
         const selectedNode = treeState.selectedNode;
         if (selectedNode) {
@@ -39,23 +39,23 @@ class FileSearchService {
               selectedNode === folder.path ||
               selectedNode.startsWith(folder.path + "/"),
           );
-          targetProjectId = selectedProject?.id;
+          targetProjectPath = selectedProject?.path;
         }
 
         // Fallback to first project folder if no selection
-        if (!targetProjectId && projectState.projectFolders.length > 0) {
-          targetProjectId = projectState.projectFolders[0].id;
+        if (!targetProjectPath && projectState.projectFolders.length > 0) {
+          targetProjectPath = projectState.projectFolders[0].path;
         }
       }
 
-      if (!targetProjectId) {
+      if (!targetProjectPath) {
         this.logger.warn("No project folder available for search");
         return [];
       }
 
       const results = await trpcClient.projectFolder.searchFiles.query({
         query: query || "", // Show all files if query is empty
-        projectId: targetProjectId,
+        projectPath: targetProjectPath,
         limit,
       });
 
@@ -70,13 +70,13 @@ class FileSearchService {
   // File search methods for chat panel
   async performFileSearch(
     query: string,
-    projectId?: string,
+    projectPath?: string,
     limit: number = 20,
   ): Promise<void> {
     setSearching(true);
 
     try {
-      const results = await this.searchFiles(query, projectId, limit);
+      const results = await this.searchFiles(query, projectPath, limit);
       setSearchResults(results);
     } catch (error) {
       this.logger.error("File search failed:", error);

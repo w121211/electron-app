@@ -12,7 +12,6 @@
     startInlineNewProjectFolderCreation,
     fileExplorerState,
     cancelInlineNewProjectFolderCreation,
-    updateInlineNewProjectFolderName,
     setWorkspaceSetupNeeded,
   } from "../../stores/file-explorer-store.svelte.js";
   import TreeNode from "./TreeNode.svelte";
@@ -55,11 +54,7 @@
     const folderPath = await window.api.showOpenDialog();
     if (!folderPath) return;
 
-    try {
-      await projectService.addProjectFolder(folderPath);
-    } catch (error) {
-      // Error handling done in service
-    }
+    await projectService.addProjectFolder(folderPath);
   }
 
   function handleNewProjectFolder(): void {
@@ -67,11 +62,7 @@
   }
 
   async function handleNewChat(targetPath: string): Promise<void> {
-    try {
-      await chatService.createEmptyChat(targetPath);
-    } catch (error) {
-      // Error handling done in service
-    }
+    await chatService.createEmptyChat(targetPath);
   }
 
   /**
@@ -114,43 +105,31 @@
     showSettings = true;
   }
 
-  async function handleCreateNewProjectFolder(
-    folderName: string,
-  ): Promise<void> {
-    try {
-      await projectService.createNewProjectFolder(folderName);
-      cancelInlineNewProjectFolderCreation();
-    } catch (error) {
-      logger.error("Failed to create new project folder:", error);
-      // Error handling done in service, but keep the placeholder active for retry
-    }
-  }
-
   function handleCancelNewProjectFolder(): void {
     cancelInlineNewProjectFolderCreation();
   }
 
-  function handleKeydownNewProjectFolder(event: KeyboardEvent): void {
+  async function handleKeydownNewProjectFolder(
+    event: KeyboardEvent,
+  ): Promise<void> {
     if (event.key === "Escape") {
       handleCancelNewProjectFolder();
     } else if (event.key === "Enter") {
       const folderName =
         fileExplorerState.inlineNewProjectFolder.placeholderName.trim();
       if (folderName) {
-        handleCreateNewProjectFolder(folderName);
+        // handleCreateNewProjectFolder(folderName);
+        await projectService.createNewProjectFolder(folderName);
+        cancelInlineNewProjectFolderCreation();
       }
     }
   }
 
   async function handleSetupWorkspace(): Promise<void> {
-    try {
-      const result = await userSettingsService.setupWorkspaceDirectory();
-      if (result) {
-        setWorkspaceSetupNeeded(false);
-        showToast("Workspace directory set successfully", "success");
-      }
-    } catch (error) {
-      // Error handling already done in service
+    const result = await userSettingsService.setupWorkspaceDirectory();
+    if (result) {
+      setWorkspaceSetupNeeded(false);
+      showToast("Workspace directory set successfully", "success");
     }
   }
 </script>

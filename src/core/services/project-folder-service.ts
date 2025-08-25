@@ -5,8 +5,54 @@ import { Logger, ILogObj } from "tslog";
 import fuzzysort from "fuzzysort";
 import walk from "ignore-walk";
 import type { IEventBus, BaseEvent } from "../event-bus.js";
+import type { FileWatcherService } from "./file-watcher-service.js";
 import type { UserSettingsRepository } from "./user-settings-repository.js";
-import { FileWatcherService } from "./file-watcher-service.js";
+
+// Helper functions
+
+export async function createFolderAtPath(
+  parentPath: string,
+  folderName: string,
+): Promise<string> {
+  // Check if parent exists and is a directory
+  const parentStats = await fs.stat(parentPath);
+  if (!parentStats.isDirectory()) {
+    throw new Error(`Parent path is not a directory: ${parentPath}`);
+  }
+
+  // Validate folder name
+  if (!folderName.trim()) {
+    throw new Error("Folder name cannot be empty");
+  }
+
+  // Check for invalid characters in folder name
+  const invalidChars = /[<>:"/\\|?*]/;
+  if (invalidChars.test(folderName)) {
+    throw new Error("Folder name contains invalid characters");
+  }
+
+  // Build folder path
+  const folderPath = path.join(parentPath, folderName);
+
+  // Check if folder already exists
+  try {
+    await fs.stat(folderPath);
+    throw new Error(`A file or directory named "${folderName}" already exists`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  // Create the folder
+  await fs.mkdir(folderPath);
+
+  return folderPath;
+}
+
+// ----------------------------------------------------------------
+// ProjectFolderService Implementation
+// ----------------------------------------------------------------
 
 // Define types for ProjectFolderService
 export interface ProjectFolder {
@@ -21,12 +67,18 @@ export interface FolderTreeNode {
   children?: FolderTreeNode[];
 }
 
+export interface HighlightToken {
+  text: string;
+  index: number; // -1 if not highlighted
+  isHighlighted: boolean;
+}
+
 export interface FileSearchResult {
   name: string; // "world.txt"
   relativePath: string; // "docs/world.txt"
   absolutePath: string; // "/project/docs/world.txt"
   score?: number; // fuzzy search relevance
-  highlight?: string; // highlighted text for UI
+  highlightTokens?: HighlightToken[]; // structured highlight tokens for UI
 }
 
 export type ProjectFolderUpdateType =
@@ -242,7 +294,7 @@ export class ProjectFolderService {
     this.logger.info(
       `Project folder removed successfully: ${projectFolder.path}`,
     );
-    
+
     return settings.projectFolders;
   }
 
@@ -394,7 +446,20 @@ export class ProjectFolderService {
       relativePath: result.obj.file.relativePath,
       absolutePath: result.obj.file.absolutePath,
       score: result.score,
-      highlight: result.highlight("<mark>", "</mark>") || result.obj.file.name,
+
+      // See fuzzysort docs for highlight usage:
+      // https://github.com/farzher/fuzzysort/tree/master?tab=readme-ov-file#whats-a-result
+      highlightTokens: result
+        .highlight((match, index) => ({
+          text: match,
+          index,
+          isHighlighted: true,
+        }))
+        .map((token) =>
+          typeof token === "string"
+            ? { text: token, isHighlighted: false, index: -1 }
+            : token,
+        ),
     }));
   }
 
@@ -506,9 +571,8 @@ export class ProjectFolderService {
     }
 
     // Validate both paths are within project folders
-    const isSourceInProject = await this.isPathInProjectFolder(
-      sourceAbsolutePath,
-    );
+    const isSourceInProject =
+      await this.isPathInProjectFolder(sourceAbsolutePath);
     const isDestinationInProject = await this.isPathInProjectFolder(
       path.dirname(destinationAbsolutePath),
     );
@@ -582,9 +646,8 @@ export class ProjectFolderService {
     }
 
     // Validate both paths are within project folders
-    const isSourceInProject = await this.isPathInProjectFolder(
-      sourceAbsolutePath,
-    );
+    const isSourceInProject =
+      await this.isPathInProjectFolder(sourceAbsolutePath);
     const isDestinationInProject = await this.isPathInProjectFolder(
       path.dirname(destinationAbsolutePath),
     );
@@ -648,15 +711,15 @@ export class ProjectFolderService {
     );
 
     if (isProjectFolderRoot) {
-      throw new Error("Cannot rename project folder. Project folders cannot be renamed.");
+      throw new Error(
+        "Cannot rename project folder. Project folders cannot be renamed.",
+      );
     }
 
     // Validate path is within project folders
     const isInProject = await this.isPathInProjectFolder(absolutePath);
     if (!isInProject) {
-      throw new Error(
-        `Path is not within any project folder: ${absolutePath}`,
-      );
+      throw new Error(`Path is not within any project folder: ${absolutePath}`);
     }
 
     // Validate new name
@@ -691,7 +754,9 @@ export class ProjectFolderService {
     // Perform the rename
     await fs.rename(absolutePath, destinationPath);
 
-    this.logger.info(`Successfully renamed ${absolutePath} to ${destinationPath}`);
+    this.logger.info(
+      `Successfully renamed ${absolutePath} to ${destinationPath}`,
+    );
   }
 
   /**
@@ -711,9 +776,7 @@ export class ProjectFolderService {
     // Validate path is within project folders
     const isInProject = await this.isPathInProjectFolder(absolutePath);
     if (!isInProject) {
-      throw new Error(
-        `Path is not within any project folder: ${absolutePath}`,
-      );
+      throw new Error(`Path is not within any project folder: ${absolutePath}`);
     }
 
     // Check if source exists
@@ -760,12 +823,17 @@ export class ProjectFolderService {
     // Generate destination path
     const parentDir = path.dirname(sourceAbsolutePath);
     const originalName = path.basename(sourceAbsolutePath);
-    const destinationPath = await this.generateUniqueFileName(parentDir, newName || originalName);
+    const destinationPath = await this.generateUniqueFileName(
+      parentDir,
+      newName || originalName,
+    );
 
     // Use existing copyFile method to perform the duplication
     await this.copyFile(sourceAbsolutePath, destinationPath, correlationId);
 
-    this.logger.info(`Successfully duplicated ${sourceAbsolutePath} to ${destinationPath}`);
+    this.logger.info(
+      `Successfully duplicated ${sourceAbsolutePath} to ${destinationPath}`,
+    );
     return destinationPath;
   }
 
@@ -792,39 +860,7 @@ export class ProjectFolderService {
       );
     }
 
-    // Validate folder name
-    if (!folderName.trim()) {
-      throw new Error("Folder name cannot be empty");
-    }
-
-    // Check for invalid characters in folder name
-    const invalidChars = /[<>:"/\\|?*]/;
-    if (invalidChars.test(folderName)) {
-      throw new Error("Folder name contains invalid characters");
-    }
-
-    // Check if parent exists and is a directory
-    const parentStats = await fs.stat(parentPath);
-    if (!parentStats.isDirectory()) {
-      throw new Error(`Parent path is not a directory: ${parentPath}`);
-    }
-
-    // Build folder path
-    const folderPath = path.join(parentPath, folderName);
-
-    // Check if folder already exists
-    try {
-      await fs.stat(folderPath);
-      throw new Error(`A file or directory named "${folderName}" already exists`);
-    } catch (error) {
-      // Expected - folder should not exist
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        throw error;
-      }
-    }
-
-    // Create the folder
-    await fs.mkdir(folderPath);
+    const folderPath = await createFolderAtPath(parentPath, folderName);
 
     this.logger.info(`Successfully created folder ${folderPath}`);
   }
@@ -840,26 +876,24 @@ export class ProjectFolderService {
 
     // Get current settings to determine workspace directory
     const settings = await this.userSettingsRepository.getSettings();
-    
+
     // Check if workspace directory is configured
     if (!settings.workspaceDirectory) {
-      throw new Error("No workspace directory configured. Please set a workspace directory first.");
+      throw new Error(
+        "No workspace directory configured. Please set a workspace directory first.",
+      );
     }
-    
     const targetWorkspaceDirectory = settings.workspaceDirectory;
 
-    // Validate workspace directory still exists
-    const isWorkspaceValid = await this.validateProjectFolderPath(targetWorkspaceDirectory);
-    if (!isWorkspaceValid) {
-      throw new Error(`Workspace directory no longer exists or is not accessible: ${targetWorkspaceDirectory}`);
-    }
-
-    // Use existing createFolder method to create the folder
-    await this.createFolder(targetWorkspaceDirectory, folderName, correlationId);
-
-    // Build the full path and add as project folder
-    const newProjectFolderPath = path.join(targetWorkspaceDirectory, folderName);
-    const projectFolder = await this.addProjectFolder(newProjectFolderPath, correlationId);
+    // Create the folder using helper method
+    const newProjectFolderPath = await createFolderAtPath(
+      targetWorkspaceDirectory,
+      folderName,
+    );
+    const projectFolder = await this.addProjectFolder(
+      newProjectFolderPath,
+      correlationId,
+    );
 
     return projectFolder;
   }
@@ -869,7 +903,7 @@ export class ProjectFolderService {
    */
   public async isWorkspaceDirectoryValid(): Promise<boolean> {
     const settings = await this.userSettingsRepository.getSettings();
-    
+
     if (!settings.workspaceDirectory) {
       return false;
     }
@@ -886,7 +920,7 @@ export class ProjectFolderService {
   ): Promise<string> {
     const ext = path.extname(baseName);
     const nameWithoutExt = path.basename(baseName, ext);
-    
+
     let counter = 1;
     let candidatePath = path.join(parentDir, baseName);
 
@@ -904,7 +938,7 @@ export class ProjectFolderService {
 
     // Generate numbered variants until we find an available name
     while (true) {
-      const newName = ext 
+      const newName = ext
         ? `${nameWithoutExt} (${counter})${ext}`
         : `${nameWithoutExt} (${counter})`;
       candidatePath = path.join(parentDir, newName);

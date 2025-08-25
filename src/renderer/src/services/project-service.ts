@@ -9,7 +9,6 @@ import {
 import {
   projectState,
   setProjectFolders,
-  addProjectFolder,
   setFolderTree,
 } from "../stores/project-store.svelte.js";
 import { setLoading, showToast } from "../stores/ui-store.svelte.js";
@@ -88,8 +87,8 @@ class ProjectService {
         absoluteProjectFolderPath: absolutePath,
       });
 
-      // Update project folders list
-      addProjectFolder(newFolder);
+      // Don't manually add the folder - it will be added via PROJECT_FOLDER_ADDED event
+      // The backend will emit the event and handleProjectFolderEvent will update the store
 
       // Load folder tree for new project
       await this.loadFolderTree(newFolder.path);
@@ -679,8 +678,8 @@ class ProjectService {
         folderName,
       });
 
-      // Update project folders list
-      addProjectFolder(newFolder);
+      // Don't manually add the folder - it will be added via PROJECT_FOLDER_ADDED event
+      // The backend will emit the event and handleProjectFolderEvent will update the store
 
       // Load folder tree for new project
       await this.loadFolderTree(newFolder.path);
