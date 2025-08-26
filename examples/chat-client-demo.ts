@@ -13,7 +13,6 @@ import { ToolRegistryImpl } from "../src/core/services/tool-call/tool-registry.j
 import { TaskService } from "../src/core/services/task-service.js";
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
 import { UserSettingsService } from "../src/core/services/user-settings-service.js";
-import { FileService } from "../src/core/services/file-service.js";
 import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";
 import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
 import { TaskRepository } from "../src/core/services/task-repository.js";
@@ -27,7 +26,6 @@ interface DemoServices {
   projectFolderService: ProjectFolderService;
   userSettingsService: UserSettingsService;
   taskService: TaskService;
-  fileService: FileService;
   chatSessionRepository: ChatSessionRepositoryImpl;
   toolRegistry: ToolRegistry;
 }
@@ -86,7 +84,6 @@ async function setupServices(): Promise<DemoServices> {
     projectFolderService,
     userSettingsService,
     taskService,
-    fileService,
     chatSessionRepository,
     toolRegistry,
   };
@@ -177,7 +174,6 @@ async function runChatDemo(): Promise<{
     services.taskService,
     services.projectFolderService,
     services.userSettingsService,
-    services.fileService,
     services.toolRegistry,
   );
 

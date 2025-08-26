@@ -1,4 +1,4 @@
-// examples/message-processing-demo.ts
+// examples/message-utils-demo.ts
 
 import {
   processFileReferences,
