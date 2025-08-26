@@ -12,9 +12,10 @@ import type {
 } from "ai";
 import { ToolConfirmationRequiredError } from "../tool-call/tool-call-confirmation.js";
 import {
-  MessageProcessor,
+  processFileReferences,
+  extractChatFileReferences,
   getUserModelMessageContentString,
-} from "./message-processor.js";
+} from "../../utils/message-utils.js";
 import { ToolCallRunner } from "../tool-call/tool-call-runner.js";
 import type { IEventBus } from "../../event-bus.js";
 import type {
@@ -67,7 +68,6 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
     data: ChatSessionData,
     toolRegistry: ToolRegistry,
     private readonly eventBus: IEventBus,
-    private readonly messageProcessor: MessageProcessor,
     // private readonly providerRegistry: ProviderRegistryProvider,
   ) {
     this.id = data.id;
@@ -176,8 +176,7 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
         const textContent = getUserModelMessageContentString(input);
 
         // Extract file references for metadata
-        const fileReferences =
-          this.messageProcessor.extractChatFileReferences(textContent);
+        const fileReferences = extractChatFileReferences(textContent);
 
         // Convert to ChatMessage and add to messages
         const message: ChatMessage = {
@@ -204,9 +203,11 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
       }
 
       // 2. Generate AI response using streamText
+      const model = gateway(this.modelId);
       const streamResult = streamText({
         // model: this.providerRegistry.languageModel(this.modelId),
-        model: gateway(this.modelId),
+        // model: model.withMiddleware([chatCacheMiddleware]),
+        model,
         messages: this.messages.map((msg) => msg.message),
         tools: this.toolSet,
         abortSignal: effectiveSignal,

@@ -127,24 +127,6 @@ class FileService {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   }
 
-  extractFileReferences(
-    content: string,
-  ): Array<{ path: string; type: "file" | "image" }> {
-    const references: Array<{ path: string; type: "file" | "image" }> = [];
-    const regex =
-      /#([^\s]+\.(png|jpg|jpeg|md|html|ts|js|tsx|jsx|json|css|svg|gif|pdf))/gi;
-    let match;
-
-    while ((match = regex.exec(content)) !== null) {
-      if (match[1]) {
-        const filePath = match[1];
-        const type = this.isImageFile(filePath) ? "image" : "file";
-        references.push({ path: filePath, type });
-      }
-    }
-
-    return references;
-  }
 }
 
 export const fileService = new FileService();

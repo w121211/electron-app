@@ -8,7 +8,6 @@ import type { CreateChatSessionConfig } from "../../services/chat-engine/chat-cl
 import type { TaskService } from "../../services/task-service.js";
 import type { ProjectFolderService } from "../../services/project-folder-service.js";
 import type { UserSettingsService } from "../../services/user-settings-service.js";
-import type { FileService } from "../../services/file-service.js";
 import type { ToolRegistry } from "../../services/tool-call/tool-registry.js";
 import type { ChatSessionRepository } from "../../services/chat-engine/chat-session-repository.js";
 import { TurnResult } from "../../services/chat-engine/chat-session.js";
@@ -44,7 +43,6 @@ export function createChatClientRouter(
   taskService: TaskService,
   projectFolderService: ProjectFolderService,
   userSettingsService: UserSettingsService,
-  fileService: FileService,
   toolRegistry: ToolRegistry,
   chatSessionRepository: ChatSessionRepository,
 ) {
@@ -54,7 +52,6 @@ export function createChatClientRouter(
     taskService,
     projectFolderService,
     userSettingsService,
-    fileService,
     toolRegistry,
   );
 

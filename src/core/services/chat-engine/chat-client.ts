@@ -3,12 +3,11 @@ import { ILogObj, Logger } from "tslog";
 import { v4 as uuidv4 } from "uuid";
 import type { StreamTextResult, ToolSet, UserModelMessage } from "ai";
 import { ChatSession } from "./chat-session.js";
-import { MessageProcessor } from "./message-processor.js";
+import { processFileReferences, extractFileReferences, extractChatFileReferences, processInputDataPlaceholders, extractInputDataPlaceholders } from "../../utils/message-utils.js";
 import type { IEventBus } from "../../event-bus.js";
 import type { ProjectFolderService } from "../project-folder-service.js";
 import type { TaskService } from "../task-service.js";
 import type { UserSettingsService } from "../user-settings-service.js";
-import type { FileService } from "../file-service.js";
 import type { ToolCallConfirmationOutcome } from "../tool-call/tool-call-confirmation.js";
 import type { ToolExecutionResult } from "../tool-call/tool-call-runner.js";
 import type { ToolRegistry } from "../tool-call/tool-registry.js";
@@ -44,7 +43,6 @@ export class ChatClient<TOOLS extends ToolSet> {
     private readonly taskService: TaskService,
     private readonly projectFolderService: ProjectFolderService,
     private readonly userSettingsService: UserSettingsService,
-    private readonly fileService: FileService,
     private readonly toolRegistry: ToolRegistry,
     // private readonly providerRegistry: ProviderRegistryProvider,
   ) {}
@@ -333,12 +331,10 @@ export class ChatClient<TOOLS extends ToolSet> {
   }
 
   private createChatSessionFromData(data: ChatSessionData): ChatSession<TOOLS> {
-    const messageProcessor = new MessageProcessor(this.fileService);
     const chatSession = new ChatSession<TOOLS>(
       data,
       this.toolRegistry,
       this.eventBus,
-      messageProcessor,
       // this.providerRegistry,
     );
 

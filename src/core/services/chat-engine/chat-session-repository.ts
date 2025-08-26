@@ -10,7 +10,7 @@ import {
   readJsonFile,
   createDirectory,
   listDirectory,
-} from "../../file-helpers.js";
+} from "../../utils/file-utils.js";
 
 export type ChatSessionStatus =
   | "idle"

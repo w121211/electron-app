@@ -9,7 +9,7 @@ import {
   readJsonFile,
   writeJsonFile,
   listDirectory,
-} from "../file-helpers.js";
+} from "../utils/file-utils.js";
 import type { Task, TaskStatus } from "./task-service.js";
 
 export class TaskRepositoryError extends Error {

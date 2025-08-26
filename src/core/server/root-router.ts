@@ -2,7 +2,6 @@
 import { ILogObj, Logger } from "tslog";
 import { createServerEventBus } from "../event-bus.js";
 import { ChatSessionRepositoryImpl } from "../services/chat-engine/chat-session-repository.js";
-import { FileService } from "../services/file-service.js";
 import { FileWatcherService } from "../services/file-watcher-service.js";
 import { createProjectFolderService } from "../services/project-folder-service.js";
 import { TaskRepository } from "../services/task-repository.js";
@@ -60,7 +59,6 @@ export async function createTrpcRouter(userDataDir: string) {
 
   const taskService = new TaskService(eventBus, taskRepo);
 
-  const fileService = new FileService(eventBus);
   const userSettingsService = createUserSettingsService(userSettingsRepo);
 
   // Load API keys to environment variables
@@ -90,12 +88,11 @@ export async function createTrpcRouter(userDataDir: string) {
       taskService,
       projectFolderService,
       userSettingsService,
-      fileService,
       toolRegistry,
       chatSessionRepository,
     ),
     projectFolder: createProjectFolderRouter(projectFolderService),
-    file: createFileRouter(fileService),
+    file: createFileRouter(),
     event: createEventRouter(eventBus),
     userSettings: createUserSettingsRouter(userSettingsService),
     // toolCall: createToolCallRouter(toolCallScheduler, toolRegistry),

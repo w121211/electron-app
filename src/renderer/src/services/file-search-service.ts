@@ -124,7 +124,7 @@ class FileSearchService {
     // Replace @query with file reference
     const beforeSearch = currentInput.substring(0, searchStart - 1); // -1 to remove @
     const afterSearch = currentInput.substring(searchEnd);
-    const fileReference = `#${file.relativePath}`;
+    const fileReference = `@${file.relativePath}`;
 
     const newValue = beforeSearch + fileReference + afterSearch;
 
