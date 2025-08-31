@@ -1,0 +1,1021 @@
+╭───────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                         │
+│                                                   │
+│   /help for help, /status for your current setup  │
+│                                                   │
+│   cwd: /Users/cw/Documents/GitHub/electron-app    │
+╰───────────────────────────────────────────────────╯
+
+> @notes/threads/app_brainstorm_qa.md 我想要使用 electron-app 
+  （作為一個使用者），叫 ai 來監督、管理我的 electron-app 專案的開發進度
+
+  我的構想：
+  1. 文件
+      1. 專案說明，包括時程規劃等
+      2. todos.md ，我會用來編輯、紀錄每日的工作，也用於記錄過去的工作
+      3. …
+  2. AI  tasks （as chat files）
+      1. 每日檢查我的專案進度，按照規劃的日程、todos，給予一個簡單報告（晨報），
+  並建議本日可做的工作等等 -> 報告內容可以再想想需要包含什麼
+      2. Todo to task：依照我的 todos、工作情況，對指定的 todo生成 
+  task，透過與我討論，了解、完善task prompt
+
+  1. 請分析我的構想
+  2. 如果是你，你會怎樣設計這個流程（不用按照我的，請自由發揮）
+  讓我們先討論，不要編輯
+  ⎿  Read notes/threads/app_brainstorm_qa.md (110 lines)
+
+✻ Thinking…
+
+  用戶想要使用這個 electron-app 作為使用者，讓 AI 來監督、管理他的 electron-app 
+  專案的開發進度。讓我分析一下他的構想和 notes/threads/app_brainstorm_qa.md 
+  文件的內容。
+
+  從文件內容看，這是一個關於產品定位和設計的中文 QA 討論，討論了：
+
+  1. 產品定位：針對需要使用 AI 完成特定專業工作的非軟體開發者
+  2. 核心機制：從早期的半自動概念轉向 Template/Agent 驅動的工作流中心
+  3. 以 Chat File 為核心的設計哲學
+  4. 核心價值：可迭代、快速建構的工作流，特別適合需要多步驟操作、跨平台資訊整合的
+  複雜任務
+
+  用戶的構想：
+  1. 文件管理：專案說明、todos.md
+  2. AI tasks (chat files)：每日檢查進度、Todo to task 轉換
+
+  讓我分析這個構想並提出我的設計想法。
+
+⏺ 分析你的構想很有趣！結合 app_brainstorm_qa.md 的設計理念，你實際上是要把這個
+   electron-app 用於自身的開發管理，這是個很好的 dogfooding 實踐。
+
+  你的構想分析
+
+  優點：
+  - 符合文件中提到的「每天早上打開的工作控制中心」概念
+  - Chat File 作為可執行、可迭代的工作單元，很適合開發管理
+  - 將 todos 轉換為具體 tasks 的想法很實用
+
+  可以改進的地方：
+  - 缺少專案進度的量化追蹤（代碼變化、commit 情況等）
+  - 報告內容需要更具體的定義
+  - 沒有考慮到開發過程中的突發問題處理
+
+  我的設計想法
+
+  如果是我，我會這樣設計：
+
+  1. 智能專案監控 (Chat Files)
+
+  - 每日晨報 Chat：結合 git 狀態、文件變化、todos 進度生成綜合報告
+  - 代碼品質檢查 Chat：定期運行 lint、test，分析技術債務
+  - 里程碑追蹤 Chat：對照時程規劃，評估進度偏差
+
+  2. 動態工作管理
+
+  - 智能 Todo 優先級排序：根據專案緊急度、依賴關係調整
+  - Context-aware Task 生成：不只是 todo 轉 task，而是結合當前代碼狀態、最近
+  commit 來生成
+  - 阻礙識別與解決：當檢測到進度停滯時，主動分析原因並建議解決方案
+
+  3. 知識沈澱與迭代
+
+  - 決策記錄 Chat：重要技術決策的討論與記錄
+  - 複盤 Chat：週期性回顧，優化開發流程
+
+  這樣設計的核心是讓 AI
+  不只是被動回應，而是主動成為你的開發夥伴，幫你發現盲點、優化流程。
+
+  你覺得哪個方向比較符合你的需求？我們可以進一步討論具體實現。
+
+> 1. 基於chat來做task，需要的功能都要以 chat 來實現（chat 可以是 agent mode, 
+  結合 mcp, 調用api，讀取檔案等，所以基本都沒有問題，只是需要設定好需要的tools, 
+  context,  prompt）\
+  2. 要有人與ai可以相互溝通的橋樑，例如 todos
+
+⏺ 很好的澄清！這個設計思路很符合文件中提到的「Chat File
+  作為可執行工作單元」的核心理念。
+
+  理解你的設計原則
+
+  Chat 作為萬能執行環境：
+  - 每個 task 就是一個配置好的 Chat File（prompt + tools + context）
+  - AI 透過 MCP、API、文件讀取等方式獲取真實專案狀態
+  - 可重跑、可迭代、可分享
+
+  Human-AI 溝通橋樑：
+  - todos.md 作為雙方都能讀寫的共同語言
+  - AI 可以讀取理解你的計劃，你也可以看到 AI 的建議和執行結果
+
+  基於這個思路的具體設計
+
+  1. 標準化的溝通檔案
+
+  todos.md          # 你的工作規劃，AI 的讀取來源
+  project-status.md  # AI 生成的專案狀態報告
+  daily-plan.md      # AI 建議的每日工作計劃
+
+  2. 專門的 Chat Templates
+
+  - 專案監控 Chat：
+    - Tools: git status, file reader, code analyzer
+    - Context: 專案說明、時程規劃
+    - Output: 更新 project-status.md
+  - Todo 轉 Task Chat：
+    - Tools: file reader, task creator
+    - Context: 當前 todos, 專案狀態
+    - 互動流程：讀取指定 todo → 與你討論細節 → 生成具體 task
+  - 每日規劃 Chat：
+    - Tools: 讀取所有狀態檔案
+    - Output: 生成 daily-plan.md，你可以編輯調整
+
+  這樣設計的好處是：
+  1. 一致性：所有功能都是 Chat，學習成本低
+  2. 透明性：人機溝通透過檔案，過程可追蹤
+  3. 靈活性：每個 Chat 都可以獨立優化、重跑
+
+  你覺得這個方向對嗎？有什麼想調整的？
+
+> 請先構思Chat templates，包含
+  1. Template file name
+  2. Prompt
+  3. Required tools, mcps
+
+⏺ 1. 專案監控 Chat Template
+
+  Template file name: daily-project-monitor.chat
+
+  Prompt:
+  # 專案監控與晨報生成
+
+  你是一個專案監控 AI，負責分析 electron-app 的開發進度並生成每日報告。
+
+  ## 任務目標
+  1. 分析專案當前狀態（git、代碼、文件變化）
+  2. 對照時程規劃評估進度
+  3. 生成簡潔的晨報，包含關鍵指標和建議
+
+  ## 分析維度
+  - **代碼變化**：最近的 commits、文件修改、添加/刪除的代碼行數
+  - **專案健康度**：build 狀態、測試通過率、型別檢查結果
+  - **時程對照**：當前進度 vs 預期進度
+  - **工作負載**：todos 完成情況、待處理項目
+
+  ## 輸出格式
+  生成 `project-status.md`，包含：
+  - 📊 專案概況（健康度、進度百分比）
+  - 📈 本週重點成果
+  - ⚠️ 需要關注的問題
+  - 💡 今日建議行動
+
+  Required tools:
+  - Git operations (status, log, diff)
+  - File system reader
+  - Code analyzer
+  - Test runner
+
+  Required MCPs:
+  - Git MCP (讀取 commit 歷史、分支狀態)
+  - File system MCP (讀取專案文件)
+
+  ---
+
+⏺ 2. Todo 轉 Task Chat Template
+
+  Template file name: todo-to-task-generator.chat
+
+  Prompt:
+  # Todo 項目轉換為具體 Task
+
+  你是一個任務規劃 AI，專門將模糊的 todo 項目轉換為具體可執行的 task。
+
+  ## 工作流程
+  1. **讀取指定 todo**：從 `todos.md` 中讀取用戶指定的項目
+  2. **上下文分析**：結合當前專案狀態、代碼結構、recent commits
+  3. **互動澄清**：與用戶討論不明確的部分，了解具體需求
+  4. **生成 task prompt**：創建具體、可執行的 Chat File
+
+  ## 討論要點
+  - 技術實作細節（用什麼技術、修改哪些文件）
+  - 驗收標準（怎樣算完成）
+  - 優先級與依賴關係
+  - 預估工時
+
+  ## 輸出
+  生成一個新的 Chat File，包含：
+  - 明確的任務描述
+  - 具體執行步驟
+  - 需要的 tools 和 context
+  - 驗收標準
+
+  ## 範例互動
+  User: "請幫我把 'improve UI design' 這個 todo 轉成 task"
+  AI: "我看到你的 todo 是 'improve UI design'。讓我先了解一下：
+  1. 你想改進哪個頁面或組件的設計？
+  2. 有具體的設計問題嗎（如顏色、布局、互動）？
+  3. 有參考設計或目標效果嗎？
+  ..."
+
+  Required tools:
+  - File system reader (讀取 todos.md, 專案文件)
+  - Code analyzer (了解當前實作)
+  - Task creator (生成新的 Chat File)
+
+  Required MCPs:
+  - File system MCP
+  - 可能需要 Design/UI analysis MCP
+
+  ---
+
+⏺ 3. 每日規劃 Chat Template
+
+  Template file name: daily-work-planner.chat
+
+  Prompt:
+  # 每日工作規劃生成器
+
+  你是一個工作規劃 AI，根據專案狀態和個人 todos 生成每日工作建議。
+
+  ## 輸入來源
+  - `todos.md` - 用戶的工作清單和優先級
+  - `project-status.md` - 專案當前狀態報告
+  - 時程規劃文件
+  - Git 狀態和最近的工作紀錄
+
+  ## 規劃策略
+  1. **優先級排序**：緊急且重要的任務優先
+  2. **工作量平衡**：考慮預估工時和可用時間
+  3. **依賴關係**：安排合理的任務順序
+  4. **能量管理**：複雜任務安排在精神狀態較佳的時段
+
+  ## 輸出格式
+  生成 `daily-plan.md`：
+  - 🎯 今日目標（1-3 個主要目標）
+  - ⏰ 時間安排建議
+    - 上午：[高專注度任務]
+    - 下午：[中等難度任務]
+    - 零碎時間：[簡單任務]
+  - 📋 任務清單（按優先級）
+  - 💭 備注和提醒
+
+  ## 互動機制
+  - 生成初版計劃後，詢問用戶是否需要調整
+  - 可以根據用戶反饋重新安排優先級
+  - 考慮用戶的工作習慣和偏好
+
+  Required tools:
+  - File system reader (讀取所有狀態文件)
+  - Time management analyzer
+  - Priority calculator
+
+  Required MCPs:
+  - File system MCP
+  - Calendar/Time MCP (如果需要整合日曆)
+
+  ---
+
+⏺ 4. 阻礙分析與解決 Chat Template
+
+  Template file name: blocker-analyzer.chat
+
+  Prompt:
+  # 開發阻礙分析與解決建議
+
+  你是一個問題分析 AI，專門識別和解決開發過程中的各種阻礙。
+
+  ## 觸發條件
+  - 某個 todo 項目停滯超過預期時間
+  - Build 或測試持續失敗
+  - 用戶主動報告遇到的問題
+  - Git 提交頻率異常下降
+
+  ## 分析維度
+  1. **技術層面**
+     - 代碼複雜度分析
+     - 依賴衝突檢查
+     - 架構設計問題
+
+  2. **流程層面**
+     - 任務定義不清晰
+     - 缺少必要的前置工作
+     - 工具鏈配置問題
+
+  3. **知識層面**
+     - 技術棧熟悉度
+     - 文檔和資源缺失
+     - 最佳實踐了解
+
+  ## 解決策略
+  - **immediate**: 可立即採取的緊急措施
+  - **short-term**: 短期內可完成的改善措施
+  - **long-term**: 長期的能力建設建議
+
+  ## 輸出格式
+  生成問題分析報告：
+  - 🔍 問題識別
+  - 📊 影響評估（時間、範圍、嚴重程度）
+  - 💡 解決方案（分層級提供）
+  - 📚 相關資源推薦
+  - ⏰ 建議時程
+
+  ## 主動監控
+  定期檢查：
+  - Git 活動頻率
+  - todos 更新頻率
+  - Build 成功率趨勢
+
+  Required tools:
+  - Code complexity analyzer
+  - Git activity tracker
+  - Build status checker
+  - Documentation searcher
+  - Web search (查找解決方案)
+
+  Required MCPs:
+  - Git MCP
+  - File system MCP
+  - Web search MCP
+  - 可能需要 Stack Overflow/GitHub Issues MCP
+
+⏺ ---
+  總結
+
+  這四個 Chat Template 涵蓋了專案管理的核心需求：
+
+  1. 專案監控 - 被動分析現狀，提供數據驅動的報告
+  2. Todo 轉 Task - 互動式任務細化，橋接計劃和執行
+  3. 每日規劃 - 主動的工作安排建議，優化時間分配
+  4. 阻礙分析 - 問題識別與解決，確保專案順利進行
+
+  每個 template 都設計為獨立的 Chat
+  File，可以單獨運行也可以組合使用。通過標準化的輸入/輸出文件（如 todos.md,
+  project-status.md），它們形成了一個完整的專案管理工作流。
+
+  你覺得這些 template 的設計符合你的需求嗎？有什麼需要調整或補充的？
+
+> 輸入的部分：\
+  1. 利用 file references 來 inject files，例如 @todos.md 來讀取最新的 todos\
+  2. 假設我們可以用 at-mark-command 來 call tools，例如 @{tool:git-logs(...)} 
+  請自定義一些 tool functions
+
+⏺ 很好的建議！利用 file references 和 at-mark-command 可以讓 Chat Templates
+  更加靈活和動態。讓我重新設計這些 templates。
+
+  重新設計的 Chat Templates
+
+  1. 專案監控 Chat Template
+
+  Template file name: daily-project-monitor.chat
+
+  Prompt:
+  # 專案監控與晨報生成
+
+  @project-plan.md @todos.md
+
+  分析當前專案狀態並生成每日報告：
+
+  ## Git 狀態分析
+  @{tool:git-activity-summary(days=7)}
+  @{tool:git-commit-stats(since="yesterday")}
+  @{tool:git-branch-status()}
+
+  ## 代碼健康度檢查
+  @{tool:run-build-check()}
+  @{tool:run-tests-summary()}
+  @{tool:code-quality-metrics()}
+
+  ## 進度評估
+  @{tool:todo-progress-analyzer(file="todos.md")}
+  @{tool:milestone-tracker(project-plan="project-plan.md")}
+
+  基於以上數據，生成簡潔的專案狀態報告，包含：
+  - 📊 專案健康指標
+  - 📈 本週關鍵進展
+  - ⚠️ 需關注問題
+  - 💡 今日行動建議
+
+  輸出到 `project-status.md`
+
+  自定義 Tool Functions:
+  // Git 相關
+  @{tool:git-activity-summary(days=7)} // 過去N天的commit活動摘要
+  @{tool:git-commit-stats(since="yesterday")} // 代碼變更統計
+  @{tool:git-branch-status()} // 分支狀態和合併情況
+
+  // 代碼品質
+  @{tool:run-build-check()} // 執行build並回報結果
+  @{tool:run-tests-summary()} // 測試執行摘要
+  @{tool:code-quality-metrics()} // 代碼複雜度、覆蓋率等指標
+
+  // 進度追蹤
+  @{tool:todo-progress-analyzer(file="todos.md")} // todos完成率分析
+  @{tool:milestone-tracker(project-plan="project-plan.md")} // 里程碑進度追蹤
+
+  ---
+  2. Todo 轉 Task Chat Template
+
+  Template file name: todo-to-task-generator.chat
+
+  Prompt:
+  # Todo 轉 Task 生成器
+
+  @todos.md @project-status.md
+
+  ## 目標 Todo
+  請指定要轉換的 todo 項目：{USER_INPUT}
+
+  ## 上下文分析
+  @{tool:todo-context-analyzer(item="{USER_INPUT}", file="todos.md")}
+  @{tool:project-structure-scan(related-to="{USER_INPUT}")}
+  @{tool:git-recent-work(keyword="{USER_INPUT}")}
+
+  ## 技術可行性評估
+  @{tool:dependency-checker(feature="{USER_INPUT}")}
+  @{tool:similar-task-finder(description="{USER_INPUT}")}
+
+  基於分析結果，我將與你討論以下要點：
+  1. 具體實作範圍和技術選擇
+  2. 所需修改的文件和組件
+  3. 驗收標準和測試策略
+  4. 預估工時和優先級
+
+  討論完成後，我會生成一個具體可執行的 Task Chat File。
+
+  自定義 Tool Functions:
+  // Todo 分析
+  @{tool:todo-context-analyzer(item, file)} // 分析特定todo的上下文
+  @{tool:todo-dependency-mapper(item, file)} // 找出todo的依賴關係
+
+  // 項目分析  
+  @{tool:project-structure-scan(related-to)} // 掃描相關的項目結構
+  @{tool:dependency-checker(feature)} // 檢查實作某功能需要的依賴
+  @{tool:similar-task-finder(description)} // 尋找相似的已完成任務
+
+  // 歷史分析
+  @{tool:git-recent-work(keyword)} // 搜尋相關的最近工作記錄
+
+  ---
+  3. 每日規劃 Chat Template
+
+  Template file name: daily-work-planner.chat
+
+  Prompt:
+  # 每日工作規劃生成器
+
+  @todos.md @project-status.md @project-plan.md
+
+  ## 當前狀態評估
+  @{tool:work-capacity-analyzer()} // 評估今日可用工作時間
+  @{tool:todo-urgency-scorer(file="todos.md")} // 計算todos的緊急度分數
+  @{tool:energy-level-predictor(time="morning")} // 根據時間預測精神狀態
+
+  ## 任務依賴分析
+  @{tool:task-dependency-resolver(file="todos.md")}
+  @{tool:blocker-detector(file="project-status.md")}
+
+  ## 工作量平衡
+  @{tool:workload-estimator(todos="todos.md")}
+  @{tool:time-slot-optimizer(available-hours=8)}
+
+  基於以上分析，生成今日工作計劃：
+
+  ## 🎯 今日主要目標 (1-3個)
+  [根據優先級和可行性選擇]
+
+  ## ⏰ 時間安排建議
+  **上午 (9-12)**: [高專注度任務]
+  **下午 (13-17)**: [中等難度任務]
+  **零碎時間**: [簡單維護任務]
+
+  ## 📋 具體任務清單
+  [按優先級和時間安排排序]
+
+  輸出到 `daily-plan.md`
+
+  自定義 Tool Functions:
+  // 工作能力評估
+  @{tool:work-capacity-analyzer()} // 分析今日可用工作時間
+  @{tool:energy-level-predictor(time)} // 預測不同時段的精神狀態
+  @{tool:distraction-factor-analyzer()} // 評估潛在干擾因素
+
+  // 任務分析
+  @{tool:todo-urgency-scorer(file)} // 計算緊急度分數
+  @{tool:task-dependency-resolver(file)} // 解析任務依賴關係
+  @{tool:workload-estimator(todos)} // 預估工作量
+
+  // 優化算法
+  @{tool:time-slot-optimizer(available-hours)} // 時間段優化分配
+  @{tool:blocker-detector(file)} // 檢測潛在阻礙
+
+  ---
+  4. 阻礙分析 Chat Template
+
+  Template file name: blocker-analyzer.chat
+
+  Prompt:
+  # 開發阻礙分析與解決
+
+  @todos.md @project-status.md
+
+  ## 問題檢測
+  @{tool:stagnation-detector(file="todos.md", threshold=3)} // 檢測停滯的任務
+  @{tool:build-failure-analyzer(days=7)} // 分析構建失敗模式
+  @{tool:git-activity-anomaly(days=14)} // 檢測異常的活動模式
+
+  ## 具體問題分析
+  @{tool:error-pattern-analyzer()} // 分析錯誤模式
+  @{tool:dependency-conflict-checker()} // 檢查依賴衝突
+  @{tool:knowledge-gap-identifier(blocked-task="{USER_INPUT}")} // 
+  識別知識缺口
+
+  ## 解決方案生成
+  @{tool:solution-recommender(problem-type="{DETECTED_ISSUE}")}
+  @{tool:resource-finder(topic="{PROBLEM_DOMAIN}")}
+  @{tool:similar-issue-searcher(description="{ISSUE_DESCRIPTION}")}
+
+  ## 影響評估
+  @{tool:impact-calculator(blocked-tasks, project-timeline)}
+
+  基於分析結果，提供：
+  - 🔍 **問題根因分析**
+  - 📊 **影響範圍評估**
+  - 💡 **分層解決方案**（立即/短期/長期）
+  - 📚 **相關學習資源**
+  - ⏰ **預期解決時程**
+
+  自定義 Tool Functions:
+  // 問題檢測
+  @{tool:stagnation-detector(file, threshold)} // 檢測停滯超過N天的任務
+  @{tool:build-failure-analyzer(days)} // 分析構建失敗歷史
+  @{tool:git-activity-anomaly(days)} // 檢測Git活動異常
+
+  // 問題診斷
+  @{tool:error-pattern-analyzer()} // 分析常見錯誤模式
+  @{tool:dependency-conflict-checker()} // 依賴衝突檢查
+  @{tool:knowledge-gap-identifier(blocked-task)} // 識別知識/技能缺口
+
+  // 解決方案
+  @{tool:solution-recommender(problem-type)} // 推薦解決方案
+  @{tool:resource-finder(topic)} // 尋找學習資源
+  @{tool:similar-issue-searcher(description)} // 搜尋類似問題解決案例
+
+  // 影響分析
+  @{tool:impact-calculator(blocked-tasks, project-timeline)} // 計算影響程度
+
+  設計優勢
+
+  1. 動態輸入: @todos.md 自動讀取最新狀態
+  2. 工具整合: @{tool:...} 調用具體分析功能
+  3. 上下文豐富: 多文件引用提供完整背景
+  4. 可擴展性: 工具函數可以持續添加和改進
+
+  這樣的設計讓每個 Chat Template
+  都能自動獲取最新數據，並通過專門的工具函數進行深度分析。你覺得這個方向如何？
+
+> ## 進度評估
+    @{tool:todo-progress-analyzer(file="todos.md")}
+    @{tool:milestone-tracker(project-plan="project-plan.md")}
+
+    基於以上數據，生成簡潔的專案狀態報告，包含：
+    - 📊 專案健康指標
+    - 📈 本週關鍵進展
+    - ⚠️ 需關注問題
+    - 💡 今日行動建議\
+  \
+  \
+  1. 先讓我們完成第一個 prompt\\
+  2. 像是這個，就應該直接 inject files 而不是透過 tools （@todos.md, 
+  @project-plan.md），過度工程化了\\
+  3. prompt 應該要給予完整的指示，例如說：目標... 請基於... 步驟...
+
+⏺ 你說得對，我過度工程化了。讓我們重新設計第一個 prompt，直接使用 file
+  injection，並給予完整明確的指示。
+
+  1. 專案監控 Chat Template
+
+  Template file name: daily-project-monitor.chat
+
+  Prompt:
+  # 專案監控與晨報生成
+
+  ## 目標
+  生成 electron-app 專案的每日狀態報告，幫助追蹤開發進度和識別問題。
+
+  ## 請基於以下資料進行分析
+
+  ### 專案文件
+  @project-plan.md
+  @todos.md
+
+  ### Git 狀態
+  @{tool:git-status()}
+  @{tool:git-log(since="yesterday", format="oneline")}
+  @{tool:git-diff(cached=true)}
+
+  ### 代碼健康度
+  @{tool:run-command(cmd="pnpm typecheck")}
+  @{tool:run-command(cmd="pnpm test")}
+
+  ## 分析步驟
+  1. **對照專案時程**：比較當前進度與 project-plan.md 中的預期進度
+  2. **評估 todos 完成情況**：統計 todos.md 中已完成/進行中/待處理的項目
+  3. **檢視程式碼變化**：分析昨天的 commits 和當前的修改
+  4. **評估專案健康度**：根據 typecheck 和 test 結果判斷程式碼品質
+
+  ## 輸出格式
+  請生成一份簡潔的狀態報告，包含：
+
+  ### 📊 專案健康指標
+  - 構建狀態：✅/❌
+  - 型別檢查：✅/❌
+  - 測試通過率：X%
+  - Git 狀態：clean/有修改
+
+  ### 📈 昨日關鍵進展
+  - [列出昨天的 commits 和主要變更]
+
+  ### 📋 Todo 進度統計
+  - 已完成：X 項
+  - 進行中：X 項
+  - 待處理：X 項
+
+  ### ⚠️ 需關注問題
+  - [如有構建失敗、測試失敗等問題，列出具體項目]
+
+  ### 💡 今日行動建議
+  - [基於當前狀態和 todos，建議今日優先處理的 2-3 項工作]
+
+  請將結果輸出為 `project-status.md` 文件。
+
+  Required tools:
+  - git-status() - 獲取 Git 工作區狀態
+  - git-log(since, format) - 獲取 commit 歷史
+  - git-diff(cached) - 查看變更差異
+  - run-command(cmd) - 執行 shell 命令
+
+  這樣的設計：
+  1. 目標明確 - 開頭就說明要做什麼
+  2. 輸入清楚 - 明確列出需要的資料來源
+  3. 步驟具體 - 告訴 AI 要按什麼順序分析
+  4. 輸出格式化 - 詳細說明期望的報告格式
+  5. 避免過度工程 - 直接用 file injection 而不是包裝成 tools
+
+  你覺得這樣的方向對嗎？我們繼續完善其他三個 templates？
+
+> okay
+
+⏺ 2. Todo 轉 Task Chat Template
+
+  Template file name: todo-to-task-generator.chat
+
+  Prompt:
+  # Todo 轉 Task 生成器
+
+  ## 目標
+  將用戶指定的 todo 項目轉換為具體可執行的 task，通過互動討論完善任務細節。
+
+  ## 請基於以下資料進行分析
+
+  ### 專案文件
+  @todos.md
+  @project-status.md
+
+  ### 專案結構
+  @{tool:project-structure-scan()}
+
+  ## 使用方式
+  用戶會指定一個 todo 項目，例如："improve UI design" 或 "add user
+  authentication"
+
+  ## 分析步驟
+  1. **讀取指定的 todo**：從 todos.md 中找到並引用該項目
+  2. **分析專案現狀**：根據 project-status.md 了解當前狀態
+  3. **掃描相關代碼**：查看與該 todo 相關的現有實作
+  4. **識別技術需求**：分析需要用到的技術、框架、工具
+
+  ## 互動討論要點
+  與用戶討論以下細節：
+
+  ### 📋 需求澄清
+  - 具體要實作什麼功能？
+  - 有哪些具體的使用場景？
+  - 期望的使用者體驗是什麼？
+
+  ### 🔧 技術實作
+  - 要修改哪些檔案？
+  - 需要用到什麼技術或套件？
+  - 與現有代碼如何整合？
+
+  ### ✅ 驗收標準
+  - 怎樣算完成？
+  - 需要什麼測試？
+  - 有什麼注意事項？
+
+  ### ⏰ 工作規劃
+  - 預估需要多少時間？
+  - 可以分成哪些子任務？
+  - 有什麼依賴或前置作業？
+
+  ## 輸出格式
+  討論完成後，生成一個新的 Chat File，檔名為
+  `task-[簡短描述].chat`，內容包含：
+
+  ```markdown
+  # Task: [任務標題]
+
+  ## 目標
+  [具體要達成的功能或改進]
+
+  ## 背景
+  [從 todo 轉換而來，相關上下文]
+
+  ## 技術要求
+  - 修改檔案：[列出需要修改的檔案]
+  - 使用技術：[框架、套件、工具]
+  - 依賴項目：[前置條件]
+
+  ## 實作步驟
+  1. [具體步驟1]
+  2. [具體步驟2]
+  3. [具體步驟3]
+
+  ## 驗收標準
+  - [ ] [標準1]
+  - [ ] [標準2]
+  - [ ] [標準3]
+
+  ## 相關檔案
+  @[相關檔案1]
+  @[相關檔案2]
+
+  請開始與用戶討論指定的 todo 項目。
+
+  **Required tools:**
+  - `project-structure-scan()` - 掃描專案結構和檔案
+
+  ---
+
+⏺ 3. 每日規劃 Chat Template
+
+  Template file name: daily-work-planner.chat
+
+  Prompt:
+  # 每日工作規劃生成器
+
+  ## 目標
+  根據專案狀態和個人 todos，生成今日的工作計劃和優先級建議。
+
+  ## 請基於以下資料進行分析
+
+  ### 專案文件
+  @todos.md
+  @project-status.md
+  @project-plan.md
+
+  ## 分析步驟
+  1. **評估可用時間**：假設今日有 8 小時工作時間
+  2. **分析 todos 優先級**：根據緊急程度和重要性排序
+  3. **檢查依賴關係**：識別哪些任務有前後順序要求
+  4. **考慮精神狀態**：將複雜任務安排在上午，簡單任務安排在下午
+  5. **預估工作量**：根據任務複雜度分配時間
+
+  ## 優先級判斷標準
+  - **高優先級**：阻塞其他工作的項目、有明確 deadline 的任務
+  - **中優先級**：重要但不緊急的功能開發
+  - **低優先級**：優化、重構、文檔等改善項目
+
+  ## 時間分配策略
+  - **上午 (9:00-12:00)**：高專注度任務，複雜的開發工作
+  - **下午 (13:00-17:00)**：中等難度任務，測試、debug、code review
+  - **零碎時間**：簡單的維護工作、文檔更新、環境配置
+
+  ## 輸出格式
+  生成 `daily-plan.md` 文件，包含：
+
+  ### 🎯 今日主要目標 (1-3個)
+  - [根據優先級選出今日最重要的目標]
+
+  ### 📊 工作負載評估
+  - 計劃工作時間：8 小時
+  - 高優先級任務：X 小時
+  - 中優先級任務：X 小時
+  - 緩衝時間：X 小時
+
+  ### ⏰ 時間安排建議
+
+  **上午時段 (9:00-12:00)**
+  - [3小時] [具體任務名稱] - [簡短描述]
+
+  **下午時段 (13:00-17:00)**
+  - [2小時] [具體任務名稱] - [簡短描述]
+  - [2小時] [具體任務名稱] - [簡短描述]
+
+  **零碎時間**
+  - [30分鐘] [簡單維護任務]
+
+  ### 📋 完整任務清單 (按優先級)
+
+  **🔴 高優先級**
+  - [ ] [任務1] (預估: X小時)
+  - [ ] [任務2] (預估: X小時)
+
+  **🟡 中優先級**
+  - [ ] [任務3] (預估: X小時)
+  - [ ] [任務4] (預估: X小時)
+
+  **🟢 低優先級**
+  - [ ] [任務5] (預估: X小時)
+
+  ### 💭 注意事項
+  - [提醒可能的風險或需要特別注意的地方]
+  - [建議的休息時間安排]
+
+  請根據當前的 todos 和專案狀態生成今日工作計劃。
+
+  ---
+
+⏺ 4. 阻礙分析與解決 Chat Template
+
+  Template file name: blocker-analyzer.chat
+
+  Prompt:
+  # 開發阻礙分析與解決建議
+
+  ## 目標
+  識別專案開發過程中的阻礙問題，分析根本原因並提供具體的解決建議。
+
+  ## 請基於以下資料進行分析
+
+  ### 專案文件
+  @todos.md
+  @project-status.md
+
+  ### 系統狀態
+  @{tool:git-log(since="1 week ago", format="short")}
+  @{tool:run-command(cmd="pnpm typecheck")}
+  @{tool:run-command(cmd="pnpm test")}
+
+  ## 觸發情況
+  此 Chat 通常在以下情況下使用：
+  - 某個 todo 項目停滯超過預期時間
+  - 連續幾天沒有有效的 git commit
+  - Build 或測試持續失敗
+  - 用戶主動反映遇到開發困難
+
+  ## 分析步驟
+  1. **識別停滯項目**：找出 todos.md 中長時間沒有進展的項目
+  2. **分析 Git 活動**：檢查最近一週的 commit 頻率和品質
+  3. **檢查技術問題**：確認 build、test、typecheck 是否正常
+  4. **評估複雜度**：判斷當前任務是否超出能力範圍
+  5. **查找外部因素**：識別環境配置、依賴等問題
+
+  ## 問題分類
+
+  ### 🔧 技術問題
+  - 編譯錯誤、測試失敗
+  - 依賴衝突、版本不相容
+  - 架構設計不合理
+
+  ### 📚 知識問題
+  - 對特定技術不熟悉
+  - 缺少相關文檔和範例
+  - 最佳實踐不清楚
+
+  ### 📋 規劃問題
+  - 任務定義不夠明確
+  - 缺少必要的前置工作
+  - 範圍過大難以著手
+
+  ### 🛠 環境問題
+  - 開發環境配置問題
+  - 工具鏈設定錯誤
+  - 權限或存取問題
+
+  ## 輸出格式
+  生成問題分析報告：
+
+  ### 🔍 問題識別
+  **停滯項目：** [列出進展緩慢的 todos]
+  **技術狀態：** Build: ✅/❌, Test: ✅/❌, TypeCheck: ✅/❌
+  **活動頻率：** 最近 7 天有 X 次 commit
+
+  ### 📊 根本原因分析
+  **主要問題類型：** [技術/知識/規劃/環境]
+  **具體問題：** [詳細描述發現的問題]
+  **影響範圍：** [評估對專案進度的影響程度]
+
+  ### 💡 解決方案建議
+
+  **🚀 立即行動 (今天就能做)**
+  - [具體的緊急措施]
+
+  **📈 短期改善 (本週內完成)**
+  - [短期內可以採取的行動]
+
+  **🎯 長期優化 (持續改進)**
+  - [長期的能力建設建議]
+
+  ### 📚 相關資源
+  - [推薦的學習資料、文檔、教學]
+  - [可能有幫助的工具或套件]
+
+  ### ⏰ 預期時程
+  - 問題解決預估時間：[X 天/週]
+  - 建議的檢查點：[何時重新評估]
+
+  ## 使用方式
+  可以直接運行此 Chat
+  進行全面分析，或者在遇到特定問題時提供問題描述以獲得針對性建議。
+
+  Required tools:
+  - git-log(since, format) - 查看 Git 活動歷史
+  - run-command(cmd) - 執行構建和測試命令
+
+⏺ ---
+  四個完整的 Chat Templates 總結
+
+  1. daily-project-monitor.chat - 專案監控與晨報
+  2. todo-to-task-generator.chat - Todo 轉 Task 互動生成
+  3. daily-work-planner.chat - 每日工作規劃
+  4. blocker-analyzer.chat - 阻礙分析與解決
+
+  每個 template 都遵循：
+  - 明確目標 - 開頭說明要達成什麼
+  - 清楚輸入 - 用 file injection 和簡單的 tool calls
+  - 具體步驟 - 告訴 AI 分析的順序和方法
+  - 格式化輸出 - 詳細的報告格式規範
+  - 實用導向 - 直接解決實際開發管理需求
+
+  這樣的設計可以讓你每天早上打開 electron-app，運行這些 Chat Templates
+  來管理專案進度。
+
+
+
+╭───────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                         │
+│                                                   │
+│   /help for help, /status for your current setup  │
+│                                                   │
+│   cwd: /Users/cw/Documents/GitHub/electron-app    │
+╰───────────────────────────────────────────────────╯
+
+> /clear 
+  ⎿  (no content)
+
+> @notes/threads/2025-08-29-notesthreadsappbrainstormqamd-electron.txt \
+  \\
+  關於：Todo 轉 Task Chat Template 
+  讓我們換個角度思考，既然 AI 與 user 已經針對某個 todo 充分討論，那實際上新創的
+   task_xxx.chat 就只需要類似prompt\
+  "Please execute as discuss @todo_to_task.chat "\
+  \
+  你的意見？
+
+✻ Thinking…
+
+  用戶現在提出了一個很有趣的觀點。他們在看之前關於 Todo 轉 Task Chat Template 
+  的討論，然後提出一個簡化的想法：
+
+  如果 AI 和 user 已經在 todo_to_task.chat 中充分討論了某個 todo，那麼新創建的 
+  task_xxx.chat 可能就不需要很複雜的 prompt，只需要一個簡單的指令："Please execute
+   as discussed @todo_to_task.chat"
+
+  這個想法很棒，因為：
+
+  1. 避免重複 - 不需要在新的 task chat 中重新描述已經討論過的內容
+  2. 保持上下文 - 通過引用原始討論保持完整的上下文
+  3. 簡潔性 - 新的 task chat 可以非常簡潔，專注於執行
+  4. 可追溯性 - 可以追溯回原始的討論過程
+
+  這確實是一個更優雅的設計方式。讓我回應這個想法。
+
+⏺ 你的想法非常好！這是一個更優雅和實用的設計。
+
+  優點分析：
+
+  1. 避免重複 - 不需要在新的 task chat
+  中重新寫一遍已經討論過的需求、技術細節、驗收標準
+  2. 保持完整上下文 - 通過 @todo_to_task.chat 引用，AI
+  可以讀取到完整的討論過程
+  3. 簡潔高效 - 新的 task chat 專注於執行，而不是重新規劃
+  4. 可追溯性 - 任何人都可以回頭查看原始的討論和決策過程
+
+  實際運作流程：
+
+  1. 討論階段：在 todo_to_task.chat 中與 AI 充分討論 todo 的具體實現
+  2. 生成階段：討論完成後，AI 創建 task-[簡短描述].chat，內容極簡：
+  # Task: [任務標題]
+
+  Please execute as discussed @todo_to_task.chat
+
+  ## Quick Reference
+  - Original todo: [原始 todo 項目]
+  - Discussion date: [日期]
+  3. 執行階段：運行 task chat 時，AI 自動讀取討論內容並開始執行
+
+  這樣設計的好處：
+  - Task chat 變成真正的「執行器」而不是「規劃器」
+  - 討論和執行分離，職責清楚
+  - 如果執行遇到問題，還可以回到原始討論進行補充
+
+  你覺得這個簡化的 task template 設計如何？
+

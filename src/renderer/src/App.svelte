@@ -8,7 +8,7 @@
   import ToastProvider from "./components/ToastProvider.svelte";
   // import ErrorBoundary from "./components/ErrorBoundary.svelte";
   // import DevPanel from "./components/shared/DevPanel.svelte";
-  import Versions from "./components/Versions.svelte";
+  // import Versions from "./components/Versions.svelte";
   import { eventService } from "./services/event-service.js";
   // import { keyboardManager } from "./lib/keyboard";
   // import { DevelopmentTools } from "./lib/development";
@@ -52,7 +52,7 @@
   <MainLayout />
 </ToastProvider>
 
-<Versions />
+<!-- <Versions /> -->
 
 <!-- <ErrorBoundary onError={handleError}>
   <ToastProvider>

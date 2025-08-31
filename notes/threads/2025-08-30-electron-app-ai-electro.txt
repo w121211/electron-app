@@ -1,0 +1,802 @@
+╭───────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                         │
+│                                                   │
+│   /help for help, /status for your current setup  │
+│                                                   │
+│   cwd: /Users/cw/Documents/GitHub/electron-app    │
+╰───────────────────────────────────────────────────╯
+
+> 我想要使用 electron-app （作為一個使用者），叫 ai
+   來監督、管理我的 electron-app 專案的開發進度
+
+  有什麼東西會讓我每天一早就會想要打開 app ＆run？
+  - 最好的方式是，我不用打開 
+  app，他就以經自動跑＆推送給我
+  - 利用不想浪費的心態，會想打開來先讓他無腦跑
+  - 當我寫好 todo 
+  ，但又覺得要開始做時很累，就會想讓他跑
+  - 或是當我不知道下一個要做什麼時，我也會想讓他跑 
+  -> what’s next
+  - 跑的過程是越簡單越好，最好是點個鍵就跑
+  - 假設有個 todo-to-task.chat + @todos.md
+    - agent 需要區分哪些已經實現，哪些還沒
+      - 1. 自動一點的就是直接看 chats
+      - 2. 簡單一點就是自己寫 - [x] ...
+    - AI 會先給予各 task 的計畫
+  - Across multi projects （之後）
+    - 例如我的 todos 是管理所有的 projects
+    - 那我就需要
+
+  是不是一次直接對 todos 轉成 tasks 比較好？
+  - 不是不行，畢竟是一起的東西，一併討論比分開更好 
+  -> 更容易了解使用者在想什麼
+
+  每次工作檢視的核心問題
+  - 目前做到哪？ where am I?
+  - 接下來要做什麼？ what's next?
+  - （可選）還差多少？
+  - 如何做？
+
+  為什麼我雖然寫了todo，卻不想實際去執行
+  - 代表執行本身「很讓人不想做」
+  - 列了很多工作，本身就很懶
+  - 所以最好的方式是，agent定期檢查，有更新就分析一
+  遍，自動 deliver tasks，我被推著做
+   
+  所以我想要的是什麼？
+  - Chat 1: 自動檢查 todos，把 todos 轉成 
+  tasks，檢視討論優化 tasks
+  - Chat 2: 生成 tasks，依照前面的討論，生成 tasks 
+  (chat files)
+      - Task: …
+      - Setup:
+          - Model:
+          - Execute path:
+      - Prompt: …
+  - 路徑
+      - project.md
+      - todos.md
+      - commands/
+          - “/todos check“
+          - “/todos thread-to-tasks”
+      - actions/
+          - check-todos.chat - scheduled, template
+          - thread-to-tasks.chat
+          - todos-to-tasks.chat - 
+  把兩個結合成一個，一步到位（這做法有好有壞）
+              - 或是其實就是把 command prompts 
+  當作提示，方便在需要的時候直接寫
+      - chats/
+          - YYYYMMDD-check-todos.chat
+          - YYYYMMDD-todos-to-tasks.chat
+          - YYYYMMDD-todos-to-tasks-1.chat
+          - YYYYMMDD-todos-to-tasks-2.chat
+          - YYYYMMDD-task1-hello-world.chat
+          - YYYYMMDD-task2-hello-another-world.chat
+
+  ---
+
+  請分析
+  1. project.md 需要包含哪些內容？
+      1. 開發的部分會放在別的地方 eg CLAUDE.md
+      2. 這裡主要是關於專案管理、app概念等
+  2. Project.md -> 建議多個命名、你會選哪個？
+
+✻ Thinking…
+
+  用戶想要使用他們的 electron-app 
+  來管理自己的開發進度，讓 AI 來監督和管理專案開發。
+  用戶描述了一個完整的系統，包含：
+
+  1. 自動檢查 todos
+  2. 把 todos 轉成 tasks
+  3. 自動推送進度
+  4. 簡化執行流程
+
+  用戶問了兩個具體問題：
+  1. project.md 需要包含哪些內容（專案管理、app 
+  概念等，開發內容會在 CLAUDE.md）
+  2. Project.md 的命名建議
+
+  讓我分析一下這個系統的需求和架構，然後回答這兩個問
+  題。
+
+  首先，我需要理解用戶想要的工作流程：
+  - 自動檢查 todos.md
+  - 轉換成可執行的 tasks
+  - 生成對應的 chat files
+  - 提供 "what's next" 的建議
+
+  對於 project.md 的內容，應該包含：
+  - 專案概述和目標
+  - 當前狀態和里程碑
+  - 優先級和策略
+  - 專案範圍和邊界
+  - 相關資源和參考
+
+  對於命名，考慮到這是專案管理相關的文件，有幾個選項
+  ：
+  - project.md (通用)
+  - project-overview.md (更具體)
+  - project-brief.md (簡潔)
+  - project-spec.md (規格)
+  - project-plan.md (計畫)
+
+  我來回答這兩個問題。
+
+⏺ 分析你的需求，這是一個很有趣的 AI
+  驅動專案管理系統。讓我回答你的兩個問題：
+
+  1. project.md 內容建議
+
+  # Project Overview
+
+  ## 專案簡介
+  - **名稱**: [專案名稱]
+  - **目標**: [核心目標描述]
+  - **當前版本**: [版本號]
+  - **狀態**: [開發階段]
+
+  ## 核心概念
+  - **主要功能**: [列出核心功能]
+  - **目標用戶**: [誰會使用這個]
+  - **使用場景**: [什麼時候用]
+
+  ## 專案範圍
+  - **包含**: [明確包含的功能]
+  - **不包含**: [明確排除的內容]
+  - **未來可能**: [潛在擴展方向]
+
+  ## 里程碑
+  - **Phase 1**: [基礎功能] - [狀態]
+  - **Phase 2**: [進階功能] - [狀態]
+  - **Phase 3**: [優化完善] - [狀態]
+
+  ## 優先級策略
+  - **P0**: [必須完成的核心功能]
+  - **P1**: [重要但非緊急]
+  - **P2**: [Nice to have]
+
+  ## 相關資源
+  - **參考專案**: [相關參考]
+  - **文檔連結**: [重要文檔]
+  - **決策記錄**: [重要決定的原因]
+
+  2. 命名建議
+
+  推薦選項（優先順序）：
+
+  1. PROJECT.md ⭐ 推薦
+    - 簡潔明瞭，與 CLAUDE.md 格式一致
+    - 全大寫表示重要性，容易識別
+  2. project-overview.md
+    - 明確表達內容性質
+    - 更具描述性
+  3. project-brief.md
+    - 強調簡潔性
+    - 適合快速參考
+  4. project-spec.md
+    - 偏向規格說明
+    - 較技術導向
+
+  我會選擇 PROJECT.md，原因：
+  - 與現有的 CLAUDE.md 風格一致
+  - 簡潔易記，容易在文件中引用
+  - 全大寫暗示這是專案的核心參考文檔
+
+  這樣的架構下，你會有：
+  - PROJECT.md - 專案管理和概念
+  - CLAUDE.md - 開發指南和技術規範
+  - todos.md - 待辦事項列表
+
+  形成完整的專案文檔體系。
+
+> @notes/qa/20250827-app-brainstorm-qa.md \
+  我已經有了這個產品qa，是不是可以用這個來取代專案
+  簡介？
+  ⎿ Read notes/qa/20250827-app-brainstorm-qa.md (374 
+    lines)
+
+⏺ 看了你的產品 QA 文檔，我認為不建議直接用它取代
+  專案簡介，但它是很好的補充材料。原因如下：
+
+  為什麼不直接取代
+
+  1. QA 格式不適合快速理解
+    - 349 行內容太冗長，不利於新成員或 AI
+  快速掌握核心
+    - 問答形式適合深度思考，但不適合概覽
+  2. 缺乏結構化的核心資訊
+    - 沒有明確的目標用戶定義
+    - 缺乏功能優先級排序
+    - 沒有清晰的發展階段規劃
+
+  建議做法
+
+  創建簡潔的 PROJECT.md + 保留詳細的 QA 文檔：
+
+  # PROJECT.md (簡潔版)
+
+  ## 核心概念
+  AI 驅動的工作流管理平台，讓用戶通過 Chat Files
+  創建、分享、執行可重複的工作任務
+
+  ## 目標用戶
+  積極使用 AI 的專業工作者（內容創作者、社群管理
+  者、專業分析師等）
+
+  ## 核心功能 (MVP)
+  - Chat File 編輯與重跑
+  - Template 分享生態
+  - 多 LLM 服務整合
+  - 工作流自動化執行
+
+  ## 產品定位
+  「github + docker」概念：找到別人的工作流 →
+  快速執行 → 根據需求調整
+
+  ## 詳細討論
+  參見：notes/qa/20250827-app-brainstorm-qa.md
+
+  這樣的架構讓：
+  - PROJECT.md 提供 5 分鐘快速理解
+  - QA 文檔 提供完整的思考脈絡和細節
+
+  你覺得這種分層架構如何？
+
+> okay 對於專案管理部分，如果我希望是要用快速迭代的
+  開發方式，要如何設計？
+
+⏺ 對於快速迭代開發，專案管理要設計得輕量、靈活、
+  反應快速。基於你的需求，建議以下架構：
+
+  核心設計原則
+
+  極簡文檔 + 高頻檢查 + AI 驅動決策
+
+  文檔結構
+
+  project/
+  ├── PROJECT.md          # 核心概念 (靜態)
+  ├── todos.md           # 當前待辦 (動態)
+  ├── iteration-log.md   # 迭代記錄 (追蹤)
+  └── decisions.md       # 重要決策 (累積)
+
+  todos.md 設計
+
+  # Current Sprint (Week X)
+
+  ## 🎯 本週目標
+  - [ ] 核心功能 A
+  - [ ] 核心功能 B
+
+  ## 📋 Task Pool
+  ### P0 (必做)
+  - [ ] Task 1
+  - [ ] Task 2
+
+  ### P1 (重要)
+  - [ ] Task 3
+
+  ### P2 (可選)
+  - [ ] Task 4
+
+  ## 🤔 Questions/Blockers
+  - 需要確認: XXX
+  - 等待決定: YYY
+
+  ## ⚡ Quick Wins (隨時可做)
+  - [ ] 小改進 1
+  - [ ] 小改進 2
+
+  AI 驅動的工作流
+
+⏺ 1. 每日檢查 (Daily)
+
+  # commands/daily-check.chat
+  - 檢查昨天完成了什麼
+  - 今天要專注什麼
+  - 有什麼阻礙需要解決
+
+  2. 每週規劃 (Weekly)
+
+  # commands/weekly-planning.chat
+  - 上週達成率分析
+  - 本週目標設定
+  - 任務優先級調整
+
+  3. 即時決策 (On-demand)
+
+  # commands/decision-helper.chat
+  - 分析選項 A vs B
+  - 快速 MVP 建議
+  - 技術債務評估
+
+  關鍵特色
+
+  🚀 快速啟動
+  - 最小可行文檔
+  - 一鍵生成下週任務
+
+  📊 數據驅動
+  - 完成率追蹤
+  - 時間花費分析
+  - 阻礙因素識別
+
+  🔄 持續調整
+  - 每週回顧調整
+  - 優先級動態更新
+  - 工作方式優化
+
+  🤖 AI 輔助
+  - 自動任務分解
+  - 優先級建議
+  - 進度瓶頸識別
+
+  迭代節奏
+
+  Week 1-2: 建立基礎 → Week 3-4: 核心功能 → Week 
+  5-6: 優化體驗
+
+  每 2 週一個小里程碑，每週都有可 demo 的進展。
+
+⏺ 這樣的設計讓你能：
+  - 快速響應變化
+  - 最小化文檔負擔
+  - 最大化執行效率
+  - 持續優化工作方式
+
+  你想先從哪個部分開始實作？
+
+> @temp/todos.md 我目前todos是照此\
+  主要就是以日期＋紀錄事項，我也會針對todo列出想到
+  的一些細節\
+  \
+  管理部份，是否列出：每週目標、milestone 
+  會比較清楚？
+  ⎿  Read temp/todos.md (181 lines)
+  ⎿ ⧉ Selected 180 lines from temp/todos.md in Visual
+     Studio Code
+
+✻ Thinking…
+
+  用戶顯示了他目前的 todos.md 文件，內容是按日期記錄
+  的各種開發任務和想法。用戶問是否要增加每週目標和 
+  milestone 會比較清楚。
+
+  看看這個文件的結構：
+  1. 核心需求（宣傳產品、管理專案進度、agent自動建立
+  專案）
+  2. 宣傳策略
+  3. 各種功能開發項目（Bridge extension、UX改進、File
+   reference等）
+  4. 按日期分組的開發記錄（8/30, 8/29, 8/28等）
+
+  這種結構確實比較混亂，缺乏清晰的優先級和時間規劃。
+  對於快速迭代開發，確實需要更好的結構。
+
+  用戶問的是對的 - 需要每週目標和 milestone 
+  來讓管理更清楚。
+
+⏺ 看了你目前的
+  todos.md，確實需要更清晰的結構。現在的問題是：
+
+  現有問題
+
+  - 缺乏優先級 - 所有項目平鋪直敘
+  - 沒有時間框架 - 不知道什麼時候要完成
+  - 混雜了不同層級 -
+  功能開發、Bug修復、產品策略都混在一起
+
+  建議重構
+
+  建議分成兩個文件：
+
+  1. sprint.md (當前衝刺)
+
+  # Sprint Week 35 (8/26-9/1)
+
+  ## 🎯 本週主要目標
+  - [ ] 完成 File reference 功能
+  - [ ] 修復 Rerun chat bug
+
+  ## 📊 進度追蹤
+  - File reference: 60% 完成
+  - UX 優化: 30% 完成
+
+  ## 🔧 本週任務
+  ### P0 (必須完成)
+  - [ ] File reference demo implementation
+  - [ ] Fix: rerun chat processing bug
+
+  ### P1 (重要)
+  - [ ] UX: @ command panel positioning
+  - [ ] Explorer: handle removed folders
+
+  ### P2 (可選)
+  - [ ] Bridge extension research
+
+  2. roadmap.md (長期規劃)
+
+  # Product Roadmap
+
+  ## Q4 2024 Milestones
+  - **Week 36-37**: Core Chat功能穩定
+  - **Week 38-39**: Template分享機制
+  - **Week 40-41**: Bridge extension MVP
+  - **Week 42**: 產品推廣啟動
+
+  ## Backlog Pool
+  ### 🚀 Core Features
+  - Agent mode
+  - Share/Template system
+  - Terminal integration
+
+  ### 🐛 Bug Fixes
+  - File search performance
+  - Window height issues
+
+  ### 📈 Marketing
+  - Reddit strategy
+  - Template distribution
+
+  這樣的結構讓你：
+  - 週為單位快速迭代
+  - 月為單位設定里程碑
+  - 清楚的優先級指導每日工作
+
+  要我幫你重構現有的 todos 嗎？
+
+> 我不希望文件過度分散，希望能集中在一起管理
+
+⏺ 理解，統一管理更簡潔。建議用單一 todos.md
+  但分區塊：
+
+  建議架構
+
+  # Project Management
+
+  ## 🎯 Current Sprint (Week 35)
+  **Goal:** File reference + UX fixes
+  **Progress:** 60% complete
+
+  ### This Week (P0 必做)
+  - [ ] File reference demo - need raw/processed
+  message output
+  - [ ] Fix: rerun chat bug causing all chats to
+  show processing
+  - [ ] Fix: @ command panel positioning outside
+  window
+
+  ### Next Actions (P1 重要)
+  - [ ] Bridge extension research (crxjs)
+  - [ ] Explorer: handle externally removed
+  folders
+  - [ ] UX: drag file node to chat for @
+  reference
+
+  ### Someday (P2 可選)
+  - [ ] Spec workflow analysis
+  - [ ] Terminal integration planning
+
+  ---
+
+  ## 📋 Backlog & Ideas
+
+  ### Core Features
+  - Agent mode test cases
+  - Share/Template system
+  - Different AI agents collaboration
+  - Run chat on terminal (claude-code,
+  gemini-cli)
+
+  ### Marketing & Growth
+  - Reddit/forum promotion strategy
+  - Convert example tasks to templates
+  - Find potential users in AI Discord servers
+
+  ### Technical Debt
+  - File search performance optimization
+  - Remove artificial delay
+  - Message processor refactoring
+
+  ---
+
+  ## 📊 Weekly Reviews
+
+  ### Week 34 (8/19-8/25)
+  **Completed:**
+  - File reference backend processing
+  - Message processor improvements
+
+  **Learned:**
+  - Need better UX for file operations
+  - Rerun functionality has edge cases
+
+  ### Week 35 (8/26-9/1)
+  **Planning:**
+  - Focus on stability over new features
+  - Fix critical UX bugs first
+
+  ---
+
+  ## 🎪 Project Context
+
+  ### Current Status
+  - **Phase:** MVP Development
+  - **Focus:** Chat functionality + File handling
+  - **Next Milestone:** Template sharing (Week
+  38)
+
+  ### Key Decisions
+  - Prioritize user experience over feature
+  completeness
+  - Bridge extension approach: local folder sync
+
+⏺ 核心優勢
+
+  📈 漸進式管理
+  - 由近到遠：本週 → Backlog → 長期回顧
+  - 保留你的時間紀錄習慣
+
+  🔄 快速迭代支持
+  - Current Sprint 聚焦當下
+  - Backlog 儲存未來想法
+  - Weekly Review 累積經驗
+
+  🎯 清晰優先級
+  - P0/P1/P2 讓你快速決定做什麼
+  - Context section 提醒大方向
+
+  要我幫你把現有的 todos.md 重構成這個格式嗎？
+
+> 你忽略掉了 todos.md 
+  本質上是給我來編輯用的，所以我會寫得比較亂、無序\
+  \
+  或許有兩個file，一個是比較有序的，針對PM，可以放
+  每週目標，只記錄這週＆過去，以及每月目標\
+  目標要包含通過條件\
+  \
+  todos 則是留給我來寫，分成兩個部分，一個是 todos 
+  or backlog （需要增加優先度分區）， 
+  用於記錄我想到需要做的工作（未整理）\
+  一個是當日紀錄，我會把當天需要做的寫成 todos 
+  ，以及一些筆記，如果沒有todos，代表我還沒安排本日
+  要做的事，這時就應該由AI來推薦\
+  \
+  推薦todos，要參考之前的討論串、新增的backlog，並
+  思考哪些工作跟當前衝刺目標比較有關、哪些實現起來
+  會更能有效加快後續工作等等
+
+✻ Thinking…
+
+  用戶提出了很好的觀點，我確實忽略了 todos.md 
+  本質上是給他個人使用的，所以會比較亂、無序。他希望
+  有兩個文件：
+
+  1. 比較有序的 PM 文件 - 針對專案管理，記錄每週目標
+  、過去進度、每月目標，包含通過條件
+  2. todos.md - 給用戶自己編輯用的，分兩個部分：
+    - todos/backlog：記錄想到需要做的工作（未整理），
+  需要優先度分區
+    - 當日紀錄：當天需要做的 todos + 
+  筆記，如果沒有當日 todos，代表還沒安排，這時 AI 
+  要推薦
+
+  AI 推薦 todos 要參考：
+  - 之前的討論串
+  - 新增的 backlog
+  - 思考哪些工作跟當前衝刺目標有關
+  - 哪些實現起來會更能有效加快後續工作
+
+  這個設計很合理，符合實際使用習慣。
+
+⏺ 完全理解！你說得對，我忽略了 todos.md
+  的個人使用本質。
+
+  建議架構
+
+  1. status.md (有序的 PM 文件)
+
+  # Project Status
+
+  ## Current Sprint (Week 35: 8/26-9/1)
+  **Goal:** File reference + UX stability
+  **Success Criteria:**
+  - [ ] File @ reference works in chat
+  - [ ] No UI bugs in core workflows
+  - [ ] Demo-ready file handling
+
+  **Progress:** 60% | **Days Left:** 3
+
+  ## Monthly Milestone (September)
+  **Goal:** MVP Ready for User Testing
+  **Success Criteria:**
+  - [ ] Core chat functionality stable
+  - [ ] File operations intuitive
+  - [ ] Basic template sharing works
+
+  ## Recent Sprints
+  ### Week 34: Message processing ✅
+  - Completed file reference backend
+  - Fixed message processor issues
+
+  ### Week 33: UI improvements ✅
+  - Enhanced file explorer
+  - Added project context panel
+
+  2. todos.md (你的個人工作空間)
+
+  # Todos
+
+  ## Today (8/30)
+  - [ ]
+  - [ ]
+  - [ ]
+
+  **Notes:**
+  -
+
+  ---
+
+  ## Backlog
+
+  ### 🔥 P0 (Urgent)
+  - File reference demo - raw/processed message
+  output
+  - Fix: rerun chat processing bug
+
+  ### ⚡ P1 (Important)
+  - @ command panel positioning fix
+  - Explorer: handle removed folders
+  - UX: drag file to chat for @ reference
+
+  ### 💡 P2 (Ideas)
+  - Bridge extension research
+  - Spec workflow analysis
+  - Terminal integration
+  - Marketing strategy planning
+
+  ### 📝 Random Thoughts
+  - 不同家 agents 協作場景
+  - 宣傳策略：Reddit 問答引導
+  - ...
+
+  ---
+
+  ## Daily Log
+  ### 8/29
+  - 研究了 spec workflow repos
+  - 思考 AI PM 概念
+  - Bridge extension 新想法
+
+  ### 8/28
+  - Bridge server 架構討論
+  - 宣傳策略 brainstorm
+
+  AI 推薦 Todos 邏輯
+
+  當 "Today" 區塊為空時，AI 會：
+  1. 分析當前衝刺目標 -
+  優先推薦能達成週目標的任務
+  2. 檢查 P0/P1 積壓 - 找出阻礙後續工作的關鍵任務
+
+  3. 考慮執行效率 - 推薦能加快後續開發的基礎工作
+  4. 參考最近討論 - 從 Daily Log
+  中找出你關注的方向
+
+  這樣的設計如何？
+
+> 衝刺目標跟每週目標一樣嗎？
+
+⏺ 不完全一樣，有細微但重要的差異：
+
+  衝刺目標 vs 每週目標
+
+  衝刺目標 (Sprint Goal)
+
+  - 功能導向 - 聚焦在要完成的具體功能
+  - 價值驅動 - 為什麼要做這個功能
+  - 可展示 - 衝刺結束後能 demo 給別人看
+  - 範例: "實現可靠的文件引用功能，讓用戶能在聊天
+  中直接引用項目文件"
+
+  每週目標 (Weekly Goal)
+
+  - 任務導向 - 這週要完成哪些具體工作
+  - 進度驅動 - 推進項目整體進展
+  - 更具體 - 明確的待辦事項列表
+  - 範例: "修復 3 個文件引用 bugs + 完成 UX 改善
+  + 寫好展示用例"
+
+  實際運用
+
+  對你的情況，建議：
+  - 衝刺目標: 更適合放在
+  status.md，描述這個時間段的核心價值
+  - 每週目標: 可以是衝刺目標的具體分解，包含在當
+  週的任務規劃中
+
+  範例：
+  - 衝刺目標: "讓 Chat File 功能穩定可用"
+  - Week 35 目標: "修復 rerun bug + 完善文件引用
+  + 準備 demo"
+  - Week 36 目標: "用戶測試 + 收集反饋 +
+  迭代改善"
+
+  你傾向用哪種概念？還是都要？
+
+> 我只有一個人，過度管理反而會拖慢\
+  但如果不管理，進度也一直無法確定\
+  我想到的目標有兩個\
+  1. release MVP - milestone\
+  2. 我作為app的使用者，用app實現管理、開發 - 
+  通過標準：需要我會真的想拿來使用，真的實用，確實
+  解決掉我的問題，也確實會讓我持續使用
+
+✻ Thinking…
+
+  用戶提出了很好的觀點：
+  1. 一個人開發，過度管理會拖慢進度
+  2. 但不管理進度又無法確定
+  3. 提出了兩個關鍵目標：
+    - release MVP (milestone)
+    - 自己真的會用這個app來管理開發 (實用性驗證)
+
+  這個思考很實際，用戶想要簡化管理但又要有效追蹤。第
+  二個目標特別重要，因為這是真正的產品驗證 - 
+  如果連自己都不會持續使用，那產品就有問題。
+
+  我應該建議一個極簡但有效的管理方式，聚焦在這兩個核
+  心目標上。
+
+⏺ 完全認同！過度管理就是反生產力。你的兩個目標很
+  精準：
+
+  極簡管理方案
+
+  status.md (極簡版)
+
+  # Status
+
+  ## 🎯 Core Goals
+  1. **Release MVP** - 基本功能可用，能 demo
+  2. **Self-use Ready** -
+  我會真的想每天用它管理開發
+
+  ## Current Focus
+  **這週專注**: File reference 穩定 (離目標2更近)
+
+  ## Simple Metrics
+  - **離 MVP**: 70% (Chat + File + Template基礎)
+  - **自用程度**: 40% (還不會想每天打開)
+
+  ## Quick Notes
+  - 8/30: File reference 有進展但還不夠直覺
+  - 下週可能優先: UX改善 > 新功能
+
+  todos.md (保持你的習慣)
+
+  # Todos
+
+  ## Today
+  - [ ]
+
+  **自用測試**: 今天會想用 app 嗎？為什麼不想？
+
+  ---
+
+  ## Backlog (P0優先)
+  [保持你現有的混亂風格，但標記優先級]
+
+  關鍵問題
+
+  每天/週末問自己：
+  1. 今天會想用這個 app 嗎？
+  (如果不會，優先修那個阻礙)
+  2. 哪個功能修好了，我明天就會想用？
+  (優先做那個)
+
+  這樣既簡單又聚焦在真正重要的目標上。自用標準比
+  任何 PM 方法都有效。
+
