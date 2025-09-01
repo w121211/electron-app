@@ -73,6 +73,7 @@ export async function createTrpcRouter(userDataDir: string) {
   // Initialize chat session repository
   const chatSessionRepository = new ChatSessionRepositoryImpl();
 
+
   // Start watching all project folders
   projectFolderService
     .startWatchingAllProjectFolders()

@@ -16,11 +16,13 @@ export type ChatSessionStatus =
   | "idle"
   | "processing"
   | "waiting_confirmation"
-  | "max_turns_reached";
+  | "max_turns_reached"
+  | "external_active"
+  | "external_terminated";
 
 export type ChatFileStatus = "active" | "archived";
 
-export type ChatMode = "chat" | "agent";
+export type ChatMode = "chat" | "agent" | "external";
 
 export interface ChatMetadata {
   title?: string;
@@ -28,6 +30,8 @@ export interface ChatMetadata {
   mode?: ChatMode;
   knowledge?: string[];
   promptDraft?: string;
+  externalProcessPid?: number;
+  workingDirectory?: string;
 }
 
 export interface ChatMessageMetadata {
@@ -47,7 +51,7 @@ export interface ChatMessage {
 }
 
 export interface ChatSessionData {
-  _type: "chat";
+  _type: "chat" | "external_chat";
   id: string;
   absoluteFilePath: string;
   messages: ChatMessage[];

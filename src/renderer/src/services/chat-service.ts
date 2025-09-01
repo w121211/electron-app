@@ -1,6 +1,7 @@
 // src/renderer/src/services/chat-service.ts
 import { Logger } from "tslog";
 import { trpcClient } from "../lib/trpc-client.js";
+import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import {
   chatState,
   setCurrentChat,
@@ -27,6 +28,9 @@ class ChatService {
       this.logger.info("Creating empty chat in:", targetDirectoryPath);
       const newChat = await trpcClient.chatClient.createNewChatSession.mutate({
         targetDirectory: targetDirectoryPath,
+        config: {
+          mode: "agent", // Default mode for new chat sessions
+        },
       });
 
       setCurrentChat(newChat);
@@ -83,6 +87,7 @@ class ChatService {
     chatSessionId: string,
     messageText: string,
     attachments?: Array<{ fileName: string; content: string }>,
+    modelId?: string,
   ) {
     setLoading("submitMessage", true);
 
@@ -101,14 +106,29 @@ class ChatService {
         ];
       }
 
-      const result = await trpcClient.chatClient.sendMessage.mutate({
+      const messagePayload = {
         absoluteFilePath,
         chatSessionId,
         message: {
-          role: "user",
+          role: "user" as const,
           content,
         },
-      });
+        modelId,
+      };
+
+      let result;
+
+      // Determine which API to call based on model type
+      // Use the current chat's modelId or the provided modelId for routing
+      const currentModelId = modelId || chatState.currentChat?.modelId;
+      
+      if (currentModelId && isTerminalModel(currentModelId)) {
+        this.logger.info("Routing to external terminal model:", currentModelId);
+        result = await trpcClient.chatClient.sendMessageToExternal.mutate(messagePayload);
+      } else {
+        this.logger.info("Routing to AI model:", currentModelId);
+        result = await trpcClient.chatClient.sendMessage.mutate(messagePayload);
+      }
 
       // Update current chat with the returned session data
       setCurrentChat(result.updatedChatSession);

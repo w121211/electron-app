@@ -20,6 +20,7 @@
   } from "../stores/chat-store.svelte.js";
   import { uiState, showToast } from "../stores/ui-store.svelte.js";
   import { fileSearchState } from "../stores/file-search-store.svelte.js";
+  import { setPreference } from "../stores/local-preferences-store.svelte.js";
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
   import ChatMessage from "./ChatMessage.svelte";
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
@@ -88,21 +89,39 @@
     previousChatId = currentChatId;
   });
 
+  // Sync selected model with current chat's modelId
+  $effect(() => {
+    if (chatState.currentChat && chatState.currentChat.messages.length > 0) {
+      // Chat has messages, set selectedModel to the chat's current modelId
+      chatState.selectedModel = chatState.currentChat.modelId;
+    }
+  });
+
+  // Save chat preferences to localStorage when they change
+  $effect(() => {
+    setPreference("chatMode", chatState.chatMode);
+    setPreference("selectedModel", chatState.selectedModel);
+  });
+
   async function handleSendMessage(): Promise<void> {
     if (!chatState.messageInput.trim() || !chatState.currentChat) return;
 
     const message = chatState.messageInput.trim();
     const chatId = chatState.currentChat.id;
 
-    try {
-      await chatService.sendMesage(
-        chatState.currentChat.absoluteFilePath,
-        chatId,
-        message,
-      );
-    } catch (error) {
-      // Error handling done in service
-    }
+    // Only pass modelId for the first message (when no messages exist)
+    const modelId =
+      chatState.currentChat.messages.length === 0
+        ? chatState.selectedModel
+        : undefined;
+
+    await chatService.sendMesage(
+      chatState.currentChat.absoluteFilePath,
+      chatId,
+      message,
+      undefined, // attachments
+      modelId,
+    );
   }
 
   function handleInputChange(value: string): void {
@@ -115,7 +134,10 @@
     if (chatState.currentChat) {
       clearTimeout(draftTimeout);
       draftTimeout = setTimeout(() => {
-        chatService.savePromptDraft(chatState.currentChat!.absoluteFilePath, value);
+        chatService.savePromptDraft(
+          chatState.currentChat!.absoluteFilePath,
+          value,
+        );
       }, 1500);
     }
   }
@@ -175,13 +197,18 @@
 
   // Chat mode and model options
   const chatModeOptions = [
-    { value: "chat", label: "Chat" },
     { value: "agent", label: "Agent" },
+    { value: "chat", label: "Chat" },
   ];
 
   const modelOptions = [
-    { value: "claude", label: "Claude 3.7" },
-    { value: "gemini", label: "Gemini 2.5 Pro" },
+    { value: "anthropic/claude", label: "Claude 3.7" },
+    { value: "google/gemini", label: "Gemini 2.5 Pro" },
+    { value: "terminal/claude-code", label: "Claude Code (Terminal)" },
+    { value: "terminal/gemini-cli", label: "Gemini CLI (Terminal)" },
+    { value: "terminal/codex", label: "Codex (Terminal)" },
+    { value: "terminal/cursor", label: "Cursor (Terminal)" },
+    { value: "terminal/vscode", label: "VS Code (Terminal)" },
   ];
 
   // Cleanup timeouts on component destroy using $effect
@@ -308,7 +335,9 @@
         <!-- Model Select -->
         <select
           bind:value={chatState.selectedModel}
-          class="bg-panel border-border hover:bg-hover focus:border-accent text-muted rounded border px-3 py-1 text-xs focus:outline-none"
+          disabled={chatState.currentChat &&
+            chatState.currentChat.messages.length > 0}
+          class="bg-panel border-border hover:bg-hover focus:border-accent text-muted rounded border px-3 py-1 text-xs focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           {#each modelOptions as option, index (index)}
             <option value={option.value}>{option.label}</option>

@@ -4,6 +4,7 @@ import type {
   ChatMessage,
   ChatMode,
 } from "../../../core/services/chat-engine/chat-session-repository.js";
+import { getPreference } from "./local-preferences-store.svelte.js";
 
 interface ChatState {
   currentChat: ChatSessionData | null;
@@ -17,8 +18,8 @@ interface ChatState {
 export const chatState = $state<ChatState>({
   currentChat: null,
   messageInput: "",
-  chatMode: "chat",
-  selectedModel: "claude",
+  chatMode: (getPreference("chatMode") as ChatMode) || "agent",
+  selectedModel: getPreference("selectedModel") || "terminal/codex",
   isSubmittingMessage: false,
 });
 

@@ -16,14 +16,6 @@ import { router, publicProcedure } from "../trpc-init.js";
 const createChatSessionConfigSchema: z.ZodType<CreateChatSessionConfig> =
   z.object({
     mode: z.enum(["chat", "agent"]).default("chat"),
-    modelId: z
-      .custom<`${string}/${string}`>(
-        (val) => {
-          return typeof val === "string" && /^.+\/.+$/.test(val);
-        },
-        { message: "Model ID must be in format 'provider/model'" },
-      )
-      .optional(),
     knowledge: z.array(z.string()).optional(),
     prompt: z.string().optional(),
     newTask: z.boolean().optional(),
@@ -36,6 +28,14 @@ const sendMessageSchema = z.object({
     role: z.literal("user"),
     content: z.union([z.string(), z.array(z.any())]),
   }),
+  modelId: z
+    .custom<`${string}/${string}`>(
+      (val) => {
+        return typeof val === "string" && /^.+\/.+$/.test(val);
+      },
+      { message: "Model ID must be in format 'provider/model'" },
+    )
+    .optional(),
 });
 
 export function createChatClientRouter(
@@ -78,6 +78,25 @@ export function createChatClientRouter(
         turnResult: TurnResult;
         updatedChatSession: ChatSessionData;
       }> => {
+        // Get current chat session to check the model
+        const session = await chatClient.getOrLoadChatSession(
+          input.absoluteFilePath,
+        );
+
+        // Only allow modelId to be set on the first message (when session has no messages)
+        if (input.modelId) {
+          if (session.messages.length > 0) {
+            throw new Error(
+              "Model ID can only be set on the first message of a chat session",
+            );
+          }
+          // Update the session's modelId for the first message
+          await chatClient.updateChat(input.absoluteFilePath, {
+            modelId: input.modelId,
+          });
+        }
+
+        // Normal AI chat processing
         const result = await chatClient.sendMessage(
           input.absoluteFilePath,
           input.chatSessionId,
@@ -86,6 +105,51 @@ export function createChatClientRouter(
         return {
           turnResult: result.turnResult,
           updatedChatSession: result.updatedChatSession.toJSON(),
+        };
+      },
+    ),
+
+    sendMessageToExternal: publicProcedure.input(sendMessageSchema).mutation(
+      async ({
+        input,
+      }): Promise<{
+        turnResult: TurnResult;
+        updatedChatSession: ChatSessionData;
+      }> => {
+        // For external sessions, we may need to handle modelId updates differently
+        if (input.modelId) {
+          // Try to get existing session to check if we can update modelId
+          try {
+            const session = await chatClient.getOrLoadChatSession(
+              input.absoluteFilePath,
+            );
+            if (session.messages.length > 0) {
+              throw new Error(
+                "Model ID can only be set on the first message of a chat session",
+              );
+            }
+
+            // Update the session's modelId for the first message
+            await chatClient.updateChat(input.absoluteFilePath, {
+              modelId: input.modelId,
+            });
+          } catch (error) {
+            // Session might not exist as AI session, which is fine for external
+          }
+        }
+
+        // External terminal processing
+        const result = await chatClient.sendMessageToExternal(
+          input.absoluteFilePath,
+          input.chatSessionId,
+          input.message,
+        );
+        return {
+          turnResult: {
+            sessionStatus: result.turnResult.sessionStatus,
+            currentTurn: result.turnResult.currentTurn,
+          },
+          updatedChatSession: result.updatedExternalSession.toJSON(),
         };
       },
     ),
