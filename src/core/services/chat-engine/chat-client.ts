@@ -18,10 +18,7 @@ import type {
 } from "./chat-session-repository.js";
 import type { ModelRegistry } from "./types.js";
 import { ExternalChatSession } from "./external-chat-session.js";
-import type { 
-  ExternalChatSessionData,
-  ExternalTurnResult 
-} from "./external-chat-session.js";
+import type { ExternalTurnResult } from "./external-chat-session.js";
 
 
 // const DEFAULT_MODEL_ID = "anthropic:claude-3-sonnet"; // Format: `providerId:modelId`
@@ -32,6 +29,7 @@ export interface CreateChatSessionConfig {
   knowledge?: string[];
   prompt?: string;
   newTask?: boolean;
+  modelId?: `${string}/${string}`;
 }
 
 export class ChatClient<TOOLS extends ToolSet> {
@@ -60,6 +58,10 @@ export class ChatClient<TOOLS extends ToolSet> {
     updatedChatSession: ChatSession<TOOLS>;
   }> {
     const session = await this.getOrLoadChatSession(absoluteFilePath);
+    
+    if (session instanceof ExternalChatSession) {
+      throw new Error("Cannot send AI messages to external chat sessions");
+    }
 
     if (session.id !== chatSessionId) {
       throw new Error(
@@ -112,6 +114,10 @@ export class ChatClient<TOOLS extends ToolSet> {
     chatSessionId: string,
   ): Promise<TurnResult<TOOLS>> {
     const session = await this.getOrLoadChatSession(absoluteFilePath);
+    
+    if (session instanceof ExternalChatSession) {
+      throw new Error("Cannot rerun external chat sessions");
+    }
 
     if (session.id !== chatSessionId) {
       throw new Error(
@@ -164,6 +170,10 @@ export class ChatClient<TOOLS extends ToolSet> {
     updatedChatSession: ChatSession<TOOLS>;
   }> {
     const session = await this.getOrLoadChatSession(absoluteFilePath);
+    
+    if (session instanceof ExternalChatSession) {
+      throw new Error("Cannot confirm tool calls on external chat sessions");
+    }
 
     if (session.id !== chatSessionId) {
       throw new Error(
@@ -269,7 +279,13 @@ export class ChatClient<TOOLS extends ToolSet> {
     );
     chatSessionData.absoluteFilePath = filePath;
 
-    const chatSession = this.createChatSessionFromData(chatSessionData);
+    const session = this.createChatSessionFromData(chatSessionData);
+    
+    if (session instanceof ExternalChatSession) {
+      throw new Error("Expected ChatSession but got ExternalChatSession");
+    }
+    
+    const chatSession = session;
 
     // Add to session pool
     this.sessions.set(chatSession.absoluteFilePath, chatSession);
@@ -278,25 +294,104 @@ export class ChatClient<TOOLS extends ToolSet> {
     return chatSession;
   }
 
+  async createNewExternalChatSession(
+    targetDirectory: string,
+    modelId: `${string}/${string}`,
+    config?: CreateChatSessionConfig,
+  ): Promise<ExternalChatSession> {
+    // Validate project folder
+    const isInProjectFolder =
+      await this.projectFolderService.isPathInProjectFolder(targetDirectory);
+
+    if (!isInProjectFolder) {
+      throw new Error(
+        `Cannot create external chat outside of project folders. Path ${targetDirectory} is not within any registered project folder.`,
+      );
+    }
+
+    // Create task if requested
+    if (config?.newTask) {
+      const result = await this.taskService.createTask(
+        "New External Chat Task",
+        {},
+        targetDirectory,
+      );
+      targetDirectory = result.absoluteDirectoryPath;
+    }
+
+    const now = new Date();
+    const externalSessionData: ChatSessionData = {
+      _type: "external_chat",
+      id: uuidv4(),
+      absoluteFilePath: "", // Will be set by repository
+      messages: [],
+      modelId,
+      sessionStatus: "idle",
+      fileStatus: "active",
+      currentTurn: 0,
+      maxTurns: 20,
+      createdAt: now,
+      updatedAt: now,
+      metadata: {
+        mode: "external",
+        knowledge: config?.knowledge || [],
+        title: "New External Chat",
+      },
+    };
+
+    const filePath = await this.chatSessionRepository.createNewFile(
+      targetDirectory,
+      externalSessionData,
+    );
+    externalSessionData.absoluteFilePath = filePath;
+
+    const session = this.createChatSessionFromData(externalSessionData);
+    
+    if (!(session instanceof ExternalChatSession)) {
+      throw new Error("Expected ExternalChatSession but got ChatSession");
+    }
+    
+    const externalSession = session;
+
+    return externalSession;
+  }
+
   async getOrLoadChatSession(
     absoluteFilePath: string,
-  ): Promise<ChatSession<TOOLS>> {
-    // Check if already in memory
+  ): Promise<ChatSession<TOOLS> | ExternalChatSession> {
+    // Check if it's a regular session in memory
     if (this.sessions.has(absoluteFilePath)) {
       this.sessionAccessTime.set(absoluteFilePath, Date.now());
       return this.sessions.get(absoluteFilePath)!;
     }
-
-    // Check session pool size and evict if necessary
-    if (this.sessions.size >= this.maxSessions) {
-      await this.evictLeastRecentlyUsedSession();
+    
+    // Check if it's an external session in memory
+    if (this.externalSessions.has(absoluteFilePath)) {
+      this.sessionAccessTime.set(absoluteFilePath, Date.now());
+      return this.externalSessions.get(absoluteFilePath)!;
     }
 
-    // Load from repository
+    // Load from repository and determine type
     const chatSessionData =
       await this.chatSessionRepository.loadFromFile(absoluteFilePath);
 
-    return this.createChatSessionFromData(chatSessionData);
+    // Check session pool size and evict if necessary
+    if (chatSessionData._type === "external_chat") {
+      if (this.externalSessions.size >= this.maxSessions) {
+        await this.evictLeastRecentlyUsedExternalSession();
+      }
+    } else {
+      if (this.sessions.size >= this.maxSessions) {
+        await this.evictLeastRecentlyUsedSession();
+      }
+    }
+
+    const session = this.createChatSessionFromData(chatSessionData);
+    
+    // Session is already added to appropriate pool by createChatSessionFromData
+    this.sessionAccessTime.set(absoluteFilePath, Date.now());
+    
+    return session;
   }
 
   async updateChat(
@@ -316,6 +411,8 @@ export class ChatClient<TOOLS extends ToolSet> {
     }
 
     session.updatedAt = new Date();
+    
+    // Persist the session
     await this.persistSession(session);
   }
 
@@ -340,37 +437,47 @@ export class ChatClient<TOOLS extends ToolSet> {
     turnResult: ExternalTurnResult;
     updatedExternalSession: ExternalChatSession;
   }> {
-    let session: ExternalChatSession;
+    let externalSession: ExternalChatSession;
 
     // Check if we need to convert from AI session
     if (this.sessions.has(absoluteFilePath)) {
-      session = await this.convertToExternalSession(absoluteFilePath);
+      externalSession = await this.convertToExternalSession(absoluteFilePath);
     } else {
-      session = await this.getOrLoadExternalChatSession(absoluteFilePath);
+      const loadedSession = await this.getOrLoadChatSession(absoluteFilePath);
+      if (!(loadedSession instanceof ExternalChatSession)) {
+        throw new Error("Expected ExternalChatSession but got ChatSession");
+      }
+      externalSession = loadedSession;
     }
 
-    if (session.id !== chatSessionId) {
+    if (externalSession.id !== chatSessionId) {
       throw new Error(
-        `Session ID mismatch: expected ${session.id}, got ${chatSessionId}`,
+        `Session ID mismatch: expected ${externalSession.id}, got ${chatSessionId}`,
       );
     }
 
-    const result = await session.sendToExternal(input);
-    await this.persistExternalSession(session);
+    const result = await externalSession.sendToExternal(input);
+    await this.persistSession(externalSession);
 
     return {
       turnResult: result,
-      updatedExternalSession: session,
+      updatedExternalSession: externalSession,
     };
   }
 
   async convertToExternalSession(
     absoluteFilePath: string,
   ): Promise<ExternalChatSession> {
-    const aiSession = await this.getOrLoadChatSession(absoluteFilePath);
+    const loadedSession = await this.getOrLoadChatSession(absoluteFilePath);
+    
+    if (loadedSession instanceof ExternalChatSession) {
+      return loadedSession; // Already an external session
+    }
+    
+    const aiSession = loadedSession;
 
     // Create external session data from AI session
-    const externalSessionData: ExternalChatSessionData = {
+    const externalSessionData: ChatSessionData = {
       _type: "external_chat",
       id: aiSession.id,
       absoluteFilePath: aiSession.absoluteFilePath,
@@ -389,49 +496,44 @@ export class ChatClient<TOOLS extends ToolSet> {
     };
 
     // Create external session
-    const externalSession = this.createExternalChatSessionFromData(externalSessionData);
+    const session = this.createChatSessionFromData(externalSessionData);
+    
+    if (!(session instanceof ExternalChatSession)) {
+      throw new Error("Expected ExternalChatSession but got ChatSession");
+    }
+    
+    const externalSession = session;
 
     // Remove from AI session pool and cleanup
-    const session = this.sessions.get(absoluteFilePath);
-    if (session) {
-      await session.cleanup();
+    const aiSessionInstance = this.sessions.get(absoluteFilePath);
+    if (aiSessionInstance) {
+      await aiSessionInstance.cleanup();
     }
     this.sessions.delete(absoluteFilePath);
 
     // Persist as external session
-    await this.persistExternalSession(externalSession);
+    await this.persistSession(externalSession);
 
     return externalSession;
   }
 
-  async getOrLoadExternalChatSession(
-    absoluteFilePath: string,
-  ): Promise<ExternalChatSession> {
-    // Check if already in memory
-    if (this.externalSessions.has(absoluteFilePath)) {
-      this.sessionAccessTime.set(absoluteFilePath, Date.now());
-      return this.externalSessions.get(absoluteFilePath)!;
-    }
-
-    // Check session pool size and evict if necessary
-    if (this.externalSessions.size >= this.maxSessions) {
-      await this.evictLeastRecentlyUsedExternalSession();
-    }
-
-    // Load from repository
-    const externalSessionData = await this.chatSessionRepository.loadFromFile(
-      absoluteFilePath,
-    ) as ExternalChatSessionData;
-
-    return this.createExternalChatSessionFromData(externalSessionData);
-  }
 
   async getAvailableModels(): Promise<ModelRegistry[]> {
     // Get available models from ai provider utils
     throw new Error("Method not implemented.");
   }
 
-  private createChatSessionFromData(data: ChatSessionData): ChatSession<TOOLS> {
+  private createChatSessionFromData(data: ChatSessionData): ChatSession<TOOLS> | ExternalChatSession {
+    if (data._type === "external_chat") {
+      const externalSession = new ExternalChatSession(data, this.eventBus);
+      
+      // Add to session pool
+      this.externalSessions.set(externalSession.absoluteFilePath, externalSession);
+      this.sessionAccessTime.set(externalSession.absoluteFilePath, Date.now());
+      
+      return externalSession;
+    }
+    
     const chatSession = new ChatSession<TOOLS>(
       data,
       this.toolRegistry,
@@ -464,17 +566,6 @@ export class ChatClient<TOOLS extends ToolSet> {
     }
   }
 
-  private createExternalChatSessionFromData(
-    data: ExternalChatSessionData,
-  ): ExternalChatSession {
-    const externalSession = new ExternalChatSession(data, this.eventBus);
-
-    // Add to session pool
-    this.externalSessions.set(externalSession.absoluteFilePath, externalSession);
-    this.sessionAccessTime.set(externalSession.absoluteFilePath, Date.now());
-
-    return externalSession;
-  }
 
   private async evictLeastRecentlyUsedExternalSession(): Promise<void> {
     let oldestTime = Date.now();
@@ -490,7 +581,7 @@ export class ChatClient<TOOLS extends ToolSet> {
     if (sessionToEvict) {
       const session = this.externalSessions.get(sessionToEvict);
       if (session) {
-        await this.persistExternalSession(session);
+        await this.persistSession(session);
         await session.cleanup();
       }
       this.externalSessions.delete(sessionToEvict);
@@ -498,21 +589,11 @@ export class ChatClient<TOOLS extends ToolSet> {
     }
   }
 
-  private async persistSession(session: ChatSession<TOOLS>): Promise<void> {
-    const chatData = session.toJSON();
+  private async persistSession(session: ChatSession<TOOLS> | ExternalChatSession): Promise<void> {
+    const sessionData = session.toJSON();
     await this.chatSessionRepository.saveToFile(
-      chatData.absoluteFilePath,
-      chatData,
-    );
-  }
-
-  private async persistExternalSession(
-    session: ExternalChatSession,
-  ): Promise<void> {
-    const externalData = session.toJSON();
-    await this.chatSessionRepository.saveToFile(
-      externalData.absoluteFilePath,
-      externalData,
+      sessionData.absoluteFilePath,
+      sessionData,
     );
   }
 }

@@ -1,6 +1,7 @@
 // src/core/utils/file-utils.ts
 import fs from "node:fs/promises";
 import path from "node:path";
+import { ILogObj, Logger } from "tslog";
 
 export interface FileContent {
   content: string;
@@ -8,6 +9,8 @@ export interface FileContent {
   absoluteFilePath: string;
   isBase64?: boolean;
 }
+
+const logger: Logger<ILogObj> = new Logger({ name: "FileUtils" });
 
 /**
  * Creates a directory if it doesn't exist
@@ -22,9 +25,9 @@ export async function createDirectory(dirPath: string): Promise<string> {
  */
 export async function writeJsonFile<T>(
   filePath: string,
-  data: T
+  data: T,
 ): Promise<void> {
-  console.debug(`Writing to file: ${filePath}`);
+  // console.debug(`Writing to file: ${filePath}`);
 
   // Ensure directory exists before writing
   const dirPath = path.dirname(filePath);
@@ -38,13 +41,13 @@ export async function writeJsonFile<T>(
   await fs.writeFile(tempFilePath, content, "utf8");
 
   // Log debug information about other files in the directory
-  try {
-    const dirPath = path.dirname(filePath);
-    const files = await fs.readdir(dirPath);
-    console.debug(`Files in ${dirPath}:`, files);
-  } catch (err) {
-    console.debug(`Unable to list directory ${path.dirname(filePath)}: ${err}`);
-  }
+  // try {
+  //   const dirPath = path.dirname(filePath);
+  //   const files = await fs.readdir(dirPath);
+  //   console.debug(`Files in ${dirPath}:`, files);
+  // } catch (err) {
+  //   console.debug(`Unable to list directory ${path.dirname(filePath)}: ${err}`);
+  // }
 
   // Atomically rename the temporary file to the target file
   await fs.rename(tempFilePath, filePath);
@@ -74,7 +77,7 @@ export async function fileExists(filePath: string): Promise<boolean> {
  * Lists contents of a directory
  */
 export async function listDirectory(
-  dirPath: string
+  dirPath: string,
 ): Promise<{ name: string; isDirectory: boolean }[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   return entries.map((entry) => ({
@@ -83,9 +86,7 @@ export async function listDirectory(
   }));
 }
 
-export async function openFile(
-  absoluteFilePath: string
-): Promise<FileContent> {
+export async function openFile(absoluteFilePath: string): Promise<FileContent> {
   // Skip chat files as they are handled by ChatService
   if (absoluteFilePath.endsWith(".chat.json")) {
     throw new Error("Chat files should be opened using the Chat service");

@@ -12,48 +12,31 @@ import { isTerminalModel } from "../../utils/model-utils.js";
 import type {
   ChatMessage,
   ChatSessionData,
-  ChatSessionStatus,
-  ChatMetadata,
 } from "./chat-session-repository.js";
 
-export interface ExternalChatSessionData {
-  _type: "external_chat";
-  id: string;
-  absoluteFilePath: string;
-  messages: ChatMessage[];
-  modelId: `${string}/${string}`;
-  sessionStatus: ChatSessionStatus;
-  fileStatus: "active" | "archived";
-  currentTurn: number;
-  maxTurns: number;
-  createdAt: Date;
-  updatedAt: Date;
-  metadata?: ChatMetadata;
-}
-
 export interface ExternalTurnResult {
-  sessionStatus: ExternalChatSessionData["sessionStatus"];
+  sessionStatus: ChatSessionData["sessionStatus"];
   currentTurn: number;
   externalProcessPid?: number;
 }
 
 export class ExternalChatSession {
-  id: ExternalChatSessionData["id"];
-  absoluteFilePath: ExternalChatSessionData["absoluteFilePath"];
-  messages: ExternalChatSessionData["messages"] = [];
-  modelId: ExternalChatSessionData["modelId"];
-  sessionStatus: ExternalChatSessionData["sessionStatus"] = "idle";
-  fileStatus: ExternalChatSessionData["fileStatus"] = "active";
-  currentTurn: ExternalChatSessionData["currentTurn"] = 0;
-  maxTurns: ExternalChatSessionData["maxTurns"] = 20;
-  createdAt: ExternalChatSessionData["createdAt"];
-  updatedAt: ExternalChatSessionData["updatedAt"];
-  metadata?: ExternalChatSessionData["metadata"];
+  id: ChatSessionData["id"];
+  absoluteFilePath: ChatSessionData["absoluteFilePath"];
+  messages: ChatSessionData["messages"] = [];
+  modelId: ChatSessionData["modelId"];
+  sessionStatus: ChatSessionData["sessionStatus"] = "idle";
+  fileStatus: ChatSessionData["fileStatus"] = "active";
+  currentTurn: ChatSessionData["currentTurn"] = 0;
+  maxTurns: ChatSessionData["maxTurns"] = 20;
+  createdAt: ChatSessionData["createdAt"];
+  updatedAt: ChatSessionData["updatedAt"];
+  metadata?: ChatSessionData["metadata"];
 
   private logger: Logger<ILogObj> = new Logger({ name: "ExternalChatSession" });
 
   constructor(
-    data: ExternalChatSessionData,
+    data: ChatSessionData,
     private readonly eventBus: IEventBus,
   ) {
     this.id = data.id;
@@ -179,7 +162,7 @@ export class ExternalChatSession {
     }
   }
 
-  toJSON(): ExternalChatSessionData {
+  toJSON(): ChatSessionData {
     return {
       _type: "external_chat",
       id: this.id,

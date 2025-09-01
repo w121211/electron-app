@@ -30,8 +30,10 @@ export interface ChatMetadata {
   mode?: ChatMode;
   knowledge?: string[];
   promptDraft?: string;
+
+  // External chat session properties
   externalProcessPid?: number;
-  workingDirectory?: string;
+  externalWorkingDirectory?: string;
 }
 
 export interface ChatMessageMetadata {
@@ -72,9 +74,11 @@ const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   title: z.string().optional(),
   summary: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  mode: z.enum(["chat", "agent"]).optional(),
+  mode: z.enum(["chat", "agent", "external"]).optional(),
   knowledge: z.array(z.string()).optional(),
   promptDraft: z.string().optional(),
+  externalProcessPid: z.number().optional(),
+  workingDirectory: z.string().optional(),
 });
 
 const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> = z.object({
@@ -98,7 +102,7 @@ const ChatMessageSchema: z.ZodType<ChatMessage> = z.object({
 });
 
 export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
-  _type: z.literal("chat"),
+  _type: z.enum(["chat", "external_chat"]),
   id: z.string(),
   absoluteFilePath: z.string(),
   messages: z.array(ChatMessageSchema),

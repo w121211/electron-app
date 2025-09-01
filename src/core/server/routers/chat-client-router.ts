@@ -12,6 +12,7 @@ import type { ToolRegistry } from "../../services/tool-call/tool-registry.js";
 import type { ChatSessionRepository } from "../../services/chat-engine/chat-session-repository.js";
 import { TurnResult } from "../../services/chat-engine/chat-session.js";
 import { router, publicProcedure } from "../trpc-init.js";
+import { isTerminalModel } from "../../utils/model-utils.js";
 
 const createChatSessionConfigSchema: z.ZodType<CreateChatSessionConfig> =
   z.object({
@@ -19,6 +20,14 @@ const createChatSessionConfigSchema: z.ZodType<CreateChatSessionConfig> =
     knowledge: z.array(z.string()).optional(),
     prompt: z.string().optional(),
     newTask: z.boolean().optional(),
+    modelId: z
+      .custom<`${string}/${string}`>(
+        (val) => {
+          return typeof val === "string" && /^.+\/.+$/.test(val);
+        },
+        { message: "Model ID must be in format 'provider/model'" },
+      )
+      .optional(),
   });
 
 const sendMessageSchema = z.object({
@@ -64,11 +73,24 @@ export function createChatClientRouter(
         }),
       )
       .mutation(async ({ input }): Promise<ChatSessionData> => {
-        const result = await chatClient.createChatSession(
-          input.targetDirectory,
-          input.config,
-        );
-        return result.toJSON();
+        const modelId = input.config?.modelId;
+        
+        if (modelId && isTerminalModel(modelId)) {
+          // Create external chat session for terminal models
+          const result = await chatClient.createNewExternalChatSession(
+            input.targetDirectory,
+            modelId,
+            input.config,
+          );
+          return result.toJSON();
+        } else {
+          // Create regular chat session
+          const result = await chatClient.createChatSession(
+            input.targetDirectory,
+            input.config,
+          );
+          return result.toJSON();
+        }
       }),
 
     sendMessage: publicProcedure.input(sendMessageSchema).mutation(
