@@ -1,5 +1,4 @@
 // src/core/services/terminal-launcher.ts
-import { shell } from "electron";
 import { spawn } from "child_process";
 import { Logger, type ILogObj } from "tslog";
 
@@ -19,9 +18,96 @@ export interface LaunchTerminalResult {
   error?: string;
 }
 
+export type MacOSTerminal = "iterm" | "terminal";
+
 export interface TerminalLaunchConfig {
   modelId: string;
   workingDirectory: string;
+  macOSTerminal?: MacOSTerminal;
+}
+
+function launchMacOSTerminal(
+  terminal: MacOSTerminal,
+  fullCommand: string,
+  cwd: string,
+): LaunchTerminalResult {
+  try {
+    let script: string;
+    let appName: string;
+
+    if (terminal === "iterm") {
+      appName = "iTerm";
+      // Smart window management: create window only if none exist, otherwise use current
+      script = `
+-- Check the state of the application *before* we do anything.
+if application "iTerm" is running then
+    -- It's already running, so our goal is to create a new, separate window.
+    tell application "iTerm"
+        set new_window to (create window with default profile)
+        tell new_window
+            tell current session
+                write text "cd '${cwd}' && ${fullCommand}\r"
+            end tell
+        end tell
+    end tell
+else
+    -- It's not running. We'll let 'activate' launch it and create the
+    -- initial window for us, which we will then use.
+    tell application "iTerm"
+        activate
+        delay 1
+        
+        -- This is a guard for a rare preference setting. If iTerm launches
+        -- but creates no window, we must make one ourselves.
+        if (count of windows) is 0 then
+            create window with default profile
+        end if
+
+        -- Now we can safely target the frontmost window.
+        tell current window
+            tell current session
+                write text "cd '${cwd}' && ${fullCommand}\r"
+            end tell
+        end tell
+    end tell
+end if
+`;
+    } else {
+      appName = "Terminal";
+      script = `tell application "Terminal"
+        do script "cd '${cwd}' && ${fullCommand}"
+        activate
+      end tell`;
+    }
+
+    const child = spawn("osascript", ["-e", script], {
+      detached: true,
+      stdio: "ignore",
+    });
+
+    child.on("error", (error) => {
+      logger.error(`Failed to launch ${appName}:`, error);
+    });
+
+    child.on("spawn", () => {
+      logger.info(
+        `Successfully launched ${appName} and executed: ${fullCommand}`,
+      );
+    });
+
+    child.unref();
+
+    return {
+      success: true,
+      pid: child.pid,
+    };
+  } catch (error) {
+    logger.error(`Error launching ${terminal}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }
 
 export function launchTerminalFromConfig(
@@ -38,13 +124,19 @@ export function launchTerminalFromConfig(
 
   const { command: actualCommand, args } = commandConfig;
 
-  return launchTerminal(actualCommand, [...args], config.workingDirectory);
+  return launchTerminal(
+    actualCommand,
+    [...args],
+    config.workingDirectory,
+    config.macOSTerminal,
+  );
 }
 
 export function launchTerminal(
   command: string,
   args: string[] = [],
   cwd: string = process.cwd(),
+  macOSTerminal: MacOSTerminal = "iterm",
 ): LaunchTerminalResult {
   try {
     logger.info(`Launching terminal command: ${command} ${args.join(" ")}`);
@@ -54,30 +146,7 @@ export function launchTerminal(
       args.length > 0 ? `${command} ${args.join(" ")}` : command;
 
     if (platform === "darwin") {
-      // macOS: Use AppleScript to open Terminal.app and run the command
-      const child = spawn(
-        "osascript",
-        [
-          "-e",
-          `tell application "Terminal" to do script "cd '${cwd}' && ${fullCommand}"`,
-          "-e",
-          `tell application "Terminal" to activate`,
-        ],
-        {
-          detached: true,
-          stdio: "ignore",
-        },
-      );
-
-      child.on("error", (error) => {
-        logger.error(`Failed to launch Terminal.app:`, error);
-      });
-
-      child.on("spawn", () => {
-        logger.info(
-          `Successfully launched Terminal.app and executed: ${fullCommand}`,
-        );
-      });
+      return launchMacOSTerminal(macOSTerminal, fullCommand, cwd);
 
       child.unref();
 
