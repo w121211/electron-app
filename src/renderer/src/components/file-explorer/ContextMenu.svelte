@@ -86,6 +86,18 @@
       <span>Copy reference</span>
     </button>
 
+    <!-- Open in OS File Viewer -->
+    <button
+      class="text-foreground hover:bg-hover flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm"
+      onclick={(e) => {
+        e.stopPropagation();
+        handleAction("show-in-folder");
+      }}
+      tabindex="0"
+    >
+      <span>Show in {navigator.userAgent.includes('Mac') ? 'Finder' : 'File Explorer'}</span>
+    </button>
+
     <!-- Separator -->
     <div class="bg-border mx-2 my-1 h-px"></div>
 

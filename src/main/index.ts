@@ -89,6 +89,10 @@ app.whenReady().then(async () => {
     return result.canceled ? null : result.filePaths[0];
   });
 
+  ipcMain.handle("show-in-folder", async (_, filePath: string) => {
+    return shell.showItemInFolder(filePath);
+  });
+
   ipcMain.on("ping", () => console.log("pong"));
 
   createWindow();

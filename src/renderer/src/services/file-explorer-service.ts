@@ -71,6 +71,11 @@ export class FileExplorerService {
           startInlineFolderCreation(path);
           break;
 
+        case "show-in-folder":
+          closeContextMenu();
+          await this.showInFolder(path);
+          break;
+
         default:
           this.logger.warn("Unknown file action:", action);
       }
@@ -100,6 +105,21 @@ export class FileExplorerService {
       this.logger.error("Inline folder creation failed:", error);
       // Don't close inline creation on error - let user try again or cancel
       return { success: false, error };
+    }
+  }
+
+  async showInFolder(filePath: string) {
+    try {
+      if (typeof window !== "undefined" && (window as any).api?.showInFolder) {
+        await (window as any).api.showInFolder(filePath);
+        this.logger.info("Opened file in OS file manager:", filePath);
+      } else {
+        showToast("OS file manager not available", "error");
+        this.logger.error("showInFolder API not available");
+      }
+    } catch (error) {
+      this.logger.error("Failed to show file in folder:", error);
+      showToast("Failed to open file in OS file manager", "error");
     }
   }
 }
