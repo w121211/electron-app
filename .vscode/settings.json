@@ -11,6 +11,9 @@
   "[svelte]": {
     "editor.defaultFormatter": "svelte.svelte-vscode"
   },
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
   "svelte.enable-ts-plugin": true,
   "eslint.validate": [
     "javascript",
@@ -18,5 +21,6 @@
     "svelte"
   ],
   "editor.formatOnSave": true,
-  "kiroAgent.configureMCP": "Disabled"
+  "kiroAgent.configureMCP": "Disabled",
+  "html.format.enable": true
 }
