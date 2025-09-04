@@ -3,6 +3,7 @@
   import { Logger } from "tslog";
   import { projectService } from "../services/project-service.js";
   import { taskService } from "../services/task-service.js";
+  import { uiState } from "../stores/ui-store.svelte.js";
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
   import ChatPanel from "./ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
@@ -42,7 +43,9 @@
       <ChatPanel />
 
       <!-- Right Panel -->
-      <RightPanel />
+      {#if uiState.rightPanelOpen}
+        <RightPanel />
+      {/if}
     </main>
   </div>
 </div>

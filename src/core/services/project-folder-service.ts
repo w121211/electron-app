@@ -492,34 +492,77 @@ export class ProjectFolderService {
       };
     }
 
-    // It's a directory, process its children
-    const dirEntries = await fs.readdir(targetPath, { withFileTypes: true });
-    const children: FolderTreeNode[] = [];
+    // Use ignore-walk to get files that are not gitignored
+    const allowedFiles = await walk({
+      path: targetPath,
+      ignoreFiles: [".gitignore"],
+      includeEmpty: false,
+      follow: false,
+    });
 
-    for (const dirent of dirEntries) {
-      const fullPath = path.join(targetPath, dirent.name);
-      try {
-        // Recursively build the tree for the child path
-        const childNode = await this.buildFolderTree(
-          projectFolderPath,
-          fullPath,
-        );
-        children.push(childNode);
-      } catch (error) {
-        // Log and skip entries that can't be accessed
-        this.logger.debug(
-          `Skipping inaccessible path: ${fullPath}. Error: ${error}`,
-        );
+    // Build tree structure from allowed files
+    return this.buildTreeFromFiles(targetPath, allowedFiles);
+  }
+
+  private buildTreeFromFiles(
+    targetPath: string,
+    allowedFiles: string[],
+  ): FolderTreeNode {
+    const baseName = path.basename(targetPath);
+
+    // Create a map to store directory nodes
+    const nodeMap = new Map<string, FolderTreeNode>();
+
+    // Create root node
+    const rootNode: FolderTreeNode = {
+      name: baseName,
+      path: targetPath,
+      isDirectory: true,
+      children: [],
+    };
+    nodeMap.set("", rootNode);
+
+    // Process each allowed file
+    for (const relativePath of allowedFiles) {
+      const parts = relativePath.split(path.sep);
+
+      // Create all intermediate directories
+      let currentPath = "";
+      for (let i = 0; i < parts.length - 1; i++) {
+        const parentPath = currentPath;
+        currentPath = currentPath ? path.join(currentPath, parts[i]) : parts[i];
+
+        if (!nodeMap.has(currentPath)) {
+          const dirNode: FolderTreeNode = {
+            name: parts[i],
+            path: path.join(targetPath, currentPath),
+            isDirectory: true,
+            children: [],
+          };
+          nodeMap.set(currentPath, dirNode);
+
+          // Add to parent
+          const parentNode = nodeMap.get(parentPath)!;
+          parentNode.children!.push(dirNode);
+        }
       }
+
+      // Create file node
+      const fileName = parts[parts.length - 1];
+      const fileNode: FolderTreeNode = {
+        name: fileName,
+        path: path.join(targetPath, relativePath),
+        isDirectory: false,
+      };
+
+      // Add file to its parent directory
+      const parentPath =
+        parts.length > 1 ? parts.slice(0, -1).join(path.sep) : "";
+      const parentNode = nodeMap.get(parentPath)!;
+      parentNode.children!.push(fileNode);
     }
 
-    // Return directory node
-    return {
-      name: baseName,
-      path: targetPath, // Use absolute path
-      isDirectory: true,
-      children,
-    };
+    return rootNode;
   }
 
   private flattenTreeToFiles(

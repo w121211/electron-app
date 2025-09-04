@@ -17,6 +17,7 @@ interface UiState {
     string,
     "idle" | "connecting" | "connected" | "error"
   >;
+  rightPanelOpen: boolean;
 }
 
 // Unified state object
@@ -30,6 +31,7 @@ export const uiState = $state<UiState>({
     taskEvents: "idle",
     projectFolderEvents: "idle",
   },
+  rightPanelOpen: false,
 });
 
 // Loading state functions

@@ -1,11 +1,6 @@
 <!-- src/renderer/src/components-new-ui/RightPanel.svelte -->
 <script lang="ts">
-  import {
-    Pencil,
-    Download,
-    XLg,
-    FileEarmark,
-  } from "svelte-bootstrap-icons";
+  import { Pencil, Download, XLg, FileEarmark } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { showToast, uiState } from "../stores/ui-store.svelte.js";
   import { treeState } from "../stores/tree-store.svelte.js";
@@ -148,21 +143,24 @@ Text is also allowed`);
           <span class="text-muted ml-2 text-xs">Preview</span>
         </div>
         <div class="flex items-center space-x-3">
-          <button 
+          <button
             onclick={handleDownload}
             class="text-muted hover:text-accent cursor-pointer"
           >
             <Download class="text-base" />
           </button>
-          <button 
-            onclick={clearPreview} 
+          <button
+            onclick={clearPreview}
             class="text-muted hover:text-accent cursor-pointer"
           >
             <XLg class="text-base" />
           </button>
         </div>
       </div>
-      <div class="scrollbar-thin flex-1 overflow-y-auto p-4" id="preview-content">
+      <div
+        class="scrollbar-thin flex-1 overflow-y-auto p-4"
+        id="preview-content"
+      >
         {#if isLoadingOpenFile}
           <div class="flex flex-1 items-center justify-center">
             <div class="text-muted">Loading file...</div>
@@ -194,7 +192,8 @@ Text is also allowed`);
                 {treeState.selectedPreviewFile?.split("/").pop()}
               </h1>
               <p class="text-foreground mb-4">
-                This is a file preview. Actual file content would be loaded here.
+                This is a file preview. Actual file content would be loaded
+                here.
               </p>
               <ul class="text-foreground list-disc pl-5">
                 <li>Dynamic content loading</li>
@@ -207,34 +206,45 @@ Text is also allowed`);
       </div>
     </div>
   {/if}
-  
+
   <!-- Chat Control Base Layer -->
   <div class="flex h-full flex-col">
     <!-- Panel Header -->
     <div class="flex h-12 items-center justify-between px-4">
-      <span class="text-muted text-xs font-semibold tracking-wide uppercase">Chat Control</span>
-      <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Close Panel">
+      <span class="text-muted text-xs font-semibold tracking-wide uppercase"
+        >Chat Control</span
+      >
+      <button
+        onclick={() => (uiState.rightPanelOpen = false)}
+        class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+        title="Close Panel"
+      >
         <XLg class="text-base" />
       </button>
     </div>
     <div class="scrollbar-thin flex-1 overflow-y-auto">
       <div class="px-3">
         <!-- Project Context Header -->
-        <div class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1" title="Project Context">
+        <div
+          class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+          title="Project Context"
+        >
           <span class="text-sm font-medium">Project Context</span>
-          <button 
+          <button
             onclick={handleEditContext}
-            class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100" 
+            class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
             title="Edit"
           >
             <Pencil class="text-xs" />
           </button>
         </div>
-        
+
         <!-- Context content -->
         <div class="px-2 pb-1">
           {#if !isEditingContext}
-            <div class="bg-input-background border-input-border text-muted min-h-[100px] rounded-md border p-3 text-sm">
+            <div
+              class="bg-input-background border-input-border text-muted min-h-[100px] rounded-md border p-3 text-sm"
+            >
               {#each renderContextContent(projectContext) as part (part.key)}
                 {#if part.type === "file"}
                   <button
@@ -258,13 +268,13 @@ Text is also allowed`);
             <div class="mt-2 flex items-center gap-2">
               <button
                 onclick={handleSaveContext}
-                class="bg-accent text-white px-3 py-1 rounded text-xs"
+                class="bg-accent rounded px-3 py-1 text-xs text-white"
               >
                 Save
               </button>
               <button
                 onclick={handleCancelEdit}
-                class="text-muted hover:text-foreground px-3 py-1 rounded text-xs"
+                class="text-muted hover:text-foreground rounded px-3 py-1 text-xs"
               >
                 Cancel
               </button>
@@ -273,30 +283,40 @@ Text is also allowed`);
         </div>
 
         <!-- Artifacts Header -->
-        <div class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1" title="Artifacts">
+        <div
+          class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+          title="Artifacts"
+        >
           <span class="text-sm font-medium">Artifacts</span>
-          <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100" title="Download All">
+          <button
+            class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+            title="Download All"
+          >
             <Download class="text-xs" />
           </button>
         </div>
-        
+
         <!-- Artifacts content -->
         <div class="px-2">
           {#each mockArtifacts as artifact (artifact.id)}
-            <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" 
-                 role="button"
-                 tabindex="0"
-                 onclick={() => handlePreviewFile(artifact.fileName)}
-                 onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handlePreviewFile(artifact.fileName)}>
+            <div
+              class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm font-[400] transition-colors"
+              role="button"
+              tabindex="0"
+              onclick={() => handlePreviewFile(artifact.fileName)}
+              onkeydown={(e) =>
+                (e.key === "Enter" || e.key === " ") &&
+                handlePreviewFile(artifact.fileName)}
+            >
               <FileEarmark class="text-muted mr-1.5 text-xs" />
               <span class="text-xs">{artifact.fileName}</span>
               <span class="text-muted ml-1 text-xs">{artifact.version}</span>
-              <button 
+              <button
                 onclick={(e) => {
                   e.stopPropagation();
                   handleDownloadArtifact(artifact.fileName);
                 }}
-                class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" 
+                class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
                 title="Download"
               >
                 <Download class="text-xs" />

@@ -43,14 +43,16 @@
 
     const pathParts = chatState.currentChat.absoluteFilePath.split("/");
     const fileName = pathParts.pop();
-    
+
     // Find the project that contains this chat file
     const chatFilePath = chatState.currentChat.absoluteFilePath;
-    const containingProject = projectState.projectFolders.find(project => 
-      chatFilePath.startsWith(project.path)
+    const containingProject = projectState.projectFolders.find((project) =>
+      chatFilePath.startsWith(project.path),
     );
-    
-    const projectName = containingProject ? containingProject.name : pathParts.slice(-2, -1)[0] || "Unknown";
+
+    const projectName = containingProject
+      ? containingProject.name
+      : pathParts.slice(-2, -1)[0] || "Unknown";
 
     return {
       parentDir: projectName,
@@ -227,23 +229,23 @@
         {/if}
       </div>
       <div class="flex items-center gap-2">
-        <button 
+        <button
           onclick={handleShare}
-          class="text-muted hover:text-accent cursor-pointer rounded p-1.5" 
+          class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
           title="Share"
         >
           <Share class="text-base" />
         </button>
-        <button 
+        <button
           onclick={handleDownload}
-          class="text-muted hover:text-accent cursor-pointer rounded p-1.5" 
+          class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
           title="Export"
         >
           <Download class="text-base" />
         </button>
-        <button 
+        <button
           onclick={handleEdit}
-          class="text-muted hover:text-accent cursor-pointer rounded p-1.5" 
+          class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
           title="Edit"
         >
           <Pencil class="text-base" />
@@ -252,11 +254,11 @@
     </header>
 
     <!-- Messages -->
-    <div 
+    <div
       bind:this={messagesContainer}
       class="scrollbar-thin bg-background flex-1 overflow-y-auto px-8 py-6"
     >
-      <div class="mx-auto max-w-3xl space-y-12">
+      <div class="mx-auto max-w-2xl space-y-12">
         {#each currentChatMessages as chatMessage (chatMessage.id)}
           <ChatMessage {chatMessage} />
         {/each}
@@ -281,17 +283,19 @@
 
     <!-- Input Area -->
     <footer class="bg-background px-6 py-3">
-      <div class="mx-auto max-w-3xl">
-        <div class="bg-input-background rounded-3xl p-2 flex items-center gap-2 border border-border relative">
-          <textarea 
+      <div class="mx-auto max-w-2xl">
+        <div
+          class="bg-input-background border-border relative flex items-center gap-2 rounded-2xl border p-2"
+        >
+          <textarea
             bind:this={messageInputElement}
             bind:value={chatState.messageInput}
             oninput={(e) => handleInputChange(e.currentTarget.value)}
             onkeypress={handleKeyPress}
             onkeydown={handleKeyPress}
-            rows="3" 
-            placeholder="How can I help?" 
-            class="bg-transparent border-none resize-none text-foreground w-full min-h-[72px] leading-6 px-2 outline-none text-[15px] placeholder-muted"
+            rows="3"
+            placeholder="How can I help?"
+            class="text-foreground placeholder-muted min-h-[72px] w-full resize-none border-none bg-transparent px-2 text-[15px] leading-6 outline-none"
             disabled={isLoadingSubmitMessage ||
               chatState.currentChat?.sessionStatus !== "idle"}
           ></textarea>
@@ -307,17 +311,27 @@
             onhover={handleSearchHover}
           />
         </div>
-        
+
         <!-- Controls under input -->
         <div class="mt-2 flex items-center justify-between px-4">
           <div class="flex items-center gap-3">
-            <button title="Attach" class="text-muted hover:text-accent cursor-pointer">
+            <button
+              title="Attach"
+              class="text-muted hover:text-accent cursor-pointer"
+            >
               <Paperclip class="text-lg" />
             </button>
             <!-- Model selector dropdown -->
             <div class="relative">
-              <button class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm" title="Select Model">
-                <span id="selected-model">{modelOptions.find(m => m.value === chatState.selectedModel)?.label || 'Claude 3.5'}</span>
+              <button
+                class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm"
+                title="Select Model"
+              >
+                <span id="selected-model"
+                  >{modelOptions.find(
+                    (m) => m.value === chatState.selectedModel,
+                  )?.label || "Claude 3.5"}</span
+                >
                 <ChevronDown class="text-xs" />
               </button>
               <!-- Dropdown content would be shown on click -->
