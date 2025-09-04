@@ -8,6 +8,9 @@
     Paperclip,
     ChevronDown,
     ChevronRight,
+    House,
+    Search,
+    LayoutSidebar,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { chatService } from "../services/chat-service.js";
@@ -16,7 +19,11 @@
     chatState,
     updateMessageInput,
   } from "../stores/chat-store.svelte.js";
-  import { uiState, showToast } from "../stores/ui-store.svelte.js";
+  import {
+    uiState,
+    showToast,
+    toggleLeftPanel,
+  } from "../stores/ui-store.svelte.js";
   import { fileSearchState } from "../stores/file-search-store.svelte.js";
   import { setPreference } from "../stores/local-preferences-store.svelte.js";
   import { projectState } from "../stores/project-store.svelte.js";
@@ -219,10 +226,36 @@
     <!-- Breadcrumb Header -->
     <header class="bg-surface flex h-12 items-center justify-between px-4">
       <div class="flex items-center gap-2">
+        <!-- Show navigation buttons when left panel is closed -->
+        {#if !uiState.leftPanelOpen}
+          <button
+            class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+            title="Home"
+          >
+            <House class="text-base" />
+          </button>
+          <button
+            class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+            title="Search"
+          >
+            <Search class="text-base" />
+          </button>
+          <button
+            onclick={toggleLeftPanel}
+            class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+            title="Toggle Sidebar"
+          >
+            <LayoutSidebar class="text-base" />
+          </button>
+        {/if}
+
         {#if currentChatBreadcrumb()}
           {@const breadcrumb = currentChatBreadcrumb()}
           {#if breadcrumb}
-            <span class="text-muted text-xs">{breadcrumb.parentDir}</span>
+            <span
+              class="text-muted text-xs {!uiState.leftPanelOpen ? 'ml-3' : ''}"
+              >{breadcrumb.parentDir}</span
+            >
             <ChevronRight class="text-muted text-xs" />
             <span class="text-muted text-xs">{breadcrumb.fileName}</span>
           {/if}

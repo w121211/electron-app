@@ -1,9 +1,18 @@
 <!-- src/renderer/src/components-new-ui/file-explorer/ExplorerPanel.svelte -->
 <script lang="ts">
-  import { House, Search, LayoutSidebar, Plus, ThreeDotsVertical, ChevronDown, ChatDots, Gear } from "svelte-bootstrap-icons";
+  import {
+    House,
+    Search,
+    LayoutSidebar,
+    Plus,
+    ThreeDotsVertical,
+    ChevronDown,
+    ChatDots,
+    Gear,
+  } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { projectState } from "../../stores/project-store.svelte.js";
-  import { uiState, showToast } from "../../stores/ui-store.svelte.js";
+  import { uiState, showToast, toggleLeftPanel } from "../../stores/ui-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
   import { chatService } from "../../services/chat-service.js";
   import { userSettingsService } from "../../services/user-settings-service.js";
@@ -131,13 +140,23 @@
   <!-- Section 1: Top Icons (Fixed) -->
   <div class="flex h-12 items-center justify-start px-4">
     <div class="flex items-center gap-2">
-      <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Home">
+      <button
+        class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+        title="Home"
+      >
         <House class="text-base" />
       </button>
-      <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Search">
+      <button
+        class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+        title="Search"
+      >
         <Search class="text-base" />
       </button>
-      <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Toggle Sidebar">
+      <button
+        onclick={toggleLeftPanel}
+        class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+        title="Toggle Sidebar"
+      >
         <LayoutSidebar class="text-base" />
       </button>
     </div>
@@ -147,17 +166,23 @@
   <div class="scrollbar-thin flex-1 overflow-y-auto">
     <div class="px-3">
       <!-- Projects Header -->
-      <div class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1" title="Projects">
+      <div
+        class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+        title="Projects"
+      >
         <span class="text-sm font-medium">Projects</span>
-        <button 
+        <button
           onclick={handleAddProjectFolder}
           disabled={isLoadingAddProjectFolder}
-          class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100 disabled:opacity-50" 
+          class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100 disabled:opacity-50"
           title="Add Project Folder"
         >
           <Plus class="text-xs" />
         </button>
-        <button class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100" title="Menu">
+        <button
+          class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100"
+          title="Menu"
+        >
           <ThreeDotsVertical class="text-xs" />
         </button>
       </div>
@@ -169,8 +194,12 @@
         {:else}
           <!-- Workspace Setup Prompt -->
           {#if fileExplorerState.workspaceSetup.needsSetup}
-            <div class="bg-accent/10 border-accent/30 mx-1 mb-2 rounded border p-3">
-              <div class="text-accent mb-2 text-sm font-medium">Setup Required</div>
+            <div
+              class="bg-accent/10 border-accent/30 mx-1 mb-2 rounded border p-3"
+            >
+              <div class="text-accent mb-2 text-sm font-medium">
+                Setup Required
+              </div>
               <div class="text-muted mb-3 text-xs">
                 Set a workspace directory to create new project folders.
               </div>
@@ -186,15 +215,19 @@
           <!-- Inline New Project Folder Creation -->
           {#if fileExplorerState.inlineNewProjectFolder.isActive}
             <div class="pb-1">
-              <div class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]">
+              <div
+                class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded py-0.5 text-sm font-[400] transition-colors"
+              >
                 <ChevronDown class="text-muted mr-2 text-xs" />
                 <input
                   bind:this={newProjectFolderInput}
                   type="text"
-                  bind:value={fileExplorerState.inlineNewProjectFolder.placeholderName}
+                  bind:value={
+                    fileExplorerState.inlineNewProjectFolder.placeholderName
+                  }
                   onkeydown={handleKeydownNewProjectFolder}
                   onblur={handleCancelNewProjectFolder}
-                  class="border-border bg-background text-foreground focus:border-accent text-xs font-medium flex-1 border-0 bg-transparent px-0 py-0 focus:outline-none"
+                  class="border-border bg-background text-foreground focus:border-accent flex-1 border-0 bg-transparent px-0 py-0 text-xs font-medium focus:outline-none"
                 />
               </div>
             </div>
@@ -217,29 +250,34 @@
               {#if tree}
                 <!-- Project Folder -->
                 <div class="pb-1">
-                  <div class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]"
-                       role="button"
-                       tabindex="0"
-                       onclick={() => handleNodeClick(tree)}
-                       onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleNodeClick(tree)}>
+                  <div
+                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded py-0.5 text-sm font-[400] transition-colors"
+                    role="button"
+                    tabindex="0"
+                    onclick={() => handleNodeClick(tree)}
+                    onkeydown={(e) =>
+                      (e.key === "Enter" || e.key === " ") &&
+                      handleNodeClick(tree)}
+                  >
                     <ChevronDown class="text-muted mr-2 text-xs" />
                     <span class="text-xs font-medium">{tree.name}</span>
-                    <button 
+                    <button
                       onclick={() => handleNewChat(tree.path)}
-                      class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" 
+                      class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
                       title="New Chat"
                     >
                       <ChatDots class="text-xs" />
                     </button>
-                    <button 
-                      onclick={(e) => handleContextMenu(tree.path, true, e, true)}
-                      class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" 
+                    <button
+                      onclick={(e) =>
+                        handleContextMenu(tree.path, true, e, true)}
+                      class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
                       title="Menu"
                     >
                       <ThreeDotsVertical class="text-xs" />
                     </button>
                   </div>
-                  
+
                   <!-- Render tree children using existing TreeNode component -->
                   <div class="ml-2">
                     <TreeNode
@@ -264,9 +302,9 @@
 
   <!-- Section 3: Bottom Settings (Fixed) -->
   <div class="flex h-12 px-4">
-    <button 
+    <button
       onclick={handleOpenSettings}
-      class="text-muted hover:text-accent hover:cursor-pointer rounded-md p-1.5" 
+      class="text-muted hover:text-accent rounded-md p-1.5 hover:cursor-pointer"
       title="Settings"
     >
       <Gear class="text-base" />

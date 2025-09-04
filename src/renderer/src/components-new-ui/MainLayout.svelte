@@ -32,10 +32,14 @@
   });
 </script>
 
-<div class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]">
+<div
+  class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]"
+>
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <ExplorerPanel />
+    {#if uiState.leftPanelOpen}
+      <ExplorerPanel />
+    {/if}
 
     <!-- Main Workspace -->
     <main class="flex min-w-0 flex-1">

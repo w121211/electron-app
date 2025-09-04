@@ -18,6 +18,7 @@ interface UiState {
     "idle" | "connecting" | "connected" | "error"
   >;
   rightPanelOpen: boolean;
+  leftPanelOpen: boolean;
 }
 
 // Unified state object
@@ -32,6 +33,7 @@ export const uiState = $state<UiState>({
     projectFolderEvents: "idle",
   },
   rightPanelOpen: false,
+  leftPanelOpen: true,
 });
 
 // Loading state functions
@@ -134,6 +136,11 @@ export function showInfoToast(message: string, duration?: number) {
 
 export function showWarningToast(message: string, duration?: number) {
   return showToast(message, "warning", duration);
+}
+
+// Panel functions
+export function toggleLeftPanel() {
+  uiState.leftPanelOpen = !uiState.leftPanelOpen;
 }
 
 // Utility functions
