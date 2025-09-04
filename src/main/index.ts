@@ -24,12 +24,27 @@ function createWindow(): void {
     },
   });
 
-  mainWindow.on("ready-to-show", () => {
+  mainWindow.on("ready-to-show", async () => {
     mainWindow.show();
 
     // Open DevTools in development
     if (is.dev) {
       mainWindow.webContents.openDevTools();
+    }
+
+    // Take screenshot when app is ready (development only)
+    if (is.dev) {
+      try {
+        // Wait a bit for the app to fully render
+        setTimeout(async () => {
+          const screenshot = await mainWindow.webContents.capturePage();
+          const screenshotPath = path.join(process.cwd(), "screenshots", `app-screenshot-${Date.now()}.png`);
+          await fs.writeFile(screenshotPath, screenshot.toPNG());
+          console.log(`Screenshot saved to: ${screenshotPath}`);
+        }, 2000); // 2 second delay to ensure full render
+      } catch (error) {
+        console.error("Failed to take screenshot:", error);
+      }
     }
   });
 

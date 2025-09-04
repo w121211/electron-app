@@ -10,6 +10,7 @@
   // import DevPanel from "./components/shared/DevPanel.svelte";
   // import Versions from "./components/Versions.svelte";
   import { eventService } from "./services/event-service.js";
+  import { projectService } from "./services/project-service.js";
   // import { keyboardManager } from "./lib/keyboard";
   // import { DevelopmentTools } from "./lib/development";
 
@@ -30,6 +31,13 @@
     // Setup keyboard shortcuts
     // keyboardManager.enable();
 
+    // Open specified tree node on app initialization (development only)
+    setTimeout(async () => {
+      await projectService.selectFile(
+        "/Users/cw/Documents/GitHub/my-todos/chat1.chat.json",
+      );
+    }, 1000); // 1 second delay to ensure full app initialization
+
     // Cleanup on destroy
     return () => {
       logger.info("App unmounting, cleaning up...");
@@ -40,7 +48,6 @@
 
   function handleError(error: Error, errorInfo: any) {
     logger.error("Application error:", error, errorInfo);
-
     // Send error to monitoring service in production
     // if (import.meta.env.PROD) {
     //   sendErrorToMonitoring(error, errorInfo)
