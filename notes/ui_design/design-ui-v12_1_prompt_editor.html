@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Chat App UI - Static Edit Mode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Tailwind CSS v4 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- Bootstrap Icons CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+  <style type="text/tailwindcss">
+    /* @theme is a Tailwind CSS v4 feature */
+    @theme {
+        --color-background: #131314;
+        --color-surface: #131314;
+        --color-panel: #1c1c1e;
+        --color-border: #2a2a2a;
+        --color-foreground: #e4e4e6;
+        --color-muted: #8e8e93;
+        --color-accent: #60a5fa;
+        --color-hover: #2c2c2e;
+        --color-selected: #28282a;
+        --color-input-background: #1d1d1f;
+        --color-input-border: #333333;
+
+        --font-family-sans: "Inter", "Segoe UI", "Arial", sans-serif;
+      }
+
+      /* Minimal custom CSS - only what Tailwind can't handle */
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #2c2c2e;
+        border-radius: 3px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+      }
+    </style>
+</head>
+
+<body class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="bg-surface border-border flex w-64 flex-col border-r">
+      <!-- Section 1: Top Icons (Fixed) -->
+      <div class="flex h-12 items-center justify-start px-4">
+        <div class="flex items-center gap-2">
+          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Home">
+            <i class="bi bi-house"></i>
+          </button>
+          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Search">
+            <i class="bi bi-search"></i>
+          </button>
+          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Toggle Sidebar">
+            <i class="bi bi-layout-sidebar-inset"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 2: Scrollable Content -->
+      <div class="scrollbar-thin flex-1 overflow-y-auto">
+        <div class="px-3">
+          <!-- Projects Header -->
+          <div
+            class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+            title="Projects">
+            <span class="text-sm font-medium">Projects</span>
+            <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+              title="Add Project Folder">
+              <i class="bi bi-plus"></i>
+            </button>
+            <button class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100" title="Menu">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+          </div>
+
+          <!-- Project Trees -->
+          <div class="px-2">
+            <!-- Project Folder 1 -->
+            <div class="pb-1">
+              <div
+                class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]">
+                <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
+                <span class="text-xs font-medium">my-ai-project</span>
+                <button
+                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                  title="New Chat">
+                  <i class="bi bi-chat-dots text-xs"></i>
+                </button>
+                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                  title="Menu">
+                  <i class="bi bi-three-dots-vertical text-xs"></i>
+                </button>
+              </div>
+              <div class="ml-2">
+                <div
+                  class="bg-selected hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
+                  <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
+                  <span class="max-w-[120px] truncate text-xs">design-discussion.chat.json</span>
+                  <span
+                    class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">running</span>
+                  <button
+                    class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Stop Chat">
+                    <i class="bi bi-stop-fill text-xs"></i>
+                  </button>
+                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu">
+                    <i class="bi bi-three-dots-vertical text-xs"></i>
+                  </button>
+                </div>
+                <div
+                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
+                  <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
+                  <span class="max-w-[120px] truncate text-xs">README.md</span>
+                  <i class="bi bi-file-earmark-check text-muted ml-1 text-[10px]" title="In Project Context"></i>
+                  <button
+                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu">
+                    <i class="bi bi-three-dots-vertical text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Bottom Settings (Fixed) -->
+      <div class="flex h-12 px-4">
+        <button class="text-muted hover:text-accent hover:cursor-pointer rounded-md p-1.5" title="Settings">
+          <i class="bi bi-gear"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex min-w-0 flex-1 justify-center">
+      <!-- Chat Conversation Panel -->
+      <section class="flex min-w-0 flex-1 flex-col relative max-w-4xl">
+
+        <!-- Prompt Edit Mode Panel (Visible) -->
+        <div id="edit-mode-panel" class="bg-background absolute inset-0 z-30 flex flex-col">
+          <!-- Breadcrumb -->
+          <div class="flex h-10 flex-shrink-0 items-center px-4">
+            <div class="flex items-center gap-2">
+              <span class="text-muted text-xs">my-ai-project</span>
+              <i class="bi bi-chevron-right text-muted text-xs"></i>
+              <span class="text-muted text-xs">design-discussion.chat.json</span>
+            </div>
+          </div>
+          <!-- Header -->
+          <header class="bg-surface flex h-12 flex-shrink-0 items-center justify-between px-4">
+            <!-- Left Controls -->
+            <div class="flex items-center gap-3">
+              <button title="Attach" class="text-muted hover:text-accent cursor-pointer">
+                <i class="bi bi-paperclip"></i>
+              </button>
+              <!-- Model selector dropdown -->
+              <div class="relative">
+                <button class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm"
+                  title="Select Model">
+                  <span id="selected-model">Claude 3.5</span>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border">
+                  <div class="py-1">
+                    <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Claude
+                      3.5</a>
+                    <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">GPT-4</a>
+                    <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Gemini
+                      Pro</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Right Controls -->
+            <div class="flex items-center gap-2">
+              <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Close Prompt Editor">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          </header>
+          <!-- Textarea -->
+          <div class="flex-1 p-2 flex flex-col">
+            <textarea id="edit-textarea" placeholder="Prompt editor, use '/' for commands, or @path/to/file"
+              class="bg-transparent border-none scrollbar-thin h-full w-full resize-none p-4 text-[15px] leading-6 outline-none flex-1 placeholder-muted placeholder:text-sm">I want a chat UI that feels modern and professional, like VS Code but for conversations.</textarea>
+          </div>
+        </div>
+
+        <!-- Main Chat View (Hidden) -->
+        <div id="chat-view" class="flex flex-col h-full hidden">
+          <!-- ... hidden chat view content ... -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+</body>
+
+</html>

@@ -12,7 +12,11 @@
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { projectState } from "../../stores/project-store.svelte.js";
-  import { uiState, showToast, toggleLeftPanel } from "../../stores/ui-store.svelte.js";
+  import {
+    uiState,
+    showToast,
+    toggleLeftPanel,
+  } from "../../stores/ui-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
   import { chatService } from "../../services/chat-service.js";
   import { userSettingsService } from "../../services/user-settings-service.js";

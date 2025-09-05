@@ -8,6 +8,7 @@ import {
   clearCurrentChat,
   clearMessageInput,
 } from "../stores/chat-store.svelte.js";
+import { uiState } from "../stores/ui-store.svelte.js";
 import { projectState } from "../stores/project-store.svelte.js";
 import {
   selectFile,
@@ -389,6 +390,19 @@ class ChatService {
       this.logger.error("Failed to refresh project tree:", error);
       // Don't show error notification as this is a background operation
     }
+  }
+
+  // Prompt editor methods
+  openPromptEditor() {
+    uiState.promptEditorOpen = true;
+  }
+
+  closePromptEditor() {
+    uiState.promptEditorOpen = false;
+  }
+
+  togglePromptEditor() {
+    uiState.promptEditorOpen = !uiState.promptEditorOpen;
   }
 
   // Cleanup draft timeouts when service is destroyed

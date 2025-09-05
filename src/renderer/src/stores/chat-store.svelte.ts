@@ -12,6 +12,7 @@ interface ChatState {
   chatMode: ChatMode;
   selectedModel: string;
   isSubmittingMessage: boolean;
+  promptCursorPosition: { start: number; end: number } | null;
 }
 
 // Core chat state - using object wrapper pattern for mutable state
@@ -21,6 +22,7 @@ export const chatState = $state<ChatState>({
   chatMode: (getPreference("chatMode") as ChatMode) || "agent",
   selectedModel: getPreference("selectedModel") || "terminal/codex",
   isSubmittingMessage: false,
+  promptCursorPosition: null,
 });
 
 // Helper functions for working with chat stores
@@ -52,6 +54,14 @@ export function updateMessageInput(value: string) {
 
 export function clearMessageInput() {
   chatState.messageInput = "";
+}
+
+export function savePromptCursorPosition(start: number, end: number) {
+  chatState.promptCursorPosition = { start, end };
+}
+
+export function clearPromptCursorPosition() {
+  chatState.promptCursorPosition = null;
 }
 
 export function addMessageToCurrentChat(message: ChatMessage) {

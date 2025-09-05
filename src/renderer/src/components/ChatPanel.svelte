@@ -89,6 +89,18 @@
     previousChatId = currentChatId;
   });
 
+  // Auto-resize textarea when messageInput changes (e.g., from prompt editor)
+  $effect(() => {
+    if (messageInputElement && chatState.messageInput) {
+      tick().then(() => {
+        if (messageInputElement) {
+          messageInputElement.style.height = 'auto';
+          messageInputElement.style.height = `${messageInputElement.scrollHeight}px`;
+        }
+      });
+    }
+  });
+
   // Sync selected model with current chat's modelId
   $effect(() => {
     if (chatState.currentChat && chatState.currentChat.messages.length > 0) {
@@ -126,6 +138,12 @@
 
   function handleInputChange(value: string): void {
     updateMessageInput(value);
+
+    // Auto-resize textarea
+    if (messageInputElement) {
+      messageInputElement.style.height = 'auto';
+      messageInputElement.style.height = `${messageInputElement.scrollHeight}px`;
+    }
 
     // Handle @ file reference detection
     fileSearchService.detectFileReference(value, messageInputElement ?? null);
@@ -295,7 +313,7 @@
           onkeydown={handleKeyPress}
           placeholder="Type your message... Use @ to reference files"
           class="bg-input-background border-input-border focus:border-accent placeholder-muted text-foreground w-full resize-none rounded-md border px-3 py-3 text-[15px] focus:outline-none"
-          rows="3"
+          style="min-height: 3rem; height: auto;"
           disabled={isLoadingSubmitMessage ||
             chatState.currentChat?.sessionStatus !== "idle"}
         ></textarea>

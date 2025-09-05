@@ -7,6 +7,7 @@
     selectedIndex: number;
     visible: boolean;
     loading?: boolean;
+    class?: string;
     onselect: (result: FileSearchResult) => void;
     oncancel: () => void;
     onhover: (index: number) => void;
@@ -17,6 +18,7 @@
     selectedIndex,
     visible,
     loading = false,
+    class: className = "",
     onselect,
     oncancel,
     onhover,
@@ -37,7 +39,7 @@
 </script>
 
 {#if visible}
-  <div class="absolute top-full right-0 left-0 z-50 mt-1">
+  <div class={`z-50 ${className}`}>
     <div
       class="bg-panel border-border max-h-60 overflow-y-auto rounded-md border shadow-lg"
     >

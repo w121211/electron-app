@@ -64,9 +64,12 @@
       <div class="scrollbar-thin flex-1 overflow-y-auto">
         <div class="px-3">
           <!-- Projects Header -->
-          <div class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1" title="Projects">
+          <div
+            class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+            title="Projects">
             <span class="text-sm font-medium">Projects</span>
-            <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100" title="Add Project Folder">
+            <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+              title="Add Project Folder">
               <i class="bi bi-plus"></i>
             </button>
             <button class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100" title="Menu">
@@ -78,67 +81,97 @@
           <div class="px-2">
             <!-- Project Folder 1 -->
             <div class="pb-1">
-              <div class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]">
+              <div
+                class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]">
                 <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
                 <span class="text-xs font-medium">my-ai-project</span>
-                <button class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="New Chat">
+                <button
+                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                  title="New Chat">
                   <i class="bi bi-chat-dots text-xs"></i>
                 </button>
-                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                  title="Menu">
                   <i class="bi bi-three-dots-vertical text-xs"></i>
                 </button>
               </div>
               <div class="ml-2">
-                <div class="bg-selected hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" onclick="selectNode(this)">
+                <div
+                  class="bg-selected hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                  onclick="selectNode(this)">
                   <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
                   <span class="max-w-[120px] truncate text-xs">design-discussion.chat.json</span>
-                  <span class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">running</span>
-                  <button class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Stop Chat">
+                  <span
+                    class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">running</span>
+                  <button
+                    class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Stop Chat">
                     <i class="bi bi-stop-fill text-xs"></i>
                   </button>
-                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu">
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
-                <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" onclick="selectNode(this); previewFile('README.md')">
+                <div
+                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                  onclick="selectNode(this); previewFile('README.md')">
                   <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
                   <span class="max-w-[120px] truncate text-xs">README.md</span>
                   <i class="bi bi-file-earmark-check text-muted ml-1 text-[10px]" title="In Project Context"></i>
-                  <button class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                  <button
+                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu">
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
-                <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" onclick="selectNode(this); previewFile('api.md')">
+                <div
+                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                  onclick="selectNode(this); previewFile('api.md')">
                   <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
                   <span class="text-xs">api.md</span>
-                  <button class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                  <button
+                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu">
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
                 <!-- Nested Folder -->
                 <div>
-                  <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
+                  <div
+                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
                     <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
                     <span class="text-xs">src</span>
-                    <button class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="New Chat">
+                    <button
+                      class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="New Chat">
                       <i class="bi bi-chat-dots text-xs"></i>
                     </button>
-                    <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                    <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu">
                       <i class="bi bi-three-dots-vertical text-xs"></i>
                     </button>
                   </div>
                   <div class="ml-2 pl-0">
-                    <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" onclick="selectNode(this); previewFile('main.ts')">
+                    <div
+                      class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                      onclick="selectNode(this); previewFile('main.ts')">
                       <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
                       <span class="text-xs">main.ts</span>
-                      <button class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                      <button
+                        class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                        title="Menu">
                         <i class="bi bi-three-dots-vertical text-xs"></i>
                       </button>
                     </div>
-                    <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" onclick="selectNode(this); previewFile('utils.ts')">
+                    <div
+                      class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                      onclick="selectNode(this); previewFile('utils.ts')">
                       <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
                       <span class="text-xs">utils.ts</span>
-                      <button class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                      <button
+                        class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                        title="Menu">
                         <i class="bi bi-three-dots-vertical text-xs"></i>
                       </button>
                     </div>
@@ -149,32 +182,46 @@
 
             <!-- Project Folder 2 -->
             <div class="pb-1">
-              <div class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]">
+              <div
+                class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]">
                 <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
                 <span class="text-xs font-medium">demo-project</span>
-                <button class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="New Chat">
+                <button
+                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                  title="New Chat">
                   <i class="bi bi-chat-dots text-xs"></i>
                 </button>
-                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                  title="Menu">
                   <i class="bi bi-three-dots-vertical text-xs"></i>
                 </button>
               </div>
               <div class="ml-2 pl-0">
-                <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" onclick="selectNode(this)">
+                <div
+                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                  onclick="selectNode(this)">
                   <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
                   <span class="max-w-[120px] truncate text-xs">planning-session.chat.json</span>
-                  <span class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">paused</span>
-                  <button class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Resume Chat">
+                  <span
+                    class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">paused</span>
+                  <button
+                    class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Resume Chat">
                     <i class="bi bi-play-fill text-xs"></i>
                   </button>
-                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu">
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
-                <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" onclick="selectNode(this); previewFile('project-spec.md')">
+                <div
+                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                  onclick="selectNode(this); previewFile('project-spec.md')">
                   <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
                   <span class="max-w-[120px] truncate text-xs">project-spec.md</span>
-                  <button class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Menu">
+                  <button
+                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu">
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
@@ -226,7 +273,8 @@
               <div class="text-foreground leading-normal">
                 Hi! How can I help with your product design? Let me know your focus today.
               </div>
-              <div class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div
+                class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
                   <i class="bi bi-copy"></i>
                 </button>
@@ -238,11 +286,14 @@
             <!-- User Message -->
             <div class="group flex w-full flex-col items-end">
               <div class="bg-[#2c2c2e] text-foreground rounded-2xl py-2.5 px-4 max-w-[80%]">
-                <a href="javascript:void(0)" class="text-accent hover:text-accent/80 ml-1 cursor-pointer" onclick="previewFile('vscode-screenshot.png')">@vscode-screenshot.png</a>
-                <a href="javascript:void(0)" class="text-accent hover:text-accent/80 ml-1 cursor-pointer" onclick="previewFile('vscode-screenshot.png')">@claude-screenshot.png</a>
+                <a href="javascript:void(0)" class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
+                  onclick="previewFile('vscode-screenshot.png')">@vscode-screenshot.png</a>
+                <a href="javascript:void(0)" class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
+                  onclick="previewFile('vscode-screenshot.png')">@claude-screenshot.png</a>
                 I want a chat UI that feels modern and professional, like VS Code but for conversations.
               </div>
-              <div class="mt-1 mr-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div
+                class="mt-1 mr-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button class="text-muted hover:text-accent cursor-pointer" title="Edit">
                   <i class="bi bi-pencil"></i>
                 </button>
@@ -262,7 +313,8 @@
                   <li>Contextual file management</li>
                 </ul>
               </div>
-              <div class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div
+                class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
                   <i class="bi bi-copy"></i>
                 </button>
@@ -279,14 +331,17 @@
               <div class="text-foreground leading-normal">
                 Here's a wireframe artifact for your chat UI. You can preview or download it.<br />
                 <div class="mt-2">
-                  <button class="border-border bg-panel hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm" onclick="previewFile('wireframe.html')">
+                  <button
+                    class="border-border bg-panel hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
+                    onclick="previewFile('wireframe.html')">
                     wireframe.html
                     <span class="text-muted text-xs">v3</span>
                     <i class="bi bi-download text-muted hover:text-accent ml-1 cursor-pointer"></i>
                   </button>
                 </div>
               </div>
-              <div class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div
+                class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
                   <i class="bi bi-copy"></i>
                 </button>
@@ -301,28 +356,39 @@
         <footer class="bg-background px-6 py-3">
           <div class="mx-auto max-w-3xl">
             <div class="bg-input-background rounded-3xl p-2 flex items-center gap-2 border border-border">
-              <textarea rows="3" placeholder="How can I help?" class="bg-transparent border-none resize-none text-foreground w-full min-h-[72px] leading-6 px-2 outline-none text-[15px] placeholder-muted"></textarea>
+              <textarea rows="3" placeholder="Prompt, use '/' for commands, or @path/to/file (Enter to send)"
+                class="bg-transparent border-none resize-none text-foreground w-full min-h-[72px] leading-6 px-2 outline-none text-[15px] placeholder-muted placeholder:text-sm"></textarea>
             </div>
             <!-- Controls under input -->
             <div class="mt-2 flex items-center justify-between px-4">
               <div class="flex items-center gap-3">
                 <button title="Attach" class="text-muted hover:text-accent cursor-pointer">
-                  <i class="bi bi-paperclip text-lg"></i>
+                  <i class="bi bi-paperclip"></i>
                 </button>
                 <!-- Model selector dropdown -->
                 <div class="relative">
-                  <button class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm" title="Select Model">
+                  <button class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-xs"
+                    title="Select Model">
                     <span id="selected-model">Claude 3.5</span>
-                    <i class="bi bi-chevron-down text-xs"></i>
+                    <i class="bi bi-chevron-down"></i>
                   </button>
-                  <div class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border shadow-lg">
+                  <div
+                    class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border shadow-lg">
                     <div class="py-1">
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Claude 3.5</a>
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">GPT-4</a>
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Gemini Pro</a>
+                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Claude
+                        3.5</a>
+                      <a href="#"
+                        class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">GPT-4</a>
+                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Gemini
+                        Pro</a>
                     </div>
                   </div>
                 </div>
+              </div>
+              <div class="flex items-center">
+                <button title="Prompt Editor" class="text-muted hover:text-accent cursor-pointer">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -373,39 +439,52 @@
           <div class="scrollbar-thin flex-1 overflow-y-auto">
             <div class="px-3">
               <!-- Project Context Header -->
-              <div class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1" title="Project Context">
+              <div
+                class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+                title="Project Context">
                 <span class="text-sm font-medium">Project Context</span>
-                <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100" title="Edit">
+                <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+                  title="Edit">
                   <i class="bi bi-pencil"></i>
                 </button>
               </div>
-              
+
               <!-- Context content -->
               <div class="px-2 pb-1">
-                <div class="bg-input-background border-input-border text-muted min-h-[100px] rounded-md border p-3 text-sm">
-                  <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline" onclick="previewFile('demo.md')">
+                <div
+                  class="bg-input-background border-input-border text-muted min-h-[100px] rounded-md border p-3 text-sm">
+                  <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
+                    onclick="previewFile('demo.md')">
                     @&lt;demo-project&gt;/demo.md</button><br />
-                  <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline" onclick="previewFile('outside-file.md')">
+                  <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
+                    onclick="previewFile('outside-file.md')">
                     @/path/to/outside/file.md</button><br />
                   Text is also allowed
                 </div>
               </div>
 
               <!-- Artifacts Header -->
-              <div class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1" title="Artifacts">
+              <div
+                class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+                title="Artifacts">
                 <span class="text-sm font-medium">Artifacts</span>
-                <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100" title="Download All">
+                <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+                  title="Download All">
                   <i class="bi bi-download"></i>
                 </button>
               </div>
-              
+
               <!-- Artifacts content -->
               <div class="px-2">
-                <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]" onclick="previewFile('wireframe.html')">
+                <div
+                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                  onclick="previewFile('wireframe.html')">
                   <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
                   <span class="text-xs">wireframe.html</span>
                   <span class="text-muted ml-1 text-xs">v3</span>
-                  <button class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" title="Download">
+                  <button
+                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Download">
                     <i class="bi bi-download text-xs"></i>
                   </button>
                 </div>
@@ -418,22 +497,22 @@
   </div>
   <script>
     let selectedNode = document.querySelector(".bg-selected");
-    
+
     function selectNode(element) {
       if (selectedNode) selectedNode.classList.remove("bg-selected");
       selectedNode = element;
       element.classList.add("bg-selected");
     }
-    
+
     function previewFile(fileName) {
       document.getElementById("preview-title").textContent = fileName;
       document.getElementById("preview-panel").classList.remove("hidden");
     }
-    
+
     function closePreview() {
       document.getElementById("preview-panel").classList.add("hidden");
     }
-    
+
   </script>
 </body>
 

@@ -5,6 +5,7 @@
     Share,
     Download,
     Pencil,
+    PencilSquare,
     Paperclip,
     ChevronDown,
     ChevronRight,
@@ -12,32 +13,32 @@
     Search,
     LayoutSidebar,
   } from "svelte-bootstrap-icons";
-  import { Logger } from "tslog";
   import { chatService } from "../services/chat-service.js";
   import { fileSearchService } from "../services/file-search-service.js";
   import {
     chatState,
     updateMessageInput,
+    savePromptCursorPosition,
+    clearPromptCursorPosition,
   } from "../stores/chat-store.svelte.js";
   import {
     uiState,
     showToast,
     toggleLeftPanel,
   } from "../stores/ui-store.svelte.js";
-  import { fileSearchState } from "../stores/file-search-store.svelte.js";
+  import {
+    fileSearchState,
+    type FileSearchResult,
+  } from "../stores/file-search-store.svelte.js";
   import { setPreference } from "../stores/local-preferences-store.svelte.js";
   import { projectState } from "../stores/project-store.svelte.js";
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
   import ChatMessage from "./ChatMessage.svelte";
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
   import FileSearchDropdown from "./file-explorer/FileSearchDropdown.svelte";
-
-  const logger = new Logger({ name: "NewChatPanel" });
+  import PromptEditor from "./PromptEditor.svelte";
 
   // Derived loading states
-  const isLoadingOpenChat = $derived(
-    uiState.loadingStates["openChat"] || false,
-  );
   const isLoadingSubmitMessage = $derived(
     uiState.loadingStates["submitMessage"] || false,
   );
@@ -71,6 +72,7 @@
   let messageInputElement = $state<HTMLTextAreaElement>();
   let messagesContainer = $state<HTMLDivElement>();
   let draftTimeout: ReturnType<typeof setTimeout>;
+  let showModelDropdown = $state(false);
 
   // Auto-scroll to bottom when new messages arrive using $effect
   $effect(() => {
@@ -142,6 +144,13 @@
   function handleInputChange(value: string): void {
     updateMessageInput(value);
 
+    // Auto-resize textarea
+    if (messageInputElement) {
+      messageInputElement.style.height = "auto";
+      messageInputElement.style.height =
+        Math.min(messageInputElement.scrollHeight, 200) + "px";
+    }
+
     // Handle @ file reference detection
     fileSearchService.detectFileReference(value, messageInputElement ?? null);
 
@@ -158,7 +167,7 @@
   }
 
   // Handle file selection from dropdown
-  function handleFileSelect(file: any): void {
+  function handleFileSelect(file: FileSearchResult): void {
     fileSearchService.handleFileSelect(
       file,
       messageInputElement ?? null,
@@ -205,12 +214,94 @@
     showToast("Edit functionality coming soon", "info");
   }
 
+  function toggleModelDropdown(): void {
+    showModelDropdown = !showModelDropdown;
+  }
+
+  function selectModel(modelValue: string): void {
+    chatState.selectedModel = modelValue;
+    showModelDropdown = false;
+  }
+
   // Chat mode and model options
   const modelOptions = [
     { value: "anthropic/claude", label: "Claude 3.5" },
     { value: "google/gemini", label: "GPT-4" },
     { value: "terminal/claude-code", label: "Gemini Pro" },
   ];
+
+  // Close model dropdown when clicking outside
+  $effect(() => {
+    function handleClickOutside(event: MouseEvent): void {
+      const target = event.target as HTMLElement;
+      const modelDropdown = document.querySelector(".relative");
+
+      if (
+        showModelDropdown &&
+        modelDropdown &&
+        !modelDropdown.contains(target)
+      ) {
+        showModelDropdown = false;
+      }
+    }
+
+    if (showModelDropdown) {
+      document.addEventListener("click", handleClickOutside, true);
+      return () =>
+        document.removeEventListener("click", handleClickOutside, true);
+    }
+    return undefined;
+  });
+
+  // Auto-resize textarea when messageInput changes (e.g., from prompt editor)
+  let previousPromptEditorOpen = uiState.promptEditorOpen;
+  $effect(() => {
+    // If prompt editor is opening, save current cursor position
+    if (
+      !previousPromptEditorOpen &&
+      uiState.promptEditorOpen &&
+      messageInputElement
+    ) {
+      savePromptCursorPosition(
+        messageInputElement.selectionStart,
+        messageInputElement.selectionEnd,
+      );
+    }
+
+    // If prompt editor was just closed, focus the textarea and restore cursor position
+    if (
+      previousPromptEditorOpen &&
+      !uiState.promptEditorOpen &&
+      messageInputElement
+    ) {
+      tick().then(() => {
+        if (messageInputElement) {
+          messageInputElement.focus();
+          // Restore cursor position if we have one saved
+          if (chatState.promptCursorPosition) {
+            messageInputElement.setSelectionRange(
+              chatState.promptCursorPosition.start,
+              chatState.promptCursorPosition.end,
+            );
+            clearPromptCursorPosition(); // Clear after use
+          }
+        }
+      });
+    }
+
+    // Auto-resize when messageInput changes
+    if (messageInputElement && chatState.messageInput) {
+      tick().then(() => {
+        if (messageInputElement) {
+          messageInputElement.style.height = "auto";
+          messageInputElement.style.height =
+            Math.min(messageInputElement.scrollHeight, 200) + "px";
+        }
+      });
+    }
+
+    previousPromptEditorOpen = uiState.promptEditorOpen;
+  });
 
   // Cleanup timeouts on component destroy using $effect
   $effect(() => {
@@ -221,7 +312,7 @@
   });
 </script>
 
-<section class="flex min-w-0 flex-1 flex-col">
+<section class="relative flex min-w-0 flex-1 flex-col">
   {#if hasCurrentChat}
     <!-- Breadcrumb Header -->
     <header class="bg-surface flex h-12 items-center justify-between px-4">
@@ -286,12 +377,17 @@
       </div>
     </header>
 
+    <!-- Prompt Editor Overlay -->
+    {#if uiState.promptEditorOpen}
+      <PromptEditor />
+    {/if}
+
     <!-- Messages -->
     <div
       bind:this={messagesContainer}
-      class="scrollbar-thin bg-background flex-1 overflow-y-auto px-8 py-6"
+      class="scrollbar-thin flex-1 overflow-y-auto px-8 py-6"
     >
-      <div class="mx-auto max-w-2xl space-y-12">
+      <div class="mx-auto max-w-3xl space-y-12">
         {#each currentChatMessages as chatMessage (chatMessage.id)}
           <ChatMessage {chatMessage} />
         {/each}
@@ -315,8 +411,8 @@
     </div>
 
     <!-- Input Area -->
-    <footer class="bg-background px-6 py-3">
-      <div class="mx-auto max-w-2xl">
+    <footer class="bg-background px-6 py-4">
+      <div class="mx-auto max-w-3xl">
         <div
           class="bg-input-background border-border relative flex items-center gap-2 rounded-2xl border p-2"
         >
@@ -326,9 +422,9 @@
             oninput={(e) => handleInputChange(e.currentTarget.value)}
             onkeypress={handleKeyPress}
             onkeydown={handleKeyPress}
-            rows="3"
             placeholder="How can I help?"
             class="text-foreground placeholder-muted min-h-[72px] w-full resize-none border-none bg-transparent px-2 text-[15px] leading-6 outline-none"
+            style="height: auto;"
             disabled={isLoadingSubmitMessage ||
               chatState.currentChat?.sessionStatus !== "idle"}
           ></textarea>
@@ -337,11 +433,12 @@
           <FileSearchDropdown
             results={fileSearchState.results}
             selectedIndex={fileSearchState.selectedIndex}
-            visible={fileSearchState.showMenu}
+            visible={fileSearchState.showMenu && !uiState.promptEditorOpen}
             loading={fileSearchState.isSearching}
             onselect={handleFileSelect}
             oncancel={handleSearchCancel}
             onhover={handleSearchHover}
+            class="absolute top-full right-0 left-0 mt-1"
           />
         </div>
 
@@ -352,23 +449,56 @@
               title="Attach"
               class="text-muted hover:text-accent cursor-pointer"
             >
-              <Paperclip class="text-lg" />
+              <Paperclip />
             </button>
             <!-- Model selector dropdown -->
             <div class="relative">
               <button
-                class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm"
+                onclick={toggleModelDropdown}
+                class="text-muted hover:text-accent disabled:hover:text-muted flex cursor-pointer items-center gap-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                 title="Select Model"
+                disabled={chatState.currentChat &&
+                  chatState.currentChat.messages.length > 0}
               >
                 <span id="selected-model"
                   >{modelOptions.find(
                     (m) => m.value === chatState.selectedModel,
                   )?.label || "Claude 3.5"}</span
                 >
-                <ChevronDown class="text-xs" />
+                {#if !(chatState.currentChat && chatState.currentChat.messages.length > 0)}
+                  <ChevronDown class="text-xs" />
+                {/if}
               </button>
-              <!-- Dropdown content would be shown on click -->
+
+              <!-- Dropdown menu -->
+              {#if showModelDropdown}
+                <div
+                  class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 w-36 rounded-md border"
+                >
+                  <div class="py-1">
+                    {#each modelOptions as option (option.value)}
+                      <button
+                        onclick={() => selectModel(option.value)}
+                        class="text-foreground hover:bg-hover block w-full cursor-pointer px-3 py-1 text-left text-sm"
+                        class:bg-hover={option.value ===
+                          chatState.selectedModel}
+                      >
+                        {option.label}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             </div>
+          </div>
+          <div class="flex items-center">
+            <button
+              onclick={chatService.togglePromptEditor}
+              title="Prompt Editor"
+              class="text-muted hover:text-accent cursor-pointer"
+            >
+              <PencilSquare />
+            </button>
           </div>
         </div>
       </div>
