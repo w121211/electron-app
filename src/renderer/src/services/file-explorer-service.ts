@@ -15,13 +15,6 @@ export class FileExplorerService {
 
   // File Action Handlers
   async handleFileAction(action: string, path: string) {
-    console.log(
-      "🎯 FileExplorerService: Handling action:",
-      action,
-      "for:",
-      path,
-    );
-
     try {
       switch (action) {
         case "add-to-chat":

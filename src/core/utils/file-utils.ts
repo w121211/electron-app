@@ -2,6 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { ILogObj, Logger } from "tslog";
+import ignore from "ignore";
 
 export interface FileContent {
   content: string;
@@ -161,4 +162,283 @@ export function getFileType(filePath: string): string {
 function isBinaryFile(fileType: string): boolean {
   const binaryTypes = ["image", "pdf", "archive"];
   return binaryTypes.includes(fileType);
+}
+
+// File validation constants
+export const INVALID_FILE_CHARS = /[<>:"/\\|?*]/;
+
+// Types for project folder operations
+export interface FolderTreeNode {
+  name: string;
+  path: string; // Absolute path
+  isDirectory: boolean;
+  children?: FolderTreeNode[];
+}
+
+export interface FileSearchResult {
+  name: string; // "world.txt"
+  relativePath: string; // "docs/world.txt"
+  absolutePath: string; // "/project/docs/world.txt"
+  score?: number; // fuzzy search relevance
+}
+
+export async function createFolderAtPath(
+  parentPath: string,
+  folderName: string,
+): Promise<string> {
+  // Check if parent exists and is a directory
+  const parentStats = await fs.stat(parentPath);
+  if (!parentStats.isDirectory()) {
+    throw new Error(`Parent path is not a directory: ${parentPath}`);
+  }
+
+  // Validate folder name
+  if (!folderName.trim()) {
+    throw new Error("Folder name cannot be empty");
+  }
+
+  // Check for invalid characters in folder name
+  if (INVALID_FILE_CHARS.test(folderName)) {
+    throw new Error("Folder name contains invalid characters");
+  }
+
+  // Build folder path
+  const folderPath = path.join(parentPath, folderName);
+
+  // Check if folder already exists
+  try {
+    await fs.stat(folderPath);
+    throw new Error(`A file or directory named "${folderName}" already exists`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  // Create the folder
+  await fs.mkdir(folderPath);
+
+  return folderPath;
+}
+
+export async function generateUniqueFileName(
+  parentDir: string,
+  baseName: string,
+): Promise<string> {
+  const ext = path.extname(baseName);
+  const nameWithoutExt = path.basename(baseName, ext);
+
+  let counter = 1;
+  let candidatePath = path.join(parentDir, baseName);
+
+  // Check if the original name is available
+  try {
+    await fs.stat(candidatePath);
+    // If we get here, file exists, so we need to generate a new name
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      // File doesn't exist, original name is available
+      return candidatePath;
+    }
+    throw error;
+  }
+
+  // Generate numbered variants until we find an available name
+  while (true) {
+    const newName = ext
+      ? `${nameWithoutExt} (${counter})${ext}`
+      : `${nameWithoutExt} (${counter})`;
+    candidatePath = path.join(parentDir, newName);
+
+    try {
+      await fs.stat(candidatePath);
+      counter++;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        // Found an available name
+        return candidatePath;
+      }
+      throw error;
+    }
+  }
+}
+
+export async function validateProjectFolderPath(
+  absoluteProjectFolderPath: string,
+): Promise<boolean> {
+  try {
+    const stats = await fs.stat(absoluteProjectFolderPath);
+    return stats.isDirectory();
+  } catch (error) {
+    return false;
+  }
+}
+
+async function createIgnoreInstance(
+  projectPath: string,
+): Promise<ReturnType<typeof ignore>> {
+  try {
+    const gitignorePath = path.join(projectPath, ".gitignore");
+    const gitignoreContent = await fs.readFile(gitignorePath, "utf8");
+    return ignore().add(gitignoreContent);
+  } catch (error) {
+    // .gitignore doesn't exist or can't be read, use default ignores
+    return ignore().add([
+      ".*", // dot files
+      "node_modules/**",
+      "**/*.tmp",
+      "**/*.log",
+    ]);
+  }
+}
+
+async function getFilesWithIgnore(
+  dirPath: string,
+  projectRoot: string,
+  ig: ReturnType<typeof ignore>,
+): Promise<string[]> {
+  const files: string[] = [];
+
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      const relativePath = path.relative(projectRoot, fullPath);
+
+      // Test with ignore rules - if ignored, skip this entry
+      if (
+        relativePath &&
+        ig.ignores(relativePath + (entry.isDirectory() ? "/" : ""))
+      ) {
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        const subFiles = await getFilesWithIgnore(fullPath, projectRoot, ig);
+        files.push(...subFiles);
+      } else {
+        files.push(fullPath);
+      }
+    }
+  } catch (error) {
+    // Skip directories we can't read
+  }
+
+  return files;
+}
+
+export async function getSearchableFiles(
+  projectPath: string,
+): Promise<FileSearchResult[]> {
+  const ig = await createIgnoreInstance(projectPath);
+  const allowedFiles = await getFilesWithIgnore(projectPath, projectPath, ig);
+
+  return allowedFiles.map((absolutePath) => {
+    const relativePath = path.relative(projectPath, absolutePath);
+    return {
+      name: path.basename(relativePath),
+      relativePath,
+      absolutePath,
+    };
+  });
+}
+
+export async function buildFolderTree(
+  targetPath: string,
+): Promise<FolderTreeNode> {
+  const baseName = path.basename(targetPath);
+
+  const stats = await fs.stat(targetPath);
+
+  if (!stats.isDirectory()) {
+    // It's a file, return file node
+    return {
+      name: baseName,
+      path: targetPath, // Use absolute path
+      isDirectory: false,
+    };
+  }
+
+  // Load .gitignore rules
+  const ig = await createIgnoreInstance(targetPath);
+
+  async function buildNodeRecursive(
+    currentPath: string,
+    projectRoot: string,
+  ): Promise<FolderTreeNode> {
+    const stats = await fs.stat(currentPath);
+    const name = path.basename(currentPath);
+
+    if (!stats.isDirectory()) {
+      return { name, path: currentPath, isDirectory: false };
+    }
+
+    const node: FolderTreeNode = {
+      name,
+      path: currentPath,
+      isDirectory: true,
+      children: [],
+    };
+
+    try {
+      const entries = await fs.readdir(currentPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(currentPath, entry.name);
+        const relativePath = path.relative(projectRoot, fullPath);
+
+        // Test with ignore rules - if ignored, skip this entry
+        if (
+          relativePath &&
+          ig.ignores(relativePath + (entry.isDirectory() ? "/" : ""))
+        ) {
+          continue;
+        }
+
+        const childNode = await buildNodeRecursive(fullPath, projectRoot);
+        node.children!.push(childNode);
+      }
+    } catch (error) {
+      // Skip directories we can't read
+    }
+
+    return node;
+  }
+
+  return buildNodeRecursive(targetPath, targetPath);
+}
+
+export function flattenTreeToFiles(
+  node: FolderTreeNode,
+  projectPath: string,
+): FileSearchResult[] {
+  const files: FileSearchResult[] = [];
+
+  if (!node.isDirectory) {
+    // It's a file, add it to the results
+    const relativePath = path.relative(projectPath, node.path);
+    files.push({
+      name: node.name,
+      relativePath,
+      absolutePath: node.path,
+    });
+  } else if (node.children) {
+    // It's a directory, recursively process children
+    for (const child of node.children) {
+      files.push(...flattenTreeToFiles(child, projectPath));
+    }
+  }
+
+  return files;
+}
+
+export function validateFileName(name: string): void {
+  if (!name.trim()) {
+    throw new Error("Name cannot be empty");
+  }
+
+  if (INVALID_FILE_CHARS.test(name)) {
+    throw new Error("Name contains invalid characters");
+  }
 }

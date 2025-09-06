@@ -78,14 +78,6 @@
     await chatService.createEmptyChat(targetPath);
   }
 
-  async function handleNodeClick(node: any): Promise<void> {
-    try {
-      await projectService.handleTreeNodeClick(node);
-    } catch (error) {
-      logger.error("Failed to handle node click:", error);
-    }
-  }
-
   function handleContextMenu(
     path: string,
     isDirectory: boolean,
@@ -258,10 +250,10 @@
                     class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded py-0.5 text-sm font-[400] transition-colors"
                     role="button"
                     tabindex="0"
-                    onclick={() => handleNodeClick(tree)}
+                    onclick={() => projectService.handleTreeNodeClick(tree)}
                     onkeydown={(e) =>
                       (e.key === "Enter" || e.key === " ") &&
-                      handleNodeClick(tree)}
+                      projectService.handleTreeNodeClick(tree)}
                   >
                     <ChevronDown class="text-muted mr-2 text-xs" />
                     <span class="text-xs font-medium">{tree.name}</span>
@@ -288,7 +280,7 @@
                       node={tree}
                       level={1}
                       isCreatingChat={isLoadingCreateChat}
-                      onclick={handleNodeClick}
+                      onclick={() => projectService.handleTreeNodeClick(tree)}
                       onNewChat={handleNewChat}
                       onContextMenu={handleContextMenu}
                       onStopTask={handleStopTask}

@@ -1,7 +1,9 @@
 // src/core/services/file-watcher-service.ts
 import path from "node:path";
+import fs from "node:fs/promises";
 import chokidar, { FSWatcher, ChokidarOptions } from "chokidar";
 import { Logger, ILogObj } from "tslog";
+import ignore from "ignore";
 import type { IEventBus, BaseEvent } from "../event-bus.js";
 
 // Define the FileWatcherEvent
@@ -54,7 +56,7 @@ export class FileWatcherService {
   public async startWatchingFolder(absoluteFolderPath: string): Promise<void> {
     if (!path.isAbsolute(absoluteFolderPath)) {
       throw new Error(
-        `Folder path must be absolute, got: ${absoluteFolderPath}`
+        `Folder path must be absolute, got: ${absoluteFolderPath}`,
       );
     }
 
@@ -65,28 +67,50 @@ export class FileWatcherService {
 
     this.logger.info(`Starting file watcher on ${absoluteFolderPath}`);
 
-    const watcher = chokidar.watch(absoluteFolderPath, this.chokidarOptions);
+    // Load .gitignore if it exists
+    let ig: ReturnType<typeof ignore>;
+    try {
+      const gitignorePath = path.join(absoluteFolderPath, ".gitignore");
+      const gitignoreContent = await fs.readFile(gitignorePath, "utf8");
+      ig = ignore().add(gitignoreContent);
+    } catch (error) {
+      // .gitignore doesn't exist or can't be read, use default ignores
+      ig = ignore().add([
+        ".*", // dot files
+        "node_modules/**",
+        "**/*.tmp",
+        "**/*.log",
+      ]);
+    }
+
+    const watcher = chokidar.watch(absoluteFolderPath, {
+      ...this.chokidarOptions,
+      ignored: (filePath) => {
+        const relativePath = path.relative(absoluteFolderPath, filePath);
+        return relativePath && ig.ignores(relativePath);
+      },
+    });
 
     // Set up event handlers
     watcher
       .on("add", (filePath) =>
-        this.handleFsEvent("add", filePath, absoluteFolderPath, false)
+        this.handleFsEvent("add", filePath, absoluteFolderPath, false),
       )
       .on("change", (filePath) =>
-        this.handleFsEvent("change", filePath, absoluteFolderPath, false)
+        this.handleFsEvent("change", filePath, absoluteFolderPath, false),
       )
       .on("unlink", (filePath) =>
-        this.handleFsEvent("unlink", filePath, absoluteFolderPath, false)
+        this.handleFsEvent("unlink", filePath, absoluteFolderPath, false),
       )
       .on("addDir", (dirPath) =>
-        this.handleFsEvent("addDir", dirPath, absoluteFolderPath, true)
+        this.handleFsEvent("addDir", dirPath, absoluteFolderPath, true),
       )
       .on("unlinkDir", (dirPath) =>
-        this.handleFsEvent("unlinkDir", dirPath, absoluteFolderPath, true)
+        this.handleFsEvent("unlinkDir", dirPath, absoluteFolderPath, true),
       )
       .on("error", (error) => {
         this.logger.error(
-          `File watcher error in ${absoluteFolderPath}: ${error}`
+          `File watcher error in ${absoluteFolderPath}: ${error}`,
         );
         const errorObj =
           error instanceof Error ? error : new Error(String(error));
@@ -96,19 +120,19 @@ export class FileWatcherService {
           absoluteFolderPath,
           absoluteFolderPath,
           true,
-          errorObj
+          errorObj,
         );
       })
       .on("ready", () => {
         this.logger.info(
-          `Initial file scan complete for ${absoluteFolderPath}`
+          `Initial file scan complete for ${absoluteFolderPath}`,
         );
         // For ready events, use the folder path as the absoluteFilePath
         this.handleFsEvent(
           "ready",
           absoluteFolderPath,
           absoluteFolderPath,
-          true
+          true,
         );
       });
 
@@ -134,19 +158,19 @@ export class FileWatcherService {
     filePath: string, // Should be absolute since we pass absolute path to chokidar
     absoluteBasePath: string,
     isDirectory: boolean,
-    error?: Error
+    error?: Error,
   ): void {
     // chokidar should return absolute paths when watching absolute paths
     if (!path.isAbsolute(filePath)) {
       throw new Error(
         `Expected absolute path from chokidar, got relative path: ${filePath}. ` +
-          `This indicates a problem with file watcher configuration or chokidar behavior.`
+          `This indicates a problem with file watcher configuration or chokidar behavior.`,
       );
     }
 
-    this.logger.debug(
-      `Chokidar fs event: ${eventType} - ${filePath} (${isDirectory ? "directory" : "file"})`
-    );
+    // this.logger.debug(
+    //   `Chokidar fs event: ${eventType} - ${filePath} (${isDirectory ? "directory" : "file"})`,
+    // );
 
     this.eventBus
       .emit<FileWatcherEvent>({
@@ -173,7 +197,7 @@ export class FileWatcherService {
         } catch (error) {
           this.logger.error(`Error stopping watcher for ${path}: ${error}`);
         }
-      }
+      },
     );
 
     await Promise.all(closePromises);

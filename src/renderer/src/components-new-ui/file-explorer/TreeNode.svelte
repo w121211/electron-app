@@ -68,10 +68,10 @@
   const isProjectFolder = $derived(level === 0);
   const isChatFile = $derived(node.name.endsWith(".chat.json"));
   const isCurrentChatFile = $derived(
-    isChatFile && chatState.currentChat?.absoluteFilePath === node.path
+    isChatFile && chatState.currentChat?.absoluteFilePath === node.path,
   );
   const isLoadingRerunChat = $derived(
-    uiState.loadingStates["rerunChat"] || false
+    uiState.loadingStates["rerunChat"] || false,
   );
 
   // Inline folder creation state
@@ -118,6 +118,8 @@
   }
 
   function handleContextMenu(e: MouseEvent): void {
+    console.log("🌳 TreeNode handleContextMenu called for:", node.path);
+
     e.stopPropagation();
     onContextMenu(node.path, node.isDirectory, e, isProjectFolder);
   }
@@ -132,19 +134,19 @@
   async function handleRerunChat(e: MouseEvent): Promise<void> {
     e.stopPropagation();
     if (!isChatFile) return;
-    
+
     try {
       // If this chat file is not currently open, open it first
       if (!isCurrentChatFile) {
         await chatService.openChatFile(node.path);
       }
-      
+
       // Now rerun the chat
       const currentChat = chatState.currentChat;
       if (currentChat) {
         await chatService.rerunChat(
           currentChat.absoluteFilePath,
-          currentChat.id
+          currentChat.id,
         );
       }
     } catch (error) {
@@ -301,23 +303,29 @@
         {#if child.isDirectory}
           <!-- Nested Folder -->
           <div>
-            <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                 role="button"
-                 tabindex="0"
-                 onclick={() => onclick(child)}
-                 onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onclick(child)}>
+            <div
+              class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm font-[400] transition-colors"
+              role="button"
+              tabindex="0"
+              onclick={() => onclick(child)}
+              onkeydown={(e) =>
+                (e.key === "Enter" || e.key === " ") && onclick(child)}
+            >
               <ChevronDown class="text-muted mr-2 text-xs" />
               <span class="text-xs">{child.name}</span>
-              <button 
-                onclick={(e) => { e.stopPropagation(); onNewChat(child.path); }}
-                class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" 
+              <button
+                onclick={(e) => {
+                  e.stopPropagation();
+                  onNewChat(child.path);
+                }}
+                class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
                 title="New Chat"
               >
                 <ChatDots class="text-xs" />
               </button>
-              <button 
+              <button
                 onclick={(e) => handleContextMenu(e)}
-                class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" 
+                class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
                 title="Menu"
               >
                 <ThreeDotsVertical class="text-xs" />
@@ -339,57 +347,69 @@
           </div>
         {:else}
           <!-- File Item -->
-          <div class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400] {isSelected ? 'bg-selected' : ''}"
-               role="button"
-               tabindex="0"
-               onclick={() => onclick(child)}
-               onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onclick(child)}>
-            {#if child.name.endsWith('.chat.json')}
+          <div
+            class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm font-[400] transition-colors {isSelected
+              ? 'bg-selected'
+              : ''}"
+            role="button"
+            tabindex="0"
+            onclick={() => onclick(child)}
+            onkeydown={(e) =>
+              (e.key === "Enter" || e.key === " ") && onclick(child)}
+          >
+            {#if child.name.endsWith(".chat.json")}
               <ChatDots class="text-muted mr-1.5 text-xs" />
             {:else}
               <FileEarmark class="text-muted mr-1.5 text-xs" />
             {/if}
             <span class="max-w-[120px] truncate text-xs">{child.name}</span>
-            
+
             <!-- Chat status badge -->
-            {#if child.name.endsWith('.chat.json') && isCurrentChatFile}
-              {@const sessionStatus = chatState.currentChat?.sessionStatus || "idle"}
+            {#if child.name.endsWith(".chat.json") && isCurrentChatFile}
+              {@const sessionStatus =
+                chatState.currentChat?.sessionStatus || "idle"}
               {@const statusConfig = getChatStatusConfig(sessionStatus)}
-              <span class="ml-1 rounded border px-1 py-0.5 font-mono text-[10px] {statusConfig.className}">
+              <span
+                class="ml-1 rounded border px-1 py-0.5 font-mono text-[10px] {statusConfig.className}"
+              >
                 {statusConfig.label}
               </span>
             {/if}
-            
+
             <!-- Context indicator -->
-            {#if !child.name.endsWith('.chat.json')}
-              <FileEarmarkCheck class="text-muted ml-1 text-[10px]" title="In Project Context" />
+            {#if !child.name.endsWith(".chat.json")}
+              <FileEarmarkCheck
+                class="text-muted ml-1 text-[10px]"
+                title="In Project Context"
+              />
             {/if}
-            
+
             <!-- Action buttons -->
-            {#if child.name.endsWith('.chat.json')}
-              {@const sessionStatus = chatState.currentChat?.sessionStatus || "idle"}
+            {#if child.name.endsWith(".chat.json")}
+              {@const sessionStatus =
+                chatState.currentChat?.sessionStatus || "idle"}
               {#if sessionStatus === "processing"}
-                <button 
+                <button
                   onclick={(e) => handleStopTask(e)}
-                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" 
+                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
                   title="Stop Chat"
                 >
                   <StopFill class="text-xs" />
                 </button>
               {:else if sessionStatus === "paused"}
-                <button 
+                <button
                   onclick={(e) => handleRerunChat(e)}
-                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" 
+                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
                   title="Resume Chat"
                 >
                   <PlayFill class="text-xs" />
                 </button>
               {/if}
             {/if}
-            
-            <button 
+
+            <button
               onclick={(e) => handleContextMenu(e)}
-              class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100" 
+              class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
               title="Menu"
             >
               <ThreeDotsVertical class="text-xs" />

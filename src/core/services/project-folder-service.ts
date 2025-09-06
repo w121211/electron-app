@@ -3,52 +3,24 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { Logger, ILogObj } from "tslog";
 import fuzzysort from "fuzzysort";
-import walk from "ignore-walk";
+import { shell } from "electron";
 import type { IEventBus, BaseEvent } from "../event-bus.js";
 import type { FileWatcherService } from "./file-watcher-service.js";
 import type { UserSettingsRepository } from "./user-settings-repository.js";
+import {
+  createFolderAtPath,
+  generateUniqueFileName,
+  validateProjectFolderPath,
+  getSearchableFiles,
+  buildFolderTree,
+  buildTreeFromFiles,
+  flattenTreeToFiles,
+  validateFileName,
+  INVALID_FILE_CHARS,
+  type FolderTreeNode,
+  type FileSearchResult,
+} from "../utils/file-utils.js";
 
-// Helper functions
-
-export async function createFolderAtPath(
-  parentPath: string,
-  folderName: string,
-): Promise<string> {
-  // Check if parent exists and is a directory
-  const parentStats = await fs.stat(parentPath);
-  if (!parentStats.isDirectory()) {
-    throw new Error(`Parent path is not a directory: ${parentPath}`);
-  }
-
-  // Validate folder name
-  if (!folderName.trim()) {
-    throw new Error("Folder name cannot be empty");
-  }
-
-  // Check for invalid characters in folder name
-  const invalidChars = /[<>:"/\\|?*]/;
-  if (invalidChars.test(folderName)) {
-    throw new Error("Folder name contains invalid characters");
-  }
-
-  // Build folder path
-  const folderPath = path.join(parentPath, folderName);
-
-  // Check if folder already exists
-  try {
-    await fs.stat(folderPath);
-    throw new Error(`A file or directory named "${folderName}" already exists`);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
-    }
-  }
-
-  // Create the folder
-  await fs.mkdir(folderPath);
-
-  return folderPath;
-}
 
 // ----------------------------------------------------------------
 // ProjectFolderService Implementation
@@ -60,24 +32,14 @@ export interface ProjectFolder {
   path: string;
 }
 
-export interface FolderTreeNode {
-  name: string;
-  path: string; // Absolute path
-  isDirectory: boolean;
-  children?: FolderTreeNode[];
-}
-
 export interface HighlightToken {
   text: string;
   index: number; // -1 if not highlighted
   isHighlighted: boolean;
 }
 
-export interface FileSearchResult {
-  name: string; // "world.txt"
-  relativePath: string; // "docs/world.txt"
-  absolutePath: string; // "/project/docs/world.txt"
-  score?: number; // fuzzy search relevance
+// Extend the base FileSearchResult with highlight tokens for UI
+export interface ProjectFileSearchResult extends FileSearchResult {
   highlightTokens?: HighlightToken[]; // structured highlight tokens for UI
 }
 
@@ -156,7 +118,7 @@ export class ProjectFolderService {
     }
 
     // Build and return the folder tree
-    return this.buildFolderTree(selectedProjectFolder.path, fullPath);
+    return buildFolderTree(fullPath);
   }
 
   public async addProjectFolder(
@@ -173,9 +135,7 @@ export class ProjectFolderService {
     }
 
     // Validate if project folder path exists and is a directory
-    const isValid = await this.validateProjectFolderPath(
-      absoluteProjectFolderPath,
-    );
+    const isValid = await validateProjectFolderPath(absoluteProjectFolderPath);
 
     if (!isValid) {
       throw new Error(
@@ -379,32 +339,12 @@ export class ProjectFolderService {
   /**
    * Search for files in a specific project using fuzzy search
    */
-  private async getSearchableFiles(
-    projectPath: string,
-  ): Promise<FileSearchResult[]> {
-    // Use ignore-walk to get files that are not gitignored
-    const allowedFiles = await walk({
-      path: projectPath,
-      ignoreFiles: [".gitignore"],
-      includeEmpty: false,
-      follow: false,
-    });
-
-    return allowedFiles.map((relativePath) => {
-      const absolutePath = path.join(projectPath, relativePath);
-      return {
-        name: path.basename(relativePath),
-        relativePath,
-        absolutePath,
-      };
-    });
-  }
 
   public async searchFilesInProject(
     query: string,
     projectPath: string,
     limit: number = 20,
-  ): Promise<FileSearchResult[]> {
+  ): Promise<ProjectFileSearchResult[]> {
     this.logger.info(
       `Searching files in project ${projectPath} with query: ${query}`,
     );
@@ -420,7 +360,7 @@ export class ProjectFolderService {
     }
 
     // Get searchable files using .gitignore rules
-    const filteredFiles = await this.getSearchableFiles(projectFolder.path);
+    const filteredFiles = await getSearchableFiles(projectFolder.path);
 
     // If no query, return all filtered files (limited)
     if (!query.trim()) {
@@ -463,131 +403,9 @@ export class ProjectFolderService {
     }));
   }
 
-  private async validateProjectFolderPath(
-    absoluteProjectFolderPath: string,
-  ): Promise<boolean> {
-    try {
-      const stats = await fs.stat(absoluteProjectFolderPath);
-      return stats.isDirectory();
-    } catch (error) {
-      this.logger.error(`Error validating project folder path: ${error}`);
-      return false;
-    }
-  }
 
-  private async buildFolderTree(
-    projectFolderPath: string,
-    targetPath: string,
-  ): Promise<FolderTreeNode> {
-    const baseName = path.basename(targetPath);
 
-    const stats = await fs.stat(targetPath);
 
-    if (!stats.isDirectory()) {
-      // It's a file, return file node
-      return {
-        name: baseName,
-        path: targetPath, // Use absolute path
-        isDirectory: false,
-      };
-    }
-
-    // Use ignore-walk to get files that are not gitignored
-    const allowedFiles = await walk({
-      path: targetPath,
-      ignoreFiles: [".gitignore"],
-      includeEmpty: false,
-      follow: false,
-    });
-
-    // Build tree structure from allowed files
-    return this.buildTreeFromFiles(targetPath, allowedFiles);
-  }
-
-  private buildTreeFromFiles(
-    targetPath: string,
-    allowedFiles: string[],
-  ): FolderTreeNode {
-    const baseName = path.basename(targetPath);
-
-    // Create a map to store directory nodes
-    const nodeMap = new Map<string, FolderTreeNode>();
-
-    // Create root node
-    const rootNode: FolderTreeNode = {
-      name: baseName,
-      path: targetPath,
-      isDirectory: true,
-      children: [],
-    };
-    nodeMap.set("", rootNode);
-
-    // Process each allowed file
-    for (const relativePath of allowedFiles) {
-      const parts = relativePath.split(path.sep);
-
-      // Create all intermediate directories
-      let currentPath = "";
-      for (let i = 0; i < parts.length - 1; i++) {
-        const parentPath = currentPath;
-        currentPath = currentPath ? path.join(currentPath, parts[i]) : parts[i];
-
-        if (!nodeMap.has(currentPath)) {
-          const dirNode: FolderTreeNode = {
-            name: parts[i],
-            path: path.join(targetPath, currentPath),
-            isDirectory: true,
-            children: [],
-          };
-          nodeMap.set(currentPath, dirNode);
-
-          // Add to parent
-          const parentNode = nodeMap.get(parentPath)!;
-          parentNode.children!.push(dirNode);
-        }
-      }
-
-      // Create file node
-      const fileName = parts[parts.length - 1];
-      const fileNode: FolderTreeNode = {
-        name: fileName,
-        path: path.join(targetPath, relativePath),
-        isDirectory: false,
-      };
-
-      // Add file to its parent directory
-      const parentPath =
-        parts.length > 1 ? parts.slice(0, -1).join(path.sep) : "";
-      const parentNode = nodeMap.get(parentPath)!;
-      parentNode.children!.push(fileNode);
-    }
-
-    return rootNode;
-  }
-
-  private flattenTreeToFiles(
-    node: FolderTreeNode,
-    projectPath: string,
-  ): FileSearchResult[] {
-    const files: FileSearchResult[] = [];
-
-    if (!node.isDirectory) {
-      // It's a file, add it to the results
-      const relativePath = path.relative(projectPath, node.path);
-      files.push({
-        name: node.name,
-        relativePath,
-        absolutePath: node.path,
-      });
-    } else if (node.children) {
-      // It's a directory, recursively process children
-      for (const child of node.children) {
-        files.push(...this.flattenTreeToFiles(child, projectPath));
-      }
-    }
-
-    return files;
-  }
 
   /**
    * Copy a file or directory within project folders
@@ -766,15 +584,7 @@ export class ProjectFolderService {
     }
 
     // Validate new name
-    if (!newName.trim()) {
-      throw new Error("New name cannot be empty");
-    }
-
-    // Check for invalid characters in filename
-    const invalidChars = /[<>:"/\\|?*]/;
-    if (invalidChars.test(newName)) {
-      throw new Error("New name contains invalid characters");
-    }
+    validateFileName(newName);
 
     // Check if source exists
     await fs.stat(absolutePath);
@@ -816,6 +626,18 @@ export class ProjectFolderService {
       throw new Error(`Path must be absolute, received: ${absolutePath}`);
     }
 
+    // Check if the path being deleted is a project folder root
+    const settings = await this.userSettingsRepository.getSettings();
+    const isProjectFolderRoot = settings.projectFolders.some(
+      (folder) => folder.path === absolutePath,
+    );
+
+    if (isProjectFolderRoot) {
+      throw new Error(
+        "Cannot delete project folder. Use removeProjectFolder() instead.",
+      );
+    }
+
     // Validate path is within project folders
     const isInProject = await this.isPathInProjectFolder(absolutePath);
     if (!isInProject) {
@@ -823,16 +645,12 @@ export class ProjectFolderService {
     }
 
     // Check if source exists
-    const stats = await fs.stat(absolutePath);
+    await fs.stat(absolutePath);
 
-    // Perform the deletion
-    if (stats.isDirectory()) {
-      await fs.rm(absolutePath, { recursive: true, force: true });
-    } else {
-      await fs.unlink(absolutePath);
-    }
+    // Move to trash using Electron's shell.trashItem
+    await shell.trashItem(absolutePath);
 
-    this.logger.info(`Successfully deleted ${absolutePath}`);
+    this.logger.info(`Successfully moved ${absolutePath} to trash`);
   }
 
   /**
@@ -866,7 +684,7 @@ export class ProjectFolderService {
     // Generate destination path
     const parentDir = path.dirname(sourceAbsolutePath);
     const originalName = path.basename(sourceAbsolutePath);
-    const destinationPath = await this.generateUniqueFileName(
+    const destinationPath = await generateUniqueFileName(
       parentDir,
       newName || originalName,
     );
@@ -951,53 +769,9 @@ export class ProjectFolderService {
       return false;
     }
 
-    return this.validateProjectFolderPath(settings.workspaceDirectory);
+    return validateProjectFolderPath(settings.workspaceDirectory);
   }
 
-  /**
-   * Generate a unique filename in the given directory
-   */
-  private async generateUniqueFileName(
-    parentDir: string,
-    baseName: string,
-  ): Promise<string> {
-    const ext = path.extname(baseName);
-    const nameWithoutExt = path.basename(baseName, ext);
-
-    let counter = 1;
-    let candidatePath = path.join(parentDir, baseName);
-
-    // Check if the original name is available
-    try {
-      await fs.stat(candidatePath);
-      // If we get here, file exists, so we need to generate a new name
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        // File doesn't exist, original name is available
-        return candidatePath;
-      }
-      throw error;
-    }
-
-    // Generate numbered variants until we find an available name
-    while (true) {
-      const newName = ext
-        ? `${nameWithoutExt} (${counter})${ext}`
-        : `${nameWithoutExt} (${counter})`;
-      candidatePath = path.join(parentDir, newName);
-
-      try {
-        await fs.stat(candidatePath);
-        counter++;
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-          // Found an available name
-          return candidatePath;
-        }
-        throw error;
-      }
-    }
-  }
 }
 
 export function createProjectFolderService(
