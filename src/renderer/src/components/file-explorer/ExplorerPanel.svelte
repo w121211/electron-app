@@ -184,7 +184,7 @@
       <!-- Inline New Project Folder Creation -->
       {#if fileExplorerState.inlineNewProjectFolder.isActive}
         <div class="flex items-center gap-1 px-2 py-1">
-          <FileIcon fileName="" isDirectory={true} size="text-sm" />
+          <FileIcon fileName="" isDirectory={true} size={14} />
           <input
             bind:this={newProjectFolderInput}
             type="text"
@@ -203,7 +203,7 @@
           <FileIcon
             fileName=""
             isDirectory={true}
-            size="text-3xl"
+            size={36}
             className="mx-auto mb-2"
           />
           <p>No project folders</p>

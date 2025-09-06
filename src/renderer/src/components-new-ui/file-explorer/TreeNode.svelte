@@ -140,7 +140,10 @@
     return folderName.startsWith("task-");
   }
 
-  function getTaskStatusConfig(status: string): { label: string; className: string } {
+  function getTaskStatusConfig(status: string): {
+    label: string;
+    className: string;
+  } {
     const statusMap: { [key: string]: string } = {
       COMPLETED: "completed",
       IN_PROGRESS: "running",
@@ -264,9 +267,9 @@
     tabindex="0"
     draggable={!isProjectFolder}
     class:font-medium={isProjectFolder}
-    class="group relative flex min-h-[24px] w-full cursor-pointer items-center rounded py-0.5 text-xs font-[400] transition-colors
-      {!isProjectFolder && isSelected ? 'bg-selected text-foreground' : ''}
-      {isProjectFolder ? '' : 'hover:bg-hover text-foreground px-1'}
+    class="group relative flex min-h-[24px] w-full cursor-pointer items-center rounded py-0.5 text-sm transition-colors
+      {isSelected ? 'bg-selected' : 'hover:bg-hover'}
+      {isProjectFolder ? '' : 'text-foreground px-1'}
       {isDragged ? 'opacity-50' : ''}
       {shouldHighlightFolder || shouldHighlightAsFileLevel ? 'bg-hover' : ''}"
     style="padding-left: {level * 14}px;"
@@ -280,20 +283,20 @@
   >
     <!-- Icon -->
     <div class="mr-1.5 flex w-4 shrink-0 items-center justify-center">
-      {#if node.isDirectory}
+      <!-- {#if node.isDirectory}
         {#if isExpanded}
-          <ChevronDown class="text-muted text-xs" />
+          <ChevronDown class="text-muted" width={12} height={12} />
         {:else}
-          <ChevronRight class="text-muted text-xs" />
+          <ChevronRight class="text-muted" width={12} height={12} />
         {/if}
-      {:else}
-        <FileIcon
-          fileName={node.name}
-          isDirectory={node.isDirectory}
-          isExpanded={false}
-          size="text-xs"
-        />
-      {/if}
+      {:else} -->
+      <FileIcon
+        fileName={node.name}
+        isDirectory={node.isDirectory}
+        isExpanded={false}
+        size={12}
+      />
+      <!-- {/if} -->
     </div>
 
     <!-- Name -->
@@ -321,7 +324,7 @@
           class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
           title="Stop Chat"
         >
-          <StopFill class="text-xs" />
+          <StopFill width={12} height={12} />
         </button>
       {:else if sessionStatus === "waiting_confirmation"}
         <span
@@ -343,7 +346,7 @@
           class="text-muted hover:text-accent cursor-pointer p-0.5 disabled:opacity-50"
           title="Rerun Chat"
         >
-          <ArrowClockwise class="text-xs" />
+          <ArrowClockwise width={12} height={12} />
         </button>
       {/if}
       {#if node.isDirectory}
@@ -353,7 +356,7 @@
           class="text-muted hover:text-accent cursor-pointer p-0.5 disabled:opacity-30"
           title="New Chat"
         >
-          <ChatDots class="text-xs" />
+          <ChatDots width={12} height={12} />
         </button>
       {/if}
       <button
@@ -361,7 +364,7 @@
         class="text-muted hover:text-accent cursor-pointer p-0.5"
         title="More options"
       >
-        <ThreeDotsVertical class="text-xs" />
+        <ThreeDotsVertical width={12} height={12} />
       </button>
     </div>
   </div>
@@ -376,7 +379,7 @@
             : 'bg-hover'}"
         >
           <div class="mr-1.5 flex w-4 shrink-0 items-center justify-center">
-            <FileIcon fileName="" isDirectory={true} size="text-xs" />
+            <FileIcon fileName="" isDirectory={true} size={12} />
           </div>
           <input
             bind:this={folderNameInput}
@@ -385,7 +388,7 @@
             onkeydown={handleFolderNameKeydown}
             onblur={handleFolderNameBlur}
             disabled={isCreatingFolder}
-            class="bg-input-background border-accent text-foreground focus:ring-accent/50 flex-1 rounded border bg-transparent px-1 py-0 text-xs focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            class="border-accent text-foreground focus:ring-accent/50 flex-1 rounded border bg-transparent px-1 py-0 text-xs focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             type="text"
             placeholder="Folder name"
           />

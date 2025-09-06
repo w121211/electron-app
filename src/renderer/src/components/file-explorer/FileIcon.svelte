@@ -16,7 +16,7 @@
     fileName: string;
     isDirectory: boolean;
     isExpanded?: boolean;
-    size?: string;
+    size?: number;
     className?: string;
   }
 
@@ -24,7 +24,7 @@
     fileName,
     isDirectory,
     isExpanded = false,
-    size = "text-sm",
+    size = 16,
     className = "",
   }: FileIconProps = $props();
 
@@ -123,4 +123,4 @@
   const iconColor = getIconColor();
 </script>
 
-<IconComponent class="{size} {iconColor} {className}" />
+<IconComponent width={size} height={size} class="{iconColor} {className}" />
