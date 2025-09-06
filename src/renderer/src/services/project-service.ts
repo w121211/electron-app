@@ -64,7 +64,7 @@ class ProjectService {
       const folders =
         await trpcClient.projectFolder.getAllProjectFolders.query();
       setProjectFolders(folders);
-      this.logger.info(`Loaded ${folders.length} project folders`);
+      this.logger.debug(`Loaded ${folders.length} project folders`);
 
       // Load folder trees for each project
       await this.loadAllFolderTrees(folders);
@@ -378,8 +378,7 @@ class ProjectService {
       const tree = await trpcClient.projectFolder.getFolderTree.query({
         absoluteProjectFolderPath: projectPath,
       });
-
-      this.logger.debug("Loaded folder tree for:", projectPath, tree);
+      // this.logTreeRecursively(tree, 0);
 
       const sortedTree = this.sortTreeRecursively(tree);
       setFolderTree(projectPath, sortedTree);
@@ -522,6 +521,18 @@ class ProjectService {
       // Same type sorted by name
       return a.name.localeCompare(b.name);
     });
+  }
+
+  private logTreeRecursively(node: FolderTreeNode, depth: number) {
+    const indent = "  ".repeat(depth);
+    const type = node.isDirectory ? "📁" : "📄";
+    this.logger.debug(`${indent}${type} ${node.name} (${node.path})`);
+
+    if (node.children) {
+      for (const child of node.children) {
+        this.logTreeRecursively(child, depth + 1);
+      }
+    }
   }
 
   private sortTreeRecursively(node: FolderTreeNode): FolderTreeNode {

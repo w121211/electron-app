@@ -244,50 +244,16 @@
             {#each projectState.projectFolders as folder, index (index)}
               {@const tree = projectState.folderTrees[folder.path]}
               {#if tree}
-                <!-- Project Folder -->
-                <div class="pb-1">
-                  <div
-                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded py-0.5 text-sm font-[400] transition-colors"
-                    role="button"
-                    tabindex="0"
-                    onclick={() => projectService.handleTreeNodeClick(tree)}
-                    onkeydown={(e) =>
-                      (e.key === "Enter" || e.key === " ") &&
-                      projectService.handleTreeNodeClick(tree)}
-                  >
-                    <ChevronDown class="text-muted mr-2 text-xs" />
-                    <span class="text-xs font-medium">{tree.name}</span>
-                    <button
-                      onclick={() => handleNewChat(tree.path)}
-                      class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                      title="New Chat"
-                    >
-                      <ChatDots class="text-xs" />
-                    </button>
-                    <button
-                      onclick={(e) =>
-                        handleContextMenu(tree.path, true, e, true)}
-                      class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                      title="Menu"
-                    >
-                      <ThreeDotsVertical class="text-xs" />
-                    </button>
-                  </div>
-
-                  <!-- Render tree children using existing TreeNode component -->
-                  <div class="ml-2">
-                    <TreeNode
-                      node={tree}
-                      level={1}
-                      isCreatingChat={isLoadingCreateChat}
-                      onclick={() => projectService.handleTreeNodeClick(tree)}
-                      onNewChat={handleNewChat}
-                      onContextMenu={handleContextMenu}
-                      onStopTask={handleStopTask}
-                      compactMode={true}
-                    />
-                  </div>
-                </div>
+                <TreeNode
+                  node={tree}
+                  level={0}
+                  isCreatingChat={isLoadingCreateChat}
+                  onclick={projectService.handleTreeNodeClick}
+                  onNewChat={handleNewChat}
+                  onContextMenu={handleContextMenu}
+                  onStopTask={handleStopTask}
+                  compactMode={true}
+                />
               {/if}
             {/each}
           {/if}

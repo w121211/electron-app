@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/file-explorer/FileIcon.svelte -->
+<!-- src/renderer/src/components-new-ui/file-explorer/FileIcon.svelte -->
 <script lang="ts">
   import {
     ChatDots,
@@ -38,7 +38,6 @@
       return ChatDots;
     }
 
-    // Determine icon based on file extension
     const extension = fileName.split(".").pop()?.toLowerCase();
 
     switch (extension) {
@@ -72,55 +71,7 @@
     }
   }
 
-  function getIconColor(): string {
-    if (isDirectory) {
-      return "text-blue-400";
-    }
-
-    if (fileName.endsWith(".chat.json")) {
-      return "text-green-400";
-    }
-
-    const extension = fileName.split(".").pop()?.toLowerCase();
-
-    switch (extension) {
-      case "ts":
-      case "tsx":
-        return "text-blue-400";
-      case "js":
-      case "jsx":
-        return "text-yellow-400";
-      case "html":
-        return "text-orange-400";
-      case "css":
-        return "text-blue-400";
-      case "json":
-        return "text-yellow-400";
-      case "md":
-        return "text-white";
-      case "txt":
-        return "text-muted";
-      case "png":
-      case "jpg":
-      case "jpeg":
-      case "gif":
-      case "svg":
-      case "webp":
-      case "bmp":
-        return "text-purple-400";
-      case "pdf":
-        return "text-red-400";
-      case "zip":
-      case "tar":
-      case "gz":
-        return "text-yellow-400";
-      default:
-        return "text-muted";
-    }
-  }
-
   const IconComponent = getIconComponent();
-  const iconColor = getIconColor();
 </script>
 
-<IconComponent class="{size} {iconColor} {className}" />
+<IconComponent class="{size} text-muted {className}" />

@@ -13,14 +13,10 @@ import {
   validateProjectFolderPath,
   getSearchableFiles,
   buildFolderTree,
-  buildTreeFromFiles,
-  flattenTreeToFiles,
   validateFileName,
-  INVALID_FILE_CHARS,
   type FolderTreeNode,
   type FileSearchResult,
 } from "../utils/file-utils.js";
-
 
 // ----------------------------------------------------------------
 // ProjectFolderService Implementation
@@ -403,10 +399,6 @@ export class ProjectFolderService {
     }));
   }
 
-
-
-
-
   /**
    * Copy a file or directory within project folders
    */
@@ -771,7 +763,6 @@ export class ProjectFolderService {
 
     return validateProjectFolderPath(settings.workspaceDirectory);
   }
-
 }
 
 export function createProjectFolderService(
