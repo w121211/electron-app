@@ -7,7 +7,6 @@
     Plus,
     ThreeDotsVertical,
     ChevronDown,
-    ChatDots,
     Gear,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
@@ -18,7 +17,6 @@
     toggleLeftPanel,
   } from "../../stores/ui-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
-  import { chatService } from "../../services/chat-service.js";
   import { userSettingsService } from "../../services/user-settings-service.js";
   import {
     showContextMenu,
@@ -45,9 +43,6 @@
   const isLoadingProjectFolders = $derived(
     uiState.loadingStates["projectFolders"] || false,
   );
-  const isLoadingCreateChat = $derived(
-    uiState.loadingStates["createChat"] || false,
-  );
 
   let showSettings = $state(false);
   let newProjectFolderInput = $state<HTMLInputElement>();
@@ -72,32 +67,6 @@
 
   function handleNewProjectFolder(): void {
     startInlineNewProjectFolderCreation();
-  }
-
-  async function handleNewChat(targetPath: string): Promise<void> {
-    await chatService.createEmptyChat(targetPath);
-  }
-
-  function handleContextMenu(
-    path: string,
-    isDirectory: boolean,
-    event: MouseEvent,
-    isProjectFolder = false,
-  ): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    showContextMenu(
-      path,
-      isDirectory,
-      event.clientX,
-      event.clientY,
-      isProjectFolder,
-    );
-  }
-
-  function handleStopTask(path: string): void {
-    showToast("Stop task functionality coming soon", "info");
   }
 
   function handleOpenSettings(): void {
@@ -247,11 +216,6 @@
                 <TreeNode
                   node={tree}
                   level={0}
-                  isCreatingChat={isLoadingCreateChat}
-                  onclick={projectService.handleTreeNodeClick}
-                  onNewChat={handleNewChat}
-                  onContextMenu={handleContextMenu}
-                  onStopTask={handleStopTask}
                   compactMode={true}
                 />
               {/if}

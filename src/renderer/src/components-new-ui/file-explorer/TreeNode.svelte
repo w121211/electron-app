@@ -19,11 +19,12 @@
   import { projectService } from "../../services/project-service.js";
   import { chatService } from "../../services/chat-service.js";
   import { chatState } from "../../stores/chat-store.svelte.js";
-  import { uiState } from "../../stores/ui-store.svelte.js";
+  import { uiState, showToast } from "../../stores/ui-store.svelte.js";
   import {
     fileExplorerState,
     cancelInlineFolderCreation,
     updateInlineFolderName,
+    showContextMenu,
   } from "../../stores/file-explorer-store.svelte.js";
   import { fileExplorerService } from "../../services/file-explorer-service.js";
   import TreeNode from "./TreeNode.svelte";
@@ -33,30 +34,12 @@
   interface TreeNodeProps {
     node: FolderTreeNode;
     level: number;
-    isCreatingChat?: boolean;
-    onclick: (node: FolderTreeNode) => void;
-    onNewChat: (path: string) => void;
-    onContextMenu: (
-      path: string,
-      isDirectory: boolean,
-      event: MouseEvent,
-      isProjectFolder?: boolean,
-    ) => void;
-    onStopTask?: (path: string) => void;
     compactMode?: boolean;
   }
 
-  let {
-    node,
-    level,
-    isCreatingChat = false,
-    onclick,
-    onNewChat,
-    onContextMenu,
-    onStopTask,
-    compactMode = true,
-  }: TreeNodeProps = $props();
+  let { node, level, compactMode = true }: TreeNodeProps = $props();
 
+  const isCreatingChat = $derived(uiState.loadingStates["createChat"] || false);
   const isExpanded = $derived(treeState.expandedNodePaths.includes(node.path));
   const isSelected = $derived(treeState.selectedNode === node.path);
   const task = $derived(tasksByPath.get(node.path));
@@ -102,24 +85,28 @@
   }
 
   function handleNodeClick(): void {
-    onclick(node);
+    projectService.handleTreeNodeClick(node);
   }
 
   function handleNewChat(e: MouseEvent): void {
     e.stopPropagation();
-    onNewChat(node.path);
+    chatService.createEmptyChat(node.path);
   }
 
   function handleContextMenu(e: MouseEvent): void {
     e.stopPropagation();
-    onContextMenu(node.path, node.isDirectory, e, isProjectFolder);
+    showContextMenu(
+      node.path,
+      node.isDirectory,
+      e.clientX,
+      e.clientY,
+      isProjectFolder,
+    );
   }
 
   function handleStopTask(e: MouseEvent): void {
     e.stopPropagation();
-    if (onStopTask) {
-      onStopTask(node.path);
-    }
+    showToast("Stop task functionality coming soon", "info");
   }
 
   async function handleRerunChat(e: MouseEvent): Promise<void> {
@@ -153,7 +140,7 @@
     return folderName.startsWith("task-");
   }
 
-  function getTaskStatusConfig(status: string) {
+  function getTaskStatusConfig(status: string): { label: string; className: string } {
     const statusMap: { [key: string]: string } = {
       COMPLETED: "completed",
       IN_PROGRESS: "running",
@@ -219,8 +206,13 @@
   }
 
   function handleFolderNameKeydown(e: KeyboardEvent): void {
-    if (e.key === "Enter") e.preventDefault(), handleCreateFolder();
-    else if (e.key === "Escape") e.preventDefault(), handleCancelFolderCreation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleCreateFolder();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelFolderCreation();
+    }
   }
 
   function handleFolderNameBlur(): void {
@@ -324,15 +316,13 @@
         >
           running
         </span>
-        {#if onStopTask}
-          <button
-            onclick={handleStopTask}
-            class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-            title="Stop Chat"
-          >
-            <StopFill class="text-xs" />
-          </button>
-        {/if}
+        <button
+          onclick={handleStopTask}
+          class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+          title="Stop Chat"
+        >
+          <StopFill class="text-xs" />
+        </button>
       {:else if sessionStatus === "waiting_confirmation"}
         <span
           class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
@@ -343,7 +333,9 @@
     {/if}
 
     <!-- Actions -->
-    <div class="ml-auto flex items-center pl-1 opacity-0 group-hover:opacity-100">
+    <div
+      class="ml-auto flex items-center pl-1 opacity-0 group-hover:opacity-100"
+    >
       {#if isChatFile}
         <button
           onclick={handleRerunChat}
@@ -393,7 +385,7 @@
             onkeydown={handleFolderNameKeydown}
             onblur={handleFolderNameBlur}
             disabled={isCreatingFolder}
-            class="bg-input-background border-accent text-foreground focus:ring-accent/50 flex-1 rounded border bg-transparent px-1 py-0 text-xs focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50"
+            class="bg-input-background border-accent text-foreground focus:ring-accent/50 flex-1 rounded border bg-transparent px-1 py-0 text-xs focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             type="text"
             placeholder="Folder name"
           />
@@ -407,16 +399,7 @@
 
       {#if node.children}
         {#each node.children as child (child.path)}
-          <TreeNode
-            node={child}
-            level={level + 1}
-            {isCreatingChat}
-            {onclick}
-            {onNewChat}
-            {onContextMenu}
-            {onStopTask}
-            {compactMode}
-          />
+          <TreeNode node={child} level={level + 1} {compactMode} />
         {/each}
       {/if}
     </div>
