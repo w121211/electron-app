@@ -5,7 +5,7 @@
   import { taskService } from "../services/task-service.js";
   import { uiState } from "../stores/ui-store.svelte.js";
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
-  import ChatPanel from "./ChatPanel.svelte";
+  import ChatPanel from "./chat/ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
 
   const logger = new Logger({ name: "NewMainLayout" });

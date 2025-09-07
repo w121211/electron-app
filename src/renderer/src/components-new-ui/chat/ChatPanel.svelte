@@ -13,29 +13,29 @@
     Search,
     LayoutSidebar,
   } from "svelte-bootstrap-icons";
-  import { chatService } from "../services/chat-service.js";
-  import { fileSearchService } from "../services/file-search-service.js";
+  import { chatService } from "../../services/chat-service.js";
+  import { fileSearchService } from "../../services/file-search-service.js";
   import {
     chatState,
     updateMessageInput,
     savePromptCursorPosition,
     clearPromptCursorPosition,
-  } from "../stores/chat-store.svelte.js";
+  } from "../../stores/chat-store.svelte.js";
   import {
     uiState,
     showToast,
     toggleLeftPanel,
-  } from "../stores/ui-store.svelte.js";
+  } from "../../stores/ui-store.svelte.js";
   import {
     fileSearchState,
     type FileSearchResult,
-  } from "../stores/file-search-store.svelte.js";
-  import { setPreference } from "../stores/local-preferences-store.svelte.js";
-  import { projectState } from "../stores/project-store.svelte.js";
+  } from "../../stores/file-search-store.svelte.js";
+  import { setPreference } from "../../stores/local-preferences-store.svelte.js";
+  import { projectState } from "../../stores/project-store.svelte.js";
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
   import ChatMessage from "./ChatMessage.svelte";
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
-  import FileSearchDropdown from "./file-explorer/FileSearchDropdown.svelte";
+  import FileSearchDropdown from "./FileSearchDropdown.svelte";
   import PromptEditor from "./PromptEditor.svelte";
 
   // Derived loading states

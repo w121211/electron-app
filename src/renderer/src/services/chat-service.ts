@@ -43,7 +43,7 @@ class ChatService {
       selectFile(newChat.absoluteFilePath);
 
       // Refresh file tree to show the newly created chat file
-      await this.refreshProjectTreeForFile(newChat.absoluteFilePath);
+      await projectService.refreshProjectTreeForFile(newChat.absoluteFilePath);
 
       return newChat;
     } catch (error) {
@@ -122,10 +122,13 @@ class ChatService {
       // Determine which API to call based on model type
       // Use the current chat's modelId or the provided modelId for routing
       const currentModelId = modelId || chatState.currentChat?.modelId;
-      
+
       if (currentModelId && isTerminalModel(currentModelId)) {
         this.logger.info("Routing to external terminal model:", currentModelId);
-        result = await trpcClient.chatClient.sendMessageToExternal.mutate(messagePayload);
+        result =
+          await trpcClient.chatClient.sendMessageToExternal.mutate(
+            messagePayload,
+          );
       } else {
         this.logger.info("Routing to AI model:", currentModelId);
         result = await trpcClient.chatClient.sendMessage.mutate(messagePayload);
@@ -262,7 +265,7 @@ class ChatService {
       }
 
       // Refresh file tree
-      await this.refreshProjectTreeForFile(absoluteFilePath);
+      await projectService.refreshProjectTreeForFile(absoluteFilePath);
 
       return result;
     } catch (error) {
@@ -361,34 +364,6 @@ class ChatService {
         default:
           setCurrentChat(event.chat);
       }
-    }
-  }
-
-  /**
-   * Find the corresponding project folder based on file path and refresh its file tree
-   */
-  private async refreshProjectTreeForFile(filePath: string) {
-    try {
-      const folders = projectState.projectFolders;
-      const affectedFolder = folders.find((folder) =>
-        filePath.startsWith(folder.path),
-      );
-
-      if (affectedFolder) {
-        this.logger.debug(
-          "Refreshing project tree for folder:",
-          affectedFolder.name,
-        );
-
-        await projectService.refreshFolderTree(affectedFolder.id);
-
-        this.logger.debug("Project tree refreshed successfully");
-      } else {
-        this.logger.warn("No project folder found for file:", filePath);
-      }
-    } catch (error) {
-      this.logger.error("Failed to refresh project tree:", error);
-      // Don't show error notification as this is a background operation
     }
   }
 

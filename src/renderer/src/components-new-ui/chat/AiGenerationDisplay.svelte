@@ -1,6 +1,6 @@
 <!-- src/renderer/src/components/AiGenerationDisplay.svelte -->
 <script lang="ts">
-  import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository.js";
+  import type { ChatSessionData } from "../../../../core/services/chat-engine/chat-session-repository.js";
 
   interface Props {
     chatSession: ChatSessionData;

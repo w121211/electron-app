@@ -6,12 +6,12 @@
     chatState,
     updateMessageInput,
     savePromptCursorPosition,
-  } from "../stores/chat-store.svelte.js";
-  import { uiState } from "../stores/ui-store.svelte.js";
-  import { chatService } from "../services/chat-service.js";
-  import { fileSearchService } from "../services/file-search-service.js";
-  import { fileSearchState } from "../stores/file-search-store.svelte.js";
-  import FileSearchDropdown from "./file-explorer/FileSearchDropdown.svelte";
+  } from "../../stores/chat-store.svelte.js";
+  import { uiState } from "../../stores/ui-store.svelte.js";
+  import { chatService } from "../../services/chat-service.js";
+  import { fileSearchService } from "../../services/file-search-service.js";
+  import { fileSearchState } from "../../stores/file-search-store.svelte.js";
+  import FileSearchDropdown from "./FileSearchDropdown.svelte";
 
   let promptEditorTextarea = $state<HTMLTextAreaElement>();
   let showModelDropdown = $state(false);

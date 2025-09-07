@@ -147,19 +147,29 @@ class ProjectService {
     }
   }
 
-  async refreshFolderTree(projectFolderPath: string) {
-    const folders = projectState.projectFolders;
-    const folder = folders.find((f) => f.path === projectFolderPath);
-
-    if (!folder) {
-      this.logger.warn(
-        "Cannot refresh - project folder not found:",
-        projectFolderPath,
+  async refreshProjectTreeForFile(filePath: string) {
+    try {
+      const folders = projectState.projectFolders;
+      const affectedFolder = folders.find((folder) =>
+        filePath.startsWith(folder.path),
       );
-      return;
-    }
 
-    await this.loadFolderTree(folder.path);
+      if (affectedFolder) {
+        this.logger.debug(
+          "Refreshing project tree for folder:",
+          affectedFolder.name,
+        );
+
+        await this.loadFolderTree(affectedFolder.path);
+
+        this.logger.debug("Project tree refreshed successfully");
+      } else {
+        this.logger.warn("No project folder found for file:", filePath);
+      }
+    } catch (error) {
+      this.logger.error("Failed to refresh project tree:", error);
+      // Don't show error notification as this is a background operation
+    }
   }
 
   /**
@@ -372,9 +382,8 @@ class ProjectService {
     }
   }
 
-  private async loadFolderTree(projectPath: string) {
+  async loadFolderTree(projectPath: string) {
     try {
-      this.logger.debug("Loading folder tree for:", projectPath);
       const tree = await trpcClient.projectFolder.getFolderTree.query({
         absoluteProjectFolderPath: projectPath,
       });
@@ -566,7 +575,7 @@ class ProjectService {
 
     // Refresh each affected project folder's tree
     for (const folderPath of affectedFolderPaths) {
-      await this.refreshFolderTree(folderPath);
+      await this.loadFolderTree(folderPath);
     }
   }
 

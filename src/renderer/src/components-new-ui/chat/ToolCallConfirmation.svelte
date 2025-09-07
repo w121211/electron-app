@@ -2,7 +2,7 @@
 <script lang="ts">
   import { Logger } from "tslog";
   import type { ModelMessage } from "ai";
-  import { chatService } from "../services/chat-service.js";
+  import { chatService } from "../../services/chat-service.js";
 
   interface Props {
     chatId: string;

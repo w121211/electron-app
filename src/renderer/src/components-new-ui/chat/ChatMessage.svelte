@@ -13,10 +13,10 @@
     FileEarmark,
     Download,
   } from "svelte-bootstrap-icons";
-  import { showToast } from "../stores/ui-store.svelte.js";
-  import { extractFileReferences } from "../stores/chat-store.svelte.js";
+  import { showToast } from "../../stores/ui-store.svelte.js";
+  import { extractFileReferences } from "../../stores/chat-store.svelte.js";
   import ToolResultDisplay from "./ToolResultDisplay.svelte";
-  import type { ChatMessage } from "../../../core/services/chat-engine/chat-session-repository.js";
+  import type { ChatMessage } from "../../../../core/services/chat-engine/chat-session-repository.js";
 
   interface Props {
     chatMessage: ChatMessage;

@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/file-explorer/FileSearchDropdown.svelte -->
+<!-- src/renderer/src/components-new-ui/chat/FileSearchDropdown.svelte -->
 <script lang="ts">
   import type { ProjectFileSearchResult } from "../../../../core/services/project-folder-service.js";
 
