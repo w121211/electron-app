@@ -213,7 +213,7 @@
         <div class="mt-2">
           <button
             onclick={() => handleMoreAction("Preview artifact")}
-            class="border-border bg-panel hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
+            class="border-border bg-background hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
           >
             wireframe.html
             <span class="text-muted text-xs">v3</span>

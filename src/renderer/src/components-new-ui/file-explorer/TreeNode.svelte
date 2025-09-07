@@ -34,10 +34,9 @@
   interface TreeNodeProps {
     node: FolderTreeNode;
     level: number;
-    compactMode?: boolean;
   }
 
-  let { node, level, compactMode = true }: TreeNodeProps = $props();
+  let { node, level }: TreeNodeProps = $props();
 
   const isCreatingChat = $derived(uiState.loadingStates["createChat"] || false);
   const isExpanded = $derived(treeState.expandedNodePaths.includes(node.path));
@@ -260,19 +259,19 @@
   });
 </script>
 
-<div class="pb-1">
+<div class="pb-0.5">
   <!-- Node Row -->
   <div
     role="button"
     tabindex="0"
     draggable={!isProjectFolder}
     class:font-medium={isProjectFolder}
-    class="group relative flex min-h-[24px] w-full cursor-pointer items-center rounded py-0.5 text-sm transition-colors
+    class="group relative flex min-h-[20px] w-full cursor-pointer items-center rounded py-1 text-xs transition-colors
       {isSelected ? 'bg-selected' : 'hover:bg-hover'}
       {isProjectFolder ? '' : 'text-foreground px-1'}
       {isDragged ? 'opacity-50' : ''}
       {shouldHighlightFolder || shouldHighlightAsFileLevel ? 'bg-hover' : ''}"
-    style="padding-left: {level * 14}px;"
+    style="padding-left: {level * 10}px;"
     onclick={handleNodeClick}
     onkeydown={handleKeydown}
     ondragstart={handleDragStart}
@@ -282,7 +281,7 @@
     ondragend={handleDragEnd}
   >
     <!-- Icon -->
-    <div class="mr-1.5 flex w-4 shrink-0 items-center justify-center">
+    <div class="mr-1 flex w-4 shrink-0 items-center justify-center">
       <!-- {#if node.isDirectory}
         {#if isExpanded}
           <ChevronDown class="text-muted" width={12} height={12} />
@@ -294,7 +293,7 @@
         fileName={node.name}
         isDirectory={node.isDirectory}
         isExpanded={false}
-        size={12}
+        size={10}
       />
       <!-- {/if} -->
     </div>
@@ -371,15 +370,15 @@
 
   <!-- Children -->
   {#if node.isDirectory && isExpanded}
-    <div class="ml-2">
+    <div class="ml-1">
       {#if showPlaceholderFolder}
         <div
-          class="flex min-h-[24px] w-full items-center rounded px-1 py-0.5 text-xs {isCreatingFolder
+          class="flex min-h-[20px] w-full items-center rounded px-1 py-1 text-xs {isCreatingFolder
             ? 'bg-selected opacity-75'
             : 'bg-hover'}"
         >
-          <div class="mr-1.5 flex w-4 shrink-0 items-center justify-center">
-            <FileIcon fileName="" isDirectory={true} size={12} />
+          <div class="mr-1 flex w-4 shrink-0 items-center justify-center">
+            <FileIcon fileName="" isDirectory={true} size={10} />
           </div>
           <input
             bind:this={folderNameInput}
@@ -402,7 +401,7 @@
 
       {#if node.children}
         {#each node.children as child (child.path)}
-          <TreeNode node={child} level={level + 1} {compactMode} />
+          <TreeNode node={child} level={level + 1} />
         {/each}
       {/if}
     </div>

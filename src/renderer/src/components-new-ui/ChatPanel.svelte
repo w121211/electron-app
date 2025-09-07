@@ -315,7 +315,7 @@
 <section class="relative flex min-w-0 flex-1 flex-col">
   {#if hasCurrentChat}
     <!-- Breadcrumb Header -->
-    <header class="bg-surface flex h-12 items-center justify-between px-4">
+    <header class="bg-background flex h-12 items-center justify-between px-4">
       <div class="flex items-center gap-2">
         <!-- Show navigation buttons when left panel is closed -->
         {#if !uiState.leftPanelOpen}
@@ -414,7 +414,7 @@
     <footer class="bg-background px-6 py-4">
       <div class="mx-auto max-w-3xl">
         <div
-          class="bg-input-background border-border relative flex items-center gap-2 rounded-2xl border p-2"
+          class="bg-surface border-border relative flex items-center gap-2 rounded-2xl border p-2"
         >
           <textarea
             bind:this={messageInputElement}
@@ -473,7 +473,7 @@
               <!-- Dropdown menu -->
               {#if showModelDropdown}
                 <div
-                  class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 w-36 rounded-md border"
+                  class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 w-36 rounded-md border"
                 >
                   <div class="py-1">
                     {#each modelOptions as option (option.value)}

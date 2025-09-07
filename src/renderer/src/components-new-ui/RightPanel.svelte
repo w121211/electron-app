@@ -131,10 +131,10 @@ Text is also allowed`);
 </script>
 
 <!-- Right Panel -->
-<aside class="bg-surface border-border relative flex w-96 flex-col border-l">
+<aside class="bg-background border-border relative flex w-96 flex-col border-l">
   <!-- Preview Overlay -->
   {#if treeState.selectedPreviewFile}
-    <div class="bg-surface absolute inset-0 z-20" id="preview-panel">
+    <div class="bg-background absolute inset-0 z-20" id="preview-panel">
       <div class="flex h-12 items-center justify-between px-4">
         <div class="flex items-center">
           <span class="font-medium" id="preview-title">

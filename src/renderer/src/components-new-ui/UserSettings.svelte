@@ -80,7 +80,7 @@
     <div class="bg-background text-foreground h-screen overflow-hidden">
       <!-- Header -->
       <header
-        class="bg-surface border-border flex h-12 shrink-0 items-center gap-2 border-b px-4"
+        class="bg-background border-border flex h-12 shrink-0 items-center gap-2 border-b px-4"
       >
         <Gear class="text-muted h-5 w-5" />
         <span class="font-semibold">Settings</span>

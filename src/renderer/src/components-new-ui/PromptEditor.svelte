@@ -146,7 +146,7 @@
         <!-- Dropdown menu -->
         {#if showModelDropdown}
           <div
-            class="bg-panel border-border absolute top-full left-0 z-10 mt-1 w-36 rounded-md border"
+            class="bg-background border-border absolute top-full left-0 z-10 mt-1 w-36 rounded-md border"
           >
             <div class="py-1">
               {#each modelOptions as option (option.value)}

@@ -101,7 +101,7 @@
   }
 </script>
 
-<aside class="bg-surface border-border flex w-64 flex-col border-r">
+<aside class="bg-background border-border flex w-64 flex-col border-r">
   <!-- Section 1: Top Icons (Fixed) -->
   <div class="flex h-12 items-center justify-start px-4">
     <div class="flex items-center gap-2">
@@ -216,7 +216,6 @@
                 <TreeNode
                   node={tree}
                   level={0}
-                  compactMode={true}
                 />
               {/if}
             {/each}

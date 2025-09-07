@@ -41,7 +41,7 @@
 {#if visible}
   <div class={`z-50 ${className}`}>
     <div
-      class="bg-panel border-border max-h-60 overflow-y-auto rounded-md border shadow-lg"
+      class="bg-background border-border max-h-60 overflow-y-auto rounded-md border shadow-lg"
     >
       {#if loading}
         <div class="text-muted px-3 py-2 text-sm">

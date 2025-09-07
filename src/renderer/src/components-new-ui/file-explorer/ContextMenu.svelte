@@ -47,7 +47,7 @@
 
 {#if fileExplorerState.contextMenu.isVisible}
   <div
-    class="context-menu bg-panel border-border fixed z-50 w-48 rounded-md border py-1 shadow-lg"
+    class="context-menu bg-background border-border fixed z-50 w-48 rounded-md border py-1 shadow-lg"
     style="left: {fileExplorerState.contextMenu.x}px; top: {fileExplorerState
       .contextMenu.y}px;"
   >

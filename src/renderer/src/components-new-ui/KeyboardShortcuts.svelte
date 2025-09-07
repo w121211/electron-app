@@ -57,7 +57,7 @@
           <div class="flex items-center justify-between">
             <span class="text-muted text-sm">{shortcut.description}</span>
             <kbd
-              class="bg-panel border-border rounded border px-2 py-1 font-mono text-xs"
+              class="bg-background border-border rounded border px-2 py-1 font-mono text-xs"
             >
               {shortcut.key}
             </kbd>
@@ -67,7 +67,7 @@
 
       <div class="border-border mt-4 border-t pt-4">
         <p class="text-muted text-xs">
-          Press <kbd class="bg-panel border-border rounded border px-1"
+          Press <kbd class="bg-background border-border rounded border px-1"
             >Ctrl+/</kbd
           > to toggle this dialog
         </p>
