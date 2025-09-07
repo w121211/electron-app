@@ -10,10 +10,7 @@
   import { uiState } from "../stores/ui-store.svelte.js";
   import { chatService } from "../services/chat-service.js";
   import { fileSearchService } from "../services/file-search-service.js";
-  import {
-    fileSearchState,
-    type FileSearchResult,
-  } from "../stores/file-search-store.svelte.js";
+  import { fileSearchState } from "../stores/file-search-store.svelte.js";
   import FileSearchDropdown from "./file-explorer/FileSearchDropdown.svelte";
 
   let promptEditorTextarea = $state<HTMLTextAreaElement>();
@@ -187,22 +184,22 @@
     ></textarea>
 
     <!-- File Search Dropdown -->
-    <FileSearchDropdown
-      results={fileSearchState.results}
-      selectedIndex={fileSearchState.selectedIndex}
-      visible={fileSearchState.showMenu}
-      loading={fileSearchState.isSearching}
-      onselect={(file) =>
-        fileSearchService.handleFileSelect(
-          file,
-          promptEditorTextarea ?? null,
-          chatState.messageInput,
-        )}
-      oncancel={() =>
-        fileSearchService.handleSearchCancel(promptEditorTextarea ?? null)}
-      onhover={(index) => fileSearchService.handleSearchHover(index)}
-      class="absolute right-0 bottom-4 left-0"
-    />
+    {#if fileSearchState.showMenu}
+      <FileSearchDropdown
+        results={fileSearchState.results}
+        selectedIndex={fileSearchState.selectedIndex}
+        onselect={(file) =>
+          fileSearchService.handleFileSelect(
+            file,
+            promptEditorTextarea ?? null,
+            chatState.messageInput,
+          )}
+        oncancel={() =>
+          fileSearchService.handleSearchCancel(promptEditorTextarea ?? null)}
+        onhover={(index) => fileSearchService.handleSearchHover(index)}
+        class="absolute right-0 bottom-4 left-0"
+      />
+    {/if}
   </div>
 </div>
 

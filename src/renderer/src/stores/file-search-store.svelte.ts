@@ -1,15 +1,8 @@
 // src/renderer/src/stores/file-search-store.svelte.ts
-
-export interface FileSearchResult {
-  name: string;
-  relativePath: string;
-  absolutePath: string;
-  score?: number;
-  highlight?: string;
-}
+import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
 
 interface FileSearchState {
-  results: FileSearchResult[];
+  results: ProjectFileSearchResult[];
   selectedIndex: number;
   showMenu: boolean;
   isSearching: boolean;
@@ -30,7 +23,7 @@ export const fileSearchState = $state<FileSearchState>({
 });
 
 // Mutation functions
-export function setSearchResults(results: FileSearchResult[]) {
+export function setSearchResults(results: ProjectFileSearchResult[]) {
   fileSearchState.results = results;
   fileSearchState.selectedIndex = results.length > 0 ? 0 : -1;
 }

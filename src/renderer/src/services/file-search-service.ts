@@ -1,5 +1,6 @@
 // src/renderer/src/services/file-search-service.ts
 import { Logger } from "tslog";
+import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
   fileSearchState,
@@ -12,7 +13,6 @@ import {
   moveSelectionUp,
   moveSelectionDown,
   resetSearch,
-  type FileSearchResult,
 } from "../stores/file-search-store.svelte.js";
 import { projectState } from "../stores/project-store.svelte.js";
 import { treeState } from "../stores/tree-store.svelte.js";
@@ -86,6 +86,8 @@ class FileSearchService {
     }
   }
 
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   detectFileReference(
     inputValue: string,
     inputElement: HTMLTextAreaElement | null,
@@ -96,6 +98,10 @@ class FileSearchService {
     const beforeCursor = inputValue.substring(0, cursorPos);
     const atMatch = beforeCursor.match(/@([^@\s]*)$/);
 
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+
     if (atMatch) {
       const query = atMatch[1] || "";
       const searchStart = cursorPos - atMatch[1].length;
@@ -105,14 +111,16 @@ class FileSearchService {
       setSearchStartPosition(searchStart);
       setShowMenu(true);
 
-      this.performFileSearch(query);
+      this.searchDebounceTimer = setTimeout(() => {
+        this.performFileSearch(query);
+      }, 50); // Debounce search by 50ms
     } else {
       setShowMenu(false);
     }
   }
 
   handleFileSelect(
-    file: FileSearchResult,
+    file: ProjectFileSearchResult,
     inputElement: HTMLTextAreaElement | null,
     currentInput: string,
   ): void {
@@ -124,7 +132,7 @@ class FileSearchService {
     // Replace @query with file reference
     const beforeSearch = currentInput.substring(0, searchStart - 1); // -1 to remove @
     const afterSearch = currentInput.substring(searchEnd);
-    const fileReference = `@${file.relativePath}`;
+    const fileReference = `@${file.relativePath} `;
 
     const newValue = beforeSearch + fileReference + afterSearch;
 

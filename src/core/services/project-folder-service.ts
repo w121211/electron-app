@@ -36,7 +36,7 @@ export interface HighlightToken {
 
 // Extend the base FileSearchResult with highlight tokens for UI
 export interface ProjectFileSearchResult extends FileSearchResult {
-  highlightTokens?: HighlightToken[]; // structured highlight tokens for UI
+  highlightTokens: HighlightToken[]; // structured highlight tokens for UI
 }
 
 export type ProjectFolderUpdateType =
@@ -360,7 +360,10 @@ export class ProjectFolderService {
 
     // If no query, return all filtered files (limited)
     if (!query.trim()) {
-      return filteredFiles.slice(0, limit);
+      return filteredFiles.slice(0, limit).map((file) => ({
+        ...file,
+        highlightTokens: [], // No highlighting for non-searched results
+      }));
     }
 
     // Prepare files for fuzzy search

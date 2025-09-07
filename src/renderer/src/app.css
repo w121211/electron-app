@@ -4,6 +4,7 @@
 @theme {
   /* Using system default fonts instead. */
   /* --font-sans: Inter, "Segoe UI", Arial, sans-serif; */
+  /* --font-sans: "Segoe UI"; */
 
   /* Minimal Palette */
   --color-background: #181818; /* Universal background for content, panels, sidebars */
@@ -21,7 +22,6 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  /* font-family: "Inter", "Segoe UI", "Arial", sans-serif; */
 }
 
 #app {

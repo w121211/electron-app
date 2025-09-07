@@ -430,16 +430,16 @@
           ></textarea>
 
           <!-- File Search Dropdown -->
-          <FileSearchDropdown
-            results={fileSearchState.results}
-            selectedIndex={fileSearchState.selectedIndex}
-            visible={fileSearchState.showMenu && !uiState.promptEditorOpen}
-            loading={fileSearchState.isSearching}
-            onselect={handleFileSelect}
-            oncancel={handleSearchCancel}
-            onhover={handleSearchHover}
-            class="absolute top-full right-0 left-0 mt-1"
-          />
+          {#if !uiState.promptEditorOpen && fileSearchState.showMenu}
+            <FileSearchDropdown
+              results={fileSearchState.results}
+              selectedIndex={fileSearchState.selectedIndex}
+              onselect={handleFileSelect}
+              oncancel={handleSearchCancel}
+              onhover={handleSearchHover}
+              class="absolute top-full right-0 left-0 mt-1"
+            />
+          {/if}
         </div>
 
         <!-- Controls under input -->
