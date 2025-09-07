@@ -12,19 +12,19 @@
   <style type="text/tailwindcss">
     /* @theme is a Tailwind CSS v4 feature */
     @theme {
-        --color-background: #131314;
-        --color-surface: #131314;
-        --color-panel: #1c1c1e;
-        --color-border: #2a2a2a;
-        --color-foreground: #e4e4e6;
-        --color-muted: #8e8e93;
-        --color-accent: #60a5fa;
-        --color-hover: #2c2c2e;
-        --color-selected: #28282a;
-        --color-input-background: #1d1d1f;
-        --color-input-border: #333333;
+        /* Minimal Palette */
+        --color-background: #181818; /* Universal background for content, panels, sidebars */
+        --color-surface: #1F1F1F; /* Text input background */
+        --color-border: #2B2B2B;
+        --color-muted: #9D9D9D;
+        --color-hover: #2B2B2B;
+        --color-selected: #2B2B2B; /* Same as hover */
+        --color-accent: #5D6D7E;
+        --color-foreground: #CCCCCC;
+        /* --color-panel: Removed - now use background widely */
 
-        --font-family-sans: "Inter", "Segoe UI", "Arial", sans-serif;
+        /* Using system default fonts instead. */
+        /* --font-sans: "Inter", "Segoe UI", "Arial", sans-serif; */
       }
 
       /* Minimal custom CSS - only what Tailwind can't handle */
@@ -44,7 +44,7 @@
 <body class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <aside class="bg-surface border-border flex w-64 flex-col border-r">
+    <aside class="bg-background border-border flex w-64 flex-col border-r">
       <!-- Section 1: Top Icons (Fixed) -->
       <div class="flex h-12 items-center justify-start px-4">
         <div class="flex items-center gap-2">
@@ -244,7 +244,7 @@
       <!-- Chat Conversation Panel -->
       <section class="flex min-w-0 flex-1 flex-col">
         <!-- Breadcrumb Header -->
-        <header class="bg-surface flex h-12 items-center justify-between px-4">
+        <header class="bg-background flex h-12 items-center justify-between px-4">
           <div class="flex items-center gap-2">
             <span class="text-muted text-xs">my-ai-project</span>
             <i class="bi bi-chevron-right text-muted text-xs"></i>
@@ -332,7 +332,7 @@
                 Here's a wireframe artifact for your chat UI. You can preview or download it.<br />
                 <div class="mt-2">
                   <button
-                    class="border-border bg-panel hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
+                    class="border-border bg-background hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
                     onclick="previewFile('wireframe.html')">
                     wireframe.html
                     <span class="text-muted text-xs">v3</span>
@@ -355,7 +355,7 @@
         <!-- Input Area -->
         <footer class="bg-background px-6 py-3">
           <div class="mx-auto max-w-3xl">
-            <div class="bg-input-background rounded-3xl p-2 flex items-center gap-2 border border-border">
+            <div class="bg-surface rounded-3xl p-2 flex items-center gap-2 border border-border">
               <textarea rows="3" placeholder="Prompt, use '/' for commands, or @path/to/file (Enter to send)"
                 class="bg-transparent border-none resize-none text-foreground w-full min-h-[72px] leading-6 px-2 outline-none text-[15px] placeholder-muted placeholder:text-sm"></textarea>
             </div>
@@ -373,7 +373,7 @@
                     <i class="bi bi-chevron-down"></i>
                   </button>
                   <div
-                    class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border shadow-lg">
+                    class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border shadow-lg">
                     <div class="py-1">
                       <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Claude
                         3.5</a>
@@ -396,7 +396,7 @@
       </section>
 
       <!-- Right Panel -->
-      <aside class="bg-surface border-border relative flex w-96 flex-col border-l">
+      <aside class="bg-background border-border relative flex w-96 flex-col border-l">
         <!-- Preview Overlay -->
         <div class="bg-surface absolute inset-0 z-20 hidden" id="preview-panel">
           <div class="flex h-12 items-center justify-between px-4">
@@ -451,8 +451,7 @@
 
               <!-- Context content -->
               <div class="px-2 pb-1">
-                <div
-                  class="bg-input-background border-input-border text-muted min-h-[100px] rounded-md border p-3 text-sm">
+                <div class="bg-surface border-border text-muted min-h-[100px] rounded-md border p-3 text-sm">
                   <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
                     onclick="previewFile('demo.md')">
                     @&lt;demo-project&gt;/demo.md</button><br />

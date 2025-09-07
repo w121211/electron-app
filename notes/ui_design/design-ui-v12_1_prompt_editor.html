@@ -12,19 +12,19 @@
   <style type="text/tailwindcss">
     /* @theme is a Tailwind CSS v4 feature */
     @theme {
-        --color-background: #131314;
-        --color-surface: #131314;
-        --color-panel: #1c1c1e;
-        --color-border: #2a2a2a;
-        --color-foreground: #e4e4e6;
-        --color-muted: #8e8e93;
-        --color-accent: #60a5fa;
-        --color-hover: #2c2c2e;
-        --color-selected: #28282a;
-        --color-input-background: #1d1d1f;
-        --color-input-border: #333333;
+        /* Minimal Palette */
+        --color-background: #181818; /* Universal background for content, panels, sidebars */
+        --color-surface: #1F1F1F; /* Text input background */
+        --color-border: #2B2B2B;
+        --color-muted: #9D9D9D;
+        --color-hover: #2B2B2B;
+        --color-selected: #2B2B2B; /* Same as hover */
+        --color-accent: #5D6D7E;
+        --color-foreground: #CCCCCC;
+        /* --color-panel: Removed - now use background widely */
 
-        --font-family-sans: "Inter", "Segoe UI", "Arial", sans-serif;
+        /* Using system default for better native appearance */
+        /* --font-sans: "Inter", "Segoe UI", "Arial", sans-serif; */
       }
 
       /* Minimal custom CSS - only what Tailwind can't handle */
@@ -44,7 +44,7 @@
 <body class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <aside class="bg-surface border-border flex w-64 flex-col border-r">
+    <aside class="bg-background border-border flex w-64 flex-col border-r">
       <!-- Section 1: Top Icons (Fixed) -->
       <div class="flex h-12 items-center justify-start px-4">
         <div class="flex items-center gap-2">
@@ -138,56 +138,63 @@
     </aside>
 
     <!-- Main Workspace -->
-    <main class="flex min-w-0 flex-1 justify-center">
+    <main class="bg-surface flex min-w-0 flex-1 justify-center">
       <!-- Chat Conversation Panel -->
       <section class="flex min-w-0 flex-1 flex-col relative max-w-4xl">
 
         <!-- Prompt Edit Mode Panel (Visible) -->
-        <div id="edit-mode-panel" class="bg-background absolute inset-0 z-30 flex flex-col">
-          <!-- Breadcrumb -->
-          <div class="flex h-10 flex-shrink-0 items-center px-4">
+        <div id="edit-mode-panel" class="absolute inset-0 z-30 flex flex-col">
+          <!-- Header with Breadcrumb -->
+          <header class="flex h-10 flex-shrink-0 items-center px-4">
             <div class="flex items-center gap-2">
               <span class="text-muted text-xs">my-ai-project</span>
               <i class="bi bi-chevron-right text-muted text-xs"></i>
               <span class="text-muted text-xs">design-discussion.chat.json</span>
             </div>
-          </div>
-          <!-- Header -->
-          <header class="bg-surface flex h-12 flex-shrink-0 items-center justify-between px-4">
-            <!-- Left Controls -->
-            <div class="flex items-center gap-3">
-              <button title="Attach" class="text-muted hover:text-accent cursor-pointer">
-                <i class="bi bi-paperclip"></i>
-              </button>
-              <!-- Model selector dropdown -->
-              <div class="relative">
-                <button class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm"
-                  title="Select Model">
-                  <span id="selected-model">Claude 3.5</span>
-                  <i class="bi bi-chevron-down"></i>
+          </header>
+
+          <!-- Prompt Editor -->
+          <div class="flex-1 flex flex-col">
+            <!-- Editor Toolbar -->
+            <div class="bg-surface flex h-12 flex-shrink-0 items-center justify-between px-4">
+              <!-- Left Controls -->
+              <div class="flex items-center gap-3">
+                <button title="Attach" class="text-muted hover:text-accent cursor-pointer">
+                  <i class="bi bi-paperclip"></i>
                 </button>
-                <div class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border">
-                  <div class="py-1">
-                    <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Claude
-                      3.5</a>
-                    <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">GPT-4</a>
-                    <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Gemini
-                      Pro</a>
+                <!-- Model selector dropdown -->
+                <div class="relative">
+                  <button class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm"
+                    title="Select Model">
+                    <span id="selected-model">Claude 3.5</span>
+                    <i class="bi bi-chevron-down"></i>
+                  </button>
+                  <div
+                    class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border">
+                    <div class="py-1">
+                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Claude
+                        3.5</a>
+                      <a href="#"
+                        class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">GPT-4</a>
+                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Gemini
+                        Pro</a>
+                    </div>
                   </div>
                 </div>
               </div>
+              <!-- Right Controls -->
+              <div class="flex items-center gap-2">
+                <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Close Prompt Editor">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
             </div>
-            <!-- Right Controls -->
-            <div class="flex items-center gap-2">
-              <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Close Prompt Editor">
-                <i class="bi bi-x-lg"></i>
-              </button>
+
+            <!-- Editor Textarea -->
+            <div class="bg-surface flex-1 p-2 flex flex-col">
+              <textarea id="edit-textarea" placeholder="Prompt editor, use '/' for commands, or @path/to/file"
+                class="border-none scrollbar-thin h-full w-full resize-none p-4 text-[15px] leading-6 outline-none flex-1 placeholder-muted placeholder:text-sm">I want a chat UI that feels modern and professional, like VS Code but for conversations.</textarea>
             </div>
-          </header>
-          <!-- Textarea -->
-          <div class="flex-1 p-2 flex flex-col">
-            <textarea id="edit-textarea" placeholder="Prompt editor, use '/' for commands, or @path/to/file"
-              class="bg-transparent border-none scrollbar-thin h-full w-full resize-none p-4 text-[15px] leading-6 outline-none flex-1 placeholder-muted placeholder:text-sm">I want a chat UI that feels modern and professional, like VS Code but for conversations.</textarea>
           </div>
         </div>
 
