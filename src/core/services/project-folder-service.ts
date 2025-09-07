@@ -11,7 +11,7 @@ import {
   createFolderAtPath,
   generateUniqueFileName,
   validateProjectFolderPath,
-  getSearchableFiles,
+  getSearchablePaths,
   buildFolderTree,
   validateFileName,
   type FolderTreeNode,
@@ -333,7 +333,7 @@ export class ProjectFolderService {
   }
 
   /**
-   * Search for files in a specific project using fuzzy search
+   * Search for files and folders in a specific project using fuzzy search
    */
 
   public async searchFilesInProject(
@@ -342,7 +342,7 @@ export class ProjectFolderService {
     limit: number = 20,
   ): Promise<ProjectFileSearchResult[]> {
     this.logger.info(
-      `Searching files in project ${projectPath} with query: ${query}`,
+      `Searching paths in project ${projectPath} with query: ${query}`,
     );
 
     // Find the project folder by path
@@ -355,21 +355,21 @@ export class ProjectFolderService {
       throw new Error(`Project folder not found: ${projectPath}`);
     }
 
-    // Get searchable files using .gitignore rules
-    const filteredFiles = await getSearchableFiles(projectFolder.path);
+    // Get searchable paths using .gitignore rules
+    const filteredPaths = await getSearchablePaths(projectFolder.path);
 
-    // If no query, return all filtered files (limited)
+    // If no query, return all filtered paths (limited)
     if (!query.trim()) {
-      return filteredFiles.slice(0, limit).map((file) => ({
-        ...file,
+      return filteredPaths.slice(0, limit).map((item) => ({
+        ...item,
         highlightTokens: [], // No highlighting for non-searched results
       }));
     }
 
-    // Prepare files for fuzzy search
-    const targets = filteredFiles.map((file) => ({
-      file,
-      prepared: fuzzysort.prepare(file.name),
+    // Prepare paths for fuzzy search on relative path
+    const targets = filteredPaths.map((item) => ({
+      item,
+      prepared: fuzzysort.prepare(item.relativePath),
     }));
 
     // Perform fuzzy search
@@ -381,9 +381,9 @@ export class ProjectFolderService {
 
     // Convert results to FileSearchResult format
     return results.map((result) => ({
-      name: result.obj.file.name,
-      relativePath: result.obj.file.relativePath,
-      absolutePath: result.obj.file.absolutePath,
+      name: result.obj.item.name,
+      relativePath: result.obj.item.relativePath,
+      absolutePath: result.obj.item.absolutePath,
       score: result.score,
 
       // See fuzzysort docs for highlight usage:

@@ -100,7 +100,7 @@
 {:else if isUser}
   <!-- User Message -->
   <div class="group flex w-full flex-col items-end">
-    <div class="bg-[#2c2c2e] text-foreground rounded-2xl py-2.5 px-4 max-w-[80%]">
+    <div class="text-foreground bg-surface max-w-[80%] rounded-2xl px-4 py-2.5">
       <!-- Content Parts -->
       {#each getContentParts(message.content) as part, index (index)}
         {#if part.type === "text"}
@@ -144,7 +144,7 @@
 
     <!-- Message Actions -->
     <div
-      class="mt-1 mr-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+      class="mt-1 mr-2 flex items-center gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
     >
       <button
         onclick={() => handleEditMessage()}
@@ -165,10 +165,6 @@
   )}
 
   <div class="group flex flex-col items-start">
-    <div class="mb-1 flex items-center gap-2">
-      <span class="text-muted text-sm font-medium">Claude Sonnet 4</span>
-    </div>
-
     <div class="text-foreground leading-normal">
       <!-- Content Parts -->
       {#each contentParts as part, index (index)}
@@ -217,7 +213,9 @@
           >
             wireframe.html
             <span class="text-muted text-xs">v3</span>
-            <Download class="text-muted hover:text-accent ml-1 cursor-pointer" />
+            <Download
+              class="text-muted hover:text-accent ml-1 cursor-pointer"
+            />
           </button>
         </div>
       {/if}
@@ -225,7 +223,7 @@
 
     <!-- Message Actions -->
     <div
-      class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+      class="mt-2 flex items-center gap-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
     >
       <button
         onclick={() => handleCopyMessage(message)}

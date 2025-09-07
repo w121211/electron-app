@@ -277,64 +277,76 @@ export async function validateProjectFolderPath(
 async function createIgnoreInstance(
   projectPath: string,
 ): Promise<ReturnType<typeof ignore>> {
+  const defaultIgnores = [
+    "**/.git",
+    "**/.svn",
+    "**/.hg",
+    "**/.DS_Store",
+    "**/Thumbs.db",
+    "**/node_modules/",
+    ".*", // dot files
+    "**/*.tmp",
+    "**/*.log",
+  ];
+
   try {
     const gitignorePath = path.join(projectPath, ".gitignore");
     const gitignoreContent = await fs.readFile(gitignorePath, "utf8");
-    return ignore().add(gitignoreContent);
+    return ignore().add(defaultIgnores).add(gitignoreContent);
   } catch (error) {
     // .gitignore doesn't exist or can't be read, use default ignores
-    return ignore().add([
-      ".*", // dot files
-      "node_modules/**",
-      "**/*.tmp",
-      "**/*.log",
-    ]);
+    return ignore().add(defaultIgnores);
   }
 }
 
-async function getFilesWithIgnore(
-  dirPath: string,
-  projectRoot: string,
+async function getPathsWithIgnore(
+  currentDir: string,
+  rootDir: string,
   ig: ReturnType<typeof ignore>,
 ): Promise<string[]> {
-  const files: string[] = [];
+  const paths: string[] = [];
 
   try {
-    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const entries = await fs.readdir(currentDir, { withFileTypes: true });
 
     for (const entry of entries) {
-      const fullPath = path.join(dirPath, entry.name);
-      const relativePath = path.relative(projectRoot, fullPath);
+      const entryAbsolutePath = path.join(currentDir, entry.name);
+      const entryRelativePath = path.relative(rootDir, entryAbsolutePath);
 
       // Test with ignore rules - if ignored, skip this entry
       if (
-        relativePath &&
-        ig.ignores(relativePath + (entry.isDirectory() ? "/" : ""))
+        entryRelativePath &&
+        ig.ignores(entryRelativePath + (entry.isDirectory() ? "/" : ""))
       ) {
         continue;
       }
 
       if (entry.isDirectory()) {
-        const subFiles = await getFilesWithIgnore(fullPath, projectRoot, ig);
-        files.push(...subFiles);
+        paths.push(entryAbsolutePath); // Add directory to results
+        const subPaths = await getPathsWithIgnore(
+          entryAbsolutePath,
+          rootDir,
+          ig,
+        );
+        paths.push(...subPaths);
       } else {
-        files.push(fullPath);
+        paths.push(entryAbsolutePath);
       }
     }
   } catch (error) {
     // Skip directories we can't read
   }
 
-  return files;
+  return paths;
 }
 
-export async function getSearchableFiles(
+export async function getSearchablePaths(
   projectPath: string,
 ): Promise<FileSearchResult[]> {
   const ig = await createIgnoreInstance(projectPath);
-  const allowedFiles = await getFilesWithIgnore(projectPath, projectPath, ig);
+  const absolutePaths = await getPathsWithIgnore(projectPath, projectPath, ig);
 
-  return allowedFiles.map((absolutePath) => {
+  return absolutePaths.map((absolutePath) => {
     const relativePath = path.relative(projectPath, absolutePath);
     return {
       name: path.basename(relativePath),
