@@ -230,6 +230,12 @@
     { value: "terminal/claude-code", label: "Gemini Pro" },
   ];
 
+  const selectedModelLabel = $derived(() => {
+    if (!chatState.selectedModel) return "";
+    const model = modelOptions.find((m) => m.value === chatState.selectedModel);
+    return model?.label || chatState.selectedModel;
+  });
+
   // Close model dropdown when clicking outside
   $effect(() => {
     function handleClickOutside(event: MouseEvent): void {
@@ -312,11 +318,14 @@
   });
 </script>
 
-<section class="relative flex min-w-0 flex-1 flex-col">
+<section
+  class="relative flex min-w-0 flex-1 flex-col"
+  class:bg-surface={uiState.promptEditorOpen}
+>
   {#if hasCurrentChat}
     <!-- Breadcrumb Header -->
-    <header class="bg-background flex h-12 items-center justify-between px-4">
-      <div class="flex items-center gap-2">
+    <header class="flex h-12 items-center justify-between px-4">
+      <div class="flex items-center gap-1">
         <!-- Show navigation buttons when left panel is closed -->
         {#if !uiState.leftPanelOpen}
           <button
@@ -349,6 +358,9 @@
             >
             <ChevronRight class="text-muted text-xs" />
             <span class="text-muted text-xs">{breadcrumb.fileName}</span>
+            {#if currentChatMessages.length > 0}
+              <span class="text-muted text-xs">[{selectedModelLabel()}]</span>
+            {/if}
           {/if}
         {/if}
       </div>
@@ -377,132 +389,132 @@
       </div>
     </header>
 
-    <!-- Prompt Editor Overlay -->
+    <!-- Prompt Editor / Messages -->
     {#if uiState.promptEditorOpen}
       <PromptEditor />
-    {/if}
+    {:else}
+      <!-- Messages -->
+      <div
+        bind:this={messagesContainer}
+        class="scrollbar-thin flex-1 overflow-y-auto px-8 py-6"
+      >
+        <div class="mx-auto max-w-3xl space-y-12">
+          {#each currentChatMessages as chatMessage (chatMessage.id)}
+            <ChatMessage {chatMessage} />
+          {/each}
 
-    <!-- Messages -->
-    <div
-      bind:this={messagesContainer}
-      class="scrollbar-thin flex-1 overflow-y-auto px-8 py-6"
-    >
-      <div class="mx-auto max-w-3xl space-y-12">
-        {#each currentChatMessages as chatMessage (chatMessage.id)}
-          <ChatMessage {chatMessage} />
-        {/each}
+          <!-- AI Generation Display -->
+          {#if chatState.currentChat?.sessionStatus === "processing"}
+            <AiGenerationDisplay chatSession={chatState.currentChat} />
+          {/if}
 
-        <!-- AI Generation Display -->
-        {#if chatState.currentChat?.sessionStatus === "processing"}
-          <AiGenerationDisplay chatSession={chatState.currentChat} />
-        {/if}
-
-        <!-- Tool Call Confirmation Block -->
-        {#if chatState.currentChat?.sessionStatus === "waiting_confirmation"}
-          {@const lastMessage =
-            currentChatMessages[currentChatMessages.length - 1]?.message}
-          <ToolCallConfirmation
-            chatId={chatState.currentChat.id}
-            absoluteFilePath={chatState.currentChat.absoluteFilePath}
-            lastAssistantMessage={lastMessage}
-          />
-        {/if}
-      </div>
-    </div>
-
-    <!-- Input Area -->
-    <footer class="bg-background px-6 py-4">
-      <div class="mx-auto max-w-3xl">
-        <div
-          class="bg-surface border-border relative flex items-center gap-2 rounded-2xl border p-2"
-        >
-          <textarea
-            bind:this={messageInputElement}
-            bind:value={chatState.messageInput}
-            oninput={(e) => handleInputChange(e.currentTarget.value)}
-            onkeypress={handleKeyPress}
-            onkeydown={handleKeyPress}
-            placeholder="How can I help?"
-            class="text-foreground placeholder-muted min-h-[72px] w-full resize-none border-none bg-transparent px-2 text-[15px] leading-6 outline-none"
-            style="height: auto;"
-            disabled={isLoadingSubmitMessage ||
-              chatState.currentChat?.sessionStatus !== "idle"}
-          ></textarea>
-
-          <!-- File Search Dropdown -->
-          {#if !uiState.promptEditorOpen && fileSearchState.showMenu}
-            <FileSearchDropdown
-              results={fileSearchState.results}
-              selectedIndex={fileSearchState.selectedIndex}
-              onselect={handleFileSelect}
-              oncancel={handleSearchCancel}
-              onhover={handleSearchHover}
-              class="absolute top-full right-0 left-0 mt-1"
+          <!-- Tool Call Confirmation Block -->
+          {#if chatState.currentChat?.sessionStatus === "waiting_confirmation"}
+            {@const lastMessage =
+              currentChatMessages[currentChatMessages.length - 1]?.message}
+            <ToolCallConfirmation
+              chatId={chatState.currentChat.id}
+              absoluteFilePath={chatState.currentChat.absoluteFilePath}
+              lastAssistantMessage={lastMessage}
             />
           {/if}
         </div>
+      </div>
 
-        <!-- Controls under input -->
-        <div class="mt-2 flex items-center justify-between px-4">
-          <div class="flex items-center gap-3">
-            <button
-              title="Attach"
-              class="text-muted hover:text-accent cursor-pointer"
-            >
-              <Paperclip />
-            </button>
-            <!-- Model selector dropdown -->
-            <div class="relative">
+      <!-- Input Area -->
+      <footer class="bg-background px-6 py-4">
+        <div class="mx-auto max-w-3xl">
+          <div
+            class="bg-surface border-border relative flex items-center gap-2 rounded-2xl border p-2"
+          >
+            <textarea
+              bind:this={messageInputElement}
+              bind:value={chatState.messageInput}
+              oninput={(e) => handleInputChange(e.currentTarget.value)}
+              onkeypress={handleKeyPress}
+              onkeydown={handleKeyPress}
+              placeholder="How can I help?"
+              class="text-foreground placeholder-muted min-h-[72px] w-full resize-none border-none bg-transparent px-2 text-[15px] leading-6 outline-none"
+              style="height: auto;"
+              disabled={isLoadingSubmitMessage ||
+                chatState.currentChat?.sessionStatus !== "idle"}
+            ></textarea>
+
+            <!-- File Search Dropdown -->
+            {#if !uiState.promptEditorOpen && fileSearchState.showMenu}
+              <FileSearchDropdown
+                results={fileSearchState.results}
+                selectedIndex={fileSearchState.selectedIndex}
+                onselect={handleFileSelect}
+                oncancel={handleSearchCancel}
+                onhover={handleSearchHover}
+                class="absolute top-full right-0 left-0 mt-1"
+              />
+            {/if}
+          </div>
+
+          <!-- Controls under input -->
+          <div class="mt-2 flex items-center justify-between px-4">
+            <div class="flex items-center gap-3">
               <button
-                onclick={toggleModelDropdown}
-                class="text-muted hover:text-accent disabled:hover:text-muted flex cursor-pointer items-center gap-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                title="Select Model"
-                disabled={chatState.currentChat &&
-                  chatState.currentChat.messages.length > 0}
+                title="Attach"
+                class="text-muted hover:text-accent cursor-pointer"
               >
-                <span id="selected-model"
-                  >{modelOptions.find(
-                    (m) => m.value === chatState.selectedModel,
-                  )?.label || "Claude 3.5"}</span
-                >
-                {#if !(chatState.currentChat && chatState.currentChat.messages.length > 0)}
-                  <ChevronDown class="text-xs" />
-                {/if}
+                <Paperclip />
               </button>
-
-              <!-- Dropdown menu -->
-              {#if showModelDropdown}
-                <div
-                  class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 w-36 rounded-md border"
+              <!-- Model selector dropdown -->
+              <div class="relative">
+                <button
+                  onclick={toggleModelDropdown}
+                  class="text-muted hover:text-accent disabled:hover:text-muted flex cursor-pointer items-center gap-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                  title="Select Model"
+                  disabled={chatState.currentChat &&
+                    chatState.currentChat.messages.length > 0}
                 >
-                  <div class="py-1">
-                    {#each modelOptions as option (option.value)}
-                      <button
-                        onclick={() => selectModel(option.value)}
-                        class="text-foreground hover:bg-hover block w-full cursor-pointer px-3 py-1 text-left text-sm"
-                        class:bg-hover={option.value ===
-                          chatState.selectedModel}
-                      >
-                        {option.label}
-                      </button>
-                    {/each}
+                  <span id="selected-model"
+                    >{modelOptions.find(
+                      (m) => m.value === chatState.selectedModel,
+                    )?.label || "Claude 3.5"}</span
+                  >
+                  {#if !(chatState.currentChat && chatState.currentChat.messages.length > 0)}
+                    <ChevronDown class="text-xs" />
+                  {/if}
+                </button>
+
+                <!-- Dropdown menu -->
+                {#if showModelDropdown}
+                  <div
+                    class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 w-36 rounded-md border"
+                  >
+                    <div class="py-1">
+                      {#each modelOptions as option (option.value)}
+                        <button
+                          onclick={() => selectModel(option.value)}
+                          class="text-foreground hover:bg-hover block w-full cursor-pointer px-3 py-1 text-left text-sm"
+                          class:bg-hover={option.value ===
+                            chatState.selectedModel}
+                        >
+                          {option.label}
+                        </button>
+                      {/each}
+                    </div>
                   </div>
-                </div>
-              {/if}
+                {/if}
+              </div>
+            </div>
+            <div class="flex items-center">
+              <button
+                onclick={chatService.togglePromptEditor}
+                title="Prompt Editor"
+                class="text-muted hover:text-accent cursor-pointer"
+              >
+                <PencilSquare />
+              </button>
             </div>
           </div>
-          <div class="flex items-center">
-            <button
-              onclick={chatService.togglePromptEditor}
-              title="Prompt Editor"
-              class="text-muted hover:text-accent cursor-pointer"
-            >
-              <PencilSquare />
-            </button>
-          </div>
         </div>
-      </div>
-    </footer>
+      </footer>
+    {/if}
   {:else}
     <!-- No Chat Selected -->
     <div class="bg-background flex flex-1 items-center justify-center">

@@ -175,7 +175,7 @@ export class UserSettingsService {
         }
       }
     }
-    this.logger.debug(process.env);
+    // this.logger.debug(process.env);
   }
 
   private async validateWorkspaceDirectory(

@@ -2,14 +2,18 @@
 import { Logger } from "tslog";
 import { trpcClient } from "../lib/trpc-client.js";
 import { isTerminalModel } from "../../../core/utils/model-utils.js";
+import type {
+  ExternalModel,
+  InternalModel,
+} from "../../../core/services/model-service.js";
 import {
   chatState,
   setCurrentChat,
   clearCurrentChat,
   clearMessageInput,
+  type ModelOption,
 } from "../stores/chat-store.svelte.js";
 import { uiState } from "../stores/ui-store.svelte.js";
-import { projectState } from "../stores/project-store.svelte.js";
 import {
   selectFile,
   expandParentDirectories,
@@ -227,12 +231,41 @@ class ChatService {
   }
 
   async getAvailableModels() {
-    setLoading("getModels", true);
+    chatState.modelsLoading = true;
 
     try {
       this.logger.info("Getting available models...");
-      const models = await trpcClient.chatClient.getAvailableModels.query();
-      this.logger.info(`Loaded ${models.length} models`);
+      const models = await trpcClient.model.getAvailableModels.query();
+
+      // Transform AvailableModels object to ModelOption array
+      const modelOptions: ModelOption[] = [];
+
+      // Add external models
+      Object.entries(models.external).forEach(([id, model]) => {
+        const externalModel = model;
+        modelOptions.push({
+          id,
+          // name: id.split("/")[1] || id, // Use model name after slash
+          provider: "terminal",
+          enabled: externalModel.enabled,
+        });
+      });
+
+      // // Add internal models
+      // Object.entries(models.internal).forEach(([id, model]) => {
+      //   const internalModel = model;
+      //   modelOptions.push({
+      //     id,
+      //     // name: internalModel.modelId,
+      //     provider: internalModel.provider,
+      //     enabled: internalModel.enabled,
+      //   });
+      // });
+
+      this.logger.info(`Loaded ${modelOptions.length} models`);
+      // setAvailableModels(modelOptions);
+      chatState.availableModels = modelOptions;
+
       return models;
     } catch (error) {
       this.logger.error("Failed to get available models:", error);
@@ -242,7 +275,8 @@ class ChatService {
       );
       throw error;
     } finally {
-      setLoading("getModels", false);
+      // setModelsLoading(false);
+      chatState.modelsLoading = false;
     }
   }
 

@@ -16,7 +16,6 @@ import type {
   ChatSessionData,
   ChatSessionRepository,
 } from "./chat-session-repository.js";
-import type { ModelRegistry } from "./types.js";
 import { ExternalChatSession } from "./external-chat-session.js";
 import type { ExternalTurnResult } from "./external-chat-session.js";
 
@@ -518,10 +517,6 @@ export class ChatClient<TOOLS extends ToolSet> {
   }
 
 
-  async getAvailableModels(): Promise<ModelRegistry[]> {
-    // Get available models from ai provider utils
-    throw new Error("Method not implemented.");
-  }
 
   private createChatSessionFromData(data: ChatSessionData): ChatSession<TOOLS> | ExternalChatSession {
     if (data._type === "external_chat") {

@@ -8,8 +8,8 @@ const terminalCommands = {
   "terminal/claude-code": { command: "claude", args: [] },
   "terminal/gemini-cli": { command: "gemini", args: [] },
   "terminal/codex": { command: "codex", args: [] },
-  "terminal/cursor": { command: "cursor", args: ["."] },
-  "terminal/vscode": { command: "code", args: ["."] },
+  // "terminal/cursor": { command: "cursor", args: ["."] },
+  // "terminal/vscode": { command: "code", args: ["."] },
 } as const;
 
 export interface LaunchTerminalResult {
@@ -147,13 +147,6 @@ export function launchTerminal(
 
     if (platform === "darwin") {
       return launchMacOSTerminal(macOSTerminal, fullCommand, cwd);
-
-      child.unref();
-
-      return {
-        success: true,
-        pid: child.pid,
-      };
     } else if (platform === "win32") {
       // Windows: Use cmd to open Command Prompt
       const child = spawn(

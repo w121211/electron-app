@@ -16,12 +16,12 @@
   let promptEditorTextarea = $state<HTMLTextAreaElement>();
   let showModelDropdown = $state(false);
 
-  // Chat mode and model options
-  const modelOptions = [
-    { value: "anthropic/claude", label: "Claude 3.5" },
-    { value: "google/gemini", label: "GPT-4" },
-    { value: "terminal/claude-code", label: "Gemini Pro" },
-  ];
+  // Load models when component mounts
+  $effect(() => {
+    if (chatState.availableModels.length === 0) {
+      chatService.getAvailableModels();
+    }
+  });
 
   // Auto-focus textarea when opened and restore cursor position
   $effect(() => {
@@ -111,7 +111,7 @@
 </script>
 
 <div
-  class="bg-background absolute top-10 right-0 bottom-0 left-0 z-30 mx-auto flex max-w-3xl flex-col px-6 py-3"
+  class="bg-surface mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-3"
 >
   <!-- Header -->
   <div class="flex h-8 items-center justify-between pl-3" role="toolbar">
@@ -121,21 +121,18 @@
         title="Attach"
         class="text-muted hover:text-accent cursor-pointer"
       >
-        <Paperclip />
+        <Paperclip width="14" height="14" />
       </button>
       <!-- Model selector dropdown -->
       <div class="relative">
         <button
           onclick={toggleModelDropdown}
-          class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-xs"
+          class="text-muted hover:text-accent flex cursor-pointer items-center gap-1"
           title="Select Model"
           disabled={chatState.currentChat &&
             chatState.currentChat.messages.length > 0}
         >
-          <span
-            >{modelOptions.find((m) => m.value === chatState.selectedModel)
-              ?.label || "Claude 3.5"}</span
-          >
+          <span class="text-sm">{chatState.selectedModel}</span>
           {#if !(chatState.currentChat && chatState.currentChat.messages.length > 0)}
             <ChevronDown />
           {/if}
@@ -143,16 +140,16 @@
         <!-- Dropdown menu -->
         {#if showModelDropdown}
           <div
-            class="bg-background border-border absolute top-full left-0 z-10 mt-1 w-36 rounded-md border"
+            class="bg-background border-border absolute left-0 z-10 mt-1 w-max rounded-md border"
           >
             <div class="py-1">
-              {#each modelOptions as option (option.value)}
+              {#each chatState.availableModels as option (option.id)}
                 <button
-                  onclick={() => selectModel(option.value)}
+                  onclick={() => selectModel(option.id)}
                   class="text-foreground hover:bg-hover block w-full cursor-pointer px-3 py-1 text-left text-sm"
-                  class:bg-hover={option.value === chatState.selectedModel}
+                  class:bg-hover={option.id === chatState.selectedModel}
                 >
-                  {option.label}
+                  {option.id}
                 </button>
               {/each}
             </div>
