@@ -25,6 +25,7 @@
   import ChatMessage from "./ChatMessage.svelte";
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
   import FileSearchDropdown from "./file-explorer/FileSearchDropdown.svelte";
+  import ModelSelectorDropdown from "../components-new-ui/chat/ModelSelectorDropdown.svelte";
 
   const logger = new Logger({ name: "ChatPanel" });
 
@@ -213,21 +214,12 @@
     showToast("Chat summary functionality coming soon", "info");
   }
 
-  // Chat mode and model options
+  // Chat mode options
   const chatModeOptions = [
     { value: "agent", label: "Agent" },
     { value: "chat", label: "Chat" },
   ];
 
-  const modelOptions = [
-    { value: "anthropic/claude", label: "Claude 3.7" },
-    { value: "google/gemini", label: "Gemini 2.5 Pro" },
-    { value: "terminal/claude-code", label: "Claude Code (Terminal)" },
-    { value: "terminal/gemini-cli", label: "Gemini CLI (Terminal)" },
-    { value: "terminal/codex", label: "Codex (Terminal)" },
-    { value: "terminal/cursor", label: "Cursor (Terminal)" },
-    { value: "terminal/vscode", label: "VS Code (Terminal)" },
-  ];
 
   // Cleanup timeouts on component destroy using $effect
   $effect(() => {
@@ -351,16 +343,7 @@
         </select>
 
         <!-- Model Select -->
-        <select
-          bind:value={chatState.selectedModel}
-          disabled={chatState.currentChat &&
-            chatState.currentChat.messages.length > 0}
-          class="bg-panel border-border hover:bg-hover focus:border-accent text-muted rounded border px-3 py-1 text-xs focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {#each modelOptions as option, index (index)}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
+        <ModelSelectorDropdown />
 
         <button
           onclick={handleWhatsNext}

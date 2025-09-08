@@ -1,11 +1,10 @@
 // src/renderer/src/services/chat-service.ts
 import { Logger } from "tslog";
-import { trpcClient } from "../lib/trpc-client.js";
+import type { TurnResult } from "../../../core/services/chat-engine/chat-session.js";
+import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository.js";
+import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
 import { isTerminalModel } from "../../../core/utils/model-utils.js";
-import type {
-  ExternalModel,
-  InternalModel,
-} from "../../../core/services/model-service.js";
+import { trpcClient } from "../lib/trpc-client.js";
 import {
   chatState,
   setCurrentChat,
@@ -20,7 +19,6 @@ import {
 } from "../stores/tree-store.svelte.js";
 import { setLoading, showToast } from "../stores/ui-store.svelte.js";
 import { projectService } from "./project-service.js";
-import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
 
 class ChatService {
   private logger = new Logger({ name: "ChatService" });
@@ -91,10 +89,11 @@ class ChatService {
     absoluteFilePath: string,
     chatSessionId: string,
     messageText: string,
+    modelId?: `${string}/${string}`, // modelId is optional
     attachments?: Array<{ fileName: string; content: string }>,
-    modelId?: string,
   ) {
-    setLoading("submitMessage", true);
+    // setLoading("submitMessage", true);
+    chatState.isSubmittingMessage = true;
 
     try {
       this.logger.info("Submitting message to chat:", chatSessionId);
@@ -121,29 +120,27 @@ class ChatService {
         modelId,
       };
 
-      let result;
-
       // Determine which API to call based on model type
       // Use the current chat's modelId or the provided modelId for routing
-      const currentModelId = modelId || chatState.currentChat?.modelId;
+      const currentModelId = modelId ?? chatState.currentChat?.modelId;
 
+      let result: {
+        turnResult: TurnResult;
+        updatedChatSession: ChatSessionData;
+      };
       if (currentModelId && isTerminalModel(currentModelId)) {
-        this.logger.info("Routing to external terminal model:", currentModelId);
         result =
           await trpcClient.chatClient.sendMessageToExternal.mutate(
             messagePayload,
           );
       } else {
-        this.logger.info("Routing to AI model:", currentModelId);
         result = await trpcClient.chatClient.sendMessage.mutate(messagePayload);
       }
-
-      // Update current chat with the returned session data
       setCurrentChat(result.updatedChatSession);
-      clearMessageInput(); // Clear input after successful send
+      clearMessageInput();
+
       showToast("Message sent successfully", "success");
       this.logger.info("Message submitted successfully");
-
       return result;
     } catch (error) {
       this.logger.error("Failed to submit message:", error);
@@ -153,7 +150,7 @@ class ChatService {
       );
       throw error;
     } finally {
-      setLoading("submitMessage", false);
+      chatState.isSubmittingMessage = false;
     }
   }
 
@@ -231,53 +228,36 @@ class ChatService {
   }
 
   async getAvailableModels() {
-    chatState.modelsLoading = true;
+    const models = await trpcClient.model.getAvailableModels.query();
 
-    try {
-      this.logger.info("Getting available models...");
-      const models = await trpcClient.model.getAvailableModels.query();
+    // Transform AvailableModels object to ModelOption array
+    const modelOptions: ModelOption[] = [];
 
-      // Transform AvailableModels object to ModelOption array
-      const modelOptions: ModelOption[] = [];
-
-      // Add external models
-      Object.entries(models.external).forEach(([id, model]) => {
-        const externalModel = model;
-        modelOptions.push({
-          id,
-          // name: id.split("/")[1] || id, // Use model name after slash
-          provider: "terminal",
-          enabled: externalModel.enabled,
-        });
+    // Add external models
+    Object.entries(models.external).forEach(([key, model]) => {
+      const externalModel = model;
+      modelOptions.push({
+        modelId: model.modelId,
+        // name: id.split("/")[1] || id, // Use model name after slash
+        // provider: "terminal",
+        enabled: externalModel.enabled,
       });
+    });
 
-      // // Add internal models
-      // Object.entries(models.internal).forEach(([id, model]) => {
-      //   const internalModel = model;
-      //   modelOptions.push({
-      //     id,
-      //     // name: internalModel.modelId,
-      //     provider: internalModel.provider,
-      //     enabled: internalModel.enabled,
-      //   });
-      // });
+    // // Add internal models
+    // Object.entries(models.internal).forEach(([id, model]) => {
+    //   const internalModel = model;
+    //   modelOptions.push({
+    //     id,
+    //     // name: internalModel.modelId,
+    //     provider: internalModel.provider,
+    //     enabled: internalModel.enabled,
+    //   });
+    // });
 
-      this.logger.info(`Loaded ${modelOptions.length} models`);
-      // setAvailableModels(modelOptions);
-      chatState.availableModels = modelOptions;
+    chatState.availableModels = modelOptions;
 
-      return models;
-    } catch (error) {
-      this.logger.error("Failed to get available models:", error);
-      showToast(
-        `Failed to get models: ${error instanceof Error ? error.message : String(error)}`,
-        "error",
-      );
-      throw error;
-    } finally {
-      // setModelsLoading(false);
-      chatState.modelsLoading = false;
-    }
+    return models;
   }
 
   async deleteChat(absoluteFilePath: string) {

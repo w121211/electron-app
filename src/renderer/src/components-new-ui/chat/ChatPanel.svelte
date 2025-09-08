@@ -7,7 +7,6 @@
     Pencil,
     PencilSquare,
     Paperclip,
-    ChevronDown,
     ChevronRight,
     House,
     Search,
@@ -26,10 +25,7 @@
     showToast,
     toggleLeftPanel,
   } from "../../stores/ui-store.svelte.js";
-  import {
-    fileSearchState,
-    type FileSearchResult,
-  } from "../../stores/file-search-store.svelte.js";
+  import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import { setPreference } from "../../stores/local-preferences-store.svelte.js";
   import { projectState } from "../../stores/project-store.svelte.js";
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
@@ -37,6 +33,7 @@
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
   import FileSearchDropdown from "./FileSearchDropdown.svelte";
   import PromptEditor from "./PromptEditor.svelte";
+  import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
 
   // Derived loading states
   const isLoadingSubmitMessage = $derived(
@@ -72,7 +69,6 @@
   let messageInputElement = $state<HTMLTextAreaElement>();
   let messagesContainer = $state<HTMLDivElement>();
   let draftTimeout: ReturnType<typeof setTimeout>;
-  let showModelDropdown = $state(false);
 
   // Auto-scroll to bottom when new messages arrive using $effect
   $effect(() => {
@@ -136,8 +132,8 @@
       chatState.currentChat.absoluteFilePath,
       chatId,
       message,
-      undefined, // attachments
       modelId,
+      undefined, // attachments
     );
   }
 
@@ -164,15 +160,6 @@
         );
       }, 1500);
     }
-  }
-
-  // Handle file selection from dropdown
-  function handleFileSelect(file: FileSearchResult): void {
-    fileSearchService.handleFileSelect(
-      file,
-      messageInputElement ?? null,
-      chatState.messageInput,
-    );
   }
 
   // Handle search menu cancel
@@ -214,49 +201,9 @@
     showToast("Edit functionality coming soon", "info");
   }
 
-  function toggleModelDropdown(): void {
-    showModelDropdown = !showModelDropdown;
-  }
-
-  function selectModel(modelValue: string): void {
-    chatState.selectedModel = modelValue;
-    showModelDropdown = false;
-  }
-
-  // Chat mode and model options
-  const modelOptions = [
-    { value: "anthropic/claude", label: "Claude 3.5" },
-    { value: "google/gemini", label: "GPT-4" },
-    { value: "terminal/claude-code", label: "Gemini Pro" },
-  ];
-
   const selectedModelLabel = $derived(() => {
     if (!chatState.selectedModel) return "";
-    const model = modelOptions.find((m) => m.value === chatState.selectedModel);
-    return model?.label || chatState.selectedModel;
-  });
-
-  // Close model dropdown when clicking outside
-  $effect(() => {
-    function handleClickOutside(event: MouseEvent): void {
-      const target = event.target as HTMLElement;
-      const modelDropdown = document.querySelector(".relative");
-
-      if (
-        showModelDropdown &&
-        modelDropdown &&
-        !modelDropdown.contains(target)
-      ) {
-        showModelDropdown = false;
-      }
-    }
-
-    if (showModelDropdown) {
-      document.addEventListener("click", handleClickOutside, true);
-      return () =>
-        document.removeEventListener("click", handleClickOutside, true);
-    }
-    return undefined;
+    return chatState.selectedModel;
   });
 
   // Auto-resize textarea when messageInput changes (e.g., from prompt editor)
@@ -445,7 +392,13 @@
               <FileSearchDropdown
                 results={fileSearchState.results}
                 selectedIndex={fileSearchState.selectedIndex}
-                onselect={handleFileSelect}
+                onselect={(file) => {
+                  fileSearchService.handleFileSelect(
+                    file,
+                    messageInputElement ?? null,
+                    chatState.messageInput,
+                  );
+                }}
                 oncancel={handleSearchCancel}
                 onhover={handleSearchHover}
                 class="absolute top-full right-0 left-0 mt-1"
@@ -463,44 +416,7 @@
                 <Paperclip />
               </button>
               <!-- Model selector dropdown -->
-              <div class="relative">
-                <button
-                  onclick={toggleModelDropdown}
-                  class="text-muted hover:text-accent disabled:hover:text-muted flex cursor-pointer items-center gap-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                  title="Select Model"
-                  disabled={chatState.currentChat &&
-                    chatState.currentChat.messages.length > 0}
-                >
-                  <span id="selected-model"
-                    >{modelOptions.find(
-                      (m) => m.value === chatState.selectedModel,
-                    )?.label || "Claude 3.5"}</span
-                  >
-                  {#if !(chatState.currentChat && chatState.currentChat.messages.length > 0)}
-                    <ChevronDown class="text-xs" />
-                  {/if}
-                </button>
-
-                <!-- Dropdown menu -->
-                {#if showModelDropdown}
-                  <div
-                    class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 w-36 rounded-md border"
-                  >
-                    <div class="py-1">
-                      {#each modelOptions as option (option.value)}
-                        <button
-                          onclick={() => selectModel(option.value)}
-                          class="text-foreground hover:bg-hover block w-full cursor-pointer px-3 py-1 text-left text-sm"
-                          class:bg-hover={option.value ===
-                            chatState.selectedModel}
-                        >
-                          {option.label}
-                        </button>
-                      {/each}
-                    </div>
-                  </div>
-                {/if}
-              </div>
+              <ModelSelectorDropdown position="above" />
             </div>
             <div class="flex items-center">
               <button

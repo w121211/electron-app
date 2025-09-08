@@ -7,33 +7,34 @@ import type {
 import { getPreference } from "./local-preferences-store.svelte.js";
 
 export interface ModelOption {
-  id: string;
+  modelId: `${string}/${string}`;
   // name: string;
-  provider: string;
+  // provider: string;
   enabled: boolean;
 }
 
 interface ChatState {
   currentChat: ChatSessionData | null;
-  messageInput: string;
+  availableModels: ModelOption[];
+  selectedModel: `${string}/${string}`;
   chatMode: ChatMode;
-  selectedModel: string;
+  messageInput: string;
   isSubmittingMessage: boolean;
   promptCursorPosition: { start: number; end: number } | null;
-  availableModels: ModelOption[];
-  modelsLoading: boolean;
 }
 
 // Core chat state - using object wrapper pattern for mutable state
 export const chatState = $state<ChatState>({
   currentChat: null,
-  messageInput: "",
+  availableModels: [],
+  selectedModel:
+    (getPreference("selectedModel") as `${string}/${string}`) ??
+    "terminal/codex",
   chatMode: (getPreference("chatMode") as ChatMode) ?? "agent",
-  selectedModel: getPreference("selectedModel") ?? "terminal/codex",
+  messageInput: "",
   isSubmittingMessage: false,
   promptCursorPosition: null,
-  availableModels: [],
-  modelsLoading: false,
+  // modelsLoading: false,
 });
 
 // Helper functions for working with chat stores

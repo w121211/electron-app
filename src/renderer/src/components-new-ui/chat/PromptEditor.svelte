@@ -1,7 +1,7 @@
 <!-- src/renderer/src/components-new-ui/PromptEditor.svelte -->
 <script lang="ts">
   import { tick } from "svelte";
-  import { Paperclip, ChevronDown, XLg } from "svelte-bootstrap-icons";
+  import { Paperclip, XLg, Send } from "svelte-bootstrap-icons";
   import {
     chatState,
     updateMessageInput,
@@ -12,16 +12,9 @@
   import { fileSearchService } from "../../services/file-search-service.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import FileSearchDropdown from "./FileSearchDropdown.svelte";
+  import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
 
   let promptEditorTextarea = $state<HTMLTextAreaElement>();
-  let showModelDropdown = $state(false);
-
-  // Load models when component mounts
-  $effect(() => {
-    if (chatState.availableModels.length === 0) {
-      chatService.getAvailableModels();
-    }
-  });
 
   // Auto-focus textarea when opened and restore cursor position
   $effect(() => {
@@ -59,6 +52,20 @@
     fileSearchService.detectFileReference(value, promptEditorTextarea ?? null);
   }
 
+  async function handleSendMessage(): Promise<void> {
+    if (!chatState.messageInput.trim() || !chatState.currentChat) return;
+
+    await chatService.sendMesage(
+      chatState.currentChat.absoluteFilePath,
+      chatState.currentChat.id,
+      chatState.messageInput.trim(),
+      chatState.currentChat.messages.length === 0
+        ? chatState.selectedModel
+        : undefined,
+      undefined,
+    );
+  }
+
   function handleKeyPress(event: KeyboardEvent): void {
     // Handle search menu navigation
     const handled = fileSearchService.handleSearchKeydown(
@@ -70,38 +77,6 @@
     if (handled) return;
   }
 
-  function toggleModelDropdown(): void {
-    showModelDropdown = !showModelDropdown;
-  }
-
-  function selectModel(modelValue: string): void {
-    chatState.selectedModel = modelValue;
-    showModelDropdown = false;
-  }
-
-  // Close model dropdown when clicking outside
-  $effect(() => {
-    function handleClickOutside(event: MouseEvent): void {
-      const target = event.target as HTMLElement;
-      const modelDropdown = document.querySelector(".relative");
-
-      if (
-        showModelDropdown &&
-        modelDropdown &&
-        !modelDropdown.contains(target)
-      ) {
-        showModelDropdown = false;
-      }
-    }
-
-    if (showModelDropdown) {
-      document.addEventListener("click", handleClickOutside, true);
-      return () =>
-        document.removeEventListener("click", handleClickOutside, true);
-    }
-    return undefined;
-  });
-
   // Cleanup on component destroy
   $effect(() => {
     return () => {
@@ -110,9 +85,7 @@
   });
 </script>
 
-<div
-  class="bg-surface mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-3"
->
+<div class="bg-surface mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-3">
   <!-- Header -->
   <div class="flex h-8 items-center justify-between pl-3" role="toolbar">
     <!-- Left Controls -->
@@ -124,41 +97,18 @@
         <Paperclip width="14" height="14" />
       </button>
       <!-- Model selector dropdown -->
-      <div class="relative">
-        <button
-          onclick={toggleModelDropdown}
-          class="text-muted hover:text-accent flex cursor-pointer items-center gap-1"
-          title="Select Model"
-          disabled={chatState.currentChat &&
-            chatState.currentChat.messages.length > 0}
-        >
-          <span class="text-sm">{chatState.selectedModel}</span>
-          {#if !(chatState.currentChat && chatState.currentChat.messages.length > 0)}
-            <ChevronDown />
-          {/if}
-        </button>
-        <!-- Dropdown menu -->
-        {#if showModelDropdown}
-          <div
-            class="bg-background border-border absolute left-0 z-10 mt-1 w-max rounded-md border"
-          >
-            <div class="py-1">
-              {#each chatState.availableModels as option (option.id)}
-                <button
-                  onclick={() => selectModel(option.id)}
-                  class="text-foreground hover:bg-hover block w-full cursor-pointer px-3 py-1 text-left text-sm"
-                  class:bg-hover={option.id === chatState.selectedModel}
-                >
-                  {option.id}
-                </button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-      </div>
+      <ModelSelectorDropdown position="below" />
     </div>
     <!-- Right Controls -->
     <div class="flex items-center gap-2">
+      <button
+        onclick={handleSendMessage}
+        disabled={!chatState.messageInput.trim() || !chatState.currentChat}
+        class="text-muted hover:text-accent cursor-pointer rounded p-1.5 disabled:cursor-not-allowed"
+        title="Send Message"
+      >
+        <Send />
+      </button>
       <button
         onclick={handleClose}
         class="text-muted hover:text-accent cursor-pointer rounded"

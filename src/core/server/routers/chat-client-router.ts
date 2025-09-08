@@ -74,7 +74,7 @@ export function createChatClientRouter(
       )
       .mutation(async ({ input }): Promise<ChatSessionData> => {
         const modelId = input.config?.modelId;
-        
+
         if (modelId && isTerminalModel(modelId)) {
           // Create external chat session for terminal models
           const result = await chatClient.createNewExternalChatSession(
@@ -138,26 +138,21 @@ export function createChatClientRouter(
         turnResult: TurnResult;
         updatedChatSession: ChatSessionData;
       }> => {
-        // For external sessions, we may need to handle modelId updates differently
         if (input.modelId) {
-          // Try to get existing session to check if we can update modelId
-          try {
-            const session = await chatClient.getOrLoadChatSession(
-              input.absoluteFilePath,
+          // Get existing session to check if we can update modelId
+          const session = await chatClient.getOrLoadChatSession(
+            input.absoluteFilePath,
+          );
+          if (session.messages.length > 0) {
+            throw new Error(
+              "Model ID can only be set on the first message of a chat session",
             );
-            if (session.messages.length > 0) {
-              throw new Error(
-                "Model ID can only be set on the first message of a chat session",
-              );
-            }
-
-            // Update the session's modelId for the first message
-            await chatClient.updateChat(input.absoluteFilePath, {
-              modelId: input.modelId,
-            });
-          } catch (error) {
-            // Session might not exist as AI session, which is fine for external
           }
+
+          // Update the session's modelId for the first message
+          await chatClient.updateChat(input.absoluteFilePath, {
+            modelId: input.modelId,
+          });
         }
 
         // External terminal processing

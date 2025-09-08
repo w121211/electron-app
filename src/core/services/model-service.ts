@@ -2,14 +2,15 @@
 import { Logger, type ILogObj } from "tslog";
 
 export interface ExternalModel {
+  modelId: `${string}/${string}`;
   command: string;
   args: string[];
   enabled: boolean;
 }
 
 export interface InternalModel {
+  modelId: `${string}/${string}`;
   provider: string;
-  modelId: string;
   enabled: boolean;
 }
 
@@ -19,17 +20,44 @@ export interface AvailableModels {
 }
 
 const presetExternalModels: Record<string, ExternalModel> = {
-  "terminal/claude-code": { command: "claude", args: [], enabled: true },
-  "terminal/gemini-cli": { command: "gemini", args: [], enabled: true },
-  "terminal/codex": { command: "codex", args: [], enabled: true },
-  "terminal/cursor": { command: "cursor", args: ["."], enabled: false },
-  "terminal/vscode": { command: "code", args: ["."], enabled: false },
+  "cli/claude-code": {
+    modelId: "terminal/claude-code",
+    command: "claude",
+    args: [],
+    enabled: true,
+  },
+  "cli/gemini-cli": {
+    modelId: "terminal/gemini-cli",
+    command: "gemini",
+    args: [],
+    enabled: true,
+  },
+  "cli/codex": {
+    modelId: "terminal/codex",
+    command: "codex",
+    args: [],
+    enabled: true,
+  },
+  // "terminal/cursor": { command: "cursor", args: ["."], enabled: false },
+  // "terminal/vscode": { command: "code", args: ["."], enabled: false },
 };
 
 const presetInternalModels: Record<string, InternalModel> = {
-  "openai/gpt-4o": { provider: "openai", modelId: "gpt-4o", enabled: false },
-  "anthropic/claude-3-sonnet": { provider: "anthropic", modelId: "claude-3-sonnet", enabled: false },
-  "google/gemini-pro": { provider: "google", modelId: "gemini-pro", enabled: false },
+  "openai/gpt-4o": {
+    provider: "openai",
+    modelId: "openai/gpt-4o",
+    enabled: false,
+  },
+  "anthropic/claude-3-sonnet": {
+    provider: "anthropic",
+    modelId: "anthropic/claude-3-sonnet",
+    enabled: false,
+  },
+  "google/gemini-pro": {
+    provider: "google",
+    modelId: "modelId/gemini-pro",
+    enabled: false,
+  },
 };
 
 export class ModelService {
@@ -41,7 +69,7 @@ export class ModelService {
 
   public async getAvailableModels(): Promise<AvailableModels> {
     this.logger.info("Getting available models");
-    
+
     return {
       external: presetExternalModels,
       internal: presetInternalModels,
