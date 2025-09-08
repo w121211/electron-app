@@ -1,16 +1,9 @@
 // src/core/services/terminal-launcher.ts
-import { spawn } from "child_process";
+import { spawn, type ChildProcess } from "child_process";
 import { Logger, type ILogObj } from "tslog";
+import { presetExternalModels } from "./model-service";
 
 const logger: Logger<ILogObj> = new Logger({ name: "TerminalLauncher" });
-
-const terminalCommands = {
-  "terminal/claude-code": { command: "claude", args: [] },
-  "terminal/gemini-cli": { command: "gemini", args: [] },
-  "terminal/codex": { command: "codex", args: [] },
-  // "terminal/cursor": { command: "cursor", args: ["."] },
-  // "terminal/vscode": { command: "code", args: ["."] },
-} as const;
 
 export interface LaunchTerminalResult {
   success: boolean;
@@ -24,6 +17,12 @@ export interface TerminalLaunchConfig {
   modelId: string;
   workingDirectory: string;
   macOSTerminal?: MacOSTerminal;
+}
+
+export interface ExecuteCommandResult {
+  success: boolean;
+  process?: ChildProcess;
+  error?: string;
 }
 
 function launchMacOSTerminal(
@@ -113,16 +112,17 @@ end if
 export function launchTerminalFromConfig(
   config: TerminalLaunchConfig,
 ): LaunchTerminalResult {
-  const commandConfig =
-    terminalCommands[config.modelId as keyof typeof terminalCommands];
-  if (!commandConfig) {
+  const externalModel = Object.values(presetExternalModels).find(
+    (model) => model.modelId === config.modelId,
+  );
+  if (!externalModel) {
     return {
       success: false,
       error: `Invalid terminal model: ${config.modelId}`,
     };
   }
 
-  const { command: actualCommand, args } = commandConfig;
+  const { command: actualCommand, args } = externalModel;
 
   return launchTerminal(
     actualCommand,

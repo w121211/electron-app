@@ -19,7 +19,7 @@ export interface AvailableModels {
   internal: Record<string, InternalModel>;
 }
 
-const presetExternalModels: Record<string, ExternalModel> = {
+export const presetExternalModels: Record<string, ExternalModel> = {
   "cli/claude-code": {
     modelId: "terminal/claude-code",
     command: "claude",
