@@ -6,9 +6,11 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
+import { PtyService } from "../core/services/pty-service.js";
 
 // Global server instance
 let trpcServer: HttpTrpcServer | null = null;
+let ptyService: PtyService | null = null;
 
 function createWindow(): void {
   // Create the browser window.
@@ -84,6 +86,9 @@ app.whenReady().then(async () => {
     return;
   }
 
+  // Initialize PtyService
+  ptyService = new PtyService();
+
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
@@ -108,9 +113,47 @@ app.whenReady().then(async () => {
     return shell.showItemInFolder(filePath);
   });
 
+  // Pty IPC handlers
+  ipcMain.handle("pty:create", async (_, options?) => {
+    if (!ptyService) return null;
+    return ptyService.create(options);
+  });
+
+  ipcMain.handle("pty:write", async (_, sessionId: string, data: string) => {
+    if (!ptyService) return false;
+    return ptyService.write(sessionId, data);
+  });
+
+  ipcMain.handle("pty:resize", async (_, sessionId: string, options: { cols: number; rows: number }) => {
+    if (!ptyService) return false;
+    return ptyService.resize(sessionId, options);
+  });
+
+  ipcMain.handle("pty:destroy", async (_, sessionId: string) => {
+    if (!ptyService) return false;
+    return ptyService.destroy(sessionId);
+  });
+
   ipcMain.on("ping", () => console.log("pong"));
 
   createWindow();
+
+  // Setup pty service event forwarding to renderer
+  if (ptyService) {
+    ptyService.on("data", (sessionId: string, data: string) => {
+      const windows = BrowserWindow.getAllWindows();
+      windows.forEach((window) => {
+        window.webContents.send("pty:data", sessionId, data);
+      });
+    });
+
+    ptyService.on("exit", (sessionId: string, exitCode: number, signal?: number) => {
+      const windows = BrowserWindow.getAllWindows();
+      windows.forEach((window) => {
+        window.webContents.send("pty:exit", sessionId, exitCode, signal);
+      });
+    });
+  }
 
   app.on("activate", function () {
     // On macOS it's common to re-create a window in the app when the
@@ -134,6 +177,9 @@ app.on("window-all-closed", async () => {
 
 // Handle app quit to clean up resources
 app.on("before-quit", async () => {
+  if (ptyService) {
+    ptyService.destroyAll();
+  }
   if (trpcServer) {
     await trpcServer.stop();
   }
