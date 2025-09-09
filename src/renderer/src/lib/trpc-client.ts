@@ -7,10 +7,13 @@ import {
   splitLink,
 } from "@trpc/client";
 import superjson from "superjson";
-import { Logger } from "tslog";
+// import { Logger } from "tslog";
 import type { TrpcRouter } from "../../../core/server/root-router.js";
 
-const logger = new Logger({ name: "TrpcClient" });
+// const logger = new Logger({
+//   name: "TrpcClient",
+//   prettyInspectOptions: { depth: 10 },
+// });
 
 // Create client asynchronously
 async function createClient() {
@@ -26,8 +29,9 @@ async function createClient() {
           import.meta.env.DEV ||
           (opts.direction === "down" && opts.result instanceof Error),
         console: {
-          log: (...args) => logger.info(...args),
-          error: (...args) => logger.error(...args),
+          // log: (...args) => logger.info(...args),
+          log: (...args) => console.info(...args),
+          error: (...args) => console.error(...args),
         },
       }),
       splitLink({

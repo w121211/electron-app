@@ -51,7 +51,7 @@
     {#if results.length === 0}
       <div class="text-muted px-3 py-2 text-sm">No files found</div>
     {:else}
-      {#each results as result, index (result.absolutePath)}
+      {#each results as result, index (index)}
         <button
           class="hover:bg-hover focus:bg-hover w-full px-3 py-2 text-left focus:outline-none {selectedIndex ===
           index
@@ -61,14 +61,8 @@
           onmouseenter={() => handleMouseEnter(index)}
         >
           <div class="truncate text-sm">
-            <span class="text-muted-foreground">
-              {result.relativePath.substring(
-                0,
-                result.relativePath.lastIndexOf("/") + 1,
-              )}
-            </span>
-            <span class="text-foreground font-medium">
-              {#if result.highlightTokens}
+            <span class="text-foreground">
+              {#if result.highlightTokens.length > 0}
                 {#each result.highlightTokens as token, index (index)}
                   {#if token.isHighlighted}
                     <mark class="text-accent bg-transparent underline"
@@ -79,7 +73,7 @@
                   {/if}
                 {/each}
               {:else}
-                {result.name}
+                {result.relativePath}
               {/if}
             </span>
           </div>

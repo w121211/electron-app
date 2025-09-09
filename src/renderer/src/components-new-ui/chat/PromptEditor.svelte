@@ -127,7 +127,7 @@
       onkeypress={handleKeyPress}
       onkeydown={handleKeyPress}
       placeholder="Prompt editor, use '/' for commands, or @path/to/file"
-      class="scrollbar-thin placeholder-muted h-full w-full flex-1 resize-none border-none bg-transparent p-4 text-sm leading-6 outline-none placeholder:text-sm"
+      class="scrollbar-thin placeholder-muted h-full w-full flex-1 resize-none border-none bg-transparent p-4 text-[13px] leading-6 outline-none placeholder:text-sm"
     ></textarea>
 
     <!-- File Search Dropdown -->
