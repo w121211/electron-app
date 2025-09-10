@@ -20,6 +20,7 @@ interface UiState {
   rightPanelOpen: boolean;
   leftPanelOpen: boolean;
   promptEditorOpen: boolean;
+  quickLauncherOpen: boolean;
 }
 
 // Unified state object
@@ -36,6 +37,7 @@ export const uiState = $state<UiState>({
   rightPanelOpen: false,
   leftPanelOpen: true,
   promptEditorOpen: true,
+  quickLauncherOpen: false,
 });
 
 // Loading state functions

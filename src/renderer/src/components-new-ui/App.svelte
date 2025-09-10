@@ -5,12 +5,16 @@
   import ToastProvider from "./ToastProvider.svelte";
   import { eventService } from "../services/event-service.js";
   import { projectService } from "../services/project-service.js";
+  import { keyboardManager } from "../lib/keyboard.js";
 
   const logger = new Logger({ name: "NewApp" });
 
   // Use $effect instead of onMount for Svelte 5
   $effect(() => {
     logger.info("New UI App started, initializing systems...");
+
+    // Initialize keyboard manager after DOM is ready
+    keyboardManager.enable();
 
     // Start event subscriptions
     eventService.start();
@@ -26,6 +30,7 @@
     return () => {
       logger.info("New UI App unmounting, cleaning up...");
       eventService.stop();
+      keyboardManager?.destroy();
     };
   });
 

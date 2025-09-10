@@ -2,7 +2,7 @@
 import { treeState } from "../stores/tree-store.svelte.js";
 import { chatService } from "../services/chat-service.js";
 import { projectService } from "../services/project-service.js";
-import { showToast } from "../stores/ui-store.svelte.js";
+import { showToast, uiState } from "../stores/ui-store.svelte.js";
 
 export interface KeyboardShortcut {
   key: string;
@@ -18,15 +18,101 @@ export interface KeyboardShortcut {
 export class KeyboardManager {
   private shortcuts: KeyboardShortcut[] = [];
   private isEnabled = true;
+  private isMac: boolean;
+  private boundHandleKeydown: (event: KeyboardEvent) => void;
 
   constructor() {
+    this.boundHandleKeydown = this.handleKeydown.bind(this);
+    this.isMac = this.detectMacPlatform();
     this.setupDefaultShortcuts();
     this.bindEvents();
   }
 
-  private setupDefaultShortcuts() {
-    this.shortcuts = [
+  private detectMacPlatform(): boolean {
+    return navigator.userAgent.toUpperCase().indexOf("MAC") >= 0;
+  }
+
+  private getMacShortcuts(): KeyboardShortcut[] {
+    return [
       // Navigation shortcuts
+      {
+        key: "p",
+        metaKey: true,
+        description: "Open Quick Launcher",
+        handler: this.handleQuickLauncher,
+        preventDefault: true,
+      },
+      {
+        key: "n",
+        metaKey: true,
+        description: "Create new chat in selected folder",
+        handler: this.handleNewChat,
+        preventDefault: true,
+      },
+      {
+        key: "p",
+        metaKey: true,
+        shiftKey: true,
+        description: "Add project folder",
+        handler: this.handleAddProject,
+        preventDefault: true,
+      },
+      {
+        key: "f",
+        metaKey: true,
+        description: "Focus file search",
+        handler: this.handleFocusSearch,
+        preventDefault: true,
+      },
+      {
+        key: "Enter",
+        metaKey: true,
+        description: "Send message (in chat)",
+        handler: this.handleSendMessage,
+        preventDefault: true,
+      },
+      {
+        key: "Escape",
+        description: "Close preview/modal",
+        handler: this.handleEscape,
+        preventDefault: true,
+      },
+      {
+        key: "/",
+        metaKey: true,
+        description: "Show keyboard shortcuts",
+        handler: this.handleShowShortcuts,
+        preventDefault: true,
+      },
+      // File operations
+      {
+        key: "r",
+        metaKey: true,
+        description: "Refresh current view",
+        handler: this.handleRefresh,
+        preventDefault: true,
+      },
+      {
+        key: "c",
+        metaKey: true,
+        shiftKey: true,
+        description: "Copy file path",
+        handler: this.handleCopyPath,
+        preventDefault: true,
+      },
+    ];
+  }
+
+  private getWindowsLinuxShortcuts(): KeyboardShortcut[] {
+    return [
+      // Navigation shortcuts
+      {
+        key: "p",
+        ctrlKey: true,
+        description: "Open Quick Launcher",
+        handler: this.handleQuickLauncher,
+        preventDefault: true,
+      },
       {
         key: "n",
         ctrlKey: true,
@@ -88,8 +174,14 @@ export class KeyboardManager {
     ];
   }
 
+  private setupDefaultShortcuts() {
+    this.shortcuts = this.isMac
+      ? this.getMacShortcuts()
+      : this.getWindowsLinuxShortcuts();
+  }
+
   private bindEvents() {
-    document.addEventListener("keydown", this.handleKeydown.bind(this));
+    document.addEventListener("keydown", this.boundHandleKeydown);
   }
 
   private handleKeydown(event: KeyboardEvent) {
@@ -103,7 +195,7 @@ export class KeyboardManager {
       target.contentEditable === "true"
     ) {
       // Allow Escape and some Ctrl shortcuts even in inputs
-      if (event.key !== "Escape" && !event.ctrlKey) {
+      if (event.key !== "Escape" && !event.ctrlKey && !event.metaKey) {
         return;
       }
     }
@@ -235,6 +327,14 @@ export class KeyboardManager {
     }
   }
 
+  private handleQuickLauncher() {
+    try {
+      uiState.quickLauncherOpen = true;
+    } catch (error) {
+      showToast("Failed to open Quick Launcher", "error");
+    }
+  }
+
   public enable() {
     this.isEnabled = true;
   }
@@ -255,8 +355,12 @@ export class KeyboardManager {
     return [...this.shortcuts];
   }
 
+  public isManagerEnabled() {
+    return this.isEnabled;
+  }
+
   public destroy() {
-    document.removeEventListener("keydown", this.handleKeydown.bind(this));
+    document.removeEventListener("keydown", this.boundHandleKeydown);
   }
 }
 

@@ -7,6 +7,7 @@
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
   import ChatPanel from "./chat/ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
+  import QuickLauncher from "./QuickLauncher.svelte";
 
   const logger = new Logger({ name: "NewMainLayout" });
 
@@ -52,4 +53,7 @@
       {/if}
     </main>
   </div>
+
+  <!-- Quick Launcher Modal -->
+  <QuickLauncher />
 </div>

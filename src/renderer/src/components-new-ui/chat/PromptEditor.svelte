@@ -15,6 +15,7 @@
   import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
 
   let promptEditorTextarea = $state<HTMLTextAreaElement>();
+  let draftTimeout: ReturnType<typeof setTimeout>;
 
   // Auto-focus textarea when opened and restore cursor position
   $effect(() => {
@@ -50,6 +51,17 @@
 
     // Handle @ file reference detection
     fileSearchService.detectFileReference(value, promptEditorTextarea ?? null);
+
+    // Save draft when user actively types (including clearing content)
+    if (chatState.currentChat) {
+      clearTimeout(draftTimeout);
+      draftTimeout = setTimeout(() => {
+        chatService.savePromptDraft(
+          chatState.currentChat!.absoluteFilePath,
+          value,
+        );
+      }, 1500);
+    }
   }
 
   async function handleSendMessage(): Promise<void> {
@@ -80,6 +92,7 @@
   // Cleanup on component destroy
   $effect(() => {
     return () => {
+      clearTimeout(draftTimeout);
       fileSearchService.cleanup();
     };
   });

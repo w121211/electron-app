@@ -16,21 +16,42 @@ import { uiState } from "../stores/ui-store.svelte.js";
 import {
   selectFile,
   expandParentDirectories,
+  findNodeAndParent,
 } from "../stores/tree-store.svelte.js";
 import { setLoading, showToast } from "../stores/ui-store.svelte.js";
 import { projectService } from "./project-service.js";
+import { projectState } from "../stores/project-store.svelte.js";
 
 class ChatService {
   private logger = new Logger({ name: "ChatService" });
   private draftSaveTimeouts = new Map<string, NodeJS.Timeout>();
 
-  async createEmptyChat(targetDirectoryPath: string) {
+  async createEmptyChat(targetPath: string) {
     setLoading("createChat", true);
 
     try {
-      this.logger.info("Creating empty chat in:", targetDirectoryPath);
+      const result = findNodeAndParent(projectState.folderTrees, targetPath);
+
+      if (!result) {
+        throw new Error("Selected file or folder not found in the project tree.");
+      }
+
+      const { node, parent } = result;
+
+      let containingDirectory: string;
+      if (node.isDirectory) {
+        containingDirectory = node.path;
+      } else {
+        if (!parent) {
+          // This should not happen for a file within a project folder
+          throw new Error("Could not find parent directory for the selected file.");
+        }
+        containingDirectory = parent.path;
+      }
+
+      this.logger.info("Creating empty chat in:", containingDirectory);
       const newChat = await trpcClient.chatClient.createNewChatSession.mutate({
-        targetDirectory: targetDirectoryPath,
+        targetDirectory: containingDirectory,
         config: {
           mode: "agent", // Default mode for new chat sessions
         },
@@ -89,7 +110,7 @@ class ChatService {
     absoluteFilePath: string,
     chatSessionId: string,
     messageText: string,
-    modelId?: `${string}/${string}`, // modelId is optional
+    modelId?: `${string}/${string}`,
     attachments?: Array<{ fileName: string; content: string }>,
   ) {
     // setLoading("submitMessage", true);

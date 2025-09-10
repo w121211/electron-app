@@ -1,4 +1,5 @@
 // src/renderer/src/stores/tree-store.svelte.ts
+import type { FolderTreeNode } from "./project-store.svelte.js";
 
 interface TreeState {
   selectedNode: string | null;
@@ -169,4 +170,36 @@ export function selectFile(filePath: string) {
     treeState.selectedChatFile = null;
     treeState.selectedPreviewFile = filePath;
   }
+}
+
+export function findNodeAndParent(
+  trees: Record<string, FolderTreeNode>,
+  path: string,
+): { node: FolderTreeNode; parent: FolderTreeNode | null } | null {
+  for (const key in trees) {
+    const result = findInTreeRecursive(trees[key], path, null);
+    if (result) {
+      return result;
+    }
+  }
+  return null;
+}
+
+function findInTreeRecursive(
+  node: FolderTreeNode,
+  path: string,
+  parent: FolderTreeNode | null,
+): { node: FolderTreeNode; parent: FolderTreeNode | null } | null {
+  if (node.path === path) {
+    return { node, parent };
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      const result = findInTreeRecursive(child, path, node);
+      if (result) {
+        return result;
+      }
+    }
+  }
+  return null;
 }
