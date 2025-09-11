@@ -13,9 +13,6 @@
   $effect(() => {
     logger.info("New UI App started, initializing systems...");
 
-    // Initialize keyboard manager after DOM is ready
-    keyboardManager.enable();
-
     // Start event subscriptions
     eventService.start();
 
@@ -30,16 +27,12 @@
     return () => {
       logger.info("New UI App unmounting, cleaning up...");
       eventService.stop();
-      keyboardManager?.destroy();
+      keyboardManager.destroy();
     };
   });
 
-  function handleError(error: Error, errorInfo: any) {
-    logger.error("Application error:", error, errorInfo);
-    // Send error to monitoring service in production
-    // if (import.meta.env.PROD) {
-    //   sendErrorToMonitoring(error, errorInfo)
-    // }
+  function handleError(error: Error, errorInfo: unknown): void {
+    console.error("Application error:", error, errorInfo);
   }
 </script>
 

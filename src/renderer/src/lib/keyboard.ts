@@ -1,8 +1,111 @@
 // src/renderer/src/lib/keyboard.ts
 import { treeState } from "../stores/tree-store.svelte.js";
 import { chatService } from "../services/chat-service.js";
-import { projectService } from "../services/project-service.js";
-import { showToast, uiState } from "../stores/ui-store.svelte.js";
+import {
+  showToast,
+  uiState,
+  closeAllModals,
+} from "../stores/ui-store.svelte.js";
+
+// --- 1. Standalone Handlers ---
+
+async function handleNewChat() {
+  const selected = treeState.selectedNode;
+  if (!selected) {
+    showToast("Select a folder first", "warning");
+    return;
+  }
+  await chatService.createEmptyChat(selected);
+}
+
+function handleEscape() {
+  const preview = treeState.selectedPreviewFile;
+  if (preview) {
+    treeState.selectedPreviewFile = null;
+    return;
+  }
+  closeAllModals();
+}
+
+function handleQuickLauncher() {
+  uiState.quickLauncherOpen = true;
+}
+
+// --- 2. Shortcut Definitions ---
+
+type ShortcutDefinition = {
+  key: string;
+  description: string;
+  handler: (() => void | Promise<void>) | "showShortcuts";
+  os: "mac" | "windows" | "linux" | "all";
+  meta?: boolean;
+  ctrl?: boolean;
+  shift?: boolean;
+  alt?: boolean;
+  preventDefault?: boolean;
+};
+
+const shortcutDefinitions: ShortcutDefinition[] = [
+  // Navigation
+  {
+    key: "p",
+    meta: true,
+    os: "mac",
+    handler: handleQuickLauncher,
+    description: "Open Quick Launcher",
+    preventDefault: true,
+  },
+  {
+    key: "p",
+    ctrl: true,
+    os: "windows",
+    handler: handleQuickLauncher,
+    description: "Open Quick Launcher",
+    preventDefault: true,
+  },
+  {
+    key: "p",
+    ctrl: true,
+    os: "linux",
+    handler: handleQuickLauncher,
+    description: "Open Quick Launcher",
+    preventDefault: true,
+  },
+  {
+    key: "n",
+    meta: true,
+    os: "mac",
+    handler: handleNewChat,
+    description: "Create new chat in selected folder",
+    preventDefault: true,
+  },
+  {
+    key: "n",
+    ctrl: true,
+    os: "windows",
+    handler: handleNewChat,
+    description: "Create new chat in selected folder",
+    preventDefault: true,
+  },
+  {
+    key: "n",
+    ctrl: true,
+    os: "linux",
+    handler: handleNewChat,
+    description: "Create new chat in selected folder",
+    preventDefault: true,
+  },
+
+  {
+    key: "Escape",
+    os: "all",
+    handler: handleEscape,
+    description: "Close preview/modal",
+    preventDefault: true,
+  },
+];
+
+// --- 3. KeyboardManager Class ---
 
 export interface KeyboardShortcut {
   key: string;
@@ -18,166 +121,47 @@ export interface KeyboardShortcut {
 export class KeyboardManager {
   private shortcuts: KeyboardShortcut[] = [];
   private isEnabled = true;
-  private isMac: boolean;
+  private os: "mac" | "windows" | "linux";
   private boundHandleKeydown: (event: KeyboardEvent) => void;
 
   constructor() {
     this.boundHandleKeydown = this.handleKeydown.bind(this);
-    this.isMac = this.detectMacPlatform();
+    this.os = this.detectOS();
     this.setupDefaultShortcuts();
     this.bindEvents();
   }
 
-  private detectMacPlatform(): boolean {
-    return navigator.userAgent.toUpperCase().indexOf("MAC") >= 0;
-  }
-
-  private getMacShortcuts(): KeyboardShortcut[] {
-    return [
-      // Navigation shortcuts
-      {
-        key: "p",
-        metaKey: true,
-        description: "Open Quick Launcher",
-        handler: this.handleQuickLauncher,
-        preventDefault: true,
-      },
-      {
-        key: "n",
-        metaKey: true,
-        description: "Create new chat in selected folder",
-        handler: this.handleNewChat,
-        preventDefault: true,
-      },
-      {
-        key: "p",
-        metaKey: true,
-        shiftKey: true,
-        description: "Add project folder",
-        handler: this.handleAddProject,
-        preventDefault: true,
-      },
-      {
-        key: "f",
-        metaKey: true,
-        description: "Focus file search",
-        handler: this.handleFocusSearch,
-        preventDefault: true,
-      },
-      {
-        key: "Enter",
-        metaKey: true,
-        description: "Send message (in chat)",
-        handler: this.handleSendMessage,
-        preventDefault: true,
-      },
-      {
-        key: "Escape",
-        description: "Close preview/modal",
-        handler: this.handleEscape,
-        preventDefault: true,
-      },
-      {
-        key: "/",
-        metaKey: true,
-        description: "Show keyboard shortcuts",
-        handler: this.handleShowShortcuts,
-        preventDefault: true,
-      },
-      // File operations
-      {
-        key: "r",
-        metaKey: true,
-        description: "Refresh current view",
-        handler: this.handleRefresh,
-        preventDefault: true,
-      },
-      {
-        key: "c",
-        metaKey: true,
-        shiftKey: true,
-        description: "Copy file path",
-        handler: this.handleCopyPath,
-        preventDefault: true,
-      },
-    ];
-  }
-
-  private getWindowsLinuxShortcuts(): KeyboardShortcut[] {
-    return [
-      // Navigation shortcuts
-      {
-        key: "p",
-        ctrlKey: true,
-        description: "Open Quick Launcher",
-        handler: this.handleQuickLauncher,
-        preventDefault: true,
-      },
-      {
-        key: "n",
-        ctrlKey: true,
-        description: "Create new chat in selected folder",
-        handler: this.handleNewChat,
-        preventDefault: true,
-      },
-      {
-        key: "p",
-        ctrlKey: true,
-        shiftKey: true,
-        description: "Add project folder",
-        handler: this.handleAddProject,
-        preventDefault: true,
-      },
-      {
-        key: "f",
-        ctrlKey: true,
-        description: "Focus file search",
-        handler: this.handleFocusSearch,
-        preventDefault: true,
-      },
-      {
-        key: "Enter",
-        ctrlKey: true,
-        description: "Send message (in chat)",
-        handler: this.handleSendMessage,
-        preventDefault: true,
-      },
-      {
-        key: "Escape",
-        description: "Close preview/modal",
-        handler: this.handleEscape,
-        preventDefault: true,
-      },
-      {
-        key: "/",
-        ctrlKey: true,
-        description: "Show keyboard shortcuts",
-        handler: this.handleShowShortcuts,
-        preventDefault: true,
-      },
-      // File operations
-      {
-        key: "r",
-        ctrlKey: true,
-        description: "Refresh current view",
-        handler: this.handleRefresh,
-        preventDefault: true,
-      },
-      {
-        key: "c",
-        ctrlKey: true,
-        shiftKey: true,
-        description: "Copy file path",
-        handler: this.handleCopyPath,
-        preventDefault: true,
-      },
-    ];
+  private detectOS(): "mac" | "windows" | "linux" {
+    const userAgent = navigator.userAgent;
+    if (userAgent.indexOf("Mac") !== -1) return "mac";
+    if (userAgent.indexOf("Win") !== -1) return "windows";
+    if (userAgent.indexOf("Linux") !== -1) return "linux";
+    // Default, though less likely for Electron
+    return "windows";
   }
 
   private setupDefaultShortcuts() {
-    this.shortcuts = this.isMac
-      ? this.getMacShortcuts()
-      : this.getWindowsLinuxShortcuts();
+    const platformShortcuts = shortcutDefinitions.filter(
+      (def) => def.os === this.os || def.os === "all",
+    );
+
+    this.shortcuts = platformShortcuts.map((def) => {
+      const handler =
+        typeof def.handler === "function"
+          ? def.handler
+          : () => this.showShortcuts();
+
+      return {
+        key: def.key,
+        description: def.description,
+        handler: handler,
+        metaKey: !!def.meta,
+        ctrlKey: !!def.ctrl,
+        shiftKey: !!def.shift,
+        altKey: !!def.alt,
+        preventDefault: !!def.preventDefault,
+      };
+    });
   }
 
   private bindEvents() {
@@ -187,14 +171,12 @@ export class KeyboardManager {
   private handleKeydown(event: KeyboardEvent) {
     if (!this.isEnabled) return;
 
-    // Don't handle shortcuts when typing in inputs
     const target = event.target as HTMLElement;
     if (
       target.tagName === "INPUT" ||
       target.tagName === "TEXTAREA" ||
       target.contentEditable === "true"
     ) {
-      // Allow Escape and some Ctrl shortcuts even in inputs
       if (event.key !== "Escape" && !event.ctrlKey && !event.metaKey) {
         return;
       }
@@ -223,138 +205,31 @@ export class KeyboardManager {
     );
   }
 
-  // Shortcut handlers
-  private async handleNewChat() {
-    const selected = treeState.selectedNode;
-    if (!selected) {
-      showToast("Select a folder first", "warning");
-      return;
-    }
-
-    try {
-      await chatService.createEmptyChat(selected);
-    } catch (error) {
-      // Error handled by service
-    }
-  }
-
-  private async handleAddProject() {
-    const path = prompt("Enter project folder path:");
-    if (!path) return;
-
-    try {
-      await projectService.addProjectFolder(path);
-    } catch (error) {
-      // Error handled by service
-    }
-  }
-
-  private handleFocusSearch() {
-    // Focus search input if it exists
-    const searchInput = document.querySelector(
-      "[data-search-input]",
-    ) as HTMLInputElement;
-    if (searchInput) {
-      searchInput.focus();
-    } else {
-      showToast("Search functionality coming soon", "info");
-    }
-  }
-
-  private handleSendMessage() {
-    // Trigger send message if in chat
-    const sendButton = document.querySelector(
-      "[data-send-button]",
-    ) as HTMLButtonElement;
-    if (sendButton && !sendButton.disabled) {
-      sendButton.click();
-    }
-  }
-
-  private handleEscape() {
-    // Close preview if open
-    const preview = treeState.selectedPreviewFile;
-    if (preview) {
-      treeState.selectedPreviewFile = null;
-      return;
-    }
-
-    // Close any modals
-    const modal = document.querySelector("[data-modal]");
-    if (modal) {
-      const closeButton = modal.querySelector(
-        "[data-close]",
-      ) as HTMLButtonElement;
-      closeButton?.click();
-    }
-  }
-
-  private handleShowShortcuts() {
+  private showShortcuts() {
     const shortcutList = this.shortcuts
       .map((s) => {
         const keys: string[] = [];
+        if (s.metaKey) keys.push("Cmd");
         if (s.ctrlKey) keys.push("Ctrl");
         if (s.shiftKey) keys.push("Shift");
         if (s.altKey) keys.push("Alt");
-        if (s.metaKey) keys.push("Cmd");
         keys.push(s.key);
-        return `${keys.join("+")} - ${s.description}`;
+        return `${keys.join(" + ")} - ${s.description}`;
       })
       .join("\n");
 
     showToast(`Keyboard Shortcuts:\n${shortcutList}`, "info");
   }
 
-  private handleRefresh() {
-    // Refresh current view
-    const refreshButton = document.querySelector(
-      "[data-refresh]",
-    ) as HTMLButtonElement;
-    if (refreshButton) {
-      refreshButton.click();
-    } else {
-      window.location.reload();
-    }
-  }
-
-  private handleCopyPath() {
-    const selected = treeState.selectedNode;
-    if (selected) {
-      navigator.clipboard.writeText(selected);
-      showToast(`Path copied: ${selected}`, "success");
-    } else {
-      showToast("No file selected", "warning");
-    }
-  }
-
-  private handleQuickLauncher() {
-    try {
-      uiState.quickLauncherOpen = true;
-    } catch (error) {
-      showToast("Failed to open Quick Launcher", "error");
-    }
-  }
-
   public enable() {
     this.isEnabled = true;
   }
-
   public disable() {
     this.isEnabled = false;
   }
-
-  public addShortcut(shortcut: KeyboardShortcut) {
-    this.shortcuts.push(shortcut);
-  }
-
-  public removeShortcut(key: string) {
-    this.shortcuts = this.shortcuts.filter((s) => s.key !== key);
-  }
-
   public getShortcuts() {
     return [...this.shortcuts];
   }
-
   public isManagerEnabled() {
     return this.isEnabled;
   }
