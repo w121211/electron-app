@@ -85,7 +85,7 @@
               </div>
               <div class="ml-2">
                 <div
-                  class="bg-selected hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
+                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
                   <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
                   <span class="max-w-[120px] truncate text-xs">design-discussion.chat.json</span>
                   <span
@@ -101,7 +101,7 @@
                   </button>
                 </div>
                 <div
-                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
+                  class="bg-selected hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
                   <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
                   <span class="max-w-[120px] truncate text-xs">README.md</span>
                   <i class="bi bi-file-earmark-check text-muted ml-1 text-[10px]" title="In Project Context"></i>
@@ -129,8 +129,8 @@
     <main class="bg-surface flex min-w-0 flex-1 justify-center">
       <!-- Chat Conversation Panel -->
       <section class="flex min-w-0 flex-1 flex-col relative max-w-4xl">
-        <!-- Prompt Edit Mode Panel (Visible) -->
-        <div id="edit-mode-panel" class="absolute inset-0 z-30 flex flex-col">
+        <!-- File View Panel (Visible) -->
+        <div id="file-view-panel" class="absolute inset-0 z-30 flex flex-col">
           <!-- Header with Breadcrumb -->
           <header class="flex h-10 flex-shrink-0 items-center px-4">
             <div class="flex items-center gap-1">
@@ -141,51 +141,39 @@
             </div>
           </header>
 
-          <!-- Prompt Editor -->
+          <!-- File Viewer -->
           <div class="flex-1 flex flex-col">
-            <!-- Editor Toolbar -->
-            <div class="bg-surface flex h-12 flex-shrink-0 items-center justify-between px-4">
-              <!-- Left Controls -->
-              <div class="flex items-center gap-3">
-                <button title="Attach" class="text-muted hover:text-accent cursor-pointer">
-                  <i class="bi bi-paperclip"></i>
-                </button>
-                <!-- Model selector dropdown -->
-                <div class="relative">
-                  <button class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm"
-                    title="Select Model">
-                    <span id="selected-model">Claude 3.5</span>
-                    <i class="bi bi-chevron-down"></i>
-                  </button>
-                  <div
-                    class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border">
-                    <div class="py-1">
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Claude
-                        3.5</a>
-                      <a href="#"
-                        class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">GPT-4</a>
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Gemini
-                        Pro</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <!-- File Toolbar -->
+            <div class="flex h-12 flex-shrink-0 items-center justify-end px-4">
               <!-- Right Controls -->
               <div class="flex items-center gap-2">
-                <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Send Message">
-                  <i class="bi bi-send"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Close Prompt Editor">
-                  <i class="bi bi-x-lg"></i>
+                <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Edit File">
+                  <i class="bi bi-pencil"></i>
                 </button>
               </div>
             </div>
 
-            <!-- Editor Textarea -->
-            <div class="bg-surface flex-1 p-2 flex flex-col">
-              <textarea id="edit-textarea" placeholder="Prompt editor, use '/' for commands, or @path/to/file"
-                class="border-none scrollbar-thin h-full w-full resize-none p-4 text-sm leading-6 outline-none flex-1 placeholder-muted placeholder:text-sm">
-I want a chat UI that feels modern and professional, like VS Code but for conversations.</textarea>
+            <!-- File Content -->
+            <div class="flex-1 p-2 flex flex-col">
+              <pre id="file-content"
+                class="scrollbar-thin h-full w-full p-4 text-[13px] leading-6 outline-none flex-1 text-foreground font-sans"># Chat UI Design Requirements
+
+A modern and professional chat interface inspired by VS Code for conversations.
+
+## Todo List
+
+- [ ] Implement three-panel layout structure
+  - [ ] Left sidebar for file explorer/projects
+  - [ ] Center panel for chat conversation
+  - [ ] Right panel for chat controls and artifacts
+- [ ] Design dark theme with minimal color palette
+  - [ ] Use consistent background colors across panels
+  - [ ] Implement hover states and transitions
+- [ ] Add interactive elements
+  - [ ] Collapsible sections with chevron indicators
+  - [ ] Context menus with three-dots icons
+  - [ ] Status badges for chat states
+</div>
             </div>
           </div>
         </div>

@@ -160,7 +160,7 @@ async function testNotificationRouter() {
       onError(err) {
         console.error("File change subscription error:", err);
       },
-    }
+    },
   );
 
   // Subscribe to all events
@@ -174,14 +174,14 @@ async function testNotificationRouter() {
       onError(err) {
         console.error("All events subscription error:", err);
       },
-    }
+    },
   );
 
   // Create a file change to trigger the subscription
   const changeFilePath = path.join(TEST_WORKSPACE_PATH, "change-test.txt");
   await fs.writeFile(
     changeFilePath,
-    "This file should trigger the file watcher"
+    "This file should trigger the file watcher",
   );
   console.log(`Created file to trigger watcher: ${changeFilePath}`);
 

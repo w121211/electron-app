@@ -36,7 +36,9 @@ export function createUserSettingsRouter(
         }),
       )
       .mutation(async ({ input }) => {
-        return userSettingsService.setWorkspaceDirectory(input.workspaceDirectory);
+        return userSettingsService.setWorkspaceDirectory(
+          input.workspaceDirectory,
+        );
       }),
 
     // Get workspace directory

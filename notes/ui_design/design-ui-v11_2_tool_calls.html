@@ -454,7 +454,9 @@
               <!-- Header shows overall progress, items can be individually collapsed/expanded -->
               <div class="bg-surface border border-border rounded-md my-4 ml-7">
                 <!-- Tool Call Header -->
-                <div class="flex items-center px-3 py-2 border-b border-border bg-background rounded-t-md text-sm">
+                <div
+                  class="flex items-center px-3 py-2 border-b border-border bg-background rounded-t-md text-sm"
+                >
                   <i class="bi bi-search text-accent mr-2"></i>
                   <span class="text-foreground font-medium"
                     >檢查 event-core 架構差異</span
@@ -465,11 +467,15 @@
                 </div>
 
                 <!-- Tool Call Item 1: Search (EXPANDED STATE) -->
-                <div class="px-3 py-2 border-b border-border text-sm last:border-b-0 last:rounded-b-md">
+                <div
+                  class="px-3 py-2 border-b border-border text-sm last:border-b-0 last:rounded-b-md"
+                >
                   <!-- Clickable header for collapse/expand -->
-                  <div class="flex items-center gap-2 mb-2 cursor-pointer hover:bg-hover/50 -mx-1 px-1 py-1 rounded"
-                       onclick="handleToolCallToggle(this, 'item1')"
-                       title="Click to collapse">
+                  <div
+                    class="flex items-center gap-2 mb-2 cursor-pointer hover:bg-hover/50 -mx-1 px-1 py-1 rounded"
+                    onclick="handleToolCallToggle(this, 'item1')"
+                    title="Click to collapse"
+                  >
                     <i class="bi bi-folder2-open text-muted text-xs"></i>
                     <span class="text-foreground font-medium"
                       >搜尋 "event-core architecture services"</span
@@ -483,7 +489,9 @@
                   </div>
 
                   <!-- Expanded Results (visible when expanded) -->
-                  <div class="bg-background border border-border rounded px-2 py-2 font-mono text-xs leading-relaxed max-h-[120px] overflow-y-auto">
+                  <div
+                    class="bg-background border border-border rounded px-2 py-2 font-mono text-xs leading-relaxed max-h-[120px] overflow-y-auto"
+                  >
                     <div class="space-y-1">
                       <div class="text-accent text-xs">
                         packages/events-core/src/server/routers/event-router.ts
@@ -500,11 +508,15 @@
                 </div>
 
                 <!-- Tool Call Item 2: Analysis (COLLAPSED STATE) -->
-                <div class="px-3 py-2 border-b border-border text-sm last:border-b-0 last:rounded-b-md">
+                <div
+                  class="px-3 py-2 border-b border-border text-sm last:border-b-0 last:rounded-b-md"
+                >
                   <!-- Clickable header for collapse/expand -->
-                  <div class="flex items-center justify-between cursor-pointer hover:bg-hover/50 -mx-1 px-1 py-1 rounded"
-                       onclick="handleToolCallToggle(this, 'item2')"
-                       title="Click to expand">
+                  <div
+                    class="flex items-center justify-between cursor-pointer hover:bg-hover/50 -mx-1 px-1 py-1 rounded"
+                    onclick="handleToolCallToggle(this, 'item2')"
+                    title="Click to expand"
+                  >
                     <div class="flex items-center gap-2">
                       <i class="bi bi-search text-muted text-xs"></i>
                       <span class="text-foreground font-medium"
@@ -522,11 +534,15 @@
                 </div>
 
                 <!-- Tool Call Item 3: Further Search (COLLAPSED STATE) -->
-                <div class="px-3 py-2 border-b border-border text-sm last:border-b-0 last:rounded-b-md">
+                <div
+                  class="px-3 py-2 border-b border-border text-sm last:border-b-0 last:rounded-b-md"
+                >
                   <!-- Clickable header for collapse/expand -->
-                  <div class="flex items-center justify-between cursor-pointer hover:bg-hover/50 -mx-1 px-1 py-1 rounded"
-                       onclick="handleToolCallToggle(this, 'item3')"
-                       title="Click to expand">
+                  <div
+                    class="flex items-center justify-between cursor-pointer hover:bg-hover/50 -mx-1 px-1 py-1 rounded"
+                    onclick="handleToolCallToggle(this, 'item3')"
+                    title="Click to expand"
+                  >
                     <div class="flex items-center gap-2">
                       <i class="bi bi-folder2-open text-muted text-xs"></i>
                       <span class="text-foreground font-medium"
@@ -544,11 +560,15 @@
                 </div>
 
                 <!-- Tool Call Item 4: Final Analysis (COLLAPSED STATE) -->
-                <div class="px-3 py-2 border-b border-border text-sm last:border-b-0 last:rounded-b-md">
+                <div
+                  class="px-3 py-2 border-b border-border text-sm last:border-b-0 last:rounded-b-md"
+                >
                   <!-- Clickable header for collapse/expand -->
-                  <div class="flex items-center justify-between cursor-pointer hover:bg-hover/50 -mx-1 px-1 py-1 rounded"
-                       onclick="handleToolCallToggle(this, 'item4')"
-                       title="Click to expand">
+                  <div
+                    class="flex items-center justify-between cursor-pointer hover:bg-hover/50 -mx-1 px-1 py-1 rounded"
+                    onclick="handleToolCallToggle(this, 'item4')"
+                    title="Click to expand"
+                  >
                     <div class="flex items-center gap-2">
                       <i class="bi bi-check-circle text-muted text-xs"></i>
                       <span class="text-foreground font-medium"
@@ -839,16 +859,18 @@
 
       // Handle tool call item toggle
       function handleToolCallToggle(element, itemId) {
-        const isExpanded = element.parentElement.querySelector('.bg-background.border'); // Check if content exists
-        
+        const isExpanded = element.parentElement.querySelector(
+          ".bg-background.border",
+        ); // Check if content exists
+
         if (isExpanded) {
           // Currently expanded - show collapse message
           alert(`Tool call "${itemId}" collapsed. Content hidden.`);
-          element.setAttribute('title', 'Click to expand');
+          element.setAttribute("title", "Click to expand");
         } else {
-          // Currently collapsed - show expand message  
+          // Currently collapsed - show expand message
           alert(`Tool call "${itemId}" expanded. Content would be shown here.`);
-          element.setAttribute('title', 'Click to collapse');
+          element.setAttribute("title", "Click to collapse");
         }
       }
 

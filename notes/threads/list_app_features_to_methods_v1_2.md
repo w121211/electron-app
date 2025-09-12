@@ -5,7 +5,6 @@
 ### ✅ **已實現**
 
 - **專案資料夾管理**
-
   - `ProjectFolderService.addProjectFolder(absoluteProjectFolderPath, correlationId)`
     - _用於：_ 新增 project folders，讓使用者可以組織工作空間
   - `ProjectFolderService.removeProjectFolder(projectFolderId, correlationId)`
@@ -16,7 +15,6 @@
     - _用於：_ Explorer 樹狀結構顯示、檔案瀏覽功能
 
 - **檔案監控**
-
   - `FileWatcherService.startWatchingFolder(absoluteFolderPath)`
     - _用於：_ 監控檔案變更，觸發 Chat 重跑提示、更新 Explorer 顯示
   - `FileWatcherService.stopWatchingFolder(absoluteFolderPath)`
@@ -32,7 +30,6 @@
 ### ❌ **待實現**
 
 - **檔案系統操作**
-
   - `FileService.moveFile(sourcePath, targetPath)`
     - _用於：_ 重新組織專案結構、移動 chat files 到不同資料夾
   - `FileService.deleteFile(filePath)`
@@ -57,7 +54,6 @@
 ### ✅ **已實現 - 基本 Chat 管理**
 
 - **Chat 生命週期管理** _(以 absolute path 為主要標識)_
-
   - `ChatService.createChat(targetDirectory, newTask, mode, knowledge, prompt, model, correlationId)`
     - _用於：_ 新增 Chat 和 Agent 模式的對話、支援初始 prompt 設定
   - `ChatService.createEmptyChat(targetDirectoryAbsolutePath, correlationId)`
@@ -154,7 +150,6 @@
 ### ❌ **待實現 - 統一訊息處理管道**
 
 - **MessageProcessingService**
-
   - `MessageProcessingService.processMessage(message, chatContext, inputData?)`
     - _用於：_ 統一處理三種 message type（prompt template, AI response, tool call）並處理所有 injection
     - _如何實現：_ 根據 message.role 決定處理方式 → prompt template 處理 `@{file_path}` 和 `{{inputData}}` → tool 走 function call → AI 走生成
@@ -162,13 +157,11 @@
     - _用於：_ 安全檢查，防止存取 workspace 外檔案或敏感檔案（.env 等）
 
 - **ToolService**
-
   - `ToolService.executeTool(toolCall, context)`
     - _用於：_ 執行 function calls、MCP 整合、workflow 中的 tool messages
     - _如何實現：_ 解析 tool call → 執行對應 function → 回傳結果並注入下一個 message
 
 - **WorkflowService**
-
   - `WorkflowService.runWorkflow(workflowPath, inputData, correlationId)`
     - _用於：_ 執行 workflow template 類型的 chat（包括 @summarizeChat, @whatsNext 等 extension）
     - _如何實現：_ 載入 workflow chat file → 將 inputData 傳遞給 ChatService.runChat() → 在 MessageProcessor 中處理 {{inputData}} 注入
@@ -219,7 +212,6 @@
 ### ✅ **已實現**
 
 - **使用者設定**
-
   - `UserSettingsService.getUserSettings()`
     - _用於：_ App 初始化載入、顯示使用者偏好設定
   - `UserSettingsService.updateUserSettings(settingsUpdate)`
@@ -232,7 +224,6 @@
 ### ❌ **待實現**
 
 - **系統配置管理** _(P1)_
-
   - `ConfigService.getAIProviderConfig(providerId)`
     - _用於：_ 管理不同 AI 模型的設定、API 金鑰等
   - `ConfigService.updateProviderSettings(providerId, settings)`

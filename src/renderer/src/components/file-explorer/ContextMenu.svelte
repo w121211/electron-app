@@ -95,7 +95,11 @@
       }}
       tabindex="0"
     >
-      <span>Show in {navigator.userAgent.includes('Mac') ? 'Finder' : 'File Explorer'}</span>
+      <span
+        >Show in {navigator.userAgent.includes("Mac")
+          ? "Finder"
+          : "File Explorer"}</span
+      >
     </button>
 
     <!-- Separator -->

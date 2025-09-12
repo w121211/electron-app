@@ -213,10 +213,7 @@
             {#each projectState.projectFolders as folder, index (index)}
               {@const tree = projectState.folderTrees[folder.path]}
               {#if tree}
-                <TreeNode
-                  node={tree}
-                  level={0}
-                />
+                <TreeNode node={tree} level={0} />
               {/if}
             {/each}
           {/if}

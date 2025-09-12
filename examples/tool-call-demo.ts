@@ -271,7 +271,9 @@ async function demonstrateToolCalls() {
         // Approve the tool call
         await waitingCall.confirmationDetails.onConfirm("approved");
       } else {
-        console.log("📝 No pending approvals - file write was already processed");
+        console.log(
+          "📝 No pending approvals - file write was already processed",
+        );
       }
     } catch (error) {
       console.log("⚠️ Approval handling completed or no longer needed");

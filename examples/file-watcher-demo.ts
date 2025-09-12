@@ -46,7 +46,7 @@ async function demonstrateFileOperations(): Promise<void> {
 
   await fs.writeFile(
     path.join(taskFolder, "task.json"),
-    JSON.stringify(taskData, null, 2)
+    JSON.stringify(taskData, null, 2),
   );
 
   // Wait between operations
@@ -69,7 +69,7 @@ async function demonstrateFileOperations(): Promise<void> {
 
   await fs.writeFile(
     path.join(subtaskFolder, "c01-20230101_120000.chat.json"),
-    JSON.stringify(chatData, null, 2)
+    JSON.stringify(chatData, null, 2),
   );
 
   await new Promise<void>((resolve) => setTimeout(resolve, 1000));
@@ -84,7 +84,7 @@ async function demonstrateFileOperations(): Promise<void> {
 
   await fs.writeFile(
     path.join(subtaskFolder, "c01-20230101_120000.chat.json"),
-    JSON.stringify(chatData, null, 2)
+    JSON.stringify(chatData, null, 2),
   );
 
   await new Promise<void>((resolve) => setTimeout(resolve, 1000));
@@ -93,7 +93,7 @@ async function demonstrateFileOperations(): Promise<void> {
   logger.info("Creating a task backup...");
   await fs.writeFile(
     path.join(taskFolder, "history", "task_20230101_120000.json"),
-    JSON.stringify(taskData, null, 2)
+    JSON.stringify(taskData, null, 2),
   );
 }
 
@@ -115,9 +115,9 @@ async function runDemo(): Promise<void> {
     "ServerFileWatcherEvent",
     (event) => {
       logger.info(
-        `File event: ${event.data.chokidarEvent} | ${event.data.isDirectory ? "Directory" : "File"} | ${event.data.srcPath}`
+        `File event: ${event.data.chokidarEvent} | ${event.data.isDirectory ? "Directory" : "File"} | ${event.data.srcPath}`,
       );
-    }
+    },
   );
 
   // Set up the workspace

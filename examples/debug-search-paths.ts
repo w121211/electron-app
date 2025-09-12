@@ -12,23 +12,24 @@ async function debugSearchablePaths() {
 
     console.log("\n📋 Calling getSearchablePaths...");
     const results = await getSearchablePaths(currentProjectPath);
-    
+
     console.log(`✅ Found ${results.length} total paths:`);
-    
+
     if (results.length === 0) {
-      console.log("❌ No paths found - this indicates an issue with the function");
+      console.log(
+        "❌ No paths found - this indicates an issue with the function",
+      );
     } else {
       console.log("\n📁 First 20 results:");
       results.slice(0, 20).forEach((result, index) => {
         console.log(`  ${index + 1}. ${result.relativePath} (${result.name})`);
         console.log(`     Absolute: ${result.absolutePath}`);
       });
-      
+
       if (results.length > 20) {
         console.log(`     ... and ${results.length - 20} more`);
       }
     }
-
   } catch (error) {
     console.error("❌ Debug failed:", error);
     process.exit(1);

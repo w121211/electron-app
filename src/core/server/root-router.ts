@@ -66,9 +66,11 @@ export async function createTrpcRouter(userDataDir: string) {
   const modelService = createModelService();
 
   // Load API keys to environment variables
-  userSettingsService.loadApiKeysToEnvironment().catch((err) =>
-    logger.error("Failed to load API keys to environment:", err)
-  );
+  userSettingsService
+    .loadApiKeysToEnvironment()
+    .catch((err) =>
+      logger.error("Failed to load API keys to environment:", err),
+    );
 
   // Initialize tool registry
   // Note: ToolCallRunner is instantiated per chat session, not globally here.
@@ -76,7 +78,6 @@ export async function createTrpcRouter(userDataDir: string) {
 
   // Initialize chat session repository
   const chatSessionRepository = new ChatSessionRepositoryImpl();
-
 
   // Start watching all project folders
   projectFolderService

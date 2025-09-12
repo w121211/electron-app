@@ -46,17 +46,17 @@ The new UI implements the design system from the v12.1 prototype:
 
 ```css
 /* Color Palette */
---color-background: #131314;     /* Main background */
---color-surface: #131314;        /* Panel backgrounds */
---color-panel: #1c1c1e;          /* Elevated panels */
---color-border: #2a2a2a;         /* Border color */
---color-foreground: #e4e4e6;     /* Main text */
---color-muted: #8e8e93;          /* Secondary text */
---color-accent: #60a5fa;         /* Accent/interactive elements */
---color-hover: #2c2c2e;          /* Hover states */
---color-selected: #28282a;       /* Selected states */
+--color-background: #131314; /* Main background */
+--color-surface: #131314; /* Panel backgrounds */
+--color-panel: #1c1c1e; /* Elevated panels */
+--color-border: #2a2a2a; /* Border color */
+--color-foreground: #e4e4e6; /* Main text */
+--color-muted: #8e8e93; /* Secondary text */
+--color-accent: #60a5fa; /* Accent/interactive elements */
+--color-hover: #2c2c2e; /* Hover states */
+--color-selected: #28282a; /* Selected states */
 --color-input-background: #1d1d1f; /* Input backgrounds */
---color-input-border: #333333;   /* Input borders */
+--color-input-border: #333333; /* Input borders */
 
 /* Typography */
 font-family: "Inter", "Segoe UI", "Arial", sans-serif;
@@ -96,6 +96,7 @@ All existing functionality has been preserved:
 ### Component Architecture
 
 The new components follow the existing architecture:
+
 - **Service Layer** - Business logic and API calls
 - **Store Layer** - Reactive state management with Svelte 5 runes
 - **Component Layer** - Presentation with event handlers calling services
@@ -111,6 +112,7 @@ The new components follow the existing architecture:
 ### Import Strategy
 
 Components are organized to minimize dependencies:
+
 - New components reference each other directly
 - Shared utilities imported from original services/stores
 - Supporting components copied to maintain isolation
@@ -121,8 +123,8 @@ To use the new UI, import and use the new MainLayout:
 
 ```svelte
 <script>
-  import MainLayout from './components-new-ui/MainLayout.svelte';
-  import ToastProvider from './components-new-ui/ToastProvider.svelte';
+  import MainLayout from "./components-new-ui/MainLayout.svelte";
+  import ToastProvider from "./components-new-ui/ToastProvider.svelte";
 </script>
 
 <MainLayout />

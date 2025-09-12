@@ -33,7 +33,9 @@ class ChatService {
       const result = findNodeAndParent(projectState.folderTrees, targetPath);
 
       if (!result) {
-        throw new Error("Selected file or folder not found in the project tree.");
+        throw new Error(
+          "Selected file or folder not found in the project tree.",
+        );
       }
 
       const { node, parent } = result;
@@ -44,7 +46,9 @@ class ChatService {
       } else {
         if (!parent) {
           // This should not happen for a file within a project folder
-          throw new Error("Could not find parent directory for the selected file.");
+          throw new Error(
+            "Could not find parent directory for the selected file.",
+          );
         }
         containingDirectory = parent.path;
       }

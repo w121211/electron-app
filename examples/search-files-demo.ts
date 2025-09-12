@@ -13,14 +13,15 @@ async function runSearchFilesDemo() {
     // Create dependencies
     const eventBus = createServerEventBus();
     const tempUserDataDir = path.join(process.cwd(), ".tmp-demo-data");
-    const userSettingsRepository = createUserSettingsRepository(tempUserDataDir);
+    const userSettingsRepository =
+      createUserSettingsRepository(tempUserDataDir);
     const fileWatcherService = new FileWatcherService(eventBus);
-    
+
     // Create ProjectFolderService
     const projectFolderService = new ProjectFolderService(
       eventBus,
       userSettingsRepository,
-      fileWatcherService
+      fileWatcherService,
     );
 
     // Get current project directory (electron-app root)
@@ -34,25 +35,25 @@ async function runSearchFilesDemo() {
 
     // Test different search queries
     const testQueries = [
-      "",           // Empty query (should return all files/folders)
-      "src",        // Should match src folder and files in src
-      "core",       // Should match core folder and files with core in name
-      "srccore",    // Should match src/core specifically
-      "service",    // Should match service files
-      "project",    // Should match project-folder-service files
-      "utils",      // Should match utils folder and files
-      "svelte",     // Should match svelte files
-      "nonexistent" // Should return empty results
+      "", // Empty query (should return all files/folders)
+      "src", // Should match src folder and files in src
+      "core", // Should match core folder and files with core in name
+      "srccore", // Should match src/core specifically
+      "service", // Should match service files
+      "project", // Should match project-folder-service files
+      "utils", // Should match utils folder and files
+      "svelte", // Should match svelte files
+      "nonexistent", // Should return empty results
     ];
 
     for (const query of testQueries) {
       console.log(`\n🔍 Searching for: "${query}" (limit: 10)`);
       console.log("-".repeat(50));
-      
+
       const results = await projectFolderService.searchFilesInProject(
         query,
         currentProjectPath,
-        10
+        10,
       );
 
       if (results.length === 0) {
@@ -66,7 +67,9 @@ async function runSearchFilesDemo() {
           }
           if (result.highlightTokens.length > 0) {
             const highlightedText = result.highlightTokens
-              .map(token => token.isHighlighted ? `[${token.text}]` : token.text)
+              .map((token) =>
+                token.isHighlighted ? `[${token.text}]` : token.text,
+              )
               .join("");
             console.log(`     Highlighted: ${highlightedText}`);
           }
@@ -77,12 +80,12 @@ async function runSearchFilesDemo() {
     // Test with different limits
     console.log(`\n🔍 Testing limit parameter with query "src":`);
     console.log("-".repeat(50));
-    
+
     for (const limit of [3, 5, 20]) {
       const results = await projectFolderService.searchFilesInProject(
         "src",
         currentProjectPath,
-        limit
+        limit,
       );
       console.log(`  Limit ${limit}: Found ${results.length} results`);
     }
@@ -91,7 +94,6 @@ async function runSearchFilesDemo() {
     console.log("\n🧹 Cleaning up...");
     await projectFolderService.removeProjectFolder(currentProjectPath);
     console.log("✅ Project folder removed");
-
   } catch (error) {
     console.error("❌ Demo failed:", error);
     process.exit(1);

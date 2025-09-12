@@ -130,139 +130,209 @@
 
         <!-- Settings Content -->
         <div class="scrollbar-thin flex-1 overflow-y-auto p-6">
-            <div class="mx-auto max-w-3xl space-y-10">
-                <!-- Projects Settings -->
-                <section id="projects-settings">
-                  <h2 class="text-lg font-semibold">Project Management</h2>
-                  <p class="text-muted mt-1 text-sm">
-                    Manage the project folders the application has access to.
-                  </p>
-                  <div
-                    class="border-border mt-4 rounded-lg border"
+          <div class="mx-auto max-w-3xl space-y-10">
+            <!-- Projects Settings -->
+            <section id="projects-settings">
+              <h2 class="text-lg font-semibold">Project Management</h2>
+              <p class="text-muted mt-1 text-sm">
+                Manage the project folders the application has access to.
+              </p>
+              <div class="border-border mt-4 rounded-lg border">
+                <div
+                  class="border-border flex items-center justify-between border-b p-3"
+                >
+                  <h3 class="text-sm font-medium">Project Folders</h3>
+                  <button
+                    class="bg-surface hover:bg-hover border-border text-foreground cursor-pointer rounded-md border px-3 py-1 text-sm font-medium"
                   >
-                    <div class="border-border flex items-center justify-between border-b p-3">
-                        <h3 class="text-sm font-medium">Project Folders</h3>
-                        <button class="bg-surface hover:bg-hover border-border text-foreground cursor-pointer rounded-md border px-3 py-1 text-sm font-medium">
-                            <i class="bi bi-plus-lg mr-1 text-xs"></i> Add Folder
-                        </button>
-                    </div>
-                    <ul class="divide-border divide-y">
-                        <li class="flex items-center justify-between px-3 py-2">
-                            <p class="font-mono text-sm">/Users/cw/Documents/GitHub/my-agent-app</p>
-                            <button class="text-muted hover:text-red-500 cursor-pointer" title="Remove">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </li>
-                        <li class="flex items-center justify-between px-3 py-2">
-                            <p class="font-mono text-sm">/Users/cw/Documents/Projects/another-project</p>
-                            <button class="text-muted hover:text-red-500 cursor-pointer" title="Remove">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </li>
-                    </ul>
-                  </div>
-                </section>
+                    <i class="bi bi-plus-lg mr-1 text-xs"></i> Add Folder
+                  </button>
+                </div>
+                <ul class="divide-border divide-y">
+                  <li class="flex items-center justify-between px-3 py-2">
+                    <p class="font-mono text-sm">
+                      /Users/cw/Documents/GitHub/my-agent-app
+                    </p>
+                    <button
+                      class="text-muted hover:text-red-500 cursor-pointer"
+                      title="Remove"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </li>
+                  <li class="flex items-center justify-between px-3 py-2">
+                    <p class="font-mono text-sm">
+                      /Users/cw/Documents/Projects/another-project
+                    </p>
+                    <button
+                      class="text-muted hover:text-red-500 cursor-pointer"
+                      title="Remove"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </section>
 
-                <!-- AI Providers Settings -->
-                <section id="providers-settings">
-                  <h2 class="text-lg font-semibold">AI Providers</h2>
-                  <p class="text-muted mt-1 text-sm">
-                    Configure API keys for the AI models you want to use.
-                  </p>
-                  <div class="border-border mt-4 overflow-hidden rounded-lg border">
-                    <table class="w-full">
-                        <thead class="bg-surface/50">
-                            <tr>
-                                <th class="text-muted w-1/4 p-3 text-left text-xs font-semibold uppercase">Provider</th>
-                                <th class="text-muted w-2/4 p-3 text-left text-xs font-semibold uppercase">API Key</th>
-                                <th class="text-muted w-1/4 p-3 text-left text-xs font-semibold uppercase">Enabled</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-border divide-y">
-                            <!-- OpenAI -->
-                            <tr class="hover:bg-hover">
-                                <td class="p-3 font-medium">OpenAI</td>
-                                <td class="p-3">
-                                    <input type="password" value="mock-api-key-for-display" class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none">
-                                </td>
-                                <td class="p-3">
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" checked>
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                </td>
-                            </tr>
-                            <!-- Anthropic -->
-                            <tr class="hover:bg-hover">
-                                <td class="p-3 font-medium">Anthropic</td>
-                                <td class="p-3">
-                                    <input type="password" value="mock-api-key-for-display" class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none">
-                                </td>
-                                <td class="p-3">
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" checked>
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                </td>
-                            </tr>
-                            <!-- Google -->
-                            <tr class="hover:bg-hover">
-                                <td class="p-3 font-medium">Google</td>
-                                <td class="p-3">
-                                    <input type="password" placeholder="Enter your Google API key" class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none">
-                                </td>
-                                <td class="p-3">
-                                    <label class="toggle-switch">
-                                        <input type="checkbox">
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                  </div>
-                </section>
+            <!-- AI Providers Settings -->
+            <section id="providers-settings">
+              <h2 class="text-lg font-semibold">AI Providers</h2>
+              <p class="text-muted mt-1 text-sm">
+                Configure API keys for the AI models you want to use.
+              </p>
+              <div class="border-border mt-4 overflow-hidden rounded-lg border">
+                <table class="w-full">
+                  <thead class="bg-surface/50">
+                    <tr>
+                      <th
+                        class="text-muted w-1/4 p-3 text-left text-xs font-semibold uppercase"
+                      >
+                        Provider
+                      </th>
+                      <th
+                        class="text-muted w-2/4 p-3 text-left text-xs font-semibold uppercase"
+                      >
+                        API Key
+                      </th>
+                      <th
+                        class="text-muted w-1/4 p-3 text-left text-xs font-semibold uppercase"
+                      >
+                        Enabled
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-border divide-y">
+                    <!-- OpenAI -->
+                    <tr class="hover:bg-hover">
+                      <td class="p-3 font-medium">OpenAI</td>
+                      <td class="p-3">
+                        <input
+                          type="password"
+                          value="mock-api-key-for-display"
+                          class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none"
+                        />
+                      </td>
+                      <td class="p-3">
+                        <label class="toggle-switch">
+                          <input type="checkbox" checked />
+                          <span class="toggle-slider"></span>
+                        </label>
+                      </td>
+                    </tr>
+                    <!-- Anthropic -->
+                    <tr class="hover:bg-hover">
+                      <td class="p-3 font-medium">Anthropic</td>
+                      <td class="p-3">
+                        <input
+                          type="password"
+                          value="mock-api-key-for-display"
+                          class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none"
+                        />
+                      </td>
+                      <td class="p-3">
+                        <label class="toggle-switch">
+                          <input type="checkbox" checked />
+                          <span class="toggle-slider"></span>
+                        </label>
+                      </td>
+                    </tr>
+                    <!-- Google -->
+                    <tr class="hover:bg-hover">
+                      <td class="p-3 font-medium">Google</td>
+                      <td class="p-3">
+                        <input
+                          type="password"
+                          placeholder="Enter your Google API key"
+                          class="bg-input-background border-input-border focus:border-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none"
+                        />
+                      </td>
+                      <td class="p-3">
+                        <label class="toggle-switch">
+                          <input type="checkbox" />
+                          <span class="toggle-slider"></span>
+                        </label>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
-                <!-- MCP Servers Settings -->
-                <section id="mcp-settings">
-                  <h2 class="text-lg font-semibold">MCP Servers</h2>
-                  <p class="text-muted mt-1 text-sm">
-                    Manage external tool servers using the Model Context Protocol.
-                  </p>
-                  <div class="border-border mt-4 rounded-lg border">
-                    <div class="border-border flex items-center justify-between border-b p-3">
-                        <h3 class="text-sm font-medium">Configured Servers</h3>
-                        <button class="bg-surface hover:bg-hover border-border text-foreground cursor-pointer rounded-md border px-3 py-1 text-sm font-medium">
-                            <i class="bi bi-plus-lg mr-1 text-xs"></i> Add Server
-                        </button>
+            <!-- MCP Servers Settings -->
+            <section id="mcp-settings">
+              <h2 class="text-lg font-semibold">MCP Servers</h2>
+              <p class="text-muted mt-1 text-sm">
+                Manage external tool servers using the Model Context Protocol.
+              </p>
+              <div class="border-border mt-4 rounded-lg border">
+                <div
+                  class="border-border flex items-center justify-between border-b p-3"
+                >
+                  <h3 class="text-sm font-medium">Configured Servers</h3>
+                  <button
+                    class="bg-surface hover:bg-hover border-border text-foreground cursor-pointer rounded-md border px-3 py-1 text-sm font-medium"
+                  >
+                    <i class="bi bi-plus-lg mr-1 text-xs"></i> Add Server
+                  </button>
+                </div>
+                <ul class="divide-border divide-y">
+                  <li class="flex items-center justify-between px-3 py-2">
+                    <div>
+                      <p class="font-medium">GitHub MCP</p>
+                      <p class="text-muted font-mono text-xs">
+                        http://localhost:3001
+                      </p>
                     </div>
-                    <ul class="divide-border divide-y">
-                        <li class="flex items-center justify-between px-3 py-2">
-                            <div>
-                                <p class="font-medium">GitHub MCP</p>
-                                <p class="text-muted font-mono text-xs">http://localhost:3001</p>
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <span class="rounded border border-blue-600/40 bg-blue-600/20 px-1.5 py-0.5 text-xs text-blue-400">Enabled</span>
-                                <button class="text-muted hover:text-accent cursor-pointer" title="Edit"><i class="bi bi-pencil"></i></button>
-                                <button class="text-muted hover:text-red-500 cursor-pointer" title="Remove"><i class="bi bi-trash"></i></button>
-                            </div>
-                        </li>
-                        <li class="flex items-center justify-between px-3 py-2">
-                            <div>
-                                <p class="font-medium">Jira MCP</p>
-                                <p class="text-muted font-mono text-xs">https://mcp.internal.corp/jira</p>
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <span class="rounded border border-gray-600/40 bg-gray-600/20 px-1.5 py-0.5 text-xs text-gray-400">Disabled</span>
-                                <button class="text-muted hover:text-accent cursor-pointer" title="Edit"><i class="bi bi-pencil"></i></button>
-                                <button class="text-muted hover:text-red-500 cursor-pointer" title="Remove"><i class="bi bi-trash"></i></button>
-                            </div>
-                        </li>
-                    </ul>
-                  </div>
-                </section>
-            </div>
+                    <div class="flex items-center gap-4">
+                      <span
+                        class="rounded border border-blue-600/40 bg-blue-600/20 px-1.5 py-0.5 text-xs text-blue-400"
+                        >Enabled</span
+                      >
+                      <button
+                        class="text-muted hover:text-accent cursor-pointer"
+                        title="Edit"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        class="text-muted hover:text-red-500 cursor-pointer"
+                        title="Remove"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </li>
+                  <li class="flex items-center justify-between px-3 py-2">
+                    <div>
+                      <p class="font-medium">Jira MCP</p>
+                      <p class="text-muted font-mono text-xs">
+                        https://mcp.internal.corp/jira
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                      <span
+                        class="rounded border border-gray-600/40 bg-gray-600/20 px-1.5 py-0.5 text-xs text-gray-400"
+                        >Disabled</span
+                      >
+                      <button
+                        class="text-muted hover:text-accent cursor-pointer"
+                        title="Edit"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        class="text-muted hover:text-red-500 cursor-pointer"
+                        title="Remove"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
         </div>
       </main>
     </div>

@@ -1211,69 +1211,74 @@ export const toolCallOperations = {
 ```svelte
 <!-- src/components/ToolCallMessage.svelte -->
 <script lang="ts">
-  import { Logger } from 'tslog';
-  import { getMessageToolCalls, toolCallOperations } from '../stores/tool-call-store';
-  import { eventBus } from '../services/event-bus';
-  import ToolCallItem from './ToolCallItem.svelte';
-  import OverallStatusBadge from './OverallStatusBadge.svelte';
-  import { FunctionIcon } from 'svelte-bootstrap-icons';
+  import { Logger } from "tslog";
+  import {
+    getMessageToolCalls,
+    toolCallOperations,
+  } from "../stores/tool-call-store";
+  import { eventBus } from "../services/event-bus";
+  import ToolCallItem from "./ToolCallItem.svelte";
+  import OverallStatusBadge from "./OverallStatusBadge.svelte";
+  import { FunctionIcon } from "svelte-bootstrap-icons";
 
   interface Props {
     messageId: string;
   }
 
   const { messageId }: Props = $props();
-  const logger = new Logger({ name: 'ToolCallMessage' });
+  const logger = new Logger({ name: "ToolCallMessage" });
 
   // 使用 derived store 獲取此 message 的工具調用
   const messageToolCalls = getMessageToolCalls(messageId);
 
   // 事件監聽 - 類似你們 ChatPanel 的事件處理模式
   $effect(() => {
-    const unsubscribe = eventBus.subscribe([
-      'TOOL_CALLS_UPDATE',
-      'TOOL_PERMISSION_REQUIRED',
-      'TOOL_OUTPUT_CHUNK',
-    ], handleToolEvent);
+    const unsubscribe = eventBus.subscribe(
+      ["TOOL_CALLS_UPDATE", "TOOL_PERMISSION_REQUIRED", "TOOL_OUTPUT_CHUNK"],
+      handleToolEvent,
+    );
 
     return unsubscribe;
   });
 
   function handleToolEvent(event: ToolEvent) {
     switch (event.type) {
-      case 'TOOL_CALLS_UPDATE':
+      case "TOOL_CALLS_UPDATE":
         if (event.messageId === messageId) {
           toolCallOperations.updateToolCalls(event.messageId, event.toolCalls);
         }
         break;
 
-      case 'TOOL_OUTPUT_CHUNK':
+      case "TOOL_OUTPUT_CHUNK":
         // 更新執行中的輸出
         toolCallOperations.updateToolCallStatus(
           messageId,
           event.toolCallId,
-          'executing',
-          { liveOutput: event.chunk }
+          "executing",
+          { liveOutput: event.chunk },
         );
         break;
     }
   }
 
   // 用戶操作處理 - 類似你們既有的 async function 模式
-  async function handleToolCallAction(toolCallId: string, action: 'approve' | 'deny' | 'retry') {
+  async function handleToolCallAction(
+    toolCallId: string,
+    action: "approve" | "deny" | "retry",
+  ) {
     try {
       switch (action) {
-        case 'approve':
-        case 'deny':
+        case "approve":
+        case "deny":
           await toolCallScheduler.handleConfirmation(toolCallId, action);
           break;
-        case 'retry':
+        case "retry":
           await toolCallScheduler.retryToolCall(toolCallId);
           break;
       }
     } catch (error) {
       logger.error(`Failed to ${action} tool call:`, error);
-      showToast(`Failed to ${action} tool call`, 'error');
+      showToast(`Failed to ${action} tool call`, "error");
     }
   }
 </script>
@@ -1288,9 +1293,9 @@ export const toolCallOperations = {
   {#each $messageToolCalls as toolCall (toolCall.id)}
     <ToolCallItem
       {toolCall}
-      onApprove={() => handleToolCallAction(toolCall.id, 'approve')}
-      onDeny={() => handleToolCallAction(toolCall.id, 'deny')}
-      onRetry={() => handleToolCallAction(toolCall.id, 'retry')}
+      onApprove={() => handleToolCallAction(toolCall.id, "approve")}
+      onDeny={() => handleToolCallAction(toolCall.id, "deny")}
+      onRetry={() => handleToolCallAction(toolCall.id, "retry")}
     />
   {/each}
 </div>
@@ -1309,11 +1314,11 @@ export const toolCallOperations = {
 ```svelte
 <!-- src/components/ToolCallItem.svelte -->
 <script lang="ts">
-  import type { ToolCall } from '../types/tool-call.types';
-  import PermissionConfirmation from './PermissionConfirmation.svelte';
-  import ExecutionProgress from './ExecutionProgress.svelte';
-  import ResultDisplay from './ResultDisplay.svelte';
-  import StatusIcon from './StatusIcon.svelte';
+  import type { ToolCall } from "../types/tool-call.types";
+  import PermissionConfirmation from "./PermissionConfirmation.svelte";
+  import ExecutionProgress from "./ExecutionProgress.svelte";
+  import ResultDisplay from "./ResultDisplay.svelte";
+  import StatusIcon from "./StatusIcon.svelte";
 
   interface Props {
     toolCall: ToolCall;
@@ -1333,21 +1338,17 @@ export const toolCallOperations = {
   </div>
 
   <!-- 權限確認區域 -->
-  {#if toolCall.status === 'awaiting_approval'}
-    <PermissionConfirmation
-      {toolCall}
-      {onApprove}
-      {onDeny}
-    />
+  {#if toolCall.status === "awaiting_approval"}
+    <PermissionConfirmation {toolCall} {onApprove} {onDeny} />
   {/if}
 
   <!-- 執行進度 -->
-  {#if toolCall.status === 'executing'}
+  {#if toolCall.status === "executing"}
     <ExecutionProgress {toolCall} />
   {/if}
 
   <!-- 結果顯示 -->
-  {#if toolCall.status === 'success' || toolCall.status === 'error'}
+  {#if toolCall.status === "success" || toolCall.status === "error"}
     <ResultDisplay {toolCall} {onRetry} />
   {/if}
 </div>
@@ -1357,12 +1358,24 @@ export const toolCallOperations = {
     @apply border rounded-md p-3 mb-2;
   }
 
-  .status-validating { @apply border-yellow-300 bg-yellow-50; }
-  .status-awaiting_approval { @apply border-orange-300 bg-orange-50; }
-  .status-executing { @apply border-blue-300 bg-blue-50; }
-  .status-success { @apply border-green-300 bg-green-50; }
-  .status-error { @apply border-red-300 bg-red-50; }
-  .status-cancelled { @apply border-gray-300 bg-gray-50; }
+  .status-validating {
+    @apply border-yellow-300 bg-yellow-50;
+  }
+  .status-awaiting_approval {
+    @apply border-orange-300 bg-orange-50;
+  }
+  .status-executing {
+    @apply border-blue-300 bg-blue-50;
+  }
+  .status-success {
+    @apply border-green-300 bg-green-50;
+  }
+  .status-error {
+    @apply border-red-300 bg-red-50;
+  }
+  .status-cancelled {
+    @apply border-gray-300 bg-gray-50;
+  }
 
   .tool-info {
     @apply flex items-center justify-between mb-2;
@@ -1377,8 +1390,8 @@ export const toolCallOperations = {
 ```svelte
 <!-- src/components/PermissionConfirmation.svelte -->
 <script lang="ts">
-  import type { ToolCall } from '../types/tool-call.types';
-  import { WarningTriangle } from 'svelte-bootstrap-icons';
+  import type { ToolCall } from "../types/tool-call.types";
+  import { WarningTriangle } from "svelte-bootstrap-icons";
 
   interface Props {
     toolCall: ToolCall;
@@ -1409,18 +1422,8 @@ export const toolCallOperations = {
     {/if}
 
     <div class="confirmation-actions">
-      <button
-        class="btn-primary"
-        onclick={onApprove}
-      >
-        Allow
-      </button>
-      <button
-        class="btn-outline"
-        onclick={onDeny}
-      >
-        Deny
-      </button>
+      <button class="btn-primary" onclick={onApprove}> Allow </button>
+      <button class="btn-outline" onclick={onDeny}> Deny </button>
     </div>
   </div>
 {/if}
@@ -1430,9 +1433,15 @@ export const toolCallOperations = {
     @apply bg-background border rounded-md p-3 mt-2;
   }
 
-  .danger-low { @apply border-yellow-300; }
-  .danger-medium { @apply border-orange-300; }
-  .danger-high { @apply border-red-300; }
+  .danger-low {
+    @apply border-yellow-300;
+  }
+  .danger-medium {
+    @apply border-orange-300;
+  }
+  .danger-high {
+    @apply border-red-300;
+  }
 
   .confirmation-message {
     @apply flex items-start gap-2 mb-3;
@@ -1472,7 +1481,7 @@ export const toolCallOperations = {
 <!-- 在 ChatPanel.svelte 中的 message 渲染部分添加 -->
 <script lang="ts">
   // 既有的 imports...
-  import ToolCallMessage from './ToolCallMessage.svelte';
+  import ToolCallMessage from "./ToolCallMessage.svelte";
 
   // 既有的 state 和 logic...
 </script>
@@ -1482,11 +1491,11 @@ export const toolCallOperations = {
   {#each $currentChatMessages as message (message.id)}
     <div class="message-wrapper">
       <!-- 既有的用戶和助理消息處理 -->
-      {#if message.role === 'USER'}
+      {#if message.role === "USER"}
         <!-- 既有的用戶消息組件 -->
-      {:else if message.role === 'ASSISTANT'}
+      {:else if message.role === "ASSISTANT"}
         <!-- 既有的助理消息組件 -->
-      {:else if message.role === 'TOOL_CALL'}
+      {:else if message.role === "TOOL_CALL"}
         <!-- 新增：工具調用消息 -->
         <ToolCallMessage messageId={message.id} />
       {/if}

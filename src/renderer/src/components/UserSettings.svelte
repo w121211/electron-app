@@ -63,7 +63,6 @@
       newProjectFolder = "";
     }
   }
-
 </script>
 
 <button

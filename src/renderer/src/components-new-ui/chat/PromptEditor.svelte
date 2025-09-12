@@ -79,7 +79,10 @@
   }
 
   function handleKeyPress(event: KeyboardEvent): void {
-    // Handle search menu navigation
+    // Skip if IME is composing to fix Chinese input issues
+    if (event.isComposing) return;
+
+    // Handle search menu navigation first
     const handled = fileSearchService.handleSearchKeydown(
       event,
       promptEditorTextarea ?? null,
@@ -87,6 +90,33 @@
     );
 
     if (handled) return;
+
+    // Handle tab indentation
+    switch (event.key) {
+      case "Tab": {
+        if (!promptEditorTextarea) return;
+
+        event.preventDefault();
+
+        if (event.shiftKey) {
+          // Shift+Tab: Remove 2 spaces if they exist before cursor
+          const cursorPos = promptEditorTextarea.selectionStart;
+          const value = chatState.messageInput;
+
+          if (
+            cursorPos >= 2 &&
+            value.slice(cursorPos - 2, cursorPos) === "  "
+          ) {
+            promptEditorTextarea.setSelectionRange(cursorPos - 2, cursorPos);
+            document.execCommand("delete");
+          }
+        } else {
+          // Tab: Insert 2 spaces
+          document.execCommand("insertText", false, "  ");
+        }
+        break;
+      }
+    }
   }
 
   // Cleanup on component destroy
@@ -137,7 +167,6 @@
       bind:this={promptEditorTextarea}
       bind:value={chatState.messageInput}
       oninput={(e) => handleInputChange(e.currentTarget.value)}
-      onkeypress={handleKeyPress}
       onkeydown={handleKeyPress}
       placeholder="Prompt editor, use '/' for commands, or @path/to/file"
       class="scrollbar-thin placeholder-muted h-full w-full flex-1 resize-none border-none bg-transparent p-4 text-[13px] leading-6 outline-none placeholder:text-sm"
@@ -163,7 +192,7 @@
   </div>
 </div>
 
-<style>
+<!-- <style>
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
   }
@@ -174,4 +203,4 @@
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-</style>
+</style> -->

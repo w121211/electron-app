@@ -35,7 +35,10 @@ export class PtyService extends EventEmitter {
 
   create(options: PtyCreateOptions = {}): string {
     const sessionId = `pty-${++this.sessionIdCounter}`;
-    const shell = options.shell || process.platform === "win32" ? "powershell.exe" : process.env.SHELL || "/bin/bash";
+    const shell =
+      options.shell || process.platform === "win32"
+        ? "powershell.exe"
+        : process.env.SHELL || "/bin/bash";
     const cwd = options.cwd || process.cwd();
 
     this.logger.info(`Creating pty session ${sessionId}`, { shell, cwd });
@@ -76,7 +79,9 @@ export class PtyService extends EventEmitter {
   write(sessionId: string, data: string): boolean {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      this.logger.warn(`Attempted to write to non-existent pty session: ${sessionId}`);
+      this.logger.warn(
+        `Attempted to write to non-existent pty session: ${sessionId}`,
+      );
       return false;
     }
 
@@ -87,19 +92,25 @@ export class PtyService extends EventEmitter {
   resize(sessionId: string, options: PtyResizeOptions): boolean {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      this.logger.warn(`Attempted to resize non-existent pty session: ${sessionId}`);
+      this.logger.warn(
+        `Attempted to resize non-existent pty session: ${sessionId}`,
+      );
       return false;
     }
 
     session.pty.resize(options.cols, options.rows);
-    this.logger.debug(`Pty session ${sessionId} resized to ${options.cols}x${options.rows}`);
+    this.logger.debug(
+      `Pty session ${sessionId} resized to ${options.cols}x${options.rows}`,
+    );
     return true;
   }
 
   destroy(sessionId: string): boolean {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      this.logger.warn(`Attempted to destroy non-existent pty session: ${sessionId}`);
+      this.logger.warn(
+        `Attempted to destroy non-existent pty session: ${sessionId}`,
+      );
       return false;
     }
 

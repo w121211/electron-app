@@ -13,7 +13,7 @@ type PreferenceKey = keyof PreferenceSchema;
  * Get preference value from localStorage
  */
 export function getPreference<K extends PreferenceKey>(
-  key: K
+  key: K,
 ): PreferenceSchema[K] | null {
   if (typeof window === "undefined") return null;
   const value = localStorage.getItem(key);
@@ -21,11 +21,11 @@ export function getPreference<K extends PreferenceKey>(
 }
 
 /**
- * Set preference value in localStorage  
+ * Set preference value in localStorage
  */
 export function setPreference<K extends PreferenceKey>(
   key: K,
-  value: PreferenceSchema[K]
+  value: PreferenceSchema[K],
 ): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(key, JSON.stringify(value));

@@ -1,26 +1,28 @@
 <!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <title>AI Chat App UI</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Tailwind CSS v4 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <!-- Bootstrap Icons CDN -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
-  <style type="text/tailwindcss">
-    /* @theme is a Tailwind CSS v4 feature */
-    @theme {
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Chat App UI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Tailwind CSS v4 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Bootstrap Icons CDN -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+    <style type="text/tailwindcss">
+      /* @theme is a Tailwind CSS v4 feature */
+      @theme {
         /* Minimal Palette */
         --color-background: #181818; /* Universal background for content, panels, sidebars */
-        --color-surface: #1F1F1F; /* Text input background */
-        --color-border: #2B2B2B;
-        --color-muted: #9D9D9D;
-        --color-hover: #2B2B2B;
-        --color-selected: #2B2B2B; /* Same as hover */
-        --color-accent: #4A90E2;
-        --color-foreground: #CCCCCC;
+        --color-surface: #1f1f1f; /* Text input background */
+        --color-border: #2b2b2b;
+        --color-muted: #9d9d9d;
+        --color-hover: #2b2b2b;
+        --color-selected: #2b2b2b; /* Same as hover */
+        --color-accent: #4a90e2;
+        --color-foreground: #cccccc;
         /* --color-panel: Removed - now use background widely */
 
         /* Using system default fonts instead. */
@@ -39,480 +41,668 @@
         background: transparent;
       }
     </style>
-</head>
+  </head>
 
-<body class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]">
-  <div class="flex h-screen">
-    <!-- Sidebar -->
-    <aside class="bg-background border-border flex w-64 flex-col border-r">
-      <!-- Section 1: Top Icons (Fixed) -->
-      <div class="flex h-12 items-center justify-start px-4">
-        <div class="flex items-center gap-2">
-          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Home">
-            <i class="bi bi-house"></i>
-          </button>
-          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Search">
-            <i class="bi bi-search"></i>
-          </button>
-          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Toggle Sidebar">
-            <i class="bi bi-layout-sidebar-inset"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Section 2: Scrollable Content -->
-      <div class="scrollbar-thin flex-1 overflow-y-auto">
-        <div class="px-3">
-          <!-- Projects Header -->
-          <div
-            class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
-            title="Projects">
-            <span class="text-sm font-medium">Projects</span>
-            <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
-              title="Add Project Folder">
-              <i class="bi bi-plus"></i>
+  <body
+    class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]"
+  >
+    <div class="flex h-screen">
+      <!-- Sidebar -->
+      <aside class="bg-background border-border flex w-64 flex-col border-r">
+        <!-- Section 1: Top Icons (Fixed) -->
+        <div class="flex h-12 items-center justify-start px-4">
+          <div class="flex items-center gap-2">
+            <button
+              class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+              title="Home"
+            >
+              <i class="bi bi-house"></i>
             </button>
-            <button class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100" title="Menu">
-              <i class="bi bi-three-dots-vertical"></i>
+            <button
+              class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+              title="Search"
+            >
+              <i class="bi bi-search"></i>
+            </button>
+            <button
+              class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+              title="Toggle Sidebar"
+            >
+              <i class="bi bi-layout-sidebar-inset"></i>
             </button>
           </div>
+        </div>
 
-          <!-- Project Trees -->
-          <div class="px-2">
-            <!-- Project Folder 1 -->
-            <div class="pb-1">
-              <div
-                class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]">
-                <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
-                <span class="text-xs font-medium">my-ai-project</span>
-                <button
-                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                  title="New Chat">
-                  <i class="bi bi-chat-dots text-xs"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                  title="Menu">
-                  <i class="bi bi-three-dots-vertical text-xs"></i>
-                </button>
-              </div>
-              <div class="ml-2">
+        <!-- Section 2: Scrollable Content -->
+        <div class="scrollbar-thin flex-1 overflow-y-auto">
+          <div class="px-3">
+            <!-- Projects Header -->
+            <div
+              class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+              title="Projects"
+            >
+              <span class="text-sm font-medium">Projects</span>
+              <button
+                class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+                title="Add Project Folder"
+              >
+                <i class="bi bi-plus"></i>
+              </button>
+              <button
+                class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100"
+                title="Menu"
+              >
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+            </div>
+
+            <!-- Project Trees -->
+            <div class="px-2">
+              <!-- Project Folder 1 -->
+              <div class="pb-1">
                 <div
-                  class="bg-selected hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                  onclick="selectNode(this)">
-                  <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
-                  <span class="max-w-[120px] truncate text-xs">design-discussion.chat.json</span>
-                  <span
-                    class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">running</span>
+                  class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]"
+                >
+                  <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
+                  <span class="text-xs font-medium">my-ai-project</span>
                   <button
                     class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Stop Chat">
-                    <i class="bi bi-stop-fill text-xs"></i>
+                    title="New Chat"
+                  >
+                    <i class="bi bi-chat-dots text-xs"></i>
                   </button>
-                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu">
-                    <i class="bi bi-three-dots-vertical text-xs"></i>
-                  </button>
-                </div>
-                <div
-                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                  onclick="selectNode(this); previewFile('README.md')">
-                  <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                  <span class="max-w-[120px] truncate text-xs">README.md</span>
-                  <i class="bi bi-file-earmark-check text-muted ml-1 text-[10px]" title="In Project Context"></i>
                   <button
-                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu">
+                    class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu"
+                  >
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
-                <div
-                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                  onclick="selectNode(this); previewFile('api.md')">
-                  <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                  <span class="text-xs">api.md</span>
-                  <button
-                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu">
-                    <i class="bi bi-three-dots-vertical text-xs"></i>
-                  </button>
-                </div>
-                <!-- Nested Folder -->
-                <div>
+                <div class="ml-2">
                   <div
-                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]">
-                    <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
-                    <span class="text-xs">src</span>
+                    class="bg-selected hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                    onclick="selectNode(this)"
+                  >
+                    <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
+                    <span class="max-w-[120px] truncate text-xs"
+                      >design-discussion.chat.json</span
+                    >
+                    <span
+                      class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
+                      >running</span
+                    >
                     <button
                       class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                      title="New Chat">
-                      <i class="bi bi-chat-dots text-xs"></i>
+                      title="Stop Chat"
+                    >
+                      <i class="bi bi-stop-fill text-xs"></i>
                     </button>
-                    <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                      title="Menu">
+                    <button
+                      class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                    >
                       <i class="bi bi-three-dots-vertical text-xs"></i>
                     </button>
                   </div>
-                  <div class="ml-2 pl-0">
+                  <div
+                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                    onclick="selectNode(this); previewFile('README.md')"
+                  >
+                    <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
+                    <span class="max-w-[120px] truncate text-xs"
+                      >README.md</span
+                    >
+                    <i
+                      class="bi bi-file-earmark-check text-muted ml-1 text-[10px]"
+                      title="In Project Context"
+                    ></i>
+                    <button
+                      class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                    >
+                      <i class="bi bi-three-dots-vertical text-xs"></i>
+                    </button>
+                  </div>
+                  <div
+                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                    onclick="selectNode(this); previewFile('api.md')"
+                  >
+                    <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
+                    <span class="text-xs">api.md</span>
+                    <button
+                      class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                    >
+                      <i class="bi bi-three-dots-vertical text-xs"></i>
+                    </button>
+                  </div>
+                  <!-- Nested Folder -->
+                  <div>
                     <div
                       class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                      onclick="selectNode(this); previewFile('main.ts')">
-                      <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                      <span class="text-xs">main.ts</span>
+                    >
+                      <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
+                      <span class="text-xs">src</span>
                       <button
-                        class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                        title="Menu">
+                        class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                        title="New Chat"
+                      >
+                        <i class="bi bi-chat-dots text-xs"></i>
+                      </button>
+                      <button
+                        class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                        title="Menu"
+                      >
                         <i class="bi bi-three-dots-vertical text-xs"></i>
                       </button>
                     </div>
-                    <div
-                      class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                      onclick="selectNode(this); previewFile('utils.ts')">
-                      <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                      <span class="text-xs">utils.ts</span>
-                      <button
-                        class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                        title="Menu">
-                        <i class="bi bi-three-dots-vertical text-xs"></i>
-                      </button>
+                    <div class="ml-2 pl-0">
+                      <div
+                        class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                        onclick="selectNode(this); previewFile('main.ts')"
+                      >
+                        <i
+                          class="bi bi-file-earmark text-muted mr-1.5 text-xs"
+                        ></i>
+                        <span class="text-xs">main.ts</span>
+                        <button
+                          class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                          title="Menu"
+                        >
+                          <i class="bi bi-three-dots-vertical text-xs"></i>
+                        </button>
+                      </div>
+                      <div
+                        class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                        onclick="selectNode(this); previewFile('utils.ts')"
+                      >
+                        <i
+                          class="bi bi-file-earmark text-muted mr-1.5 text-xs"
+                        ></i>
+                        <span class="text-xs">utils.ts</span>
+                        <button
+                          class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                          title="Menu"
+                        >
+                          <i class="bi bi-three-dots-vertical text-xs"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Project Folder 2 -->
-            <div class="pb-1">
-              <div
-                class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]">
-                <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
-                <span class="text-xs font-medium">demo-project</span>
-                <button
-                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                  title="New Chat">
-                  <i class="bi bi-chat-dots text-xs"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                  title="Menu">
-                  <i class="bi bi-three-dots-vertical text-xs"></i>
-                </button>
-              </div>
-              <div class="ml-2 pl-0">
+              <!-- Project Folder 2 -->
+              <div class="pb-1">
                 <div
-                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                  onclick="selectNode(this)">
-                  <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
-                  <span class="max-w-[120px] truncate text-xs">planning-session.chat.json</span>
-                  <span
-                    class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">paused</span>
+                  class="hover:bg-hover group relative flex cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400] min-h-[24px]"
+                >
+                  <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
+                  <span class="text-xs font-medium">demo-project</span>
                   <button
                     class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Resume Chat">
-                    <i class="bi bi-play-fill text-xs"></i>
+                    title="New Chat"
+                  >
+                    <i class="bi bi-chat-dots text-xs"></i>
                   </button>
-                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu">
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu"
+                  >
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
-                <div
-                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                  onclick="selectNode(this); previewFile('project-spec.md')">
-                  <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                  <span class="max-w-[120px] truncate text-xs">project-spec.md</span>
-                  <button
-                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu">
-                    <i class="bi bi-three-dots-vertical text-xs"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section 3: Bottom Settings (Fixed) -->
-      <div class="flex h-12 px-4">
-        <button class="text-muted hover:text-accent hover:cursor-pointer rounded-md p-1.5" title="Settings">
-          <i class="bi bi-gear"></i>
-        </button>
-      </div>
-    </aside>
-
-    <!-- Main Workspace -->
-    <main class="flex min-w-0 flex-1">
-      <!-- Chat Conversation Panel -->
-      <section class="flex min-w-0 flex-1 flex-col">
-        <!-- Breadcrumb Header -->
-        <header class="bg-background flex h-12 items-center justify-between px-4">
-          <div class="flex items-center gap-2">
-            <span class="text-muted text-xs">my-ai-project</span>
-            <i class="bi bi-chevron-right text-muted text-xs"></i>
-            <span class="text-muted text-xs">design-discussion.chat.json</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Share">
-              <i class="bi bi-share"></i>
-            </button>
-            <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Export">
-              <i class="bi bi-download"></i>
-            </button>
-            <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Edit">
-              <i class="bi bi-pencil"></i>
-            </button>
-          </div>
-        </header>
-        <!-- Messages -->
-        <div class="scrollbar-thin bg-background flex-1 overflow-y-auto px-8 py-6">
-          <div class="mx-auto max-w-3xl space-y-12">
-            <!-- AI Message -->
-            <div class="group flex flex-col items-start">
-              <div class="mb-1 flex items-center gap-2">
-                <span class="text-muted text-sm font-medium">Claude Sonnet 4</span>
-              </div>
-              <div class="text-foreground leading-normal">
-                Hi! How can I help with your product design? Let me know your focus today.
-              </div>
-              <div
-                class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
-                  <i class="bi bi-copy"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer" title="More">
-                  <i class="bi bi-three-dots"></i>
-                </button>
-              </div>
-            </div>
-            <!-- User Message -->
-            <div class="group flex w-full flex-col items-end">
-              <div class="bg-[#2c2c2e] text-foreground rounded-2xl py-2.5 px-4 max-w-[80%]">
-                <a href="javascript:void(0)" class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
-                  onclick="previewFile('vscode-screenshot.png')">@vscode-screenshot.png</a>
-                <a href="javascript:void(0)" class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
-                  onclick="previewFile('vscode-screenshot.png')">@claude-screenshot.png</a>
-                I want a chat UI that feels modern and professional, like VS Code but for conversations.
-              </div>
-              <div
-                class="mt-1 mr-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button class="text-muted hover:text-accent cursor-pointer" title="Edit">
-                  <i class="bi bi-pencil"></i>
-                </button>
-              </div>
-            </div>
-            <!-- AI Message -->
-            <div class="group flex flex-col items-start">
-              <div class="mb-1 flex items-center gap-2">
-                <span class="text-muted text-sm font-medium">Claude Sonnet 4</span>
-              </div>
-              <div class="text-foreground leading-normal">
-                Great! Here are some key principles:<br />
-                <ul class="text-foreground mt-2 list-disc space-y-1 pl-5 text-[14px]">
-                  <li>Minimal dark theme, subtle contrast</li>
-                  <li>Three-panel layout: explorer, chat, preview</li>
-                  <li>Modern sans-serif font</li>
-                  <li>Contextual file management</li>
-                </ul>
-              </div>
-              <div
-                class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
-                  <i class="bi bi-copy"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer" title="More">
-                  <i class="bi bi-three-dots"></i>
-                </button>
-              </div>
-            </div>
-            <!-- AI Message with Artifact -->
-            <div class="group flex flex-col items-start">
-              <div class="mb-1 flex items-center gap-2">
-                <span class="text-muted text-sm font-medium">Claude Sonnet 4</span>
-              </div>
-              <div class="text-foreground leading-normal">
-                Here's a wireframe artifact for your chat UI. You can preview or download it.<br />
-                <div class="mt-2">
-                  <button
-                    class="border-border bg-background hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
-                    onclick="previewFile('wireframe.html')">
-                    wireframe.html
-                    <span class="text-muted text-xs">v3</span>
-                    <i class="bi bi-download text-muted hover:text-accent ml-1 cursor-pointer"></i>
-                  </button>
-                </div>
-              </div>
-              <div
-                class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
-                  <i class="bi bi-copy"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer" title="More">
-                  <i class="bi bi-three-dots"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Input Area -->
-        <footer class="bg-background px-6 py-3">
-          <div class="mx-auto max-w-3xl">
-            <div class="bg-surface rounded-3xl p-2 flex items-center gap-2 border border-border">
-              <textarea rows="3" placeholder="Prompt, use '/' for commands, or @path/to/file (Enter to send)"
-                class="bg-transparent border-none resize-none text-foreground w-full min-h-[72px] leading-6 px-2 outline-none text-[15px] placeholder-muted placeholder:text-sm"></textarea>
-            </div>
-            <!-- Controls under input -->
-            <div class="mt-2 flex items-center justify-between px-4">
-              <div class="flex items-center gap-3">
-                <button title="Attach" class="text-muted hover:text-accent cursor-pointer">
-                  <i class="bi bi-paperclip"></i>
-                </button>
-                <!-- Model selector dropdown -->
-                <div class="relative">
-                  <button class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-xs"
-                    title="Select Model">
-                    <span id="selected-model">Claude 3.5</span>
-                    <i class="bi bi-chevron-down"></i>
-                  </button>
+                <div class="ml-2 pl-0">
                   <div
-                    class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border shadow-lg">
-                    <div class="py-1">
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Claude
-                        3.5</a>
-                      <a href="#"
-                        class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">GPT-4</a>
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm">Gemini
-                        Pro</a>
-                    </div>
+                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                    onclick="selectNode(this)"
+                  >
+                    <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
+                    <span class="max-w-[120px] truncate text-xs"
+                      >planning-session.chat.json</span
+                    >
+                    <span
+                      class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
+                      >paused</span
+                    >
+                    <button
+                      class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Resume Chat"
+                    >
+                      <i class="bi bi-play-fill text-xs"></i>
+                    </button>
+                    <button
+                      class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                    >
+                      <i class="bi bi-three-dots-vertical text-xs"></i>
+                    </button>
+                  </div>
+                  <div
+                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                    onclick="selectNode(this); previewFile('project-spec.md')"
+                  >
+                    <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
+                    <span class="max-w-[120px] truncate text-xs"
+                      >project-spec.md</span
+                    >
+                    <button
+                      class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                    >
+                      <i class="bi bi-three-dots-vertical text-xs"></i>
+                    </button>
                   </div>
                 </div>
               </div>
-              <div class="flex items-center">
-                <button title="Prompt Editor" class="text-muted hover:text-accent cursor-pointer">
-                  <i class="bi bi-pencil-square"></i>
-                </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Bottom Settings (Fixed) -->
+        <div class="flex h-12 px-4">
+          <button
+            class="text-muted hover:text-accent hover:cursor-pointer rounded-md p-1.5"
+            title="Settings"
+          >
+            <i class="bi bi-gear"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Workspace -->
+      <main class="flex min-w-0 flex-1">
+        <!-- Chat Conversation Panel -->
+        <section class="flex min-w-0 flex-1 flex-col">
+          <!-- Breadcrumb Header -->
+          <header
+            class="bg-background flex h-12 items-center justify-between px-4"
+          >
+            <div class="flex items-center gap-2">
+              <span class="text-muted text-xs">my-ai-project</span>
+              <i class="bi bi-chevron-right text-muted text-xs"></i>
+              <span class="text-muted text-xs"
+                >design-discussion.chat.json</span
+              >
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+                title="Share"
+              >
+                <i class="bi bi-share"></i>
+              </button>
+              <button
+                class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+                title="Export"
+              >
+                <i class="bi bi-download"></i>
+              </button>
+              <button
+                class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+                title="Edit"
+              >
+                <i class="bi bi-pencil"></i>
+              </button>
+            </div>
+          </header>
+          <!-- Messages -->
+          <div
+            class="scrollbar-thin bg-background flex-1 overflow-y-auto px-8 py-6"
+          >
+            <div class="mx-auto max-w-3xl space-y-12">
+              <!-- AI Message -->
+              <div class="group flex flex-col items-start">
+                <div class="mb-1 flex items-center gap-2">
+                  <span class="text-muted text-sm font-medium"
+                    >Claude Sonnet 4</span
+                  >
+                </div>
+                <div class="text-foreground leading-normal">
+                  Hi! How can I help with your product design? Let me know your
+                  focus today.
+                </div>
+                <div
+                  class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                >
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="Copy"
+                  >
+                    <i class="bi bi-copy"></i>
+                  </button>
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="More"
+                  >
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- User Message -->
+              <div class="group flex w-full flex-col items-end">
+                <div
+                  class="bg-[#2c2c2e] text-foreground rounded-2xl py-2.5 px-4 max-w-[80%]"
+                >
+                  <a
+                    href="javascript:void(0)"
+                    class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
+                    onclick="previewFile('vscode-screenshot.png')"
+                    >@vscode-screenshot.png</a
+                  >
+                  <a
+                    href="javascript:void(0)"
+                    class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
+                    onclick="previewFile('vscode-screenshot.png')"
+                    >@claude-screenshot.png</a
+                  >
+                  I want a chat UI that feels modern and professional, like VS
+                  Code but for conversations.
+                </div>
+                <div
+                  class="mt-1 mr-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                >
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="Edit"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- AI Message -->
+              <div class="group flex flex-col items-start">
+                <div class="mb-1 flex items-center gap-2">
+                  <span class="text-muted text-sm font-medium"
+                    >Claude Sonnet 4</span
+                  >
+                </div>
+                <div class="text-foreground leading-normal">
+                  Great! Here are some key principles:<br />
+                  <ul
+                    class="text-foreground mt-2 list-disc space-y-1 pl-5 text-[14px]"
+                  >
+                    <li>Minimal dark theme, subtle contrast</li>
+                    <li>Three-panel layout: explorer, chat, preview</li>
+                    <li>Modern sans-serif font</li>
+                    <li>Contextual file management</li>
+                  </ul>
+                </div>
+                <div
+                  class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                >
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="Copy"
+                  >
+                    <i class="bi bi-copy"></i>
+                  </button>
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="More"
+                  >
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- AI Message with Artifact -->
+              <div class="group flex flex-col items-start">
+                <div class="mb-1 flex items-center gap-2">
+                  <span class="text-muted text-sm font-medium"
+                    >Claude Sonnet 4</span
+                  >
+                </div>
+                <div class="text-foreground leading-normal">
+                  Here's a wireframe artifact for your chat UI. You can preview
+                  or download it.<br />
+                  <div class="mt-2">
+                    <button
+                      class="border-border bg-background hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
+                      onclick="previewFile('wireframe.html')"
+                    >
+                      wireframe.html
+                      <span class="text-muted text-xs">v3</span>
+                      <i
+                        class="bi bi-download text-muted hover:text-accent ml-1 cursor-pointer"
+                      ></i>
+                    </button>
+                  </div>
+                </div>
+                <div
+                  class="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                >
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="Copy"
+                  >
+                    <i class="bi bi-copy"></i>
+                  </button>
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="More"
+                  >
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </footer>
-      </section>
-
-      <!-- Right Panel -->
-      <aside class="bg-background border-border relative flex w-96 flex-col border-l">
-        <!-- Preview Overlay -->
-        <div class="bg-surface absolute inset-0 z-20 hidden" id="preview-panel">
-          <div class="flex h-12 items-center justify-between px-4">
-            <div class="flex items-center">
-              <span class="font-medium" id="preview-title">README.md</span>
-              <span class="text-muted ml-2 text-xs">Preview</span>
+          <!-- Input Area -->
+          <footer class="bg-background px-6 py-3">
+            <div class="mx-auto max-w-3xl">
+              <div
+                class="bg-surface rounded-3xl p-2 flex items-center gap-2 border border-border"
+              >
+                <textarea
+                  rows="3"
+                  placeholder="Prompt, use '/' for commands, or @path/to/file (Enter to send)"
+                  class="bg-transparent border-none resize-none text-foreground w-full min-h-[72px] leading-6 px-2 outline-none text-[15px] placeholder-muted placeholder:text-sm"
+                ></textarea>
+              </div>
+              <!-- Controls under input -->
+              <div class="mt-2 flex items-center justify-between px-4">
+                <div class="flex items-center gap-3">
+                  <button
+                    title="Attach"
+                    class="text-muted hover:text-accent cursor-pointer"
+                  >
+                    <i class="bi bi-paperclip"></i>
+                  </button>
+                  <!-- Model selector dropdown -->
+                  <div class="relative">
+                    <button
+                      class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-xs"
+                      title="Select Model"
+                    >
+                      <span id="selected-model">Claude 3.5</span>
+                      <i class="bi bi-chevron-down"></i>
+                    </button>
+                    <div
+                      class="bg-background border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border shadow-lg"
+                    >
+                      <div class="py-1">
+                        <a
+                          href="#"
+                          class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
+                          >Claude 3.5</a
+                        >
+                        <a
+                          href="#"
+                          class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
+                          >GPT-4</a
+                        >
+                        <a
+                          href="#"
+                          class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
+                          >Gemini Pro</a
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center">
+                  <button
+                    title="Prompt Editor"
+                    class="text-muted hover:text-accent cursor-pointer"
+                  >
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="flex items-center space-x-3">
-              <button class="text-muted hover:text-accent cursor-pointer">
-                <i class="bi bi-download"></i>
-              </button>
-              <button onclick="closePreview()" class="text-muted hover:text-accent cursor-pointer">
+          </footer>
+        </section>
+
+        <!-- Right Panel -->
+        <aside
+          class="bg-background border-border relative flex w-96 flex-col border-l"
+        >
+          <!-- Preview Overlay -->
+          <div
+            class="bg-surface absolute inset-0 z-20 hidden"
+            id="preview-panel"
+          >
+            <div class="flex h-12 items-center justify-between px-4">
+              <div class="flex items-center">
+                <span class="font-medium" id="preview-title">README.md</span>
+                <span class="text-muted ml-2 text-xs">Preview</span>
+              </div>
+              <div class="flex items-center space-x-3">
+                <button class="text-muted hover:text-accent cursor-pointer">
+                  <i class="bi bi-download"></i>
+                </button>
+                <button
+                  onclick="closePreview()"
+                  class="text-muted hover:text-accent cursor-pointer"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+            <div
+              class="scrollbar-thin flex-1 overflow-y-auto p-4"
+              id="preview-content"
+            >
+              <div class="prose prose-invert max-w-none">
+                <h1 class="text-foreground mb-4 text-xl font-bold">README</h1>
+                <p class="text-foreground mb-4">
+                  This is a markdown file preview. Actual file content would be
+                  loaded here.
+                </p>
+                <ul class="text-foreground list-disc pl-5">
+                  <li>Dynamic content loading</li>
+                  <li>Syntax highlighting</li>
+                  <li>Live preview updates</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <!-- Chat Control Base Layer -->
+          <div class="flex h-full flex-col">
+            <!-- Panel Header -->
+            <div class="flex h-12 items-center justify-between px-4">
+              <span
+                class="text-muted text-xs font-semibold tracking-wide uppercase"
+                >Chat Control</span
+              >
+              <button
+                class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+                title="Close Panel"
+              >
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
-          </div>
-          <div class="scrollbar-thin flex-1 overflow-y-auto p-4" id="preview-content">
-            <div class="prose prose-invert max-w-none">
-              <h1 class="text-foreground mb-4 text-xl font-bold">README</h1>
-              <p class="text-foreground mb-4">
-                This is a markdown file preview. Actual file content would be loaded here.
-              </p>
-              <ul class="text-foreground list-disc pl-5">
-                <li>Dynamic content loading</li>
-                <li>Syntax highlighting</li>
-                <li>Live preview updates</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <!-- Chat Control Base Layer -->
-        <div class="flex h-full flex-col">
-          <!-- Panel Header -->
-          <div class="flex h-12 items-center justify-between px-4">
-            <span class="text-muted text-xs font-semibold tracking-wide uppercase">Chat Control</span>
-            <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Close Panel">
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-          <div class="scrollbar-thin flex-1 overflow-y-auto">
-            <div class="px-3">
-              <!-- Project Context Header -->
-              <div
-                class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
-                title="Project Context">
-                <span class="text-sm font-medium">Project Context</span>
-                <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
-                  title="Edit">
-                  <i class="bi bi-pencil"></i>
-                </button>
-              </div>
-
-              <!-- Context content -->
-              <div class="px-2 pb-1">
-                <div class="bg-surface border-border text-muted min-h-[100px] rounded-md border p-3 text-sm">
-                  <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
-                    onclick="previewFile('demo.md')">
-                    @&lt;demo-project&gt;/demo.md</button><br />
-                  <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
-                    onclick="previewFile('outside-file.md')">
-                    @/path/to/outside/file.md</button><br />
-                  Text is also allowed
-                </div>
-              </div>
-
-              <!-- Artifacts Header -->
-              <div
-                class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
-                title="Artifacts">
-                <span class="text-sm font-medium">Artifacts</span>
-                <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
-                  title="Download All">
-                  <i class="bi bi-download"></i>
-                </button>
-              </div>
-
-              <!-- Artifacts content -->
-              <div class="px-2">
+            <div class="scrollbar-thin flex-1 overflow-y-auto">
+              <div class="px-3">
+                <!-- Project Context Header -->
                 <div
-                  class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
-                  onclick="previewFile('wireframe.html')">
-                  <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                  <span class="text-xs">wireframe.html</span>
-                  <span class="text-muted ml-1 text-xs">v3</span>
+                  class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+                  title="Project Context"
+                >
+                  <span class="text-sm font-medium">Project Context</span>
                   <button
-                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Download">
-                    <i class="bi bi-download text-xs"></i>
+                    class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+                    title="Edit"
+                  >
+                    <i class="bi bi-pencil"></i>
                   </button>
                 </div>
+
+                <!-- Context content -->
+                <div class="px-2 pb-1">
+                  <div
+                    class="bg-surface border-border text-muted min-h-[100px] rounded-md border p-3 text-sm"
+                  >
+                    <button
+                      class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
+                      onclick="previewFile('demo.md')"
+                    >
+                      @&lt;demo-project&gt;/demo.md</button
+                    ><br />
+                    <button
+                      class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
+                      onclick="previewFile('outside-file.md')"
+                    >
+                      @/path/to/outside/file.md</button
+                    ><br />
+                    Text is also allowed
+                  </div>
+                </div>
+
+                <!-- Artifacts Header -->
+                <div
+                  class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+                  title="Artifacts"
+                >
+                  <span class="text-sm font-medium">Artifacts</span>
+                  <button
+                    class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+                    title="Download All"
+                  >
+                    <i class="bi bi-download"></i>
+                  </button>
+                </div>
+
+                <!-- Artifacts content -->
+                <div class="px-2">
+                  <div
+                    class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm transition-colors font-[400]"
+                    onclick="previewFile('wireframe.html')"
+                  >
+                    <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
+                    <span class="text-xs">wireframe.html</span>
+                    <span class="text-muted ml-1 text-xs">v3</span>
+                    <button
+                      class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Download"
+                    >
+                      <i class="bi bi-download text-xs"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </aside>
-    </main>
-  </div>
-  <script>
-    let selectedNode = document.querySelector(".bg-selected");
+        </aside>
+      </main>
+    </div>
+    <script>
+      let selectedNode = document.querySelector(".bg-selected");
 
-    function selectNode(element) {
-      if (selectedNode) selectedNode.classList.remove("bg-selected");
-      selectedNode = element;
-      element.classList.add("bg-selected");
-    }
+      function selectNode(element) {
+        if (selectedNode) selectedNode.classList.remove("bg-selected");
+        selectedNode = element;
+        element.classList.add("bg-selected");
+      }
 
-    function previewFile(fileName) {
-      document.getElementById("preview-title").textContent = fileName;
-      document.getElementById("preview-panel").classList.remove("hidden");
-    }
+      function previewFile(fileName) {
+        document.getElementById("preview-title").textContent = fileName;
+        document.getElementById("preview-panel").classList.remove("hidden");
+      }
 
-    function closePreview() {
-      document.getElementById("preview-panel").classList.add("hidden");
-    }
-
-  </script>
-</body>
-
+      function closePreview() {
+        document.getElementById("preview-panel").classList.add("hidden");
+      }
+    </script>
+  </body>
 </html>

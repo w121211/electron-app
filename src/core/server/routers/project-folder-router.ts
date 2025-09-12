@@ -81,7 +81,6 @@ export const createNewProjectFolderSchema = z.object({
   correlationId: z.string().optional(),
 });
 
-
 export function createProjectFolderRouter(
   projectFolderService: ProjectFolderService,
 ) {
@@ -207,6 +206,5 @@ export function createProjectFolderRouter(
     isWorkspaceDirectoryValid: publicProcedure.query(async () => {
       return projectFolderService.isWorkspaceDirectoryValid();
     }),
-
   });
 }

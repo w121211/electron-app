@@ -18,7 +18,10 @@ export class XtermService {
   private logger = new Logger({ name: "XtermService" });
   private sessions = new Map<string, XtermSession>();
   private dataCallbacks = new Map<string, (data: string) => void>();
-  private exitCallbacks = new Map<string, (exitCode: number, signal?: number) => void>();
+  private exitCallbacks = new Map<
+    string,
+    (exitCode: number, signal?: number) => void
+  >();
 
   constructor() {
     this.logger.info("XtermService initialized");
@@ -34,22 +37,29 @@ export class XtermService {
       }
     });
 
-    window.api.pty.onExit((sessionId: string, exitCode: number, signal?: number) => {
-      const callback = this.exitCallbacks.get(sessionId);
-      if (callback) {
-        callback(exitCode, signal);
-      }
-      
-      // Clean up session
-      this.sessions.delete(sessionId);
-      this.dataCallbacks.delete(sessionId);
-      this.exitCallbacks.delete(sessionId);
-      
-      this.logger.info(`Terminal session ${sessionId} ended`, { exitCode, signal });
-    });
+    window.api.pty.onExit(
+      (sessionId: string, exitCode: number, signal?: number) => {
+        const callback = this.exitCallbacks.get(sessionId);
+        if (callback) {
+          callback(exitCode, signal);
+        }
+
+        // Clean up session
+        this.sessions.delete(sessionId);
+        this.dataCallbacks.delete(sessionId);
+        this.exitCallbacks.delete(sessionId);
+
+        this.logger.info(`Terminal session ${sessionId} ended`, {
+          exitCode,
+          signal,
+        });
+      },
+    );
   }
 
-  async createSession(options: XtermCreateOptions = {}): Promise<string | null> {
+  async createSession(
+    options: XtermCreateOptions = {},
+  ): Promise<string | null> {
     try {
       const sessionId = await window.api.pty.create(options);
       if (!sessionId) {
@@ -64,7 +74,7 @@ export class XtermService {
 
       this.sessions.set(sessionId, session);
       this.logger.info(`Terminal session created: ${sessionId}`, options);
-      
+
       return sessionId;
     } catch (error) {
       this.logger.error("Error creating terminal session:", error);
@@ -87,7 +97,11 @@ export class XtermService {
     }
   }
 
-  async resizeSession(sessionId: string, cols: number, rows: number): Promise<boolean> {
+  async resizeSession(
+    sessionId: string,
+    cols: number,
+    rows: number,
+  ): Promise<boolean> {
     const session = this.sessions.get(sessionId);
     if (!session || !session.isActive) {
       this.logger.warn(`Attempted to resize inactive session: ${sessionId}`);
@@ -105,19 +119,21 @@ export class XtermService {
   async destroySession(sessionId: string): Promise<boolean> {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      this.logger.warn(`Attempted to destroy non-existent session: ${sessionId}`);
+      this.logger.warn(
+        `Attempted to destroy non-existent session: ${sessionId}`,
+      );
       return false;
     }
 
     try {
       const result = await window.api.pty.destroy(sessionId);
-      
+
       // Clean up local state
       session.isActive = false;
       this.sessions.delete(sessionId);
       this.dataCallbacks.delete(sessionId);
       this.exitCallbacks.delete(sessionId);
-      
+
       this.logger.info(`Terminal session destroyed: ${sessionId}`);
       return result;
     } catch (error) {
@@ -130,7 +146,10 @@ export class XtermService {
     this.dataCallbacks.set(sessionId, callback);
   }
 
-  onSessionExit(sessionId: string, callback: (exitCode: number, signal?: number) => void): void {
+  onSessionExit(
+    sessionId: string,
+    callback: (exitCode: number, signal?: number) => void,
+  ): void {
     this.exitCallbacks.set(sessionId, callback);
   }
 
@@ -143,13 +162,17 @@ export class XtermService {
   }
 
   getActiveSessions(): XtermSession[] {
-    return Array.from(this.sessions.values()).filter(session => session.isActive);
+    return Array.from(this.sessions.values()).filter(
+      (session) => session.isActive,
+    );
   }
 
   async destroyAllSessions(): Promise<void> {
     const sessionIds = Array.from(this.sessions.keys());
-    const destroyPromises = sessionIds.map(sessionId => this.destroySession(sessionId));
-    
+    const destroyPromises = sessionIds.map((sessionId) =>
+      this.destroySession(sessionId),
+    );
+
     await Promise.all(destroyPromises);
     this.logger.info("All terminal sessions destroyed");
   }
@@ -157,12 +180,12 @@ export class XtermService {
   dispose(): void {
     // Clean up listeners
     window.api.pty.removeAllListeners();
-    
+
     // Clear local state
     this.sessions.clear();
     this.dataCallbacks.clear();
     this.exitCallbacks.clear();
-    
+
     this.logger.info("XtermService disposed");
   }
 }

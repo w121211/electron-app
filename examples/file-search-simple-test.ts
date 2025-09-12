@@ -20,7 +20,7 @@ async function quickTest() {
     // Get project folders
     const projects = await client.projectFolder.getAllProjectFolders.query();
     console.log(`Found ${projects.length} projects`);
-    
+
     if (projects.length === 0) {
       console.log("❌ No projects found");
       return;
@@ -33,11 +33,11 @@ async function quickTest() {
     const allFiles = await client.projectFolder.searchFiles.query({
       query: "",
       projectId: project.id,
-      limit: 5
+      limit: 5,
     });
-    
+
     console.log(`\n📁 Found ${allFiles.length} files:`);
-    allFiles.forEach(file => {
+    allFiles.forEach((file) => {
       console.log(`  - ${file.name} (${file.relativePath})`);
     });
 
@@ -45,16 +45,15 @@ async function quickTest() {
     const searchResults = await client.projectFolder.searchFiles.query({
       query: "json",
       projectId: project.id,
-      limit: 3
+      limit: 3,
     });
-    
+
     console.log(`\n🔎 Search for "json" found ${searchResults.length} files:`);
-    searchResults.forEach(file => {
+    searchResults.forEach((file) => {
       console.log(`  - ${file.name} (score: ${file.score})`);
     });
 
     console.log("\n✅ File search test completed!");
-
   } catch (error) {
     console.error("❌ Error:", error);
   }

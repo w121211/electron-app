@@ -99,7 +99,7 @@ async function demonstrateSessionPoolManagement(
 
   // Create multiple sessions to test pool management
   const sessionIds: string[] = [];
-  
+
   for (let i = 1; i <= 12; i++) {
     const sessionId = await chatClient.createChat(projectDir, {
       mode: i % 2 === 0 ? "agent" : "chat",
@@ -110,15 +110,21 @@ async function demonstrateSessionPoolManagement(
     console.log(`📝 Created session ${i}/12: ${sessionId}`);
   }
 
-  console.log("📊 Session pool should have automatically evicted older sessions");
+  console.log(
+    "📊 Session pool should have automatically evicted older sessions",
+  );
 
   // Test loading sessions (should trigger LRU behavior)
   for (const sessionId of sessionIds.slice(0, 5)) {
     try {
       await chatClient.sendMessage(sessionId, `Test message for ${sessionId}`);
-      console.log(`✅ Successfully sent message to session: ${sessionId.substring(0, 8)}...`);
+      console.log(
+        `✅ Successfully sent message to session: ${sessionId.substring(0, 8)}...`,
+      );
     } catch (error) {
-      console.log(`⚠️ Session may have been evicted: ${sessionId.substring(0, 8)}...`);
+      console.log(
+        `⚠️ Session may have been evicted: ${sessionId.substring(0, 8)}...`,
+      );
     }
   }
 
@@ -135,16 +141,20 @@ async function demonstrateEnhancedMessaging(
 
   // Send message with attachments
   console.log("💬 Sending message with attachments...");
-  const result1 = await chatClient.sendMessage(sessionId, "Can you review this code?", [
-    {
-      fileName: "example.ts",
-      content: "const greeting = 'Hello, World!'; console.log(greeting);",
-    },
-    {
-      fileName: "package.json",
-      content: '{"name": "demo", "version": "1.0.0"}',
-    },
-  ]);
+  const result1 = await chatClient.sendMessage(
+    sessionId,
+    "Can you review this code?",
+    [
+      {
+        fileName: "example.ts",
+        content: "const greeting = 'Hello, World!'; console.log(greeting);",
+      },
+      {
+        fileName: "package.json",
+        content: '{"name": "demo", "version": "1.0.0"}',
+      },
+    ],
+  );
   console.log("📤 Message result:", result1);
 
   // Test rerun functionality
@@ -166,16 +176,18 @@ async function demonstrateToolConfirmation(
   try {
     // Simulate a tool confirmation scenario
     console.log("🔧 Testing tool confirmation workflow...");
-    
+
     const confirmResult = await chatClient.confirmToolCall(
       sessionId,
       "tool_123",
       "approved",
     );
-    
+
     console.log("✅ Tool confirmation result:", confirmResult);
   } catch (error) {
-    console.log("ℹ️ Tool confirmation demo skipped (session not waiting for confirmation)");
+    console.log(
+      "ℹ️ Tool confirmation demo skipped (session not waiting for confirmation)",
+    );
   }
 }
 
@@ -229,7 +241,7 @@ async function demonstrateConcurrentSessions(
       prompt: "Tell me about JavaScript",
     }),
     chatClient.createChat(projectDir, {
-      mode: "agent", 
+      mode: "agent",
       prompt: "Help me build a React component",
     }),
     chatClient.createChat(projectDir, {
@@ -242,11 +254,11 @@ async function demonstrateConcurrentSessions(
 
   // Send messages to all sessions concurrently
   const messagePromises = sessions.map((sessionId, index) =>
-    chatClient.sendMessage(sessionId, `Concurrent message ${index + 1}`)
+    chatClient.sendMessage(sessionId, `Concurrent message ${index + 1}`),
   );
 
   const results = await Promise.allSettled(messagePromises);
-  
+
   results.forEach((result, index) => {
     if (result.status === "fulfilled") {
       console.log(`✅ Session ${index + 1} completed successfully`);
@@ -264,19 +276,28 @@ async function demonstrateErrorHandling(chatClient: ChatClient) {
   try {
     await chatClient.sendMessage("non-existent-session", "Test message");
   } catch (error) {
-    console.log("✅ Caught expected error for non-existent session:", (error as Error).message);
+    console.log(
+      "✅ Caught expected error for non-existent session:",
+      (error as Error).message,
+    );
   }
 
   try {
     await chatClient.deleteChat("invalid-session-id");
   } catch (error) {
-    console.log("✅ Caught expected error for invalid deletion:", (error as Error).message);
+    console.log(
+      "✅ Caught expected error for invalid deletion:",
+      (error as Error).message,
+    );
   }
 
   try {
     await chatClient.createChat("/invalid/path/outside/project");
   } catch (error) {
-    console.log("✅ Caught expected error for invalid project path:", (error as Error).message);
+    console.log(
+      "✅ Caught expected error for invalid project path:",
+      (error as Error).message,
+    );
   }
 }
 
@@ -336,7 +357,6 @@ async function main() {
     console.log("  - Concurrent session handling");
     console.log("  - File-based chat persistence");
     console.log("  - Comprehensive error handling");
-
   } catch (error) {
     console.error("❌ Enhanced demo failed:", error);
   } finally {

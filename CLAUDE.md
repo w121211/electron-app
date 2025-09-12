@@ -161,6 +161,41 @@ Central EventBus with strongly-typed events (`ClientEventUnion` | `ServerEventUn
   - tRPC for API layer
   - Logger: tslog
 
+### UI Design
+
+- **Design Philosophy:** Minimal, compact, aesthetic - inspired mostly by Grok, partially by Notion and VS Code
+- **Layout Structure:** Three-panel layout
+  - **Left Sidebar:** File explorer/projects with collapsible tree structure
+  - **Center Panel:** Chat conversation with message display, input area, file preview/edit overlay
+  - **Right Panel:** Chat control and artifacts
+- **Color Palette:** Dark theme with minimal contrast using consistent background colors
+  - `--color-background: #181818` (universal background for panels, sidebars, content areas)
+  - `--color-surface: #1f1f1f` (text input and elevated surfaces)
+  - `--color-border: #2b2b2b` (subtle borders and separators)
+  - `--color-muted: #9d9d9d` (secondary text and icons)
+  - `--color-hover: #2b2b2b` (interactive hover states)
+  - `--color-selected: #2b2b2b` (active/selected items)
+  - `--color-accent: #4a90e2` (primary interactive elements)
+  - `--color-foreground: #cccccc` (primary text)
+- **Typography:** System default sans-serif fonts for native appearance, 14px base font size
+- **Spacing:** Compact design with consistent padding/margins, 12px header heights, minimal gaps
+- **Icons:** Bootstrap Icons for consistent iconography throughout the interface
+- **Interactive Elements:**
+  - Hover states with subtle opacity changes and color transitions
+  - Context-aware buttons that appear on hover using group-hover patterns
+  - Rounded corners (rounded-md, rounded-2xl) for modern appearance
+  - Smooth transitions for state changes and interactions
+- **Component Patterns:**
+  - Collapsible sections with chevron indicators
+  - Status badges for chat states (running, paused)
+  - Contextual menus with three-dots icons
+  - File references with @-syntax and clickable links
+  - Overlay panels for file preview and prompt editing in center panel
+- **Reference Design Files:**
+  - Main UI: `notes/ui_design/design-ui-v12_1_base_optimized.html`
+  - Prompt Editor: `notes/ui_design/design-ui-v12_1_prompt_editor.html`
+  - Screenshot: `screenshots/screencapture-file-Users-cw-Documents-GitHub-electron-app-notes-ui-design-design-ui-v12-1-base-optimized-html-2025-09-07-10_54_57.png`
+
 ### Frontend
 
 - **Technology stack:**
@@ -188,7 +223,8 @@ Central EventBus with strongly-typed events (`ClientEventUnion` | `ServerEventUn
   - **Scoped CSS awareness** - CSS now uses `:where(.svelte-hash)` for scoping
 
 # important-instruction-reminders
+
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.

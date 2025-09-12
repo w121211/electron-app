@@ -52,7 +52,7 @@ export class TaskService {
     taskName: string,
     taskConfig: Record<string, unknown>,
     parentAbsoluteDirectoryPath: string,
-    correlationId?: string
+    correlationId?: string,
   ): Promise<{ taskId: string; absoluteDirectoryPath: string }> {
     const taskId = uuidv4();
     const now = new Date();
@@ -69,7 +69,7 @@ export class TaskService {
 
     const completedTask = await this.taskRepo.createTask(
       task,
-      parentAbsoluteDirectoryPath
+      parentAbsoluteDirectoryPath,
     );
 
     return {

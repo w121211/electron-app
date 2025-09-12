@@ -3,8 +3,21 @@
 <!-- New entries are added at the top. -->
 
 - 個人專案管理
-  - check todos, deliver task prompts
+  - regularly check todos, deliver task prompt
   - can be use as the task launcher
+  - 特別是針對我不太想碰的地方
+
+- 宣傳產品
+
+- 搜索競品
+
+- 潛在用戶社群探索
+  - 利用 agent or chat，分別掃描 Reddit、Hacker News、Product Hunt 等平台 (MCP)
+  - 尋找討論「生產力工具」或「AI 應用」的熱門話題，並總結用戶提到的主要痛點和需求
+
+- 文轉圖
+  - 把一個故事、報導用圖清楚說明
+  - 圖要有趣、正確傳達故事內容、連貫性（風格一致性）
 
 ---
 

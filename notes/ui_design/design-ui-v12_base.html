@@ -1,18 +1,20 @@
 <!-- docs/design_app/design-ui-v10_2.html -->
 <!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <title>AI Chat App UI</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Tailwind CSS v4 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <!-- Bootstrap Icons CDN -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
-  <style type="text/tailwindcss">
-    /* @theme is a Tailwind CSS v4 feature */
-    @theme {
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Chat App UI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Tailwind CSS v4 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Bootstrap Icons CDN -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+    <style type="text/tailwindcss">
+      /* @theme is a Tailwind CSS v4 feature */
+      @theme {
         --color-background: #131314;
         --color-surface: #131314;
         --color-panel: #1c1c1e;
@@ -146,28 +148,42 @@
         color: var(--color-accent);
       }
     </style>
-</head>
+  </head>
 
-<body class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]">
-  <div class="flex h-screen">
-    <!-- Sidebar -->
-    <aside id="sidebar" class="bg-surface panel-toggle border-border flex w-64 flex-col border-r">
-      <!-- Section 1: Top Icons (Fixed) -->
+  <body
+    class="bg-background text-foreground h-screen overflow-hidden font-sans text-[14px]"
+  >
+    <div class="flex h-screen">
+      <!-- Sidebar -->
+      <aside
+        id="sidebar"
+        class="bg-surface panel-toggle border-border flex w-64 flex-col border-r"
+      >
+        <!-- Section 1: Top Icons (Fixed) -->
 
-      <div class="flex h-12 items-center justify-start px-4">
-        <div class="flex items-center gap-2">
-          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Home">
-            <i class="bi bi-house"></i>
-          </button>
-          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Search">
-            <i class="bi bi-search"></i>
-          </button>
-          <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Toggle Sidebar">
-            <i class="bi bi-layout-sidebar-inset"></i>
-          </button>
-        </div>
+        <div class="flex h-12 items-center justify-start px-4">
+          <div class="flex items-center gap-2">
+            <button
+              class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+              title="Home"
+            >
+              <i class="bi bi-house"></i>
+            </button>
+            <button
+              class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+              title="Search"
+            >
+              <i class="bi bi-search"></i>
+            </button>
+            <button
+              class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+              title="Toggle Sidebar"
+            >
+              <i class="bi bi-layout-sidebar-inset"></i>
+            </button>
+          </div>
 
-        <!-- <div class="sidebar-buttons flex items-center gap-2">
+          <!-- <div class="sidebar-buttons flex items-center gap-2">
           <button class="text-muted hover:text-accent cursor-pointer rounded-md px-1" title="Home">
             <i class="bi bi-house"></i>
           </button>
@@ -176,543 +192,742 @@
             <i class="bi bi-layout-sidebar-inset"></i>
           </button>
         </div> -->
-      </div>
+        </div>
 
-      <!-- Section 2: Scrollable Content -->
-      <div class="scrollbar-thin flex-1 overflow-y-auto">
-        <div class="px-3">
-          <!-- Search Button -->
-          <!-- <button
+        <!-- Section 2: Scrollable Content -->
+        <div class="scrollbar-thin flex-1 overflow-y-auto">
+          <div class="px-3">
+            <!-- Search Button -->
+            <!-- <button
             class="hover:bg-hover text-muted hover:text-accent flex w-full cursor-pointer items-center gap-2 rounded-md p-2 text-left"
             title="Search">
             <i class="bi bi-search text-sm"></i>
             <span class="sidebar-text text-sm font-medium">Search</span>
           </button> -->
 
-          <!-- Projects Header -->
-          <div
-            class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
-            title="Projects">
-            <!-- <i class="bi bi-archive text-sm"></i> -->
-            <span class="sidebar-text text-sm font-medium">Projects</span>
-            <button class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
-              title="Add Project Folder" onclick="event.stopPropagation();">
-              <i class="bi bi-plus"></i>
-            </button>
-            <button class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100" title="Menu"
-              onclick="event.stopPropagation();">
-              <i class="bi bi-three-dots-vertical"></i>
-            </button>
-          </div>
+            <!-- Projects Header -->
+            <div
+              class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"
+              title="Projects"
+            >
+              <!-- <i class="bi bi-archive text-sm"></i> -->
+              <span class="sidebar-text text-sm font-medium">Projects</span>
+              <button
+                class="text-muted hover:text-accent ml-auto cursor-pointer opacity-0 group-hover:opacity-100"
+                title="Add Project Folder"
+                onclick="event.stopPropagation();"
+              >
+                <i class="bi bi-plus"></i>
+              </button>
+              <button
+                class="text-muted hover:text-accent cursor-pointer opacity-0 group-hover:opacity-100"
+                title="Menu"
+                onclick="event.stopPropagation();"
+              >
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+            </div>
 
-          <!-- Project Trees -->
-          <div class="px-2">
-
-            <!-- Project Folder 1 -->
-            <div class="pb-1">
-              <div
-                class="hover:bg-hover explorer-node group relative flex cursor-pointer items-center rounded py-0.5 text-sm"
-                onclick="toggleFolder(this)">
-                <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
-                <span class="sidebar-text text-xs font-medium">my-ai-project</span>
-                <button
-                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                  title="New Chat" onclick="event.stopPropagation();">
-                  <i class="bi bi-chat-dots text-xs"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                  title="Menu" onclick="event.stopPropagation();">
-                  <i class="bi bi-three-dots-vertical text-xs"></i>
-                </button>
-              </div>
-              <div class="folder-content ml-2">
+            <!-- Project Trees -->
+            <div class="px-2">
+              <!-- Project Folder 1 -->
+              <div class="pb-1">
                 <div
-                  class="hover:bg-hover explorer-node selected group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
-                  onclick="selectNode(this); openChat('design-discussion')">
-                  <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
-                  <span class="sidebar-text max-w-[120px] truncate text-xs">design-discussion.chat.json</span>
-                  <span
-                    class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">running</span>
+                  class="hover:bg-hover explorer-node group relative flex cursor-pointer items-center rounded py-0.5 text-sm"
+                  onclick="toggleFolder(this)"
+                >
+                  <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
+                  <span class="sidebar-text text-xs font-medium"
+                    >my-ai-project</span
+                  >
                   <button
                     class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Stop Chat" onclick="event.stopPropagation();">
-                    <i class="bi bi-stop-fill text-xs"></i>
+                    title="New Chat"
+                    onclick="event.stopPropagation();"
+                  >
+                    <i class="bi bi-chat-dots text-xs"></i>
                   </button>
-                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu" onclick="event.stopPropagation();">
-                    <i class="bi bi-three-dots-vertical text-xs"></i>
-                  </button>
-                </div>
-                <div
-                  class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
-                  onclick="selectNode(this); previewFile('README.md')">
-                  <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                  <span class="sidebar-text max-w-[120px] truncate text-xs">README.md</span>
-                  <i class="bi bi-file-earmark-check text-muted ml-1 text-[10px]" title="In Project Context"></i>
                   <button
-                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu" onclick="event.stopPropagation();">
+                    class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu"
+                    onclick="event.stopPropagation();"
+                  >
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
-                <div
-                  class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
-                  onclick="selectNode(this); previewFile('api.md')">
-                  <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                  <span class="sidebar-text text-xs">api.md</span>
-                  <button
-                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu" onclick="event.stopPropagation();">
-                    <i class="bi bi-three-dots-vertical text-xs"></i>
-                  </button>
-                </div>
-                <!-- Nested Folder -->
-                <div>
+                <div class="folder-content ml-2">
                   <div
-                    class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
-                    onclick="toggleFolder(this)">
-                    <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
-                    <span class="sidebar-text text-xs">src</span>
+                    class="hover:bg-hover explorer-node selected group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
+                    onclick="selectNode(this); openChat('design-discussion')"
+                  >
+                    <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
+                    <span class="sidebar-text max-w-[120px] truncate text-xs"
+                      >design-discussion.chat.json</span
+                    >
+                    <span
+                      class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
+                      >running</span
+                    >
                     <button
                       class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                      title="New Chat" onclick="event.stopPropagation();">
-                      <i class="bi bi-chat-dots text-xs"></i>
+                      title="Stop Chat"
+                      onclick="event.stopPropagation();"
+                    >
+                      <i class="bi bi-stop-fill text-xs"></i>
                     </button>
-                    <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                      title="Menu" onclick="event.stopPropagation();">
+                    <button
+                      class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                      onclick="event.stopPropagation();"
+                    >
                       <i class="bi bi-three-dots-vertical text-xs"></i>
                     </button>
                   </div>
-                  <div class="folder-content ml-2 pl-0">
+                  <div
+                    class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
+                    onclick="selectNode(this); previewFile('README.md')"
+                  >
+                    <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
+                    <span class="sidebar-text max-w-[120px] truncate text-xs"
+                      >README.md</span
+                    >
+                    <i
+                      class="bi bi-file-earmark-check text-muted ml-1 text-[10px]"
+                      title="In Project Context"
+                    ></i>
+                    <button
+                      class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                      onclick="event.stopPropagation();"
+                    >
+                      <i class="bi bi-three-dots-vertical text-xs"></i>
+                    </button>
+                  </div>
+                  <div
+                    class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
+                    onclick="selectNode(this); previewFile('api.md')"
+                  >
+                    <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
+                    <span class="sidebar-text text-xs">api.md</span>
+                    <button
+                      class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                      onclick="event.stopPropagation();"
+                    >
+                      <i class="bi bi-three-dots-vertical text-xs"></i>
+                    </button>
+                  </div>
+                  <!-- Nested Folder -->
+                  <div>
                     <div
                       class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
-                      onclick="selectNode(this); previewFile('main.ts')">
-                      <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                      <span class="sidebar-text text-xs">main.ts</span>
+                      onclick="toggleFolder(this)"
+                    >
+                      <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
+                      <span class="sidebar-text text-xs">src</span>
                       <button
-                        class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                        title="Menu" onclick="event.stopPropagation();">
+                        class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                        title="New Chat"
+                        onclick="event.stopPropagation();"
+                      >
+                        <i class="bi bi-chat-dots text-xs"></i>
+                      </button>
+                      <button
+                        class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                        title="Menu"
+                        onclick="event.stopPropagation();"
+                      >
                         <i class="bi bi-three-dots-vertical text-xs"></i>
                       </button>
                     </div>
-                    <div
-                      class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
-                      onclick="selectNode(this); previewFile('utils.ts')">
-                      <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                      <span class="sidebar-text text-xs">utils.ts</span>
-                      <button
-                        class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                        title="Menu" onclick="event.stopPropagation();">
-                        <i class="bi bi-three-dots-vertical text-xs"></i>
-                      </button>
+                    <div class="folder-content ml-2 pl-0">
+                      <div
+                        class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
+                        onclick="selectNode(this); previewFile('main.ts')"
+                      >
+                        <i
+                          class="bi bi-file-earmark text-muted mr-1.5 text-xs"
+                        ></i>
+                        <span class="sidebar-text text-xs">main.ts</span>
+                        <button
+                          class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                          title="Menu"
+                          onclick="event.stopPropagation();"
+                        >
+                          <i class="bi bi-three-dots-vertical text-xs"></i>
+                        </button>
+                      </div>
+                      <div
+                        class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
+                        onclick="selectNode(this); previewFile('utils.ts')"
+                      >
+                        <i
+                          class="bi bi-file-earmark text-muted mr-1.5 text-xs"
+                        ></i>
+                        <span class="sidebar-text text-xs">utils.ts</span>
+                        <button
+                          class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                          title="Menu"
+                          onclick="event.stopPropagation();"
+                        >
+                          <i class="bi bi-three-dots-vertical text-xs"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Project Folder 2 -->
-            <div class="pb-1">
-              <div
-                class="hover:bg-hover explorer-node group relative flex cursor-pointer items-center rounded py-0.5 text-sm"
-                onclick="toggleFolder(this)">
-                <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
-                <span class="sidebar-text text-xs font-medium">demo-project</span>
-                <button
-                  class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                  title="New Chat" onclick="event.stopPropagation();">
-                  <i class="bi bi-chat-dots text-xs"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                  title="Menu" onclick="event.stopPropagation();">
-                  <i class="bi bi-three-dots-vertical text-xs"></i>
-                </button>
-              </div>
-              <div class="folder-content ml-2 pl-0">
+              <!-- Project Folder 2 -->
+              <div class="pb-1">
                 <div
-                  class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
-                  onclick="selectNode(this); openChat('planning-session')">
-                  <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
-                  <span class="sidebar-text max-w-[120px] truncate text-xs">planning-session.chat.json</span>
-                  <span
-                    class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]">paused</span>
+                  class="hover:bg-hover explorer-node group relative flex cursor-pointer items-center rounded py-0.5 text-sm"
+                  onclick="toggleFolder(this)"
+                >
+                  <i class="bi bi-chevron-down text-muted mr-2 text-xs"></i>
+                  <span class="sidebar-text text-xs font-medium"
+                    >demo-project</span
+                  >
                   <button
                     class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Resume Chat" onclick="event.stopPropagation();">
-                    <i class="bi bi-play-fill text-xs"></i>
+                    title="New Chat"
+                    onclick="event.stopPropagation();"
+                  >
+                    <i class="bi bi-chat-dots text-xs"></i>
                   </button>
-                  <button class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu" onclick="event.stopPropagation();">
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                    title="Menu"
+                    onclick="event.stopPropagation();"
+                  >
                     <i class="bi bi-three-dots-vertical text-xs"></i>
                   </button>
                 </div>
-                <div
-                  class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
-                  onclick="selectNode(this); previewFile('project-spec.md')">
-                  <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
-                  <span class="sidebar-text max-w-[120px] truncate text-xs">project-spec.md</span>
-                  <button
-                    class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-                    title="Menu" onclick="event.stopPropagation();">
-                    <i class="bi bi-three-dots-vertical text-xs"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section 3: Bottom Settings (Fixed) -->
-      <div class="flex h-12 px-4">
-        <button class="text-muted hover:text-accent hover:cursor-pointer rounded-md p-1.5" title="Settings">
-          <i class="bi bi-gear"></i>
-        </button>
-      </div>
-    </aside>
-
-    <!-- Main Workspace -->
-    <main class="flex min-w-0 flex-1">
-      <!-- Chat Conversation Panel -->
-      <section class="flex min-w-0 flex-1 flex-col">
-        <!-- Breadcrumb Header -->
-        <header class="bg-surface flex h-12 items-center justify-between px-4">
-          <div class="flex items-center gap-2">
-            <span class="text-muted text-xs">my-ai-project</span>
-            <i class="bi bi-chevron-right text-muted text-xs"></i>
-            <span class="text-muted text-xs">design-discussion.chat.json</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Share">
-              <i class="bi bi-share"></i>
-            </button>
-            <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Export">
-              <i class="bi bi-download"></i>
-            </button>
-            <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Edit">
-              <i class="bi bi-pencil"></i>
-            </button>
-          </div>
-        </header>
-        <!-- Messages -->
-        <div class="scrollbar-thin bg-background flex-1 overflow-y-auto px-8 py-6">
-          <div class="mx-auto max-w-3xl space-y-12">
-            <!-- AI Message -->
-            <div class="group flex flex-col items-start">
-              <div class="mb-1 flex items-center gap-2">
-                <span class="text-muted text-sm font-medium">Claude Sonnet 4</span>
-              </div>
-              <div class="text-foreground leading-normal">
-                Hi! How can I help with your product design? Let me know your
-                focus today.
-              </div>
-              <div class="message-actions mt-2 flex items-center gap-3">
-                <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
-                  <i class="bi bi-copy"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer" title="More">
-                  <i class="bi bi-three-dots"></i>
-                </button>
-              </div>
-            </div>
-            <!-- User Message -->
-            <div class="group flex w-full flex-col items-end">
-              <div class="user-message-bubble">
-                <a href="javascript:void(0)" class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
-                  onclick="previewFile('vscode-screenshot.png')">@vscode-screenshot.png</a>
-                <a href="javascript:void(0)" class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
-                  onclick="previewFile('vscode-screenshot.png')">@claude-screenshot.png</a>
-                I want a chat UI that feels modern and professional, like VS
-                Code but for conversations.
-              </div>
-              <div class="message-actions mt-1 mr-2 flex items-center gap-2">
-                <button class="text-muted hover:text-accent cursor-pointer" title="Edit">
-                  <i class="bi bi-pencil"></i>
-                </button>
-              </div>
-            </div>
-            <!-- AI Message -->
-            <div class="group flex flex-col items-start">
-              <div class="mb-1 flex items-center gap-2">
-                <span class="text-muted text-sm font-medium">Claude Sonnet 4</span>
-              </div>
-              <div class="text-foreground leading-normal">
-                Great! Here are some key principles:<br />
-                <ul class="text-foreground mt-2 list-disc space-y-1 pl-5 text-[14px]">
-                  <li>Minimal dark theme, subtle contrast</li>
-                  <li>Three-panel layout: explorer, chat, preview</li>
-                  <li>Modern sans-serif font</li>
-                  <li>Contextual file management</li>
-                </ul>
-              </div>
-              <div class="message-actions mt-2 flex items-center gap-3">
-                <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
-                  <i class="bi bi-copy"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer" title="More">
-                  <i class="bi bi-three-dots"></i>
-                </button>
-              </div>
-            </div>
-            <!-- AI Message with Artifact -->
-            <div class="group flex flex-col items-start">
-              <div class="mb-1 flex items-center gap-2">
-                <span class="text-muted text-sm font-medium">Claude Sonnet 4</span>
-              </div>
-              <div class="text-foreground leading-normal">
-                Here's a wireframe artifact for your chat UI. You can preview
-                or download it.<br />
-                <div class="mt-2">
-                  <button
-                    class="border-border bg-panel hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
-                    onclick="previewFile('wireframe.html')">
-                    wireframe.html
-                    <span class="text-muted text-xs">v3</span>
-                    <i class="bi bi-download text-muted hover:text-accent ml-1 cursor-pointer"></i>
-                  </button>
-                </div>
-              </div>
-              <div class="message-actions mt-2 flex items-center gap-3">
-                <button class="text-muted hover:text-accent cursor-pointer" title="Copy">
-                  <i class="bi bi-copy"></i>
-                </button>
-                <button class="text-muted hover:text-accent cursor-pointer" title="More">
-                  <i class="bi bi-three-dots"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Input Area -->
-        <footer class="bg-background px-6 py-3">
-          <div class="mx-auto max-w-3xl">
-            <div class="input-pill">
-              <textarea rows="3" placeholder="How can I help?" oninput="autoGrow(this)"
-                style="min-height: 72px"></textarea>
-            </div>
-            <!-- Controls under input -->
-            <div class="mt-2 flex items-center justify-between" style="padding-left: 16px; padding-right: 16px">
-              <div class="flex items-center gap-3">
-                <button title="Attach" class="text-muted hover:text-accent cursor-pointer">
-                  <i class="bi bi-paperclip text-lg"></i>
-                </button>
-                <!-- Model selector dropdown -->
-                <div class="relative">
-                  <button onclick="this.nextElementSibling.classList.toggle('hidden')"
-                    class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm"
-                    title="Select Model">
-                    <span id="selected-model">Claude 3.5</span>
-                    <i class="bi bi-chevron-down text-xs"></i>
-                  </button>
+                <div class="folder-content ml-2 pl-0">
                   <div
-                    class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border shadow-lg">
-                    <div class="py-1">
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
-                        onclick="selectModel('Claude 3.5')">Claude 3.5</a>
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
-                        onclick="selectModel('GPT-4')">GPT-4</a>
-                      <a href="#" class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
-                        onclick="selectModel('Gemini Pro')">Gemini Pro</a>
+                    class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
+                    onclick="selectNode(this); openChat('planning-session')"
+                  >
+                    <i class="bi bi-chat-dots text-muted mr-1.5 text-xs"></i>
+                    <span class="sidebar-text max-w-[120px] truncate text-xs"
+                      >planning-session.chat.json</span
+                    >
+                    <span
+                      class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
+                      >paused</span
+                    >
+                    <button
+                      class="text-muted hover:text-accent mr-1 ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Resume Chat"
+                      onclick="event.stopPropagation();"
+                    >
+                      <i class="bi bi-play-fill text-xs"></i>
+                    </button>
+                    <button
+                      class="text-muted hover:text-accent cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                      onclick="event.stopPropagation();"
+                    >
+                      <i class="bi bi-three-dots-vertical text-xs"></i>
+                    </button>
+                  </div>
+                  <div
+                    class="hover:bg-hover explorer-node group relative flex min-h-[24px] cursor-pointer items-center rounded px-1 py-0.5 text-sm"
+                    onclick="selectNode(this); previewFile('project-spec.md')"
+                  >
+                    <i class="bi bi-file-earmark text-muted mr-1.5 text-xs"></i>
+                    <span class="sidebar-text max-w-[120px] truncate text-xs"
+                      >project-spec.md</span
+                    >
+                    <button
+                      class="text-muted hover:text-accent ml-auto cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+                      title="Menu"
+                      onclick="event.stopPropagation();"
+                    >
+                      <i class="bi bi-three-dots-vertical text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Bottom Settings (Fixed) -->
+        <div class="flex h-12 px-4">
+          <button
+            class="text-muted hover:text-accent hover:cursor-pointer rounded-md p-1.5"
+            title="Settings"
+          >
+            <i class="bi bi-gear"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Workspace -->
+      <main class="flex min-w-0 flex-1">
+        <!-- Chat Conversation Panel -->
+        <section class="flex min-w-0 flex-1 flex-col">
+          <!-- Breadcrumb Header -->
+          <header
+            class="bg-surface flex h-12 items-center justify-between px-4"
+          >
+            <div class="flex items-center gap-2">
+              <span class="text-muted text-xs">my-ai-project</span>
+              <i class="bi bi-chevron-right text-muted text-xs"></i>
+              <span class="text-muted text-xs"
+                >design-discussion.chat.json</span
+              >
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+                title="Share"
+              >
+                <i class="bi bi-share"></i>
+              </button>
+              <button
+                class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+                title="Export"
+              >
+                <i class="bi bi-download"></i>
+              </button>
+              <button
+                class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+                title="Edit"
+              >
+                <i class="bi bi-pencil"></i>
+              </button>
+            </div>
+          </header>
+          <!-- Messages -->
+          <div
+            class="scrollbar-thin bg-background flex-1 overflow-y-auto px-8 py-6"
+          >
+            <div class="mx-auto max-w-3xl space-y-12">
+              <!-- AI Message -->
+              <div class="group flex flex-col items-start">
+                <div class="mb-1 flex items-center gap-2">
+                  <span class="text-muted text-sm font-medium"
+                    >Claude Sonnet 4</span
+                  >
+                </div>
+                <div class="text-foreground leading-normal">
+                  Hi! How can I help with your product design? Let me know your
+                  focus today.
+                </div>
+                <div class="message-actions mt-2 flex items-center gap-3">
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="Copy"
+                  >
+                    <i class="bi bi-copy"></i>
+                  </button>
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="More"
+                  >
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- User Message -->
+              <div class="group flex w-full flex-col items-end">
+                <div class="user-message-bubble">
+                  <a
+                    href="javascript:void(0)"
+                    class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
+                    onclick="previewFile('vscode-screenshot.png')"
+                    >@vscode-screenshot.png</a
+                  >
+                  <a
+                    href="javascript:void(0)"
+                    class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
+                    onclick="previewFile('vscode-screenshot.png')"
+                    >@claude-screenshot.png</a
+                  >
+                  I want a chat UI that feels modern and professional, like VS
+                  Code but for conversations.
+                </div>
+                <div class="message-actions mt-1 mr-2 flex items-center gap-2">
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="Edit"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- AI Message -->
+              <div class="group flex flex-col items-start">
+                <div class="mb-1 flex items-center gap-2">
+                  <span class="text-muted text-sm font-medium"
+                    >Claude Sonnet 4</span
+                  >
+                </div>
+                <div class="text-foreground leading-normal">
+                  Great! Here are some key principles:<br />
+                  <ul
+                    class="text-foreground mt-2 list-disc space-y-1 pl-5 text-[14px]"
+                  >
+                    <li>Minimal dark theme, subtle contrast</li>
+                    <li>Three-panel layout: explorer, chat, preview</li>
+                    <li>Modern sans-serif font</li>
+                    <li>Contextual file management</li>
+                  </ul>
+                </div>
+                <div class="message-actions mt-2 flex items-center gap-3">
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="Copy"
+                  >
+                    <i class="bi bi-copy"></i>
+                  </button>
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="More"
+                  >
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- AI Message with Artifact -->
+              <div class="group flex flex-col items-start">
+                <div class="mb-1 flex items-center gap-2">
+                  <span class="text-muted text-sm font-medium"
+                    >Claude Sonnet 4</span
+                  >
+                </div>
+                <div class="text-foreground leading-normal">
+                  Here's a wireframe artifact for your chat UI. You can preview
+                  or download it.<br />
+                  <div class="mt-2">
+                    <button
+                      class="border-border bg-panel hover:bg-hover text-foreground flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-px text-sm"
+                      onclick="previewFile('wireframe.html')"
+                    >
+                      wireframe.html
+                      <span class="text-muted text-xs">v3</span>
+                      <i
+                        class="bi bi-download text-muted hover:text-accent ml-1 cursor-pointer"
+                      ></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="message-actions mt-2 flex items-center gap-3">
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="Copy"
+                  >
+                    <i class="bi bi-copy"></i>
+                  </button>
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer"
+                    title="More"
+                  >
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Input Area -->
+          <footer class="bg-background px-6 py-3">
+            <div class="mx-auto max-w-3xl">
+              <div class="input-pill">
+                <textarea
+                  rows="3"
+                  placeholder="How can I help?"
+                  oninput="autoGrow(this)"
+                  style="min-height: 72px"
+                ></textarea>
+              </div>
+              <!-- Controls under input -->
+              <div
+                class="mt-2 flex items-center justify-between"
+                style="padding-left: 16px; padding-right: 16px"
+              >
+                <div class="flex items-center gap-3">
+                  <button
+                    title="Attach"
+                    class="text-muted hover:text-accent cursor-pointer"
+                  >
+                    <i class="bi bi-paperclip text-lg"></i>
+                  </button>
+                  <!-- Model selector dropdown -->
+                  <div class="relative">
+                    <button
+                      onclick="this.nextElementSibling.classList.toggle('hidden')"
+                      class="text-muted hover:text-accent flex cursor-pointer items-center gap-1 text-sm"
+                      title="Select Model"
+                    >
+                      <span id="selected-model">Claude 3.5</span>
+                      <i class="bi bi-chevron-down text-xs"></i>
+                    </button>
+                    <div
+                      class="bg-panel border-border absolute bottom-full left-0 z-10 mb-1 hidden w-36 rounded-md border shadow-lg"
+                    >
+                      <div class="py-1">
+                        <a
+                          href="#"
+                          class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
+                          onclick="selectModel('Claude 3.5')"
+                          >Claude 3.5</a
+                        >
+                        <a
+                          href="#"
+                          class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
+                          onclick="selectModel('GPT-4')"
+                          >GPT-4</a
+                        >
+                        <a
+                          href="#"
+                          class="text-foreground hover:bg-hover block cursor-pointer px-3 py-1 text-sm"
+                          onclick="selectModel('Gemini Pro')"
+                          >Gemini Pro</a
+                        >
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </footer>
-      </section>
+          </footer>
+        </section>
 
-      <!-- Right Panel -->
-      <aside id="right-panel" class="bg-surface panel-toggle right-panel-hidden relative flex w-96 flex-col">
-        <!-- Preview Overlay -->
-        <div class="bg-surface absolute inset-0 z-20 hidden" id="preview-panel">
-          <div class="flex h-12 items-center justify-between px-4">
-            <div class="flex items-center">
-              <span class="font-medium" id="preview-title">README.md</span>
-              <span class="text-muted ml-2 text-xs">Preview</span>
-            </div>
-            <div class="flex items-center space-x-3">
-              <button class="text-muted hover:text-accent cursor-pointer">
-                <i class="bi bi-download"></i>
-              </button>
-              <button onclick="closePreview()" class="text-muted hover:text-accent cursor-pointer">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-          </div>
-          <div class="scrollbar-thin flex-1 overflow-y-auto p-4" id="preview-content">
-            <div class="prose prose-invert max-w-none">
-              <h1 class="text-foreground mb-4 text-xl font-bold">README</h1>
-              <p class="text-foreground mb-4">
-                This is a markdown file preview. Actual file content would be
-                loaded here.
-              </p>
-              <ul class="text-foreground list-disc pl-5">
-                <li>Dynamic content loading</li>
-                <li>Syntax highlighting</li>
-                <li>Live preview updates</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <!-- Chat Control Base Layer -->
-        <div class="flex h-full flex-col">
-          <!-- Panel Header -->
-          <div class="flex h-12 items-center px-4">
-            <span class="text-muted text-xs font-semibold tracking-wide uppercase">Chat Control</span>
-          </div>
-          <div class="scrollbar-thin flex-1 overflow-y-auto">
-            <!-- Project Context -->
-            <div class="p-4" id="project-context-section">
-              <div class="mb-2 flex items-center justify-between">
-                <h3 class="text-muted text-xs font-semibold tracking-wide">
-                  Project Context
-                </h3>
-                <button id="edit-context-btn" class="text-muted hover:text-accent cursor-pointer text-xs" title="Edit"
-                  onclick="toggleContextEdit(true)">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button id="save-context-btn" class="text-muted hover:text-accent hidden cursor-pointer text-xs"
-                  title="Save" onclick="saveContext()">
-                  <i class="bi bi-check-lg"></i>
-                </button>
+        <!-- Right Panel -->
+        <aside
+          id="right-panel"
+          class="bg-surface panel-toggle right-panel-hidden relative flex w-96 flex-col"
+        >
+          <!-- Preview Overlay -->
+          <div
+            class="bg-surface absolute inset-0 z-20 hidden"
+            id="preview-panel"
+          >
+            <div class="flex h-12 items-center justify-between px-4">
+              <div class="flex items-center">
+                <span class="font-medium" id="preview-title">README.md</span>
+                <span class="text-muted ml-2 text-xs">Preview</span>
               </div>
-              <!-- View mode -->
-              <div id="context-view" class="space-y-2">
-                <div
-                  class="bg-input-background border-input-border text-muted min-h-[100px] cursor-text rounded-md border p-3 text-sm"
-                  onclick="toggleContextEdit(true)">
-                  <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
-                    onclick="previewFile('demo.md'); event.stopPropagation();">
-                    @&lt;demo-project&gt;/demo.md</button><br />
-                  <button class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
-                    onclick="previewFile('outside-file.md'); event.stopPropagation();">
-                    @/path/to/outside/file.md</button><br />
-                  Text is also allowed
-                </div>
-              </div>
-              <!-- Edit mode -->
-              <div id="context-edit" class="hidden">
-                <textarea id="context-textarea" rows="4"
-                  class="text-foreground bg-input-background border-input-border focus:border-accent placeholder-muted w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none"
-                  placeholder="@&lt;demo-project&gt;/demo.md @/path/to/outside/file.md&#10;Text is also allowed"></textarea>
-              </div>
-            </div>
-            <!-- Artifacts -->
-            <div class="p-4">
-              <div class="mb-2 flex items-center justify-between">
-                <h3 class="text-muted text-xs font-semibold tracking-wide">
-                  Artifacts
-                </h3>
-                <button class="text-muted hover:text-accent cursor-pointer text-xs" title="Download All">
+              <div class="flex items-center space-x-3">
+                <button class="text-muted hover:text-accent cursor-pointer">
                   <i class="bi bi-download"></i>
                 </button>
+                <button
+                  onclick="closePreview()"
+                  class="text-muted hover:text-accent cursor-pointer"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </div>
-              <div class="space-y-2">
-                <div class="bg-panel hover:bg-hover flex cursor-pointer items-center justify-between rounded p-2"
-                  onclick="previewFile('wireframe.html')">
-                  <div class="flex items-center">
-                    <i class="bi bi-file-earmark text-foreground mr-2"></i>
-                    <span class="text-foreground text-sm">wireframe.html</span>
-                    <span class="text-muted ml-1 text-xs">v3</span>
+            </div>
+            <div
+              class="scrollbar-thin flex-1 overflow-y-auto p-4"
+              id="preview-content"
+            >
+              <div class="prose prose-invert max-w-none">
+                <h1 class="text-foreground mb-4 text-xl font-bold">README</h1>
+                <p class="text-foreground mb-4">
+                  This is a markdown file preview. Actual file content would be
+                  loaded here.
+                </p>
+                <ul class="text-foreground list-disc pl-5">
+                  <li>Dynamic content loading</li>
+                  <li>Syntax highlighting</li>
+                  <li>Live preview updates</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <!-- Chat Control Base Layer -->
+          <div class="flex h-full flex-col">
+            <!-- Panel Header -->
+            <div class="flex h-12 items-center px-4">
+              <span
+                class="text-muted text-xs font-semibold tracking-wide uppercase"
+                >Chat Control</span
+              >
+            </div>
+            <div class="scrollbar-thin flex-1 overflow-y-auto">
+              <!-- Project Context -->
+              <div class="p-4" id="project-context-section">
+                <div class="mb-2 flex items-center justify-between">
+                  <h3 class="text-muted text-xs font-semibold tracking-wide">
+                    Project Context
+                  </h3>
+                  <button
+                    id="edit-context-btn"
+                    class="text-muted hover:text-accent cursor-pointer text-xs"
+                    title="Edit"
+                    onclick="toggleContextEdit(true)"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button
+                    id="save-context-btn"
+                    class="text-muted hover:text-accent hidden cursor-pointer text-xs"
+                    title="Save"
+                    onclick="saveContext()"
+                  >
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </div>
+                <!-- View mode -->
+                <div id="context-view" class="space-y-2">
+                  <div
+                    class="bg-input-background border-input-border text-muted min-h-[100px] cursor-text rounded-md border p-3 text-sm"
+                    onclick="toggleContextEdit(true)"
+                  >
+                    <button
+                      class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
+                      onclick="previewFile('demo.md'); event.stopPropagation();"
+                    >
+                      @&lt;demo-project&gt;/demo.md</button
+                    ><br />
+                    <button
+                      class="text-accent hover:text-accent/80 mr-2 cursor-pointer underline"
+                      onclick="previewFile('outside-file.md'); event.stopPropagation();"
+                    >
+                      @/path/to/outside/file.md</button
+                    ><br />
+                    Text is also allowed
                   </div>
-                  <button class="text-muted hover:text-accent cursor-pointer text-xs" title="Download">
+                </div>
+                <!-- Edit mode -->
+                <div id="context-edit" class="hidden">
+                  <textarea
+                    id="context-textarea"
+                    rows="4"
+                    class="text-foreground bg-input-background border-input-border focus:border-accent placeholder-muted w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none"
+                    placeholder="@&lt;demo-project&gt;/demo.md @/path/to/outside/file.md&#10;Text is also allowed"
+                  ></textarea>
+                </div>
+              </div>
+              <!-- Artifacts -->
+              <div class="p-4">
+                <div class="mb-2 flex items-center justify-between">
+                  <h3 class="text-muted text-xs font-semibold tracking-wide">
+                    Artifacts
+                  </h3>
+                  <button
+                    class="text-muted hover:text-accent cursor-pointer text-xs"
+                    title="Download All"
+                  >
                     <i class="bi bi-download"></i>
                   </button>
                 </div>
+                <div class="space-y-2">
+                  <div
+                    class="bg-panel hover:bg-hover flex cursor-pointer items-center justify-between rounded p-2"
+                    onclick="previewFile('wireframe.html')"
+                  >
+                    <div class="flex items-center">
+                      <i class="bi bi-file-earmark text-foreground mr-2"></i>
+                      <span class="text-foreground text-sm"
+                        >wireframe.html</span
+                      >
+                      <span class="text-muted ml-1 text-xs">v3</span>
+                    </div>
+                    <button
+                      class="text-muted hover:text-accent cursor-pointer text-xs"
+                      title="Download"
+                    >
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </aside>
-    </main>
-  </div>
-  <script>
-    let selectedNode = document.querySelector(".explorer-node.selected");
-    function selectNode(element) {
-      if (selectedNode) selectedNode.classList.remove("selected");
-      selectedNode = element;
-      element.classList.add("selected");
-    }
-    function openChat(chatName) {
-      // This function is now partial since the header is removed.
-      // In a real app, this would update a state store.
-      console.log("Opening chat:", chatName);
-      closePreview();
-    }
-    function previewFile(fileName) {
-      document.getElementById("preview-title").textContent = fileName;
-      document.getElementById("preview-panel").classList.remove("hidden");
-    }
-    function closePreview() {
-      document.getElementById("preview-panel").classList.add("hidden");
-    }
-    function toggleFolder(element) {
-      const icon = element.querySelector("i.bi");
-      const folderContent = element.nextElementSibling;
-      if (!folderContent) return;
-      if (folderContent.classList.contains("hidden")) {
-        folderContent.classList.remove("hidden");
-        if (icon.classList.contains("bi-chevron-right")) {
-          icon.classList.remove("bi-chevron-right");
-          icon.classList.add("bi-chevron-down");
-        }
-      } else {
-        folderContent.classList.add("hidden");
-        if (icon.classList.contains("bi-chevron-down")) {
-          icon.classList.remove("bi-chevron-down");
-          icon.classList.add("bi-chevron-right");
+        </aside>
+      </main>
+    </div>
+    <script>
+      let selectedNode = document.querySelector(".explorer-node.selected");
+      function selectNode(element) {
+        if (selectedNode) selectedNode.classList.remove("selected");
+        selectedNode = element;
+        element.classList.add("selected");
+      }
+      function openChat(chatName) {
+        // This function is now partial since the header is removed.
+        // In a real app, this would update a state store.
+        console.log("Opening chat:", chatName);
+        closePreview();
+      }
+      function previewFile(fileName) {
+        document.getElementById("preview-title").textContent = fileName;
+        document.getElementById("preview-panel").classList.remove("hidden");
+      }
+      function closePreview() {
+        document.getElementById("preview-panel").classList.add("hidden");
+      }
+      function toggleFolder(element) {
+        const icon = element.querySelector("i.bi");
+        const folderContent = element.nextElementSibling;
+        if (!folderContent) return;
+        if (folderContent.classList.contains("hidden")) {
+          folderContent.classList.remove("hidden");
+          if (icon.classList.contains("bi-chevron-right")) {
+            icon.classList.remove("bi-chevron-right");
+            icon.classList.add("bi-chevron-down");
+          }
+        } else {
+          folderContent.classList.add("hidden");
+          if (icon.classList.contains("bi-chevron-down")) {
+            icon.classList.remove("bi-chevron-down");
+            icon.classList.add("bi-chevron-right");
+          }
         }
       }
-    }
-    function toggleContextEdit(editing) {
-      const view = document.getElementById("context-view");
-      const edit = document.getElementById("context-edit");
-      const editBtn = document.getElementById("edit-context-btn");
-      const saveBtn = document.getElementById("save-context-btn");
-      if (editing) {
-        view.classList.add("hidden");
-        edit.classList.remove("hidden");
-        editBtn.classList.add("hidden");
-        saveBtn.classList.remove("hidden");
+      function toggleContextEdit(editing) {
+        const view = document.getElementById("context-view");
+        const edit = document.getElementById("context-edit");
+        const editBtn = document.getElementById("edit-context-btn");
+        const saveBtn = document.getElementById("save-context-btn");
+        if (editing) {
+          view.classList.add("hidden");
+          edit.classList.remove("hidden");
+          editBtn.classList.add("hidden");
+          saveBtn.classList.remove("hidden");
+          const textarea = document.getElementById("context-textarea");
+          textarea.focus();
+          textarea.select();
+        } else {
+          view.classList.remove("hidden");
+          edit.classList.add("hidden");
+          editBtn.classList.remove("hidden");
+          saveBtn.classList.add("hidden");
+        }
+      }
+      function saveContext() {
         const textarea = document.getElementById("context-textarea");
-        textarea.focus();
-        textarea.select();
-      } else {
-        view.classList.remove("hidden");
-        edit.classList.add("hidden");
-        editBtn.classList.remove("hidden");
-        saveBtn.classList.add("hidden");
+        const content = textarea.value;
+        console.log("Saved context:", content);
+        toggleContextEdit(false);
       }
-    }
-    function saveContext() {
-      const textarea = document.getElementById("context-textarea");
-      const content = textarea.value;
-      console.log("Saved context:", content);
-      toggleContextEdit(false);
-    }
-    function autoGrow(element) {
-      element.style.height = "72px";
-      element.style.height = element.scrollHeight + "px";
-    }
+      function autoGrow(element) {
+        element.style.height = "72px";
+        element.style.height = element.scrollHeight + "px";
+      }
 
-    function selectModel(modelName) {
-      document.getElementById("selected-model").textContent = modelName;
-      // Hide the dropdown
-      event.target
-        .closest(".relative")
-        .querySelector("div")
-        .classList.add("hidden");
-    }
-    function toggleSidebar() {
-      const sidebar = document.getElementById("sidebar");
-      sidebar.classList.toggle("panel-collapsed");
-    }
-    function toggleRightPanel() {
-      const rightPanel = document.getElementById("right-panel");
-      rightPanel.classList.toggle("right-panel-hidden");
-    }
-  </script>
-</body>
-
+      function selectModel(modelName) {
+        document.getElementById("selected-model").textContent = modelName;
+        // Hide the dropdown
+        event.target
+          .closest(".relative")
+          .querySelector("div")
+          .classList.add("hidden");
+      }
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        sidebar.classList.toggle("panel-collapsed");
+      }
+      function toggleRightPanel() {
+        const rightPanel = document.getElementById("right-panel");
+        rightPanel.classList.toggle("right-panel-hidden");
+      }
+    </script>
+  </body>
 </html>

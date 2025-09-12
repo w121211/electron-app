@@ -19,4 +19,4 @@ export const TERMINAL_MODELS = [
   "terminal/vscode",
 ] as const;
 
-export type TerminalModelId = typeof TERMINAL_MODELS[number];
+export type TerminalModelId = (typeof TERMINAL_MODELS)[number];

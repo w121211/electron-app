@@ -6,7 +6,7 @@ import ignore from "ignore";
 // Simplified version of the functions to debug what's happening
 async function createIgnoreInstance(projectPath: string) {
   const ig = ignore();
-  
+
   try {
     const gitignorePath = path.join(projectPath, ".gitignore");
     const gitignoreContent = await fs.readFile(gitignorePath, "utf8");
@@ -15,16 +15,10 @@ async function createIgnoreInstance(projectPath: string) {
   } catch {
     console.log("ℹ️  No .gitignore found, using default ignore rules");
   }
-  
+
   // Add default ignore patterns
-  ig.add([
-    "node_modules/**",
-    ".git/**",
-    "*.log",
-    ".DS_Store",
-    "*.tmp",
-  ]);
-  
+  ig.add(["node_modules/**", ".git/**", "*.log", ".DS_Store", "*.tmp"]);
+
   return ig;
 }
 
@@ -81,7 +75,7 @@ async function debugGetSearchablePaths() {
 
     const ig = await createIgnoreInstance(projectPath);
     console.log("\n🚫 Testing ignore rules:");
-    
+
     // Test some paths with ignore rules
     const testPaths = [
       "src",
@@ -93,8 +87,8 @@ async function debugGetSearchablePaths() {
       "examples",
       "examples/",
     ];
-    
-    testPaths.forEach(testPath => {
+
+    testPaths.forEach((testPath) => {
       const ignored = ig.ignores(testPath);
       console.log(`  ${testPath}: ${ignored ? "IGNORED" : "ALLOWED"}`);
     });
@@ -114,9 +108,11 @@ async function debugGetSearchablePaths() {
     const results = relativePaths.map((relativePath) => {
       const absolutePath = path.resolve(relativePath);
       const normalizedRelativePath = path.relative(projectPath, absolutePath);
-      
-      console.log(`  ${relativePath} -> ${normalizedRelativePath} (${absolutePath})`);
-      
+
+      console.log(
+        `  ${relativePath} -> ${normalizedRelativePath} (${absolutePath})`,
+      );
+
       return {
         name: path.basename(normalizedRelativePath),
         relativePath: normalizedRelativePath,
@@ -125,7 +121,6 @@ async function debugGetSearchablePaths() {
     });
 
     console.log(`\n🎯 Final results: ${results.length}`);
-
   } catch (error) {
     console.error("❌ Debug failed:", error);
     process.exit(1);

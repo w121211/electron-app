@@ -29,7 +29,9 @@ class QuickLauncherService {
       }
 
       // Sort by last modified date (most recent first)
-      recentChats.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
+      recentChats.sort(
+        (a, b) => b.lastModified.getTime() - a.lastModified.getTime(),
+      );
 
       // Limit to 10 most recent chats
       const limitedChats = recentChats.slice(0, 10);
@@ -42,16 +44,24 @@ class QuickLauncherService {
     }
   }
 
-  private async findChatFiles(node: any, results: ChatSearchResult[] = []): Promise<ChatSearchResult[]> {
+  private async findChatFiles(
+    node: any,
+    results: ChatSearchResult[] = [],
+  ): Promise<ChatSearchResult[]> {
     if (!node) return results;
 
     // Check if this is a chat file
-    if (!node.isDirectory && node.name?.endsWith('.chat.json')) {
-      const relativePath = path.relative(projectState.projectFolders[0]?.path || '', node.path);
-      
+    if (!node.isDirectory && node.name?.endsWith(".chat.json")) {
+      const relativePath = path.relative(
+        projectState.projectFolders[0]?.path || "",
+        node.path,
+      );
+
       // Extract title from filename (remove .chat.json extension)
-      const title = node.name.replace('.chat.json', '').replace(/^chat\d+$/, 'Untitled Chat');
-      
+      const title = node.name
+        .replace(".chat.json", "")
+        .replace(/^chat\d+$/, "Untitled Chat");
+
       results.push({
         id: node.path,
         title,
@@ -95,10 +105,14 @@ class QuickLauncherService {
       const results: QuickLauncherResult[] = [];
 
       // Search files using existing file search service
-      const fileResults = await fileSearchService.searchFiles(query, undefined, 15);
-      
+      const fileResults = await fileSearchService.searchFiles(
+        query,
+        undefined,
+        15,
+      );
+
       // Add file results
-      fileResults.forEach(fileResult => {
+      fileResults.forEach((fileResult) => {
         results.push({
           type: "file",
           data: fileResult,
@@ -106,13 +120,13 @@ class QuickLauncherService {
       });
 
       // Search through recent chats
-      const chatResults = quickLauncherState.recentChats.filter(chat => {
+      const chatResults = quickLauncherState.recentChats.filter((chat) => {
         const searchText = `${chat.title} ${chat.relativePath}`.toLowerCase();
         return searchText.includes(query.toLowerCase());
       });
 
       // Add highlighted chat results
-      chatResults.forEach(chat => {
+      chatResults.forEach((chat) => {
         const highlightedChat: ChatSearchResult = {
           ...chat,
           highlightTokens: this.highlightText(chat.relativePath, query),
@@ -141,13 +155,19 @@ class QuickLauncherService {
     }
   }
 
-  private highlightText(text: string, query: string): Array<{ text: string; isHighlighted: boolean }> {
+  private highlightText(
+    text: string,
+    query: string,
+  ): Array<{ text: string; isHighlighted: boolean }> {
     if (!query || query.trim() === "") {
       return [{ text, isHighlighted: false }];
     }
 
     const tokens: Array<{ text: string; isHighlighted: boolean }> = [];
-    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const regex = new RegExp(
+      `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+      "gi",
+    );
     const parts = text.split(regex);
 
     for (let i = 0; i < parts.length; i++) {
@@ -168,16 +188,18 @@ class QuickLauncherService {
       if (result.type === "chat") {
         const chatData = result.data as ChatSearchResult;
         this.logger.info("Opening chat:", chatData.absolutePath);
-        
+
         // Import and use chat service to open the chat file
         const { chatService } = await import("./chat-service.js");
         await chatService.openChatFile(chatData.absolutePath);
       } else {
         const fileData = result.data as ProjectFileSearchResult;
         this.logger.info("Opening file:", fileData.absolutePath);
-        
+
         // Import and use tree store to select the file
-        const { selectFile, expandParentDirectories } = await import("../stores/tree-store.svelte.js");
+        const { selectFile, expandParentDirectories } = await import(
+          "../stores/tree-store.svelte.js"
+        );
         expandParentDirectories(fileData.absolutePath);
         selectFile(fileData.absolutePath);
       }

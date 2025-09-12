@@ -63,10 +63,10 @@
   const isProjectFolder = $derived(level === 0);
   const isChatFile = $derived(node.name.endsWith(".chat.json"));
   const isCurrentChatFile = $derived(
-    isChatFile && chatState.currentChat?.absoluteFilePath === node.path
+    isChatFile && chatState.currentChat?.absoluteFilePath === node.path,
   );
   const isLoadingRerunChat = $derived(
-    uiState.loadingStates["rerunChat"] || false
+    uiState.loadingStates["rerunChat"] || false,
   );
 
   // Inline folder creation state
@@ -128,19 +128,19 @@
   async function handleRerunChat(e: MouseEvent): Promise<void> {
     e.stopPropagation();
     if (!isChatFile) return;
-    
+
     try {
       // If this chat file is not currently open, open it first
       if (!isCurrentChatFile) {
         await chatService.openChatFile(node.path);
       }
-      
+
       // Now rerun the chat
       const currentChat = chatState.currentChat;
       if (currentChat) {
         await chatService.rerunChat(
           currentChat.absoluteFilePath,
-          currentChat.id
+          currentChat.id,
         );
       }
     } catch (error) {
@@ -393,7 +393,7 @@
       {/if}
     {/if}
 
-    <!-- Chat File Status -->  
+    <!-- Chat File Status -->
     {#if isChatFile && isCurrentChatFile}
       {@const sessionStatus = chatState.currentChat?.sessionStatus || "idle"}
       {#if sessionStatus === "processing"}

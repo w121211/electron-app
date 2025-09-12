@@ -48,7 +48,7 @@ async function setupDemo() {
     eventBus,
     chatFileService,
     workspacePath,
-    taskService
+    taskService,
   );
 
   const fileService = new FileService(eventBus, workspacePath);
@@ -81,7 +81,7 @@ async function setupDemo() {
 // Demo Create New Chat Flow
 async function demoCreateNewChat(
   eventBus: IEventBus,
-  logger: Logger<ILogObj>
+  logger: Logger<ILogObj>,
 ): Promise<string> {
   logger.info("=== Starting Create New Chat Flow ===");
 
@@ -115,7 +115,7 @@ async function demoCreateNewChat(
 async function demoSubmitChatMessage(
   eventBus: IEventBus,
   logger: Logger<ILogObj>,
-  chatId: string
+  chatId: string,
 ): Promise<void> {
   logger.info("=== Starting Submit Chat Message Flow ===");
 
@@ -144,7 +144,7 @@ async function demoSubmitChatMessage(
 async function demoOpenFile(
   eventBus: IEventBus,
   logger: Logger<ILogObj>,
-  filePath: string
+  filePath: string,
 ): Promise<void> {
   logger.info("=== Starting Open File Flow ===");
 
@@ -188,9 +188,9 @@ async function main() {
         chatObject = event.chatObject;
         chatFilePath = event.chatObject.filePath;
         logger.info(
-          `New chat created with ID: ${chatId}, filePath: ${chatFilePath}`
+          `New chat created with ID: ${chatId}, filePath: ${chatFilePath}`,
         );
-      }
+      },
     );
 
     // Also subscribe to ServerChatUpdated to track updates
@@ -201,10 +201,10 @@ async function main() {
         if (event.chatId === chatId) {
           chatObject = event.chat;
           logger.info(
-            `Chat updated: ${event.chatId}, update type: ${event.update.kind}`
+            `Chat updated: ${event.chatId}, update type: ${event.update.kind}`,
           );
         }
-      }
+      },
     );
 
     // Demo Create New Chat

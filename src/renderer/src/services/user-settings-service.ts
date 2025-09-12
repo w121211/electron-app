@@ -48,17 +48,22 @@ export class UserSettingsService {
     return this.updateSettings({ providers });
   }
 
-  async setWorkspaceDirectory(workspaceDirectory: string): Promise<UserSettings> {
+  async setWorkspaceDirectory(
+    workspaceDirectory: string,
+  ): Promise<UserSettings> {
     try {
-      const updatedSettings = await trpcClient.userSettings.setWorkspaceDirectory.mutate({
-        workspaceDirectory,
-      });
+      const updatedSettings =
+        await trpcClient.userSettings.setWorkspaceDirectory.mutate({
+          workspaceDirectory,
+        });
       setUserSettings(updatedSettings);
       return updatedSettings;
     } catch (error) {
       console.error("Failed to set workspace directory:", error);
       setUserSettingsError(
-        error instanceof Error ? error.message : "Failed to set workspace directory",
+        error instanceof Error
+          ? error.message
+          : "Failed to set workspace directory",
       );
       throw error;
     }
@@ -76,7 +81,7 @@ export class UserSettingsService {
   async setupWorkspaceDirectory(): Promise<UserSettings | null> {
     try {
       console.log("Setting up workspace directory");
-      
+
       // Open folder selection dialog
       const workspaceDirectory = await window.api.showOpenDialog();
       if (!workspaceDirectory) {
@@ -85,32 +90,42 @@ export class UserSettingsService {
       }
 
       // Set the workspace directory
-      const updatedSettings = await this.setWorkspaceDirectory(workspaceDirectory);
+      const updatedSettings =
+        await this.setWorkspaceDirectory(workspaceDirectory);
       console.log("Workspace directory set:", workspaceDirectory);
-      
+
       return updatedSettings;
     } catch (error) {
       console.error("Failed to setup workspace directory:", error);
       setUserSettingsError(
-        error instanceof Error ? error.message : "Failed to setup workspace directory",
+        error instanceof Error
+          ? error.message
+          : "Failed to setup workspace directory",
       );
       throw error;
     }
   }
 
-  async setProviderApiKey(provider: string, apiKey: string, enabled = true): Promise<UserSettings> {
+  async setProviderApiKey(
+    provider: string,
+    apiKey: string,
+    enabled = true,
+  ): Promise<UserSettings> {
     try {
-      const updatedSettings = await trpcClient.userSettings.setProviderApiKey.mutate({
-        provider,
-        apiKey,
-        enabled,
-      });
+      const updatedSettings =
+        await trpcClient.userSettings.setProviderApiKey.mutate({
+          provider,
+          apiKey,
+          enabled,
+        });
       setUserSettings(updatedSettings);
       return updatedSettings;
     } catch (error) {
       console.error(`Failed to set ${provider} API key:`, error);
       setUserSettingsError(
-        error instanceof Error ? error.message : `Failed to set ${provider} API key`,
+        error instanceof Error
+          ? error.message
+          : `Failed to set ${provider} API key`,
       );
       throw error;
     }
@@ -118,7 +133,9 @@ export class UserSettingsService {
 
   async getProviderApiKey(provider: string): Promise<string | null> {
     try {
-      return await trpcClient.userSettings.getProviderApiKey.query({ provider });
+      return await trpcClient.userSettings.getProviderApiKey.query({
+        provider,
+      });
     } catch (error) {
       console.error(`Failed to get ${provider} API key:`, error);
       throw error;
@@ -127,15 +144,18 @@ export class UserSettingsService {
 
   async clearProviderApiKey(provider: string): Promise<UserSettings> {
     try {
-      const updatedSettings = await trpcClient.userSettings.clearProviderApiKey.mutate({
-        provider,
-      });
+      const updatedSettings =
+        await trpcClient.userSettings.clearProviderApiKey.mutate({
+          provider,
+        });
       setUserSettings(updatedSettings);
       return updatedSettings;
     } catch (error) {
       console.error(`Failed to clear ${provider} API key:`, error);
       setUserSettingsError(
-        error instanceof Error ? error.message : `Failed to clear ${provider} API key`,
+        error instanceof Error
+          ? error.message
+          : `Failed to clear ${provider} API key`,
       );
       throw error;
     }

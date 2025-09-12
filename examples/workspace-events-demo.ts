@@ -53,12 +53,12 @@ async function setupDemo() {
   // Create a sample file in test workspace 1 for demonstration
   await fs.writeFile(
     path.join(testWorkspace1, "sample.txt"),
-    "This is a sample file for workspace demo."
+    "This is a sample file for workspace demo.",
   );
 
   logger.info(`Created config directory at: ${configDirPath}`);
   logger.info(
-    `Created test workspaces at: ${testWorkspace1} and ${testWorkspace2}`
+    `Created test workspaces at: ${testWorkspace1} and ${testWorkspace2}`,
   );
 
   // Initialize event bus
@@ -68,12 +68,12 @@ async function setupDemo() {
   const userSettingsRepository = createUserSettingsRepository(configDirPath);
   const workspaceService = createWorkspaceService(
     eventBus,
-    userSettingsRepository
+    userSettingsRepository,
   );
   const userSettingsService = createUserSettingsService(
     eventBus,
     userSettingsRepository,
-    workspaceService
+    workspaceService,
   );
   const fileWatcherService = createFileWatcherService(eventBus);
 
@@ -102,7 +102,7 @@ async function setupDemo() {
 async function demoAddWorkspace(
   eventBus: IEventBus,
   logger: Logger<ILogObj>,
-  workspacePath: string
+  workspacePath: string,
 ): Promise<string> {
   logger.info("=== Starting Add Workspace Flow ===");
 
@@ -128,10 +128,10 @@ async function demoAddWorkspace(
           workspaceValidationMsg =
             event.validationMessage || "Validation successful";
           logger.info(
-            `Workspace validation: ${isWorkspaceValid ? "Valid" : "Invalid"}`
+            `Workspace validation: ${isWorkspaceValid ? "Valid" : "Invalid"}`,
           );
         }
-      }
+      },
     );
 
   const settingsUpdatedUnsubscribe =
@@ -141,10 +141,10 @@ async function demoAddWorkspace(
         if (event.correlationId === correlationId) {
           updatedSettings = event.settings;
           logger.info(
-            `User settings updated with change type: ${event.changeType}`
+            `User settings updated with change type: ${event.changeType}`,
           );
         }
-      }
+      },
     );
 
   const folderTreeUnsubscribe =
@@ -154,10 +154,10 @@ async function demoAddWorkspace(
         if (event.correlationId === correlationId) {
           folderTree = event.folderTree;
           logger.info(
-            `Received workspace folder tree for: ${event.workspacePath}`
+            `Received workspace folder tree for: ${event.workspacePath}`,
           );
         }
-      }
+      },
     );
 
   // Mock user adding a workspace through settings page
@@ -170,7 +170,7 @@ async function demoAddWorkspace(
   };
 
   logger.info(
-    `Emitting event: ClientUpdateUserSettings (WORKSPACE_ADDED) for ${workspacePath}`
+    `Emitting event: ClientUpdateUserSettings (WORKSPACE_ADDED) for ${workspacePath}`,
   );
   await eventBus.emit(addWorkspaceEvent);
 
@@ -187,7 +187,7 @@ async function demoAddWorkspace(
     };
 
     logger.info(
-      `Emitting event: ClientRequestWorkspaceFolderTree for ${workspacePath}`
+      `Emitting event: ClientRequestWorkspaceFolderTree for ${workspacePath}`,
     );
     await eventBus.emit(requestTreeEvent);
 
@@ -215,7 +215,7 @@ async function demoAddWorkspace(
 async function demoRemoveWorkspace(
   eventBus: IEventBus,
   logger: Logger<ILogObj>,
-  workspacePath: string
+  workspacePath: string,
 ): Promise<string> {
   logger.info("=== Starting Remove Workspace Flow ===");
 
@@ -232,10 +232,10 @@ async function demoRemoveWorkspace(
         if (event.correlationId === correlationId) {
           updatedSettings = event.settings;
           logger.info(
-            `User settings updated with change type: ${event.changeType}`
+            `User settings updated with change type: ${event.changeType}`,
           );
         }
-      }
+      },
     );
 
   // Mock user removing a workspace through settings page
@@ -248,7 +248,7 @@ async function demoRemoveWorkspace(
   };
 
   logger.info(
-    `Emitting event: ClientUpdateUserSettings (WORKSPACE_REMOVED) for ${workspacePath}`
+    `Emitting event: ClientUpdateUserSettings (WORKSPACE_REMOVED) for ${workspacePath}`,
   );
   await eventBus.emit(removeWorkspaceEvent);
 
@@ -262,7 +262,7 @@ async function demoRemoveWorkspace(
 
   if (updatedSettings) {
     logger.info(
-      `Updated workspace list: ${(updatedSettings as UserSettings).workspaces.join(", ") || "Empty"}`
+      `Updated workspace list: ${(updatedSettings as UserSettings).workspaces.join(", ") || "Empty"}`,
     );
   }
 
@@ -273,7 +273,7 @@ async function demoRemoveWorkspace(
 async function demoRequestWorkspaceTree(
   eventBus: IEventBus,
   logger: Logger<ILogObj>,
-  workspacePath: string
+  workspacePath: string,
 ): Promise<void> {
   logger.info("=== Starting Request Workspace Tree Flow ===");
 
@@ -290,10 +290,10 @@ async function demoRequestWorkspaceTree(
         if (event.correlationId === correlationId) {
           folderTree = event.folderTree;
           logger.info(
-            `Received workspace folder tree for: ${event.workspacePath}`
+            `Received workspace folder tree for: ${event.workspacePath}`,
           );
         }
-      }
+      },
     );
 
   // Mock user requesting workspace tree
@@ -305,7 +305,7 @@ async function demoRequestWorkspaceTree(
   };
 
   logger.info(
-    `Emitting event: ClientRequestWorkspaceFolderTree for ${workspacePath}`
+    `Emitting event: ClientRequestWorkspaceFolderTree for ${workspacePath}`,
   );
   await eventBus.emit(requestTreeEvent);
 
@@ -328,7 +328,7 @@ async function demoRequestWorkspaceTree(
 async function demoStartWatchingAllWorkspaces(
   eventBus: IEventBus,
   logger: Logger<ILogObj>,
-  fileWatcherService: FileWatcherService
+  fileWatcherService: FileWatcherService,
 ): Promise<void> {
   logger.info("=== Starting Watch All Workspaces Flow ===");
 
@@ -337,7 +337,7 @@ async function demoStartWatchingAllWorkspaces(
   // Log current watched folders before starting
   const watchedFoldersBefore = fileWatcherService.getWatchedFolders();
   logger.info(
-    `Currently watching ${watchedFoldersBefore.length} folders: ${watchedFoldersBefore.join(", ") || "None"}`
+    `Currently watching ${watchedFoldersBefore.length} folders: ${watchedFoldersBefore.join(", ") || "None"}`,
   );
 
   // Create the client event to request watching all workspaces
@@ -356,7 +356,7 @@ async function demoStartWatchingAllWorkspaces(
   // Log current watched folders after starting
   const watchedFoldersAfter = fileWatcherService.getWatchedFolders();
   logger.info(
-    `Now watching ${watchedFoldersAfter.length} folders: ${watchedFoldersAfter.join(", ") || "None"}`
+    `Now watching ${watchedFoldersAfter.length} folders: ${watchedFoldersAfter.join(", ") || "None"}`,
   );
 
   logger.info("=== Start Watching All Workspaces Flow Completed ===");
@@ -365,14 +365,14 @@ async function demoStartWatchingAllWorkspaces(
 // Demo stop all file watchers
 async function demoStopAllWatchers(
   fileWatcherService: FileWatcherService,
-  logger: Logger<ILogObj>
+  logger: Logger<ILogObj>,
 ): Promise<void> {
   logger.info("=== Starting Stop All Watchers Flow ===");
 
   // Log the currently watched folders before stopping
   const watchedFolders = fileWatcherService.getWatchedFolders();
   logger.info(
-    `Currently watching ${watchedFolders.length} folders: ${watchedFolders.join(", ") || "None"}`
+    `Currently watching ${watchedFolders.length} folders: ${watchedFolders.join(", ") || "None"}`,
   );
 
   // Stop all watchers directly using the service method
@@ -381,7 +381,7 @@ async function demoStopAllWatchers(
   // Verify that all watchers are stopped
   const watchedFoldersAfter = fileWatcherService.getWatchedFolders();
   logger.info(
-    `After stopping, watching ${watchedFoldersAfter.length} folders: ${watchedFoldersAfter.join(", ") || "None"}`
+    `After stopping, watching ${watchedFoldersAfter.length} folders: ${watchedFoldersAfter.join(", ") || "None"}`,
   );
 
   logger.info("=== Stop All Watchers Flow Completed ===");

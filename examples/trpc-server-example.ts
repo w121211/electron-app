@@ -11,7 +11,7 @@ import { z } from "zod";
 
 // This is how you initialize a context for the server
 function createContext(
-  opts: CreateHTTPContextOptions | CreateWSSContextFnOptions
+  opts: CreateHTTPContextOptions | CreateWSSContextFnOptions,
 ) {
   return {};
 }
@@ -27,7 +27,7 @@ const greetingRouter = router({
     .input(
       z.object({
         name: z.string(),
-      })
+      }),
     )
     .query(({ input }) => `Hello, ${input.name}!`),
 });
@@ -38,7 +38,7 @@ const postRouter = router({
       z.object({
         title: z.string(),
         text: z.string(),
-      })
+      }),
     )
     .mutation(({ input }) => {
       // imagine db call here

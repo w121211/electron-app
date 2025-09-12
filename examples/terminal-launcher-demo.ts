@@ -9,16 +9,18 @@ async function main() {
 
   logger.info("Launching macOS Terminal...");
   const terminalResult = launchTerminal("open", ["-a", "Terminal", "."]);
-  
+
   if (terminalResult.success) {
-    logger.info(`Successfully launched macOS Terminal with PID: ${terminalResult.pid}`);
+    logger.info(
+      `Successfully launched macOS Terminal with PID: ${terminalResult.pid}`,
+    );
   } else {
     logger.error(`Failed to launch Terminal: ${terminalResult.error}`);
   }
 
   logger.info("Launching VS Code...");
   const vscodeResult = launchTerminal("code", ["."], process.cwd());
-  
+
   if (vscodeResult.success) {
     logger.info(`Successfully launched VS Code with PID: ${vscodeResult.pid}`);
   } else {
@@ -27,9 +29,11 @@ async function main() {
 
   logger.info("Launching Claude Code...");
   const claudeResult = launchTerminal("claude-code", [], process.cwd());
-  
+
   if (claudeResult.success) {
-    logger.info(`Successfully launched Claude Code with PID: ${claudeResult.pid}`);
+    logger.info(
+      `Successfully launched Claude Code with PID: ${claudeResult.pid}`,
+    );
   } else {
     logger.error(`Failed to launch Claude Code: ${claudeResult.error}`);
   }
@@ -37,7 +41,7 @@ async function main() {
   logger.info("Demo completed!");
 }
 
-main().catch(error => {
+main().catch((error) => {
   logger.error("Demo failed:", error);
   process.exit(1);
 });

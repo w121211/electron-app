@@ -19,7 +19,7 @@ function printTree(node: FolderTreeNode, indent = 0, maxDepth = 3): void {
 
   const spaces = "  ".repeat(indent);
   const icon = node.isDirectory ? "📁" : "📄";
-  
+
   // Always show both name and path for verification
   if (indent === 0) {
     console.log(`${spaces}${icon} ${node.name} → ${node.path}`);

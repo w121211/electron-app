@@ -47,7 +47,7 @@
       .group:hover .message-actions {
         opacity: 1;
       }
-      
+
       /* Tool Call Block Styles */
       .tool-call-block {
         background: #161b22;
@@ -55,7 +55,7 @@
         border-radius: 8px;
         margin: 16px 0;
       }
-      
+
       .tool-call-header {
         display: flex;
         align-items: center;
@@ -64,17 +64,17 @@
         background: #0d1117;
         border-radius: 8px 8px 0 0;
       }
-      
+
       .tool-call-item {
         padding: 16px;
         border-bottom: 1px solid #30363d;
       }
-      
+
       .tool-call-item:last-child {
         border-bottom: none;
         border-radius: 0 0 8px 8px;
       }
-      
+
       .tool-status {
         display: inline-flex;
         align-items: center;
@@ -85,62 +85,63 @@
         text-transform: uppercase;
         letter-spacing: 0.025em;
       }
-      
+
       .tool-status.running {
         background: #1f2937;
         color: #93c5fd;
         border: 1px solid #374151;
       }
-      
+
       .tool-status.success {
         background: #064e3b;
         color: #34d399;
         border: 1px solid #065f46;
       }
-      
+
       .tool-status.error {
         background: #7f1d1d;
         color: #fca5a5;
         border: 1px solid #991b1b;
       }
-      
+
       .tool-duration {
         color: #8b949e;
         font-size: 12px;
         margin-left: auto;
       }
-      
+
       .tool-results {
         background: #0d1117;
         border: 1px solid #30363d;
         border-radius: 4px;
         padding: 12px;
         margin-top: 12px;
-        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+        font-family:
+          "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
         font-size: 13px;
         line-height: 1.45;
       }
-      
+
       .collapsible-content {
         max-height: 200px;
         overflow-y: auto;
       }
-      
+
       .collapsible-header {
         cursor: pointer;
         display: flex;
         align-items: center;
         gap: 8px;
       }
-      
+
       .collapse-icon {
         transition: transform 0.2s;
       }
-      
+
       .collapsed .collapse-icon {
         transform: rotate(-90deg);
       }
-      
+
       .collapsed .collapsible-content {
         display: none;
       }
@@ -440,7 +441,7 @@
             <i class="bi bi-chevron-right text-muted text-xs"></i>
             <span class="text-muted text-xs">tool-call-demo.chat.json</span>
           </header>
-          
+
           <!-- Messages -->
           <div
             class="scrollbar-thin bg-background flex-1 space-y-5 overflow-y-auto px-8 py-6"
@@ -451,8 +452,8 @@
                 class="bg-accent/20 border-accent/30 text-foreground ml-auto max-w-xl rounded-lg border px-4 py-2"
               >
                 因為在設計時，設計師並沒有看到 event-core
-                所以，請檢查討論中所提出的後端設計
-                跟現行的 event-core 有沒有差異？
+                所以，請檢查討論中所提出的後端設計 跟現行的 event-core
+                有沒有差異？
               </div>
               <div class="message-actions mr-2 mt-1 flex items-center gap-2">
                 <button
@@ -476,7 +477,8 @@
                 >
               </div>
               <div class="text-foreground pl-7 leading-normal">
-                我需要先了解現行的 event-core 架構，讓我搜尋相關資訊來比較與討論中設計的差異。
+                我需要先了解現行的 event-core
+                架構，讓我搜尋相關資訊來比較與討論中設計的差異。
               </div>
 
               <!-- Tool Call Block - Matching screenshot style -->
@@ -484,7 +486,10 @@
                 <!-- Tool Call Header -->
                 <div class="tool-call-header">
                   <i class="bi bi-search text-accent mr-2"></i>
-                  <span class="text-foreground text-sm font-medium">Investigated event-core architecture to compare backend design differences.</span>
+                  <span class="text-foreground text-sm font-medium"
+                    >Investigated event-core architecture to compare backend
+                    design differences.</span
+                  >
                   <span class="tool-status running ml-auto">
                     <i class="bi bi-arrow-repeat mr-1"></i>
                     2s
@@ -493,42 +498,82 @@
 
                 <!-- Tool Call Item 1: Search -->
                 <div class="tool-call-item">
-                  <div class="collapsible-header" onclick="toggleCollapse(this)">
+                  <div
+                    class="collapsible-header"
+                    onclick="toggleCollapse(this)"
+                  >
                     <i class="bi bi-chevron-down collapse-icon text-muted"></i>
                     <i class="bi bi-folder2-open mr-2 text-muted"></i>
-                    <span class="text-foreground text-sm font-medium">Searched project for "event-core architecture services"</span>
+                    <span class="text-foreground text-sm font-medium"
+                      >Searched project for "event-core architecture
+                      services"</span
+                    >
                     <span class="tool-duration">6 results</span>
                     <i class="bi bi-chevron-up text-muted ml-2"></i>
                   </div>
-                  
+
                   <div class="collapsible-content mt-3">
                     <div class="tool-results">
                       <div class="space-y-2">
                         <div class="flex justify-between items-center">
-                          <span class="text-accent">packages/events-core/src/server/routers/event-router.ts</span>
-                          <span class="text-muted text-xs bg-panel px-2 py-0.5 rounded">TEXT</span>
+                          <span class="text-accent"
+                            >packages/events-core/src/server/routers/event-router.ts</span
+                          >
+                          <span
+                            class="text-muted text-xs bg-panel px-2 py-0.5 rounded"
+                            >TEXT</span
+                          >
                         </div>
                         <div class="flex justify-between items-center">
-                          <span class="text-foreground">packages/events-core/src/server/root-router.ts</span>
-                          <span class="text-muted text-xs bg-panel px-2 py-0.5 rounded">TEXT</span>
+                          <span class="text-foreground"
+                            >packages/events-core/src/server/root-router.ts</span
+                          >
+                          <span
+                            class="text-muted text-xs bg-panel px-2 py-0.5 rounded"
+                            >TEXT</span
+                          >
                         </div>
                         <div class="flex justify-between items-center">
-                          <span class="text-foreground">packages/events-core/src/services/content-generator/demo.ts</span>
-                          <span class="text-muted text-xs bg-panel px-2 py-0.5 rounded">TEXT</span>
+                          <span class="text-foreground"
+                            >packages/events-core/src/services/content-generator/demo.ts</span
+                          >
+                          <span
+                            class="text-muted text-xs bg-panel px-2 py-0.5 rounded"
+                            >TEXT</span
+                          >
                         </div>
                         <div class="flex justify-between items-center">
-                          <span class="text-foreground">packages/events-core/src/event-types.ts</span>
-                          <span class="text-muted text-xs bg-panel px-2 py-0.5 rounded">TEXT</span>
-                          <span class="text-muted text-xs ml-2">3 relevant sections</span>
+                          <span class="text-foreground"
+                            >packages/events-core/src/event-types.ts</span
+                          >
+                          <span
+                            class="text-muted text-xs bg-panel px-2 py-0.5 rounded"
+                            >TEXT</span
+                          >
+                          <span class="text-muted text-xs ml-2"
+                            >3 relevant sections</span
+                          >
                         </div>
                         <div class="flex justify-between items-center">
-                          <span class="text-foreground">packages/events-core/src/services/content-generator/README.md</span>
-                          <span class="text-muted text-xs bg-panel px-2 py-0.5 rounded">TEXT</span>
-                          <span class="text-muted text-xs ml-2">2 relevant sections</span>
+                          <span class="text-foreground"
+                            >packages/events-core/src/services/content-generator/README.md</span
+                          >
+                          <span
+                            class="text-muted text-xs bg-panel px-2 py-0.5 rounded"
+                            >TEXT</span
+                          >
+                          <span class="text-muted text-xs ml-2"
+                            >2 relevant sections</span
+                          >
                         </div>
                         <div class="flex justify-between items-center">
-                          <span class="text-foreground">Screenshot 20250721 at 9.56.45PM.png</span>
-                          <span class="text-muted text-xs bg-panel px-2 py-0.5 rounded">IMAGE</span>
+                          <span class="text-foreground"
+                            >Screenshot 20250721 at 9.56.45PM.png</span
+                          >
+                          <span
+                            class="text-muted text-xs bg-panel px-2 py-0.5 rounded"
+                            >IMAGE</span
+                          >
                         </div>
                       </div>
                     </div>
@@ -540,7 +585,9 @@
                   <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <i class="bi bi-search mr-1 text-muted"></i>
-                      <span class="text-foreground text-sm font-medium">檢查 event-core 架構和內容生成設計差異</span>
+                      <span class="text-foreground text-sm font-medium"
+                        >檢查 event-core 架構和內容生成設計差異</span
+                      >
                     </div>
                     <span class="tool-status running">
                       <i class="bi bi-arrow-repeat mr-1"></i>
@@ -551,10 +598,16 @@
 
                 <!-- Tool Call Item 3: Further Analysis -->
                 <div class="tool-call-item">
-                  <div class="collapsible-header" onclick="toggleCollapse(this)">
+                  <div
+                    class="collapsible-header"
+                    onclick="toggleCollapse(this)"
+                  >
                     <i class="bi bi-chevron-down collapse-icon text-muted"></i>
                     <i class="bi bi-folder2-open mr-2 text-muted"></i>
-                    <span class="text-foreground text-sm font-medium">Searched project for "ChatService submitMessage processMessage file references"</span>
+                    <span class="text-foreground text-sm font-medium"
+                      >Searched project for "ChatService submitMessage
+                      processMessage file references"</span
+                    >
                     <span class="tool-duration">5 results</span>
                     <i class="bi bi-chevron-up text-muted ml-2"></i>
                   </div>
@@ -565,7 +618,9 @@
                   <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <i class="bi bi-info-circle mr-1 text-muted"></i>
-                      <span class="text-foreground text-sm">現在我有了更完整的 event-core 架構資訊。</span>
+                      <span class="text-foreground text-sm"
+                        >現在我有了更完整的 event-core 架構資訊。</span
+                      >
                     </div>
                     <span class="tool-status running">
                       <i class="bi bi-arrow-repeat mr-1"></i>
@@ -576,10 +631,16 @@
 
                 <!-- Tool Call Item 5: Final Search -->
                 <div class="tool-call-item">
-                  <div class="collapsible-header" onclick="toggleCollapse(this)">
+                  <div
+                    class="collapsible-header"
+                    onclick="toggleCollapse(this)"
+                  >
                     <i class="bi bi-chevron-down collapse-icon text-muted"></i>
                     <i class="bi bi-folder2-open mr-2 text-muted"></i>
-                    <span class="text-foreground text-sm font-medium">Searched project for "ProjectFolderService searchFiles folderTrees file search"</span>
+                    <span class="text-foreground text-sm font-medium"
+                      >Searched project for "ProjectFolderService searchFiles
+                      folderTrees file search"</span
+                    >
                     <span class="tool-duration">7 results</span>
                     <i class="bi bi-chevron-up text-muted ml-2"></i>
                   </div>
@@ -590,7 +651,9 @@
                   <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <i class="bi bi-check-circle mr-1 text-muted"></i>
-                      <span class="text-foreground text-sm">比較討論設計與現行 event-core 架構的差異</span>
+                      <span class="text-foreground text-sm"
+                        >比較討論設計與現行 event-core 架構的差異</span
+                      >
                     </div>
                     <span class="tool-status success">
                       <i class="bi bi-check mr-1"></i>
@@ -603,15 +666,22 @@
               <!-- AI Response -->
               <div class="text-foreground pl-7 leading-normal mt-4">
                 <p class="mb-4">
-                  非常好！檢視 event-core 架構後，我發現討論中的設計有幾個重要差異需要修正：
+                  非常好！檢視 event-core
+                  架構後，我發現討論中的設計有幾個重要差異需要修正：
                 </p>
-                
-                <div class="bg-surface border-border rounded-lg border p-4 mt-3">
-                  <h3 class="text-accent font-semibold mb-3">關鍵架構差異分析</h3>
-                  
+
+                <div
+                  class="bg-surface border-border rounded-lg border p-4 mt-3"
+                >
+                  <h3 class="text-accent font-semibold mb-3">
+                    關鍵架構差異分析
+                  </h3>
+
                   <div class="space-y-3">
                     <div>
-                      <h4 class="text-foreground font-medium text-sm mb-1">1. 服務命名錯誤</h4>
+                      <h4 class="text-foreground font-medium text-sm mb-1">
+                        1. 服務命名錯誤
+                      </h4>
                       <div class="text-muted text-sm">
                         討論中設計 → 實際架構
                       </div>
@@ -641,9 +711,8 @@
                 </button>
               </div>
             </div>
-
           </div>
-          
+
           <!-- Input Area -->
           <footer class="border-border bg-panel border-t px-3 py-3">
             <div class="relative">
@@ -784,7 +853,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Chat Control Base Layer -->
           <div class="flex h-full flex-col">
             <!-- Panel Header -->
@@ -852,7 +921,7 @@
                   ></textarea>
                 </div>
               </div>
-              
+
               <!-- Artifacts -->
               <div class="border-border border-b p-4">
                 <div class="mb-2 flex items-center justify-between">
@@ -892,32 +961,32 @@
         </aside>
       </main>
     </div>
-    
+
     <script>
       let selectedNode = document.querySelector(".explorer-node.selected");
-      
+
       function selectNode(element) {
         if (selectedNode) selectedNode.classList.remove("selected");
         selectedNode = element;
         element.classList.add("selected");
       }
-      
+
       function openChat(chatName) {
         document.querySelector(
           "header span.text-muted.text-xs:last-child",
         ).textContent = chatName + ".chat.json";
         closePreview();
       }
-      
+
       function previewFile(fileName) {
         document.getElementById("preview-title").textContent = fileName;
         document.getElementById("preview-panel").classList.remove("hidden");
       }
-      
+
       function closePreview() {
         document.getElementById("preview-panel").classList.add("hidden");
       }
-      
+
       function toggleFolder(element) {
         const icon = element.querySelector("i.bi");
         const folderContent = element.nextElementSibling;
@@ -936,7 +1005,7 @@
           }
         }
       }
-      
+
       function toggleContextEdit(editing) {
         const view = document.getElementById("context-view");
         const edit = document.getElementById("context-edit");
@@ -957,33 +1026,33 @@
           saveBtn.classList.add("hidden");
         }
       }
-      
+
       function saveContext() {
         const textarea = document.getElementById("context-textarea");
         const content = textarea.value;
         console.log("Saved context:", content);
         toggleContextEdit(false);
       }
-      
+
       function openWhatsNextModal() {
         alert("What's Next: Refactor your utils.ts for better modularity.");
       }
-      
+
       function summarizeChat() {
         alert("Chat summary saved to #./chat-summary.md");
       }
-      
+
       function openSettingsPage() {
         // This would navigate to a settings page with Tools Registry
-        window.open('tools-registry-settings.html', '_blank');
+        window.open("tools-registry-settings.html", "_blank");
       }
-      
+
       function toggleCollapse(element) {
-        const parent = element.closest('.tool-call-item');
-        const content = parent.querySelector('.collapsible-content');
-        const icon = element.querySelector('.collapse-icon');
-        
-        parent.classList.toggle('collapsed');
+        const parent = element.closest(".tool-call-item");
+        const content = parent.querySelector(".collapsible-content");
+        const icon = element.querySelector(".collapse-icon");
+
+        parent.classList.toggle("collapsed");
       }
     </script>
   </body>

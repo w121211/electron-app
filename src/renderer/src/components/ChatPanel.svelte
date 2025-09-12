@@ -95,7 +95,7 @@
     if (messageInputElement && chatState.messageInput) {
       tick().then(() => {
         if (messageInputElement) {
-          messageInputElement.style.height = 'auto';
+          messageInputElement.style.height = "auto";
           messageInputElement.style.height = `${messageInputElement.scrollHeight}px`;
         }
       });
@@ -142,7 +142,7 @@
 
     // Auto-resize textarea
     if (messageInputElement) {
-      messageInputElement.style.height = 'auto';
+      messageInputElement.style.height = "auto";
       messageInputElement.style.height = `${messageInputElement.scrollHeight}px`;
     }
 
@@ -219,7 +219,6 @@
     { value: "agent", label: "Agent" },
     { value: "chat", label: "Chat" },
   ];
-
 
   // Cleanup timeouts on component destroy using $effect
   $effect(() => {

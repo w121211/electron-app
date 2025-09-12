@@ -7,7 +7,7 @@ async function main() {
 
   // Test extractChatFileReferences
   console.log("📋 Testing extractChatFileReferences:");
-  
+
   const testMessages = [
     "Hello world!",
     "Please review @package.json",
@@ -19,8 +19,12 @@ async function main() {
   testMessages.forEach((message, index) => {
     const refs = extractChatFileReferences(message);
     console.log(`${index + 1}. "${message}"`);
-    console.log(`   → File references: [${refs.map(r => r.path).join(", ")}]`);
-    console.log(`   → MD5 placeholders: [${refs.map(r => r.md5).join(", ")}]`);
+    console.log(
+      `   → File references: [${refs.map((r) => r.path).join(", ")}]`,
+    );
+    console.log(
+      `   → MD5 placeholders: [${refs.map((r) => r.md5).join(", ")}]`,
+    );
   });
 
   console.log("\n✅ Chat File Utils Test completed!");
