@@ -155,25 +155,51 @@
 
             <!-- File Content -->
             <div class="flex-1 p-2 flex flex-col">
-              <pre id="file-content"
-                class="scrollbar-thin h-full w-full p-4 text-[13px] leading-6 outline-none flex-1 text-foreground font-sans"># Chat UI Design Requirements
-
-A modern and professional chat interface inspired by VS Code for conversations.
-
-## Todo List
-
-- [ ] Implement three-panel layout structure
-  - [ ] Left sidebar for file explorer/projects
-  - [ ] Center panel for chat conversation
-  - [ ] Right panel for chat controls and artifacts
-- [ ] Design dark theme with minimal color palette
-  - [ ] Use consistent background colors across panels
-  - [ ] Implement hover states and transitions
-- [ ] Add interactive elements
-  - [ ] Collapsible sections with chevron indicators
-  - [ ] Context menus with three-dots icons
-  - [ ] Status badges for chat states
-</div>
+              <div id="file-content"
+                class="h-full w-full p-4 text-[13px] leading-7 outline-none flex-1 text-foreground font-sans">
+                <div># Chat UI Design Requirements</div>
+                <div class="h-4"></div>
+                <div>A modern and professional chat interface inspired by VS Code for conversations.</div>
+                <div class="h-4"></div>
+                <div>## Todo List</div>
+                <div class="h-4"></div>
+                <div class="flex items-center">
+                  <span>- [ ] Implement three-panel layout structure</span>
+                  <button class="text-muted hover:text-accent ml-2"><i class="bi bi-play-circle"></i></button>
+                </div>
+                <div class="flex items-center">
+                  <span style="white-space: pre;"> - [ ] Left sidebar for file explorer/projects </span>
+                  <button
+                    class="text-foreground/70 hover:underline hover:cursor-pointer">@todos/left-sidebar-for-file-explorer-projects.chat.json
+                    |
+                    [running]</button>
+                  <button class="text-muted hover:text-accent ml-2"><i class="bi bi-play-circle"></i></button>
+                </div>
+                <div class="flex items-center">
+                  <span style="white-space: pre;"> - [ ] Center panel for chat conversation </span>
+                  <button
+                    class="text-foreground/70 hover:underline hover:cursor-pointer">@todos/center-panel-for-chat-conversation.chat.json
+                    |
+                    [scheduled]</button>
+                  <button class="text-muted hover:text-accent ml-2"><i class="bi bi-play-circle"></i></button>
+                </div>
+                <div class="flex items-center">
+                  <span style="white-space: pre;"> - [ ] Right panel for chat controls and artifacts</span>
+                  <button class="text-muted hover:text-accent ml-2"><i class="bi bi-play-circle"></i></button>
+                </div>
+                <div class="flex items-center">
+                  <span>- [ ] Design dark theme with minimal color palette</span>
+                  <button class="text-muted hover:text-accent ml-2"><i class="bi bi-play-circle"></i></button>
+                </div>
+                <div class="flex items-center">
+                  <span style="white-space: pre;"> - [ ] Use consistent background colors across panels</span>
+                  <button class="text-muted hover:text-accent ml-2"><i class="bi bi-play-circle"></i></button>
+                </div>
+                <div class="flex items-center">
+                  <span style="white-space: pre;"> - [ ] Implement hover states and transitions</span>
+                  <button class="text-muted hover:text-accent ml-2"><i class="bi bi-play-circle"></i></button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
