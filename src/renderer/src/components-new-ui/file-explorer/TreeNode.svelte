@@ -1,8 +1,6 @@
 <!-- src/renderer/src/components-new-ui/file-explorer/TreeNode.svelte -->
 <script lang="ts">
   import {
-    ChevronDown,
-    ChevronRight,
     ThreeDotsVertical,
     ChatDots,
     StopFill,

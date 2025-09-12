@@ -9,6 +9,8 @@ export interface Toast {
   timestamp: number;
 }
 
+export type ActiveView = "welcome" | "chat" | "filePanel";
+
 interface UiState {
   loadingStates: Record<string, boolean>;
   toasts: Toast[];
@@ -21,6 +23,7 @@ interface UiState {
   leftPanelOpen: boolean;
   promptEditorOpen: boolean;
   quickLauncherOpen: boolean;
+  activeView: ActiveView;
 }
 
 // Unified state object
@@ -38,6 +41,7 @@ export const uiState = $state<UiState>({
   leftPanelOpen: true,
   promptEditorOpen: true,
   quickLauncherOpen: false,
+  activeView: "welcome",
 });
 
 // Loading state functions
@@ -123,6 +127,11 @@ export function setConnectionState(
 
 export function getConnectionState(connection: string) {
   return uiState.connectionStates[connection] || "idle";
+}
+
+// View functions
+export function setActiveView(view: ActiveView) {
+  uiState.activeView = view;
 }
 
 // Toast type helpers

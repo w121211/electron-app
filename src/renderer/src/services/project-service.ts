@@ -18,6 +18,11 @@ import {
   setWorkspaceSetupNeeded,
 } from "../stores/file-explorer-store.svelte.js";
 import { chatService } from "./chat-service.js";
+import { setActiveView } from "../stores/ui-store.svelte.js";
+import {
+  loadFileForPanel,
+  closeFilePanel,
+} from "../stores/file-panel-store.svelte.ts";
 import type {
   ProjectFolder,
   FolderTreeNode,
@@ -188,20 +193,33 @@ class ProjectService {
 
       try {
         this.logger.info("Opening chat file:", filePath);
+        closeFilePanel(); // Close any active file panel
         await chatService.openChatFile(filePath);
+        setActiveView("chat"); // Set view to chat
         this.logger.info("Chat file opened successfully");
       } catch (error) {
         this.logger.error("Failed to open chat file:", error);
-        // Fallback: Keep the selection state but show error
         showToast(
           `Failed to open chat file: ${error instanceof Error ? error.message : String(error)}`,
           "error",
         );
+        setActiveView("welcome"); // Fallback to welcome screen on error
       }
     } else {
-      // Regular file: Set up for preview
+      // Regular file: Open in file viewer
       setTreeSelectionState(filePath, null, filePath);
-      this.logger.debug("File set for preview:", filePath);
+      try {
+        this.logger.debug("Opening regular file for view:", filePath);
+        await loadFileForPanel(filePath);
+        setActiveView("filePanel"); // Set view to filePanel
+      } catch (error) {
+        this.logger.error("Failed to open regular file:", error);
+        showToast(
+          `Failed to open file: ${error instanceof Error ? error.message : String(error)}`,
+          "error",
+        );
+        setActiveView("welcome"); // Fallback to welcome screen on error
+      }
     }
   }
 

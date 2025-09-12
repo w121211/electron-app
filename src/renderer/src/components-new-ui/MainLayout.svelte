@@ -8,6 +8,7 @@
   import ChatPanel from "./chat/ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
   import QuickLauncher from "./QuickLauncher.svelte";
+  import FilePanel from "./FilePanel.svelte";
 
   const logger = new Logger({ name: "NewMainLayout" });
 
@@ -44,8 +45,23 @@
 
     <!-- Main Workspace -->
     <main class="flex min-w-0 flex-1">
-      <!-- Chat Conversation Panel -->
-      <ChatPanel />
+      <!-- Center Panel: Main View -->
+      {#if uiState.activeView === 'chat'}
+        <ChatPanel />
+      {:else if uiState.activeView === 'filePanel'}
+        <FilePanel />
+      {:else}
+        <!-- Welcome Screen / No file open -->
+        <div class="bg-surface flex flex-1 items-center justify-center">
+          <div class="text-muted text-center">
+            <div class="mx-auto mb-4 text-5xl">👋</div>
+            <p class="mb-2">Select a file to view or a chat to continue.</p>
+            <p class="text-xs opacity-75">
+              Create a new chat from the file explorer.
+            </p>
+          </div>
+        </div>
+      {/if}
 
       <!-- Right Panel -->
       {#if uiState.rightPanelOpen}

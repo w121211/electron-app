@@ -128,7 +128,7 @@
   </div>
 
   <!-- Section 2: Scrollable Content -->
-  <div class="scrollbar-thin flex-1 overflow-y-auto">
+  <div class="flex-1 overflow-y-auto">
     <div class="px-3">
       <!-- Projects Header -->
       <div
@@ -192,7 +192,7 @@
                   }
                   onkeydown={handleKeydownNewProjectFolder}
                   onblur={handleCancelNewProjectFolder}
-                  class="border-border bg-background text-foreground focus:border-accent flex-1 border-0 bg-transparent px-0 py-0 text-xs font-medium focus:outline-none"
+                  class="border-border text-foreground focus:border-accent flex-1 border-0 bg-transparent px-0 py-0 text-xs font-medium focus:outline-none"
                 />
               </div>
             </div>
@@ -203,7 +203,7 @@
               <FileIcon
                 fileName=""
                 isDirectory={true}
-                size="text-3xl"
+                size={12}
                 className="mx-auto mb-2"
               />
               <p>No project folders</p>
@@ -244,16 +244,3 @@
     <UserSettings {showSettings} onClose={() => (showSettings = false)} />
   {/if}
 </aside>
-
-<style>
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #2c2c2e;
-    border-radius: 3px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-</style>
