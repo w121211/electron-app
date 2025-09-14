@@ -219,15 +219,31 @@ export function handleTabIndentation(
     // Remove indentation - check for 2 spaces or 1 space at line start
     if (value.slice(lineStart, lineStart + 2) === "  ") {
       textarea.setSelectionRange(lineStart, lineStart + 2);
-      
-      if (executeTextareaChange(textarea, lineStart, lineStart + 2, "", "deleteContentBackward")) {
+
+      if (
+        executeTextareaChange(
+          textarea,
+          lineStart,
+          lineStart + 2,
+          "",
+          "deleteContentBackward",
+        )
+      ) {
         textarea.setSelectionRange(cursorPos - 2, cursorPos - 2);
         return true;
       }
     } else if (value.slice(lineStart, lineStart + 1) === " ") {
       textarea.setSelectionRange(lineStart, lineStart + 1);
-      
-      if (executeTextareaChange(textarea, lineStart, lineStart + 1, "", "deleteContentBackward")) {
+
+      if (
+        executeTextareaChange(
+          textarea,
+          lineStart,
+          lineStart + 1,
+          "",
+          "deleteContentBackward",
+        )
+      ) {
         textarea.setSelectionRange(cursorPos - 1, cursorPos - 1);
         return true;
       }
@@ -237,11 +253,13 @@ export function handleTabIndentation(
     const savedCursorPos = cursorPos;
     textarea.setSelectionRange(lineStart, lineStart);
 
-    if (executeTextareaChange(textarea, lineStart, lineStart, "  ", "insertText")) {
+    if (
+      executeTextareaChange(textarea, lineStart, lineStart, "  ", "insertText")
+    ) {
       textarea.setSelectionRange(savedCursorPos + 2, savedCursorPos + 2);
       return true;
     }
   }
-  
+
   return false;
 }

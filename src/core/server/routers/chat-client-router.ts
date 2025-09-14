@@ -11,6 +11,7 @@ import type { UserSettingsService } from "../../services/user-settings-service.j
 import type { ToolRegistry } from "../../services/tool-call/tool-registry.js";
 import type { ChatSessionRepository } from "../../services/chat-engine/chat-session-repository.js";
 import { TurnResult } from "../../services/chat-engine/chat-session.js";
+import { ExternalChatSession } from "../../services/chat-engine/external-chat-session.js";
 import { router, publicProcedure } from "../trpc-init.js";
 import { isTerminalModel } from "../../utils/model-utils.js";
 
@@ -153,6 +154,14 @@ export function createChatClientRouter(
           await chatClient.updateChat(input.absoluteFilePath, {
             modelId: input.modelId,
           });
+
+          // If this is a regular ChatSession with a terminal model, convert it to external
+          if (isTerminalModel(input.modelId)) {
+            // Convert to external session if needed
+            if (!(session instanceof ExternalChatSession)) {
+              await chatClient.convertToExternalSession(input.absoluteFilePath);
+            }
+          }
         }
 
         // External terminal processing
@@ -212,10 +221,11 @@ export function createChatClientRouter(
         return { success: true };
       }),
 
-    getAvailableModels: publicProcedure.query(async () => {
-      const models = await chatClient.getAvailableModels();
-      return models;
-    }),
+    // TODO: Implement getAvailableModels method in ChatClient
+    // getAvailableModels: publicProcedure.query(async () => {
+    //   const models = await chatClient.getAvailableModels();
+    //   return models;
+    // }),
 
     updateChat: publicProcedure
       .input(

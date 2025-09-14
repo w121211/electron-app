@@ -55,6 +55,9 @@ importers:
       level:
         specifier: ^10.0.0
         version: 10.0.0
+      marked:
+        specifier: ^16.2.1
+        version: 16.2.1
       node-pty:
         specifier: ^1.0.0
         version: 1.0.0
@@ -3450,6 +3453,14 @@ packages:
         integrity: sha512-NgOPbRiaQM10DYXvN3/hhGVI2M5MtITFryzBGxHM5p4wnFxsVCbxkrBrDsk+EZ5OB4jEOT7AjDxtdF+KVEFT7w==,
       }
     engines: { node: ^12.13.0 || ^14.15.0 || >=16.0.0 }
+
+  marked@16.2.1:
+    resolution:
+      {
+        integrity: sha512-r3UrXED9lMlHF97jJByry90cwrZBBvZmjG1L68oYfuPMW+uDTnuMbyJDymCWwbTE+f+3LhpNDKfpR3a3saFyjA==,
+      }
+    engines: { node: ">= 20" }
+    hasBin: true
 
   matcher@3.0.0:
     resolution:
@@ -7051,6 +7062,8 @@ snapshots:
     transitivePeerDependencies:
       - bluebird
       - supports-color
+
+  marked@16.2.1: {}
 
   matcher@3.0.0:
     dependencies:

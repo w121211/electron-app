@@ -37,6 +37,7 @@
     "fuzzysort": "^3.1.0",
     "ignore": "^7.0.5",
     "level": "^10.0.0",
+    "marked": "^16.2.1",
     "node-pty": "^1.0.0",
     "superjson": "^2.2.2",
     "svelte-bootstrap-icons": "^3.3.0",

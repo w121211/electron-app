@@ -4,6 +4,7 @@
   import { filePanelState } from "../stores/file-panel-store.svelte.js";
   import { projectState } from "../stores/project-store.svelte.js";
   import { showToast } from "../stores/ui-store.svelte.js";
+  import MarkdownRenderer from "./MarkdownRenderer.svelte";
 
   const breadcrumb = $derived(() => {
     if (!filePanelState.filePath) return null;
@@ -27,6 +28,14 @@
 
   function handleEdit(): void {
     showToast("Edit functionality is not yet implemented.", "info");
+  }
+
+  function handleLaunchTodo(todoText: string): void {
+    showToast(`Launch todo: ${todoText}`, "info");
+  }
+
+  function handleAtCommandClick(atCommand: string): void {
+    showToast(`Navigate to: ${atCommand}`, "info");
   }
 </script>
 
@@ -71,8 +80,11 @@
             </p>
           </div>
         {:else if filePanelState.content}
-          <pre
-            style="white-space: pre-wrap; font-family: inherit;">{filePanelState.content}</pre>
+          <MarkdownRenderer
+            content={filePanelState.content}
+            onAtCommandClick={handleAtCommandClick}
+            onLaunchTodo={handleLaunchTodo}
+          />
         {:else}
           <div class="flex h-full items-center justify-center">
             <p class="text-muted">No file content.</p>

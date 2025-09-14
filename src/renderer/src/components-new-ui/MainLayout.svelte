@@ -46,9 +46,9 @@
     <!-- Main Workspace -->
     <main class="flex min-w-0 flex-1">
       <!-- Center Panel: Main View -->
-      {#if uiState.activeView === 'chat'}
+      {#if uiState.activeView === "chat"}
         <ChatPanel />
-      {:else if uiState.activeView === 'filePanel'}
+      {:else if uiState.activeView === "filePanel"}
         <FilePanel />
       {:else}
         <!-- Welcome Screen / No file open -->
