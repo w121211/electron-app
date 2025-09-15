@@ -42,10 +42,6 @@ interface FileWatcherEvent {
   error?: Error;
 }
 
-interface ProjectFolderUpdatedEvent {
-  projectFolders: ProjectFolder[];
-  updateType: "PROJECT_FOLDER_ADDED" | "PROJECT_FOLDER_REMOVED";
-}
 
 class ProjectService {
   private logger = new Logger({ name: "ProjectService" });
@@ -94,11 +90,8 @@ class ProjectService {
         absoluteProjectFolderPath: absolutePath,
       });
 
-      // Don't manually add the folder - it will be added via PROJECT_FOLDER_ADDED event
-      // The backend will emit the event and handleProjectFolderEvent will update the store
-
-      // Load folder tree for new project
-      await this.loadFolderTree(newFolder.path);
+      // Refresh complete project state (loads folders + trees)
+      await this.loadProjectFolders();
 
       showToast("Project folder added successfully", "success");
       this.logger.info("Project folder added:", newFolder.name);
@@ -389,10 +382,6 @@ class ProjectService {
     }
   }
 
-  handleProjectFolderEvent(event: ProjectFolderUpdatedEvent) {
-    this.logger.debug("Handling project folder event:", event.updateType);
-    setProjectFolders(event.projectFolders);
-  }
 
   private async loadAllFolderTrees(folders: ProjectFolder[]) {
     for (const folder of folders) {
@@ -722,11 +711,8 @@ class ProjectService {
           folderName,
         });
 
-      // Don't manually add the folder - it will be added via PROJECT_FOLDER_ADDED event
-      // The backend will emit the event and handleProjectFolderEvent will update the store
-
-      // Load folder tree for new project
-      await this.loadFolderTree(newFolder.path);
+      // Refresh complete project state (loads folders + trees)
+      await this.loadProjectFolders();
 
       showToast("New project folder created successfully", "success");
       this.logger.info("New project folder created:", newFolder.name);

@@ -27,7 +27,6 @@ class EventService {
     this.startFileWatcherSubscription();
     this.startChatEventSubscription();
     this.startTaskEventSubscription();
-    this.startProjectFolderEventSubscription();
   }
 
   stop() {
@@ -47,7 +46,6 @@ class EventService {
     setConnectionState("fileWatcher", "idle");
     setConnectionState("chatEvents", "idle");
     setConnectionState("taskEvents", "idle");
-    setConnectionState("projectFolderEvents", "idle");
   }
 
   private startFileWatcherSubscription() {
@@ -140,31 +138,6 @@ class EventService {
     });
   }
 
-  private startProjectFolderEventSubscription() {
-    setConnectionState("projectFolderEvents", "connecting");
-
-    const subscription = trpcClient.event.projectFolderEvents.subscribe(
-      { lastEventId: null },
-      {
-        onStarted: () => {
-          this.logger.info("Project folder event subscription started");
-          setConnectionState("projectFolderEvents", "connected");
-        },
-        onData: (event) => {
-          this.logger.debug("Project folder event:", event.data.updateType);
-          projectService.handleProjectFolderEvent(event.data);
-        },
-        onError: (error) => {
-          this.logger.error("Project folder event subscription error:", error);
-          setConnectionState("projectFolderEvents", "error");
-        },
-      },
-    );
-
-    this.subscriptions.set("projectFolderEvents", {
-      unsubscribe: subscription.unsubscribe,
-    });
-  }
 }
 
 export const eventService = new EventService();

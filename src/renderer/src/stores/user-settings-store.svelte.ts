@@ -12,6 +12,13 @@ export const userSettingsState = $state<UserSettingsState>({
   settings: {
     projectFolders: [],
     providers: {},
+    agent: {
+      todoTemplatePath: ".chat/todo.md",
+      todoChatDirectory: {
+        mode: "project",
+        path: "todo_chats",
+      },
+    },
   },
   loading: false,
   error: null,

@@ -1,7 +1,7 @@
 // src/core/services/terminal-launcher.ts
 import { spawn, type ChildProcess } from "child_process";
 import { Logger, type ILogObj } from "tslog";
-import { presetExternalModels } from "./model-service";
+import { presetExternalModels } from "../utils/model-utils";
 
 const logger: Logger<ILogObj> = new Logger({ name: "TerminalLauncher" });
 

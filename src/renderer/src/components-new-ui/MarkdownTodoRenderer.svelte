@@ -1,15 +1,19 @@
 <!-- src/renderer/src/components-new-ui/MarkdownTodoRenderer.svelte -->
 <script lang="ts">
   import { PlayCircle } from "svelte-bootstrap-icons";
+  import { chatService } from "../services/chat-service.js";
   import { parseAtCommands } from "../utils/at-command-parser.js";
   import { parseMarkdownTodos } from "../utils/markdown-todo-parser.js";
   import type { ParsedLine } from "../utils/markdown-todo-parser.js";
+  import { showToast } from "../stores/ui-store.svelte.js";
+  import { userSettingsState } from "../stores/user-settings-store.svelte.js";
 
   interface Props {
     content: string;
+    projectPath: string;
   }
 
-  let { content }: Props = $props();
+  let { content, projectPath }: Props = $props();
 
   const parsedLines = $derived.by((): ParsedLine[] => {
     if (!content) {
@@ -18,9 +22,47 @@
     return parseMarkdownTodos(content);
   });
 
-  function handleLaunchTodo(todoContent: string): void {
-    console.log("Launch todo:", todoContent);
-    // This could be enhanced to create actual tasks.
+  async function handleLaunchTodo(todoContent: string): Promise<void> {
+    const settings = userSettingsState.settings;
+
+    if (!projectPath) {
+      showToast("Could not determine the project path.", "error");
+      console.error("Project path is not available.");
+      return;
+    }
+
+    if (!settings || !settings.agent) {
+      showToast("Agent settings are not configured.", "error");
+      console.error("Agent settings not found in user settings.");
+      return;
+    }
+
+    const { todoTemplatePath, todoChatDirectory } = settings.agent;
+
+    const templatePath = `${projectPath}/${todoTemplatePath}`;
+
+    let targetDirectory: string;
+    if (todoChatDirectory.mode === "project") {
+      targetDirectory = `${projectPath}/${todoChatDirectory.path}`;
+    } else {
+      targetDirectory = todoChatDirectory.path;
+    }
+
+    const newChat = await chatService.createChatFromTemplate(
+      templatePath,
+      [todoContent],
+      targetDirectory,
+      { mode: "agent", modelId: "cli/gemini" },
+    );
+
+    // Automatically send the initial prompt if present
+    if (newChat.metadata?.promptDraft) {
+      await chatService.sendMesage(
+        newChat.absoluteFilePath,
+        newChat.id,
+        newChat.metadata.promptDraft,
+      );
+    }
   }
 </script>
 

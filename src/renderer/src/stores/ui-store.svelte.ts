@@ -35,7 +35,6 @@ export const uiState = $state<UiState>({
     fileWatcher: "idle",
     chatEvents: "idle",
     taskEvents: "idle",
-    projectFolderEvents: "idle",
   },
   rightPanelOpen: false,
   leftPanelOpen: true,

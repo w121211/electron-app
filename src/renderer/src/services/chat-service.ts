@@ -3,6 +3,7 @@ import { Logger } from "tslog";
 import type { TurnResult } from "../../../core/services/chat-engine/chat-session.js";
 import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository.js";
 import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
+import type { CreateChatSessionConfig } from "../../../core/services/chat-engine/chat-client.js";
 import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
@@ -85,6 +86,50 @@ class ChatService {
     }
   }
 
+  async createChatFromTemplate(
+    templatePath: string,
+    args: string[],
+    targetDirectory: string,
+    config?: CreateChatSessionConfig,
+  ) {
+    setLoading("createChatFromTemplate", true);
+    try {
+      this.logger.info("Creating chat from template:", templatePath);
+
+      const newChat =
+        await trpcClient.chatClient.createChatSessionFromTemplate.mutate({
+          templatePath,
+          args,
+          targetDirectory,
+          config,
+        });
+
+      setCurrentChat(newChat);
+      showToast("Chat created from template successfully", "success");
+      this.logger.info("Chat from template created:", newChat.id);
+
+      // Expand parent directories and select the newly created chat file
+      expandParentDirectories(newChat.absoluteFilePath);
+      selectFile(newChat.absoluteFilePath);
+
+      // Refresh file tree to show the newly created chat file
+      await projectService.refreshProjectTreeForFile(newChat.absoluteFilePath);
+
+      return newChat;
+    } catch (error) {
+      this.logger.error("Failed to create chat from template:", error);
+      showToast(
+        `Failed to create chat from template: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        "error",
+      );
+      throw error;
+    } finally {
+      setLoading("createChatFromTemplate", false);
+    }
+  }
+
   async openChatFile(filePath: string) {
     setLoading("openChat", true);
 
@@ -117,7 +162,6 @@ class ChatService {
     modelId?: `${string}/${string}`,
     attachments?: Array<{ fileName: string; content: string }>,
   ) {
-    // setLoading("submitMessage", true);
     chatState.isSubmittingMessage = true;
 
     try {
@@ -130,7 +174,8 @@ class ChatService {
           { type: "text", text: messageText },
           ...attachments.map((att) => ({
             type: "text",
-            text: `File: ${att.fileName}\n${att.content}`,
+            text: `File: ${att.fileName}
+${att.content}`,
           })),
         ];
       }

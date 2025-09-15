@@ -11,14 +11,38 @@
   // import Versions from "./components/Versions.svelte";
   import { eventService } from "./services/event-service.js";
   import { projectService } from "./services/project-service.js";
+  import { trpcClient } from "./lib/trpc-client.js";
+  import {
+    setUserSettings,
+    setUserSettingsError,
+    setUserSettingsLoading,
+  } from "./stores/user-settings-store.svelte.js";
   // import { keyboardManager } from "./lib/keyboard";
   // import { DevelopmentTools } from "./lib/development";
 
   const logger = new Logger({ name: "App" });
 
+  async function loadInitialSettings() {
+    setUserSettingsLoading(true);
+    try {
+      const settings = await trpcClient.userSettings.getSettings.query();
+      setUserSettings(settings);
+      logger.info("Initial user settings loaded");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setUserSettingsError(errorMessage);
+      logger.error("Failed to load initial user settings:", errorMessage);
+    } finally {
+      setUserSettingsLoading(false);
+    }
+  }
+
   // Use $effect instead of onMount for Svelte 5
   $effect(() => {
     logger.info("App mounted, initializing systems...");
+
+    // Load initial settings
+    loadInitialSettings();
 
     // Start event subscriptions
     eventService.start();

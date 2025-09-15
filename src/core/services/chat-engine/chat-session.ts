@@ -235,16 +235,16 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
 
         switch (chunk.type) {
           case "text-delta":
-            await this.eventBus.emit({
-              kind: "ChatUpdatedEvent",
-              chatId: this.id,
-              updateType: "AI_RESPONSE_STREAMING",
-              update: {
-                chunk: chunk.text,
-              },
-              chat: this.toJSON(),
-              timestamp: new Date(),
-            });
+            // await this.eventBus.emit({
+            //   kind: "ChatUpdatedEvent",
+            //   chatId: this.id,
+            //   updateType: "AI_RESPONSE_STREAMING",
+            //   update: {
+            //     chunk: chunk.text,
+            //   },
+            //   chat: this.toJSON(),
+            //   timestamp: new Date(),
+            // });
             break;
 
           case "tool-call":

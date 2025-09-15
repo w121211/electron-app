@@ -71,15 +71,17 @@
               Error loading file: {filePanelState.error}
             </p>
           </div>
-        {:else if filePanelState.content}
-          <MarkdownTodoRenderer content={filePanelState.content} />
+        {:else if filePanelState.content && filePanelState.projectPath}
+          <MarkdownTodoRenderer
+            content={filePanelState.content}
+            projectPath={filePanelState.projectPath}
+          />
         {:else}
           <div class="flex h-full items-center justify-center">
-            <p class="text-muted">No file content.</p>
+            <p class="text-muted">No file content or project path missing.</p>
           </div>
         {/if}
       </div>
     </div>
   </div>
 </section>
->

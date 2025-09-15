@@ -23,12 +23,26 @@ export interface UserSettings {
     openrouter?: ProviderConfig;
     aiGateway?: ProviderConfig;
   };
+  agent: {
+    todoTemplatePath: string;
+    todoChatDirectory: {
+      mode: "project" | "global";
+      path: string;
+    };
+  };
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   projectFolders: [],
   workspaceDirectory: undefined,
   providers: {},
+  agent: {
+    todoTemplatePath: ".chat/todo.md",
+    todoChatDirectory: {
+      mode: "project",
+      path: "todo_chats",
+    },
+  },
 };
 
 export class UserSettingsRepository {

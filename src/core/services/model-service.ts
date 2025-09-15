@@ -1,64 +1,12 @@
 // src/core/services/model-service.ts
 import { Logger, type ILogObj } from "tslog";
-
-export interface ExternalModel {
-  modelId: `${string}/${string}`;
-  command: string;
-  args: string[];
-  enabled: boolean;
-}
-
-export interface InternalModel {
-  modelId: `${string}/${string}`;
-  provider: string;
-  enabled: boolean;
-}
-
-export interface AvailableModels {
-  external: Record<string, ExternalModel>;
-  internal: Record<string, InternalModel>;
-}
-
-export const presetExternalModels: Record<string, ExternalModel> = {
-  "cli/claude-code": {
-    modelId: "terminal/claude-code",
-    command: "claude",
-    args: [],
-    enabled: true,
-  },
-  "cli/gemini-cli": {
-    modelId: "terminal/gemini-cli",
-    command: "gemini",
-    args: [],
-    enabled: true,
-  },
-  "cli/codex": {
-    modelId: "terminal/codex",
-    command: "codex",
-    args: [],
-    enabled: true,
-  },
-  // "terminal/cursor": { command: "cursor", args: ["."], enabled: false },
-  // "terminal/vscode": { command: "code", args: ["."], enabled: false },
-};
-
-const presetInternalModels: Record<string, InternalModel> = {
-  "openai/gpt-4o": {
-    provider: "openai",
-    modelId: "openai/gpt-4o",
-    enabled: false,
-  },
-  "anthropic/claude-3-sonnet": {
-    provider: "anthropic",
-    modelId: "anthropic/claude-3-sonnet",
-    enabled: false,
-  },
-  "google/gemini-pro": {
-    provider: "google",
-    modelId: "modelId/gemini-pro",
-    enabled: false,
-  },
-};
+import {
+  type ExternalModel,
+  type InternalModel,
+  type AvailableModels,
+  presetExternalModels,
+  presetInternalModels,
+} from "../utils/model-utils.js";
 
 export class ModelService {
   private readonly logger: Logger<ILogObj>;

@@ -1,4 +1,4 @@
-// src/core/services/chat-engine/external-chat-session.ts
+// src/core/services/external-chat/external-chat-session.ts
 import { v4 as uuidv4 } from "uuid";
 import { Logger, type ILogObj } from "tslog";
 import type { UserModelMessage } from "ai";
@@ -6,13 +6,12 @@ import {
   extractChatFileReferences,
   getUserModelMessageContentString,
 } from "../../utils/message-utils.js";
-import type { IEventBus } from "../../event-bus.js";
 import { launchTerminalFromConfig } from "../terminal-launcher.js";
-import { isTerminalModel } from "../../utils/model-utils.js";
+import type { IEventBus } from "../../event-bus.js";
 import type {
   ChatMessage,
   ChatSessionData,
-} from "./chat-session-repository.js";
+} from "../chat-engine/chat-session-repository.js";
 
 export interface ExternalTurnResult {
   sessionStatus: ChatSessionData["sessionStatus"];
@@ -113,7 +112,7 @@ export class ExternalChatSession {
           ...this.metadata,
           mode: "external",
           externalProcessPid: launchResult.pid,
-          workingDirectory,
+          externalWorkingDirectory: workingDirectory,
         };
 
         this.sessionStatus = "external_active";
