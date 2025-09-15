@@ -4,7 +4,7 @@
   import { filePanelState } from "../stores/file-panel-store.svelte.js";
   import { projectState } from "../stores/project-store.svelte.js";
   import { showToast } from "../stores/ui-store.svelte.js";
-  import MarkdownRenderer from "./MarkdownRenderer.svelte";
+  import MarkdownTodoRenderer from "./MarkdownTodoRenderer.svelte";
 
   const breadcrumb = $derived(() => {
     if (!filePanelState.filePath) return null;
@@ -72,7 +72,7 @@
             </p>
           </div>
         {:else if filePanelState.content}
-          <MarkdownRenderer content={filePanelState.content} />
+          <MarkdownTodoRenderer content={filePanelState.content} />
         {:else}
           <div class="flex h-full items-center justify-center">
             <p class="text-muted">No file content.</p>
