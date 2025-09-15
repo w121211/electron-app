@@ -25,6 +25,15 @@ const testMarkdown = `
 Some regular text with @inline-reference.json that should also work.
 `;
 
+const nestedListMarkdown = `
+- [ ] todo item 1
+continue next line
+  - [ ] todo item 2
+continue next line
+    - [ ] todo item 3
+  - [ ] todo item 4
+`;
+
 console.log("=== Testing Marked Extension ===");
 console.log("Input markdown:");
 console.log(testMarkdown);
@@ -92,3 +101,11 @@ todoLines.forEach((line, index) => {
   console.log(`  Has @-commands: ${hasAtCommands(line)}`);
   console.log(`  @-commands: ${getAtCommandsFromTodo(line).join(", ")}`);
 });
+
+console.log("\n=== Testing Nested List Lexer ===");
+console.log("Input markdown:");
+console.log(nestedListMarkdown);
+
+const nestedTokens = marked.lexer(nestedListMarkdown);
+console.log("\n=== Full Token Structure ===");
+console.log(JSON.stringify(nestedTokens, null, 2));
