@@ -29,14 +29,6 @@
   function handleEdit(): void {
     showToast("Edit functionality is not yet implemented.", "info");
   }
-
-  function handleLaunchTodo(todoText: string): void {
-    showToast(`Launch todo: ${todoText}`, "info");
-  }
-
-  function handleAtCommandClick(atCommand: string): void {
-    showToast(`Navigate to: ${atCommand}`, "info");
-  }
 </script>
 
 <section class="relative flex min-w-0 flex-1 flex-col">
@@ -80,11 +72,7 @@
             </p>
           </div>
         {:else if filePanelState.content}
-          <MarkdownRenderer
-            content={filePanelState.content}
-            onAtCommandClick={handleAtCommandClick}
-            onLaunchTodo={handleLaunchTodo}
-          />
+          <MarkdownRenderer content={filePanelState.content} />
         {:else}
           <div class="flex h-full items-center justify-center">
             <p class="text-muted">No file content.</p>
@@ -94,3 +82,4 @@
     </div>
   </div>
 </section>
+>
