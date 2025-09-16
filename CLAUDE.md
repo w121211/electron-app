@@ -17,16 +17,22 @@ This is an Electron desktop application with integrated core business logic:
 
 ```bash
 # Electron app development
-pnpm dev        # Start development server (includes tRPC server and renderer)
-pnpm build      # Build for production
-pnpm test       # Run tests
-pnpm typecheck  # Type checking (includes both node and svelte)
-pnpm format     # Format code with Prettier
+npm dev        # Start development server (includes tRPC server and renderer)
+npm run build      # Build for production
+npm run test       # Run tests
+npm run typecheck  # Type checking (includes both node and svelte)
+npm run format     # Format code with Prettier
+npm run lint       # ESLint code checking
 ```
 
-### Demo Scripts
+### Build Commands
 
-Demo scripts are integrated into the core functionality and run via the Electron app interface or through dedicated test files in `src/core/`.
+```bash
+npm run build:unpack  # Build without packaging
+npm run build:win     # Build for Windows
+npm run build:mac     # Build for macOS
+npm run build:linux   # Build for Linux
+```
 
 ## Architecture Overview
 
@@ -41,21 +47,26 @@ Demo scripts are integrated into the core functionality and run via the Electron
 ### Key Services
 
 - **ChatSessionRepository**: Manages chat session lifecycle and message persistence
+- **ChatClient**: Handles AI chat sessions with streaming responses and tool execution 
+- **ExternalChatClient**: Manages terminal-based chat sessions for external models
 - **TaskService**: Handles task creation, status tracking, and directory management with repository pattern
 - **FileService**: Manages file operations and artifact creation with watch capabilities
 - **ProjectFolderService**: Workspace management and project registration with real-time folder watching
 - **FileWatcherService**: Real-time file system monitoring using chokidar
 - **ToolRegistry**: Manages tool registration and execution with AI SDK v5 integration
 - **UserSettingsService**: Handles user configuration and preferences
+- **PtyService**: Terminal emulation service for external chat integration
 
 ### Chat Engine Architecture
 
 The system uses AI SDK v5 for chat functionality:
 
-- **ChatClient Router**: Handles chat session management, message processing, and tool call coordination
+- **ChatClient Router**: Handles both AI and external chat session management, message processing, and tool call coordination
 - **AI SDK Integration**: Native support for multiple providers (Anthropic, OpenAI, Google) with tool calling
+- **External Chat System**: Terminal-based execution for external models like Claude Code
 - **Content Generator**: Enhanced chat features with streaming and tool execution in `src/core/services/chat-engine/`
 - **Tool Call System**: Integrated tool execution with approval workflows and real-time progress tracking
+- **Queue Management**: Model-based scheduling system for managing chat requests
 
 ### Frontend Integration
 
@@ -68,11 +79,11 @@ The system uses AI SDK v5 for chat functionality:
 
 The frontend directly imports TypeScript types from the integrated `src/core/` modules.
 
-## Development Guidelines
+## Architecture Details
 
 ### Package Management
 
-Uses pnpm with Node.js >=18 requirement. All dependencies are managed at the root level.
+Uses npm with Node.js >=18 requirement. All dependencies are managed at the root level. The project uses electron-vite as the build system.
 
 ### Type Safety
 
@@ -90,6 +101,14 @@ Central EventBus with strongly-typed events (`ClientEventUnion` | `ServerEventUn
 - File system events (watching, changes, artifacts)
 - Tool call events (registration, execution, approval)
 - Real-time subscriptions via tRPC with async iterators and proper cleanup
+
+### Server Architecture
+
+The embedded tRPC server (`HttpTrpcServer`) runs on localhost and handles:
+- Dynamic port allocation (prefers 3333, falls back to available port)
+- Modular router structure with dedicated routers for different domains
+- CORS enabled for cross-origin requests
+- Graceful startup/shutdown with resource cleanup
 
 ## Development Guidelines
 
@@ -210,7 +229,7 @@ Central EventBus with strongly-typed events (`ClientEventUnion` | `ServerEventUn
   - The frontend employs a decoupled architecture to separate logic, state, and presentation.
   - **Service Layer (`/services`):** This layer contains all business logic. Services are responsible for orchestrating API calls, handling complex operations, and acting as the primary interface for any action that modifies the application.
   - **State Layer (`/stores`):** All application state is managed here using reactive Svelte stores. Stores are the single source of truth for UI data and should ideally only be mutated by the service layer to ensure predictable state management.
-  - **Component Layer (`/components`):** Svelte components are dedicated to presentation. Their role is to subscribe to stores for data and render the UI accordingly. User interactions within components trigger calls to the service layer to perform actions, rather than directly manipulating state.
+  - **Component Layer (`/components-new-ui`):** Svelte components are dedicated to presentation. Their role is to subscribe to stores for data and render the UI accordingly. User interactions within components trigger calls to the service layer to perform actions, rather than directly manipulating state.
 - **Svelte v5 best practices:**
   - **Use runes for reactivity** - Prefer `$state()`, `$derived()`, `$effect()`, and `$props()` over legacy syntax
   - **Event handlers as properties** - Use `onclick={handler}` instead of `on:click={handler}`
@@ -222,9 +241,9 @@ Central EventBus with strongly-typed events (`ClientEventUnion` | `ServerEventUn
   - **Strict HTML structure** - Ensure valid HTML structure (browser won't auto-repair in SSR)
   - **Scoped CSS awareness** - CSS now uses `:where(.svelte-hash)` for scoping
 
-# important-instruction-reminders
+# Important Instruction Reminders
 
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
