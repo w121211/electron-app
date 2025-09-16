@@ -55,11 +55,9 @@
     // Save draft when user actively types (including clearing content)
     if (chatState.currentChat) {
       clearTimeout(draftTimeout);
+      const currentChatPath = chatState.currentChat.absoluteFilePath;
       draftTimeout = setTimeout(() => {
-        chatService.savePromptDraft(
-          chatState.currentChat!.absoluteFilePath,
-          value,
-        );
+        chatService.savePromptDraft(currentChatPath, value);
       }, 1500);
     }
   }

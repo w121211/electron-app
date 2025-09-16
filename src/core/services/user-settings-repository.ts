@@ -40,7 +40,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     todoTemplatePath: ".chat/todo.md",
     todoChatDirectory: {
       mode: "project",
-      path: "todo_chats",
+      path: "chats/todos",
     },
   },
 };

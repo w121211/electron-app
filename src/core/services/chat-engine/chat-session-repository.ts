@@ -15,6 +15,7 @@ import {
 export type ChatSessionStatus =
   | "idle"
   | "processing"
+  | "scheduled"
   | "waiting_confirmation"
   | "max_turns_reached"
   | "external_active"
@@ -111,8 +112,11 @@ export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
   sessionStatus: z.enum([
     "idle",
     "processing",
+    "scheduled",
     "waiting_confirmation",
     "max_turns_reached",
+    "external_active",
+    "external_terminated",
   ]),
   fileStatus: z.enum(["active", "archived"]),
   currentTurn: z.number(),

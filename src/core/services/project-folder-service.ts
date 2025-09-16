@@ -766,6 +766,30 @@ export class ProjectFolderService {
 
     return validateProjectFolderPath(settings.workspaceDirectory);
   }
+
+  /**
+   * Finds all files with a given suffix (e.g., '.chat.json') across all project folders.
+   */
+  public async findAllFilesWithSuffix(
+    suffix: string,
+  ): Promise<FileSearchResult[]> {
+    this.logger.info(`Finding all files with suffix: ${suffix}`);
+    const projectFolders = await this.getAllProjectFolders();
+    const allMatchingFiles: FileSearchResult[] = [];
+
+    for (const projectFolder of projectFolders) {
+      const searchablePaths = await getSearchablePaths(projectFolder.path);
+      const matchingFilesInFolder = searchablePaths.filter((path) =>
+        path.name.endsWith(suffix),
+      );
+      allMatchingFiles.push(...matchingFilesInFolder);
+    }
+
+    this.logger.info(
+      `Found ${allMatchingFiles.length} files with suffix ${suffix}`,
+    );
+    return allMatchingFiles;
+  }
 }
 
 export function createProjectFolderService(

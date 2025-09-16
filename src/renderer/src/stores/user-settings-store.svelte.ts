@@ -1,4 +1,5 @@
 // src/renderer/src/stores/user-settings-store.svelte.ts
+import { DEFAULT_USER_SETTINGS } from "../../../core/services/user-settings-repository.js";
 import type { UserSettings } from "../../../core/services/user-settings-repository.js";
 
 interface UserSettingsState {
@@ -12,13 +13,7 @@ export const userSettingsState = $state<UserSettingsState>({
   settings: {
     projectFolders: [],
     providers: {},
-    agent: {
-      todoTemplatePath: ".chat/todo.md",
-      todoChatDirectory: {
-        mode: "project",
-        path: "todo_chats",
-      },
-    },
+    agent: { ...DEFAULT_USER_SETTINGS.agent },
   },
   loading: false,
   error: null,
