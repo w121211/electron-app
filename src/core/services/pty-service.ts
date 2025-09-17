@@ -37,22 +37,30 @@ export class PtyService extends EventEmitter {
     const sessionId = `pty-${++this.sessionIdCounter}`;
     const isWindows = process.platform === "win32";
     const shell =
-      options.shell ??
+      options.shell ||
       (isWindows ? "powershell.exe" : process.env.SHELL || "/bin/bash");
     const cwd = options.cwd || process.cwd();
 
     this.logger.info(`Creating pty session ${sessionId}`, { shell, cwd });
 
-    const env = { ...process.env, ...options.env, COLORTERM: "truecolor" };
+    const env = {
+      ...process.env,
+      ...options.env,
+      COLORTERM: "truecolor",
+      TERM_PROGRAM: "xterm",
+      TERM_PROGRAM_VERSION: "1.0.0",
+    };
 
     const ptyProcess = pty.spawn(shell, [], {
       name: "xterm-256color",
-      cols: options.cols ?? 80,
-      rows: options.rows ?? 24,
+      cols: options.cols || 80,
+      rows: options.rows || 24,
       cwd,
       env,
-      encoding: isWindows ? "utf8" : null,
+      //       encoding: "utf8", // Force UTF8 to prevent ANSI code corruption
+      encoding: "utf8",
       useConpty: isWindows,
+      // handleFlowControl: false,
     });
 
     const session: PtySession = {
@@ -66,6 +74,7 @@ export class PtyService extends EventEmitter {
 
     // Forward pty data to the renderer
     ptyProcess.onData((data) => {
+      this.logger.debug(`Pty session ${sessionId} data:`, data);
       this.emit("data", sessionId, data);
     });
 

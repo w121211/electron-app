@@ -102,7 +102,7 @@
 
 <ToastProvider>
   {#if showXtermDemo}
-    <div class="relative">
+    <div>
       <!-- Demo mode indicator -->
       <div
         class="fixed top-4 right-4 z-50 rounded-md bg-blue-600 px-3 py-1 text-sm text-white shadow-lg"

@@ -1,8 +1,9 @@
 <!-- src/renderer/src/components/Xterm.svelte -->
 <script lang="ts">
+  import "@xterm/xterm/css/xterm.css";
   import { onMount, onDestroy } from "svelte";
   import { Terminal } from "@xterm/xterm";
-  import { FitAddon } from "@xterm/addon-fit";
+  import { WebglAddon } from "@xterm/addon-webgl";
   import {
     XtermService,
     type XtermCreateOptions,
@@ -22,11 +23,11 @@
 
   let {
     createOptions = {},
-    theme = {
-      background: "#1e1e1e",
-      foreground: "#d4d4d4",
-      cursor: "#ffffff",
-    },
+    // theme = {
+    //   background: "#1e1e1e",
+    //   foreground: "#d4d4d4",
+    //   cursor: "#ffffff",
+    // },
     fontSize = 14,
     fontFamily = "Monaco, 'Cascadia Code', 'Roboto Mono', monospace",
   }: Props = $props();
@@ -35,10 +36,11 @@
   const xtermService = new XtermService();
 
   let terminalElement: HTMLDivElement;
-  let terminal: Terminal & { _resizeObserver?: ResizeObserver };
-  let fitAddon: FitAddon;
+  let terminal: Terminal & { _resizeObserver?: ResizeObserver } = $state();
+  let webglAddon: WebglAddon;
   let sessionId: string | null = null;
   let isInitialized = false;
+  let isSessionActive = true;
 
   onMount(async () => {
     try {
@@ -62,17 +64,29 @@
       // theme,
       cursorBlink: true,
       allowProposedApi: true,
+      scrollback: 1000,
+      altClickMovesCursor: false,
+      convertEol: true,
+      allowTransparency: true,
+      disableStdin: false,
+      cursorStyle: "block",
+      macOptionIsMeta: true,
+      scrollOnUserInput: true,
+      fastScrollModifier: "alt",
     });
 
     // Create fit addon
-    fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
+    // fitAddon = new FitAddon();
+    // terminal.loadAddon(fitAddon);
+
+    webglAddon = new WebglAddon();
+    terminal.loadAddon(webglAddon);
 
     // Open terminal in DOM
     terminal.open(terminalElement);
 
     // Fit terminal to container
-    fitAddon.fit();
+    // fitAddon.fit();
 
     // Create terminal session
     sessionId = await xtermService.createSession({
@@ -88,7 +102,10 @@
 
     // Setup terminal data handler
     xtermService.onSessionData(sessionId, (data: string) => {
-      terminal.write(data);
+      logger.debug(`Received data for session ${sessionId}:`, data);
+      if (isSessionActive && terminal) {
+        terminal.write(data);
+      }
     });
 
     // Setup terminal exit handler
@@ -96,31 +113,35 @@
       sessionId,
       (exitCode: number, signal?: number) => {
         logger.info(`Terminal session exited`, { exitCode, signal });
-        terminal.write(
-          "\r\n\r\n[Process completed with exit code: " + exitCode + "]\r\n",
-        );
+        isSessionActive = false;
+        if (terminal) {
+          terminal.write(
+            "\r\n\r\n[Process completed with exit code: " + exitCode + "]\r\n",
+          );
+        }
       },
     );
 
     // Setup user input handler
     terminal.onData((data: string) => {
-      if (sessionId) {
+      if (sessionId && isSessionActive) {
         xtermService.writeToSession(sessionId, data);
       }
     });
 
     // Setup resize handler
     terminal.onResize(({ cols, rows }) => {
-      if (sessionId) {
-        xtermService.resizeSession(sessionId, cols, rows);
-      }
+      console.log("Terminal resized", { cols, rows });
+      //   if (sessionId && isSessionActive) {
+      //     xtermService.resizeSession(sessionId, cols, rows);
+      //   }
     });
 
     // Setup window resize listener
     const resizeObserver = new ResizeObserver(() => {
-      if (terminal && fitAddon) {
-        fitAddon.fit();
-      }
+      // if (terminal && fitAddon) {
+      //   fitAddon.fit();
+      // }
     });
 
     if (terminalElement.parentElement) {
@@ -135,12 +156,16 @@
   }
 
   function cleanup(): void {
+    // Stop accepting new data
+    isSessionActive = false;
+
     if (terminal?._resizeObserver) {
       terminal._resizeObserver.disconnect();
     }
 
     if (sessionId) {
       xtermService.destroySession(sessionId);
+      sessionId = null;
     }
 
     if (terminal) {
@@ -166,9 +191,9 @@
     terminal?.write(data);
   }
 
-  export function resize(): void {
-    fitAddon?.fit();
-  }
+  // export function resize(): void {
+  //   fitAddon?.fit();
+  // }
 
   export function getSessionId(): string | null {
     return sessionId;
@@ -183,12 +208,7 @@
   }
 </script>
 
-<div
-  bind:this={terminalElement}
-  class="xterm-container"
-  role="application"
-  aria-label="Terminal"
->
+<div bind:this={terminalElement} role="application" aria-label="Terminal">
   <!-- Terminal will be mounted here -->
 </div>
 
@@ -200,7 +220,7 @@
   } */
 
   /* Import xterm.js CSS styles */
-  @import "@xterm/xterm/css/xterm.css";
+  /* @import "@xterm/xterm/css/xterm.css"; */
 
   /* Custom terminal styling */
   /* :global(.xterm) {

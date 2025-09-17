@@ -11,10 +11,10 @@
 
   // Terminal configurations - will be set after platform info loads
   let basicConfig = $state<XtermCreateOptions>({
-    shell: "/bin/bash",
-    cwd: "/",
+    shell: undefined, // Will use default from PtyService
+    cwd: undefined, // Will use default from PtyService
     cols: 80,
-    rows: 48,
+    rows: 24,
   });
 
   let currentTheme = $state("default");
@@ -33,7 +33,7 @@
   }
 </script>
 
-<div class="max-h-screen bg-gray-900 p-6 text-white">
+<div class="max-h-full w-full bg-gray-900 p-6 text-white">
   <!-- Demo Content -->
   <Xterm bind:this={basicTerminal} createOptions={basicConfig} />
 </div>
