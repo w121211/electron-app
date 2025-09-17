@@ -17,9 +17,29 @@ async function runPtyServiceDemo() {
 
   console.log(`✅ Created session: ${sessionId}\n`);
 
-  // Demo 2: Listen for terminal data
+  const lineBuffers = new Map<string, string>();
+
+  // Demo 2: Listen for terminal data (with line buffering)
   ptyService.on("data", (id: string, data: string) => {
-    console.log(`📤 Data from ${id}:`, JSON.stringify(data));
+    // --- Line buffering logic to process raw data into lines ---
+    let buffer = lineBuffers.get(id) || "";
+    buffer += data;
+
+    let newlineIndex;
+    // Process all complete lines in the buffer
+    while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, newlineIndex);
+      buffer = buffer.slice(newlineIndex + 1);
+
+      // .trim() cleans up carriage returns (\r) and any other whitespace
+      const cleanLine = line.trim();
+      if (cleanLine) {
+        console.log(`✅ Line from ${id}:`, cleanLine);
+      }
+    }
+
+    // Store the remaining partial line back in the buffer
+    lineBuffers.set(id, buffer);
   });
 
   // Demo 3: Listen for terminal exit
@@ -122,7 +142,43 @@ async function runPtyServiceDemo() {
   console.log("⏳ Waiting for final outputs...");
   await new Promise((resolve) => setTimeout(resolve, 3000));
 
-  // Demo 11: Cleanup all sessions
+  // Demo 11: Interactive session demo (Node.js REPL)
+  console.log("\n🎬 Starting interactive session demo...");
+  console.log(
+    "  (Note: The 'data' event will capture both program output and echoed user input)",
+  );
+
+  const interactiveSessionId = ptyService.create({
+    shell: process.platform === "win32" ? "powershell.exe" : "/bin/bash",
+    cols: 80,
+    rows: 24,
+  });
+  console.log(`✅ Created interactive session: ${interactiveSessionId}\n`);
+
+  // Start node REPL - an easy way to test an interactive process
+  ptyService.write(interactiveSessionId, "node\n");
+  await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for REPL to start
+
+  // Send a command to the REPL. The output will include the command echo and the result.
+  ptyService.write(
+    interactiveSessionId,
+    "console.log('Hello from Node.js REPL!')\n",
+  );
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Send another command that produces a result
+  ptyService.write(interactiveSessionId, "'The answer is ' + (6 * 7)\n");
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Exit the REPL
+  ptyService.write(interactiveSessionId, ".exit\n");
+  // The 'exit' event for this session will be captured by the global listener.
+  await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for exit to be processed
+
+  console.log("✅ Interactive session demo completed.\n");
+
+  // Demo 12: Cleanup all sessions
+
   console.log("🧹 Cleaning up all remaining sessions...");
   ptyService.destroyAll();
   console.log(

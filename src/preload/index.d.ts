@@ -7,6 +7,7 @@ declare global {
     // api: unknown
     api: {
       getTrpcUrl: () => Promise<string | null>;
+      getPlatformInfo: () => Promise<{ platform: string; cwd: string }>;
       showOpenDialog: () => Promise<string | null>;
       showInFolder: (filePath: string) => Promise<void>;
       pty: {

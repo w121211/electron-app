@@ -35,20 +35,24 @@ export class PtyService extends EventEmitter {
 
   create(options: PtyCreateOptions = {}): string {
     const sessionId = `pty-${++this.sessionIdCounter}`;
+    const isWindows = process.platform === "win32";
     const shell =
-      options.shell || process.platform === "win32"
-        ? "powershell.exe"
-        : process.env.SHELL || "/bin/bash";
+      options.shell ??
+      (isWindows ? "powershell.exe" : process.env.SHELL || "/bin/bash");
     const cwd = options.cwd || process.cwd();
 
     this.logger.info(`Creating pty session ${sessionId}`, { shell, cwd });
 
+    const env = { ...process.env, ...options.env, COLORTERM: "truecolor" };
+
     const ptyProcess = pty.spawn(shell, [], {
-      name: "xterm-color",
-      cols: options.cols || 80,
-      rows: options.rows || 24,
+      name: "xterm-256color",
+      cols: options.cols ?? 80,
+      rows: options.rows ?? 24,
       cwd,
-      env: { ...process.env, ...options.env },
+      env,
+      encoding: isWindows ? "utf8" : null,
+      useConpty: isWindows,
     });
 
     const session: PtySession = {

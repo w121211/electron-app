@@ -35,7 +35,7 @@
   const xtermService = new XtermService();
 
   let terminalElement: HTMLDivElement;
-  let terminal: Terminal;
+  let terminal: Terminal & { _resizeObserver?: ResizeObserver };
   let fitAddon: FitAddon;
   let sessionId: string | null = null;
   let isInitialized = false;
@@ -59,7 +59,7 @@
     terminal = new Terminal({
       fontSize,
       fontFamily,
-      theme,
+      // theme,
       cursorBlink: true,
       allowProposedApi: true,
     });
@@ -193,35 +193,35 @@
 </div>
 
 <style>
-  .xterm-container {
+  /* .xterm-container {
     width: 100%;
     height: 100%;
     position: relative;
-  }
+  } */
 
   /* Import xterm.js CSS styles */
-  :global(@import'@xterm/xterm/css/xterm.css');
+  @import "@xterm/xterm/css/xterm.css";
 
   /* Custom terminal styling */
-  :global(.xterm) {
+  /* :global(.xterm) {
     height: 100% !important;
     width: 100% !important;
-  }
+  } */
 
-  :global(.xterm-viewport) {
+  /* :global(.xterm-viewport) {
     background-color: transparent !important;
-  }
+  } */
 
-  :global(.xterm-screen) {
+  /* :global(.xterm-screen) {
     padding: 8px;
-  }
+  } */
 
   /* Focus styling */
-  :global(.xterm.focus) {
+  /* :global(.xterm.focus) {
     outline: none;
   }
 
   :global(.xterm .xterm-cursor-layer .xterm-cursor) {
     opacity: 1;
-  }
+  } */
 </style>

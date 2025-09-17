@@ -5,6 +5,7 @@
   import MainLayout from "./components/MainLayout.svelte";
   // import MainLayoutDemo from "./components/MainLayoutDemo.svelte";
   // import ToolCallDemo from "./components/ToolCallDemo.svelte";
+  import XtermDemo from "./components/XtermDemo2.svelte";
   import ToastProvider from "./components/ToastProvider.svelte";
   // import ErrorBoundary from "./components/ErrorBoundary.svelte";
   // import DevPanel from "./components/shared/DevPanel.svelte";
@@ -22,6 +23,22 @@
 
   const logger = new Logger({ name: "App" });
 
+  // Demo toggle state
+  let showXtermDemo = $state(true);
+
+  // Keyboard shortcut to toggle demo (Ctrl/Cmd + Shift + D)
+  function handleKeydown(event: KeyboardEvent) {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.shiftKey &&
+      event.key === "D"
+    ) {
+      event.preventDefault();
+      showXtermDemo = !showXtermDemo;
+      logger.info(`Xterm demo ${showXtermDemo ? "enabled" : "disabled"}`);
+    }
+  }
+
   async function loadInitialSettings() {
     setUserSettingsLoading(true);
     try {
@@ -29,7 +46,8 @@
       setUserSettings(settings);
       logger.info("Initial user settings loaded");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       setUserSettingsError(errorMessage);
       logger.error("Failed to load initial user settings:", errorMessage);
     } finally {
@@ -79,8 +97,23 @@
   }
 </script>
 
+<!-- Global keyboard event handler -->
+<svelte:window on:keydown={handleKeydown} />
+
 <ToastProvider>
-  <MainLayout />
+  {#if showXtermDemo}
+    <div class="relative">
+      <!-- Demo mode indicator -->
+      <div
+        class="fixed top-4 right-4 z-50 rounded-md bg-blue-600 px-3 py-1 text-sm text-white shadow-lg"
+      >
+        Demo Mode - Press Ctrl+Shift+D to exit
+      </div>
+      <XtermDemo />
+    </div>
+  {:else}
+    <MainLayout />
+  {/if}
 </ToastProvider>
 
 <!-- <Versions /> -->

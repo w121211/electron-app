@@ -105,6 +105,13 @@ app.whenReady().then(async () => {
     return trpcServer?.getTrpcUrl() || null;
   });
 
+  ipcMain.handle("get-platform-info", () => {
+    return {
+      platform: process.platform,
+      cwd: process.cwd(),
+    };
+  });
+
   ipcMain.handle("show-open-dialog", async () => {
     const result = await dialog.showOpenDialog({
       properties: ["openDirectory"],

@@ -5,6 +5,7 @@ import { electronAPI } from "@electron-toolkit/preload";
 // Custom APIs for renderer
 const api = {
   getTrpcUrl: () => ipcRenderer.invoke("get-trpc-url"),
+  getPlatformInfo: () => ipcRenderer.invoke("get-platform-info"),
   showOpenDialog: () => ipcRenderer.invoke("show-open-dialog"),
   showInFolder: (filePath: string) =>
     ipcRenderer.invoke("show-in-folder", filePath),
