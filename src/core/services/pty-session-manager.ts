@@ -1,4 +1,4 @@
-// src/core/services/pty-service.ts
+// src/core/services/pty-session-manager.ts
 import * as pty from "node-pty";
 import { EventEmitter } from "events";
 import { Logger } from "tslog";
@@ -23,14 +23,14 @@ export interface PtyResizeOptions {
   rows: number;
 }
 
-export class PtyService extends EventEmitter {
-  private logger = new Logger({ name: "PtyService" });
+export class PtySessionManager extends EventEmitter {
+  private logger = new Logger({ name: "PtySessionManager" });
   private sessions = new Map<string, PtySession>();
   private sessionIdCounter = 0;
 
   constructor() {
     super();
-    this.logger.info("PtyService initialized");
+    this.logger.info("PtySessionManager initialized");
   }
 
   create(options: PtyCreateOptions = {}): string {
@@ -54,11 +54,10 @@ export class PtyService extends EventEmitter {
     const ptyProcess = pty.spawn(shell, [], {
       name: "xterm-256color",
       cols: options.cols || 80,
-      rows: options.rows || 24,
+      rows: options.rows || 48,
       cwd,
       env,
-      //       encoding: "utf8", // Force UTF8 to prevent ANSI code corruption
-      encoding: "utf8",
+      encoding: "utf8", // Force UTF8 to prevent ANSI code corruption
       useConpty: isWindows,
       // handleFlowControl: false,
     });

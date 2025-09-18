@@ -4,14 +4,11 @@
   import { onMount, onDestroy } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
-  import {
-    XtermService,
-    type XtermCreateOptions,
-  } from "../services/xterm-service";
+  import { PtyClient, type PtyCreateOptions } from "../services/pty-client";
   import { Logger } from "tslog";
 
   interface Props {
-    createOptions?: XtermCreateOptions;
+    createOptions?: PtyCreateOptions;
     theme?: {
       background?: string;
       foreground?: string;
@@ -21,19 +18,19 @@
     fontFamily?: string;
   }
 
-  let {
-    createOptions = {},
+  let { 
+    // createOptions = {},
     // theme = {
     //   background: "#1e1e1e",
     //   foreground: "#d4d4d4",
     //   cursor: "#ffffff",
     // },
-    fontSize = 14,
+    fontSize = 12,
     fontFamily = "Monaco, 'Cascadia Code', 'Roboto Mono', monospace",
   }: Props = $props();
 
   const logger = new Logger({ name: "Xterm" });
-  const xtermService = new XtermService();
+  const ptyClient = new PtyClient();
 
   let terminalElement: HTMLDivElement;
   let terminal: Terminal & { _resizeObserver?: ResizeObserver } = $state();
@@ -64,7 +61,7 @@
       // theme,
       cursorBlink: true,
       allowProposedApi: true,
-      scrollback: 1000,
+      // scrollback: 1000,
       altClickMovesCursor: false,
       convertEol: true,
       allowTransparency: true,
@@ -73,6 +70,8 @@
       macOptionIsMeta: true,
       scrollOnUserInput: true,
       fastScrollModifier: "alt",
+      cols: 80,
+      rows: 48,
     });
 
     // Create fit addon
@@ -89,8 +88,8 @@
     // fitAddon.fit();
 
     // Create terminal session
-    sessionId = await xtermService.createSession({
-      ...createOptions,
+    sessionId = await ptyClient.createSession({
+      // ...createOptions,
       cols: terminal.cols,
       rows: terminal.rows,
     });
@@ -101,7 +100,7 @@
     }
 
     // Setup terminal data handler
-    xtermService.onSessionData(sessionId, (data: string) => {
+    ptyClient.onSessionData(sessionId, (data: string) => {
       logger.debug(`Received data for session ${sessionId}:`, data);
       if (isSessionActive && terminal) {
         terminal.write(data);
@@ -109,7 +108,7 @@
     });
 
     // Setup terminal exit handler
-    xtermService.onSessionExit(
+    ptyClient.onSessionExit(
       sessionId,
       (exitCode: number, signal?: number) => {
         logger.info(`Terminal session exited`, { exitCode, signal });
@@ -125,7 +124,7 @@
     // Setup user input handler
     terminal.onData((data: string) => {
       if (sessionId && isSessionActive) {
-        xtermService.writeToSession(sessionId, data);
+        ptyClient.writeToSession(sessionId, data);
       }
     });
 
@@ -133,7 +132,7 @@
     terminal.onResize(({ cols, rows }) => {
       console.log("Terminal resized", { cols, rows });
       //   if (sessionId && isSessionActive) {
-      //     xtermService.resizeSession(sessionId, cols, rows);
+      //     ptyClient.resizeSession(sessionId, cols, rows);
       //   }
     });
 
@@ -164,7 +163,7 @@
     }
 
     if (sessionId) {
-      xtermService.destroySession(sessionId);
+      ptyClient.destroySession(sessionId);
       sessionId = null;
     }
 
@@ -172,7 +171,7 @@
       terminal.dispose();
     }
 
-    xtermService.dispose();
+    ptyClient.dispose();
     isInitialized = false;
 
     logger.info("Terminal cleanup completed");

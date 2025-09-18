@@ -6,11 +6,11 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
-import { PtyService } from "../core/services/pty-service.js";
+import { PtySessionManager } from "../core/services/pty-session-manager.js";
 
 // Global server instance
 let trpcServer: HttpTrpcServer | null = null;
-let ptyService: PtyService | null = null;
+let ptySessionManager: PtySessionManager | null = null;
 
 function createWindow(): void {
   // Create the browser window.
@@ -90,8 +90,8 @@ app.whenReady().then(async () => {
     return;
   }
 
-  // Initialize PtyService
-  ptyService = new PtyService();
+  // Initialize PtySessionManager
+  ptySessionManager = new PtySessionManager();
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -126,26 +126,26 @@ app.whenReady().then(async () => {
 
   // Pty IPC handlers
   ipcMain.handle("pty:create", async (_, options?) => {
-    if (!ptyService) return null;
-    return ptyService.create(options);
+    if (!ptySessionManager) return null;
+    return ptySessionManager.create(options);
   });
 
   ipcMain.handle("pty:write", async (_, sessionId: string, data: string) => {
-    if (!ptyService) return false;
-    return ptyService.write(sessionId, data);
+    if (!ptySessionManager) return false;
+    return ptySessionManager.write(sessionId, data);
   });
 
   ipcMain.handle(
     "pty:resize",
     async (_, sessionId: string, options: { cols: number; rows: number }) => {
-      if (!ptyService) return false;
-      return ptyService.resize(sessionId, options);
+      if (!ptySessionManager) return false;
+      return ptySessionManager.resize(sessionId, options);
     },
   );
 
   ipcMain.handle("pty:destroy", async (_, sessionId: string) => {
-    if (!ptyService) return false;
-    return ptyService.destroy(sessionId);
+    if (!ptySessionManager) return false;
+    return ptySessionManager.destroy(sessionId);
   });
 
   ipcMain.on("ping", () => console.log("pong"));
@@ -153,15 +153,15 @@ app.whenReady().then(async () => {
   createWindow();
 
   // Setup pty service event forwarding to renderer
-  if (ptyService) {
-    ptyService.on("data", (sessionId: string, data: string) => {
+  if (ptySessionManager) {
+    ptySessionManager.on("data", (sessionId: string, data: string) => {
       const windows = BrowserWindow.getAllWindows();
       windows.forEach((window) => {
         window.webContents.send("pty:data", sessionId, data);
       });
     });
 
-    ptyService.on(
+    ptySessionManager.on(
       "exit",
       (sessionId: string, exitCode: number, signal?: number) => {
         const windows = BrowserWindow.getAllWindows();
@@ -194,8 +194,8 @@ app.on("window-all-closed", async () => {
 
 // Handle app quit to clean up resources
 app.on("before-quit", async () => {
-  // if (ptyService) {
-  //   ptyService.destroyAll();
+  // if (ptySessionManager) {
+  //   ptySessionManager.destroyAll();
   // }
   if (trpcServer) {
     await trpcServer.stop();

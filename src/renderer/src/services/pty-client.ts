@@ -1,7 +1,7 @@
-// src/renderer/src/services/xterm-service.ts
+// src/renderer/src/services/pty-client.ts
 import { Logger } from "tslog";
 
-export interface XtermCreateOptions {
+export interface PtyCreateOptions {
   shell?: string;
   cwd?: string;
   env?: Record<string, string>;
@@ -9,45 +9,34 @@ export interface XtermCreateOptions {
   rows?: number;
 }
 
-export interface XtermSession {
+export interface PtyClientSession {
   sessionId: string;
   isActive: boolean;
+  onData?: (data: string) => void;
+  onExit?: (exitCode: number, signal?: number) => void;
 }
 
-export class XtermService {
-  private logger = new Logger({ name: "XtermService" });
-  private sessions = new Map<string, XtermSession>();
-  private dataCallbacks = new Map<string, (data: string) => void>();
-  private exitCallbacks = new Map<
-    string,
-    (exitCode: number, signal?: number) => void
-  >();
+export class PtyClient {
+  private logger = new Logger({ name: "PtyClient" });
+  private sessions = new Map<string, PtyClientSession>();
 
   constructor() {
-    this.logger.info("XtermService initialized");
+    this.logger.info("PtyClient initialized");
     this.setupGlobalListeners();
   }
 
   private setupGlobalListeners(): void {
-    // Setup global listeners for pty data and exit events
     window.api.pty.onData((sessionId: string, data: string) => {
-      const callback = this.dataCallbacks.get(sessionId);
-      if (callback) {
-        callback(data);
-      }
+      const session = this.sessions.get(sessionId);
+      session?.onData?.(data);
     });
 
     window.api.pty.onExit(
       (sessionId: string, exitCode: number, signal?: number) => {
-        const callback = this.exitCallbacks.get(sessionId);
-        if (callback) {
-          callback(exitCode, signal);
-        }
+        const session = this.sessions.get(sessionId);
+        session?.onExit?.(exitCode, signal);
 
-        // Clean up session
         this.sessions.delete(sessionId);
-        this.dataCallbacks.delete(sessionId);
-        this.exitCallbacks.delete(sessionId);
 
         this.logger.info(`Terminal session ${sessionId} ended`, {
           exitCode,
@@ -57,8 +46,12 @@ export class XtermService {
     );
   }
 
+  private cleanupSession(sessionId: string): void {
+    this.sessions.delete(sessionId);
+  }
+
   async createSession(
-    options: XtermCreateOptions = {},
+    options: PtyCreateOptions = {},
   ): Promise<string | null> {
     try {
       const sessionId = await window.api.pty.create(options);
@@ -67,7 +60,7 @@ export class XtermService {
         return null;
       }
 
-      const session: XtermSession = {
+      const session: PtyClientSession = {
         sessionId,
         isActive: true,
       };
@@ -127,13 +120,7 @@ export class XtermService {
 
     try {
       const result = await window.api.pty.destroy(sessionId);
-
-      // Clean up local state
-      session.isActive = false;
-      this.sessions.delete(sessionId);
-      this.dataCallbacks.delete(sessionId);
-      this.exitCallbacks.delete(sessionId);
-
+      this.cleanupSession(sessionId);
       this.logger.info(`Terminal session destroyed: ${sessionId}`);
       return result;
     } catch (error) {
@@ -143,25 +130,31 @@ export class XtermService {
   }
 
   onSessionData(sessionId: string, callback: (data: string) => void): void {
-    this.dataCallbacks.set(sessionId, callback);
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.onData = callback;
+    }
   }
 
   onSessionExit(
     sessionId: string,
     callback: (exitCode: number, signal?: number) => void,
   ): void {
-    this.exitCallbacks.set(sessionId, callback);
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.onExit = callback;
+    }
   }
 
-  getSession(sessionId: string): XtermSession | undefined {
+  getSession(sessionId: string): PtyClientSession | undefined {
     return this.sessions.get(sessionId);
   }
 
-  getAllSessions(): XtermSession[] {
+  getAllSessions(): PtyClientSession[] {
     return Array.from(this.sessions.values());
   }
 
-  getActiveSessions(): XtermSession[] {
+  getActiveSessions(): PtyClientSession[] {
     return Array.from(this.sessions.values()).filter(
       (session) => session.isActive,
     );
@@ -178,14 +171,8 @@ export class XtermService {
   }
 
   dispose(): void {
-    // Clean up listeners
     window.api.pty.removeAllListeners();
-
-    // Clear local state
     this.sessions.clear();
-    this.dataCallbacks.clear();
-    this.exitCallbacks.clear();
-
-    this.logger.info("XtermService disposed");
+    this.logger.info("PtyClient disposed");
   }
 }
