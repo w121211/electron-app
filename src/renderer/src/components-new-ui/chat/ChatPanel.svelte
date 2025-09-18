@@ -59,9 +59,12 @@
       ? containingProject.name
       : pathParts.slice(-2, -1)[0] || "Unknown";
 
+    // Add asterisk to filename if there are unsaved draft changes
+    const displayFileName = chatState.hasUnsavedDraftChanges ? `${fileName}*` : fileName;
+
     return {
       parentDir: projectName,
-      fileName,
+      fileName: displayFileName,
       fullPath: chatState.currentChat.absoluteFilePath,
     };
   });
@@ -114,6 +117,25 @@
   $effect(() => {
     setPreference("chatMode", chatState.chatMode);
     setPreference("selectedModel", chatState.selectedModel);
+  });
+
+  // Smart prompt editor logic - suggest editor for empty chats
+  const shouldShowPromptEditorByDefault = $derived(() => {
+    if (!chatState.currentChat) return false;
+    return currentChatMessages.length === 0; // Empty chat = suggest editor
+  });
+
+  // Auto-reset prompt editor to smart default when switching chats
+  let previousChatIdForPromptEditor: string | null = null;
+  $effect(() => {
+    const currentChatId = chatState.currentChat?.id || null;
+
+    // When switching to a different chat, reset to smart default
+    if (currentChatId !== previousChatIdForPromptEditor) {
+      uiState.promptEditorOpen = shouldShowPromptEditorByDefault;
+    }
+
+    previousChatIdForPromptEditor = currentChatId;
   });
 
   async function handleSendMessage(): Promise<void> {

@@ -38,7 +38,7 @@ export const uiState = $state<UiState>({
   },
   rightPanelOpen: false,
   leftPanelOpen: true,
-  promptEditorOpen: true,
+  promptEditorOpen: false,
   quickLauncherOpen: false,
   activeView: "welcome",
 });

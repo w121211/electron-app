@@ -21,6 +21,8 @@ interface ChatState {
   messageInput: string;
   isSubmittingMessage: boolean;
   promptCursorPosition: { start: number; end: number } | null;
+  isDraftSaving: boolean;
+  hasUnsavedDraftChanges: boolean;
 }
 
 // Core chat state - using object wrapper pattern for mutable state
@@ -34,6 +36,8 @@ export const chatState = $state<ChatState>({
   messageInput: "",
   isSubmittingMessage: false,
   promptCursorPosition: null,
+  isDraftSaving: false,
+  hasUnsavedDraftChanges: false,
   // modelsLoading: false,
 });
 
@@ -48,6 +52,10 @@ export function setCurrentChat(chat: ChatSessionData | null) {
     chatState.messageInput = "";
   }
 
+  // Reset draft states when switching chats
+  chatState.isDraftSaving = false;
+  chatState.hasUnsavedDraftChanges = false;
+
   // Update chat settings from metadata
   if (chat?.metadata?.mode) {
     chatState.chatMode = chat.metadata.mode;
@@ -58,10 +66,19 @@ export function clearCurrentChat() {
   chatState.currentChat = null;
   chatState.messageInput = "";
   chatState.isSubmittingMessage = false;
+  chatState.isDraftSaving = false;
+  chatState.hasUnsavedDraftChanges = false;
 }
 
 export function updateMessageInput(value: string) {
   chatState.messageInput = value;
+
+  // Check if input differs from saved draft to mark as unsaved
+  if (chatState.currentChat) {
+    const savedDraft = chatState.currentChat.metadata?.promptDraft || "";
+    const hasChanges = value !== savedDraft;
+    chatState.hasUnsavedDraftChanges = hasChanges;
+  }
 }
 
 export function clearMessageInput() {
@@ -74,6 +91,14 @@ export function savePromptCursorPosition(start: number, end: number) {
 
 export function clearPromptCursorPosition() {
   chatState.promptCursorPosition = null;
+}
+
+export function setDraftSaving(saving: boolean) {
+  chatState.isDraftSaving = saving;
+}
+
+export function setHasUnsavedDraftChanges(hasChanges: boolean) {
+  chatState.hasUnsavedDraftChanges = hasChanges;
 }
 
 export function addMessageToCurrentChat(message: ChatMessage) {

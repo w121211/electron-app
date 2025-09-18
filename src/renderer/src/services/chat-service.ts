@@ -12,6 +12,8 @@ import {
   setCurrentChat,
   clearCurrentChat,
   clearMessageInput,
+  setDraftSaving,
+  setHasUnsavedDraftChanges,
   type ModelOption,
 } from "../stores/chat-store.svelte.js";
 import { uiState } from "../stores/ui-store.svelte.js";
@@ -210,6 +212,9 @@ ${att.content}`,
       setCurrentChat(result.updatedChatSession);
       clearMessageInput();
 
+      // Clear draft changes when message is sent
+      setHasUnsavedDraftChanges(false);
+
       showToast("Message sent successfully", "success");
       this.logger.info("Message submitted successfully");
       return result;
@@ -397,6 +402,11 @@ ${att.content}`,
 
     // Set new timeout to save draft after 1.5 seconds of inactivity
     const timeout = setTimeout(async () => {
+      // Only set saving state if this is the current chat
+      if (chatState.currentChat?.absoluteFilePath === absoluteFilePath) {
+        setDraftSaving(true);
+      }
+
       try {
         await trpcClient.chatClient.updateChat.mutate({
           absoluteFilePath,
@@ -405,10 +415,20 @@ ${att.content}`,
           },
         });
         this.logger.debug("Prompt draft saved for chat:", absoluteFilePath);
+
+        // Mark as saved if this is the current chat
+        if (chatState.currentChat?.absoluteFilePath === absoluteFilePath) {
+          setHasUnsavedDraftChanges(false);
+        }
       } catch (error) {
         this.logger.error("Failed to save prompt draft:", error);
       } finally {
         this.draftSaveTimeouts.delete(absoluteFilePath);
+
+        // Clear saving state if this is the current chat
+        if (chatState.currentChat?.absoluteFilePath === absoluteFilePath) {
+          setDraftSaving(false);
+        }
       }
     }, 1500);
 
