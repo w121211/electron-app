@@ -4,6 +4,7 @@ import type { TurnResult } from "../../../core/services/chat-engine/chat-session
 import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository.js";
 import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
 import type { CreateChatSessionConfig } from "../../../core/services/chat-engine/chat-client.js";
+import type { FileWatcherEvent } from "../../../core/services/file-watcher-service.js";
 import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
@@ -415,6 +416,23 @@ ${att.content}`,
   }
 
   // Event handlers
+  handleFileEvent(event: FileWatcherEvent) {
+    // Check if a chat file was deleted and it's the currently open chat
+    if (event.eventType === "unlink" && !event.isDirectory) {
+      const currentChat = chatState.currentChat;
+
+      if (currentChat && currentChat.absoluteFilePath === event.absoluteFilePath) {
+        this.logger.info(`Currently open chat file was deleted: ${event.absoluteFilePath}`);
+
+        // Clear the current chat since the file no longer exists
+        clearCurrentChat();
+
+        // Show a notification to the user
+        showToast("The currently open chat file was deleted", "warning");
+      }
+    }
+  }
+
   handleChatEvent(event: ChatUpdatedEvent) {
     this.logger.debug("Handling chat event:", event.updateType, event.chatId);
 

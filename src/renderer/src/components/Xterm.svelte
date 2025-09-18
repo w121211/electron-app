@@ -4,7 +4,11 @@
   import { onMount, onDestroy } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
-  import { PtyClient, type PtyCreateOptions } from "../services/pty-client";
+  import {
+    ptyClient,
+    type PtySession,
+    type PtyCreateOptions,
+  } from "../services/pty-client";
   import { Logger } from "tslog";
 
   interface Props {
@@ -18,7 +22,7 @@
     fontFamily?: string;
   }
 
-  let { 
+  let {
     // createOptions = {},
     // theme = {
     //   background: "#1e1e1e",
@@ -30,12 +34,11 @@
   }: Props = $props();
 
   const logger = new Logger({ name: "Xterm" });
-  const ptyClient = new PtyClient();
 
   let terminalElement: HTMLDivElement;
   let terminal: Terminal & { _resizeObserver?: ResizeObserver } = $state();
   let webglAddon: WebglAddon;
-  let sessionId: string | null = null;
+  let session: PtySession | null = null;
   let isInitialized = false;
   let isSessionActive = true;
 
@@ -88,52 +91,49 @@
     // fitAddon.fit();
 
     // Create terminal session
-    sessionId = await ptyClient.createSession({
+    session = await ptyClient.createSession({
       // ...createOptions,
       cols: terminal.cols,
       rows: terminal.rows,
     });
 
-    if (!sessionId) {
+    if (!session) {
       logger.error("Failed to create terminal session");
       return;
     }
 
     // Setup terminal data handler
-    ptyClient.onSessionData(sessionId, (data: string) => {
-      logger.debug(`Received data for session ${sessionId}:`, data);
+    session.onData.on((data: string) => {
+      logger.debug(`Received data for session ${session?.sessionId}:`, data);
       if (isSessionActive && terminal) {
         terminal.write(data);
       }
     });
 
     // Setup terminal exit handler
-    ptyClient.onSessionExit(
-      sessionId,
-      (exitCode: number, signal?: number) => {
-        logger.info(`Terminal session exited`, { exitCode, signal });
-        isSessionActive = false;
-        if (terminal) {
-          terminal.write(
-            "\r\n\r\n[Process completed with exit code: " + exitCode + "]\r\n",
-          );
-        }
-      },
-    );
+    session.onExit.on(({ exitCode, signal }) => {
+      logger.info(`Terminal session exited`, { exitCode, signal });
+      isSessionActive = false;
+      if (terminal) {
+        terminal.write(
+          "\r\n\r\n[Process completed with exit code: " + exitCode + "]\r\n",
+        );
+      }
+    });
 
     // Setup user input handler
     terminal.onData((data: string) => {
-      if (sessionId && isSessionActive) {
-        ptyClient.writeToSession(sessionId, data);
+      if (session && isSessionActive) {
+        session.write(data);
       }
     });
 
     // Setup resize handler
     terminal.onResize(({ cols, rows }) => {
       console.log("Terminal resized", { cols, rows });
-      //   if (sessionId && isSessionActive) {
-      //     ptyClient.resizeSession(sessionId, cols, rows);
-      //   }
+      if (session && isSessionActive) {
+        session.resize(cols, rows);
+      }
     });
 
     // Setup window resize listener
@@ -151,7 +151,9 @@
     terminal._resizeObserver = resizeObserver;
 
     isInitialized = true;
-    logger.info("Terminal initialized successfully", { sessionId });
+    logger.info("Terminal initialized successfully", {
+      sessionId: session.sessionId,
+    });
   }
 
   function cleanup(): void {
@@ -162,16 +164,15 @@
       terminal._resizeObserver.disconnect();
     }
 
-    if (sessionId) {
-      ptyClient.destroySession(sessionId);
-      sessionId = null;
+    if (session) {
+      session.destroy();
+      session = null;
     }
 
     if (terminal) {
       terminal.dispose();
     }
 
-    ptyClient.dispose();
     isInitialized = false;
 
     logger.info("Terminal cleanup completed");
@@ -195,7 +196,7 @@
   // }
 
   export function getSessionId(): string | null {
-    return sessionId;
+    return session?.sessionId ?? null;
   }
 
   export function getCurrentSize(): { cols: number; rows: number } | null {

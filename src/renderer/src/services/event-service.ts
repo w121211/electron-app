@@ -65,6 +65,7 @@ class EventService {
             event.data.absoluteFilePath,
           );
           projectService.handleFileEvent(event.data);
+          chatService.handleFileEvent(event.data);
         },
         onError: (error) => {
           this.logger.error("File watcher subscription error:", error);

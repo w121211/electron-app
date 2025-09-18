@@ -1,6 +1,29 @@
 // src/renderer/src/services/pty-client.ts
 import { Logger } from "tslog";
 
+// A simple generic event emitter
+type Listener<T> = (data: T) => void;
+class EventEmitter<T> {
+  private listeners = new Set<Listener<T>>();
+
+  on(listener: Listener<T>): () => void {
+    this.listeners.add(listener);
+    return () => this.off(listener);
+  }
+
+  off(listener: Listener<T>): void {
+    this.listeners.delete(listener);
+  }
+
+  emit(data: T): void {
+    this.listeners.forEach((listener) => listener(data));
+  }
+
+  dispose(): void {
+    this.listeners.clear();
+  }
+}
+
 export interface PtyCreateOptions {
   shell?: string;
   cwd?: string;
@@ -9,16 +32,36 @@ export interface PtyCreateOptions {
   rows?: number;
 }
 
-export interface PtyClientSession {
-  sessionId: string;
-  isActive: boolean;
-  onData?: (data: string) => void;
-  onExit?: (exitCode: number, signal?: number) => void;
+export class PtySession {
+  public readonly onData = new EventEmitter<string>();
+  public readonly onExit = new EventEmitter<{
+    exitCode: number;
+    signal?: number;
+  }>();
+
+  constructor(public readonly sessionId: string) {}
+
+  write(data: string): Promise<boolean> {
+    return window.api.pty.write(this.sessionId, data);
+  }
+
+  resize(cols: number, rows: number): Promise<boolean> {
+    return window.api.pty.resize(this.sessionId, { cols, rows });
+  }
+
+  destroy(): Promise<boolean> {
+    return window.api.pty.destroy(this.sessionId);
+  }
+
+  dispose(): void {
+    this.onData.dispose();
+    this.onExit.dispose();
+  }
 }
 
-export class PtyClient {
+class PtyClient {
   private logger = new Logger({ name: "PtyClient" });
-  private sessions = new Map<string, PtyClientSession>();
+  private sessions = new Map<string, PtySession>();
 
   constructor() {
     this.logger.info("PtyClient initialized");
@@ -27,32 +70,28 @@ export class PtyClient {
 
   private setupGlobalListeners(): void {
     window.api.pty.onData((sessionId: string, data: string) => {
-      const session = this.sessions.get(sessionId);
-      session?.onData?.(data);
+      this.sessions.get(sessionId)?.onData.emit(data);
     });
 
     window.api.pty.onExit(
       (sessionId: string, exitCode: number, signal?: number) => {
         const session = this.sessions.get(sessionId);
-        session?.onExit?.(exitCode, signal);
-
-        this.sessions.delete(sessionId);
-
-        this.logger.info(`Terminal session ${sessionId} ended`, {
-          exitCode,
-          signal,
-        });
+        if (session) {
+          session.onExit.emit({ exitCode, signal });
+          session.dispose();
+          this.sessions.delete(sessionId);
+          this.logger.info(`Terminal session ${sessionId} ended`, {
+            exitCode,
+            signal,
+          });
+        }
       },
     );
   }
 
-  private cleanupSession(sessionId: string): void {
-    this.sessions.delete(sessionId);
-  }
-
   async createSession(
     options: PtyCreateOptions = {},
-  ): Promise<string | null> {
+  ): Promise<PtySession | null> {
     try {
       const sessionId = await window.api.pty.create(options);
       if (!sessionId) {
@@ -60,119 +99,39 @@ export class PtyClient {
         return null;
       }
 
-      const session: PtyClientSession = {
-        sessionId,
-        isActive: true,
-      };
-
+      const session = new PtySession(sessionId);
       this.sessions.set(sessionId, session);
       this.logger.info(`Terminal session created: ${sessionId}`, options);
 
-      return sessionId;
+      return session;
     } catch (error) {
       this.logger.error("Error creating terminal session:", error);
       return null;
     }
   }
 
-  async writeToSession(sessionId: string, data: string): Promise<boolean> {
-    const session = this.sessions.get(sessionId);
-    if (!session || !session.isActive) {
-      this.logger.warn(`Attempted to write to inactive session: ${sessionId}`);
-      return false;
-    }
-
-    try {
-      return await window.api.pty.write(sessionId, data);
-    } catch (error) {
-      this.logger.error(`Error writing to session ${sessionId}:`, error);
-      return false;
-    }
-  }
-
-  async resizeSession(
-    sessionId: string,
-    cols: number,
-    rows: number,
-  ): Promise<boolean> {
-    const session = this.sessions.get(sessionId);
-    if (!session || !session.isActive) {
-      this.logger.warn(`Attempted to resize inactive session: ${sessionId}`);
-      return false;
-    }
-
-    try {
-      return await window.api.pty.resize(sessionId, { cols, rows });
-    } catch (error) {
-      this.logger.error(`Error resizing session ${sessionId}:`, error);
-      return false;
-    }
-  }
-
-  async destroySession(sessionId: string): Promise<boolean> {
-    const session = this.sessions.get(sessionId);
-    if (!session) {
-      this.logger.warn(
-        `Attempted to destroy non-existent session: ${sessionId}`,
-      );
-      return false;
-    }
-
-    try {
-      const result = await window.api.pty.destroy(sessionId);
-      this.cleanupSession(sessionId);
-      this.logger.info(`Terminal session destroyed: ${sessionId}`);
-      return result;
-    } catch (error) {
-      this.logger.error(`Error destroying session ${sessionId}:`, error);
-      return false;
-    }
-  }
-
-  onSessionData(sessionId: string, callback: (data: string) => void): void {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.onData = callback;
-    }
-  }
-
-  onSessionExit(
-    sessionId: string,
-    callback: (exitCode: number, signal?: number) => void,
-  ): void {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.onExit = callback;
-    }
-  }
-
-  getSession(sessionId: string): PtyClientSession | undefined {
+  getSession(sessionId: string): PtySession | undefined {
     return this.sessions.get(sessionId);
   }
 
-  getAllSessions(): PtyClientSession[] {
+  getAllSessions(): PtySession[] {
     return Array.from(this.sessions.values());
   }
 
-  getActiveSessions(): PtyClientSession[] {
-    return Array.from(this.sessions.values()).filter(
-      (session) => session.isActive,
-    );
-  }
-
   async destroyAllSessions(): Promise<void> {
-    const sessionIds = Array.from(this.sessions.keys());
-    const destroyPromises = sessionIds.map((sessionId) =>
-      this.destroySession(sessionId),
+    const destroyPromises = Array.from(this.sessions.values()).map((session) =>
+      session.destroy(),
     );
-
     await Promise.all(destroyPromises);
     this.logger.info("All terminal sessions destroyed");
   }
 
   dispose(): void {
     window.api.pty.removeAllListeners();
+    this.sessions.forEach((session) => session.dispose());
     this.sessions.clear();
     this.logger.info("PtyClient disposed");
   }
 }
+
+export const ptyClient = new PtyClient();

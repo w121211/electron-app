@@ -1,14 +1,6 @@
 // src/core/services/pty-session-manager.ts
 import * as pty from "node-pty";
-import { EventEmitter } from "events";
 import { Logger } from "tslog";
-
-export interface PtySession {
-  id: string;
-  pty: pty.IPty;
-  shell: string;
-  cwd: string;
-}
 
 export interface PtyCreateOptions {
   shell?: string;
@@ -23,25 +15,32 @@ export interface PtyResizeOptions {
   rows: number;
 }
 
-export class PtySessionManager extends EventEmitter {
-  private logger = new Logger({ name: "PtySessionManager" });
-  private sessions = new Map<string, PtySession>();
-  private sessionIdCounter = 0;
+let ptySessionCounter = 0;
 
-  constructor() {
-    super();
-    this.logger.info("PtySessionManager initialized");
-  }
+/**
+ * A wrapper class for a single node-pty process.
+ * It encapsulates the pty process and its lifecycle, providing a clean API
+ * for interaction and event handling.
+ */
+export class PtyInstance {
+  private static logger = new Logger({ name: "PtyInstance" });
+  public readonly id: string;
+  public readonly shell: string;
+  public readonly cwd: string;
+  private ptyProcess: pty.IPty;
 
-  create(options: PtyCreateOptions = {}): string {
-    const sessionId = `pty-${++this.sessionIdCounter}`;
+  constructor(options: PtyCreateOptions = {}) {
+    this.id = `pty-${++ptySessionCounter}`;
     const isWindows = process.platform === "win32";
-    const shell =
+    this.shell =
       options.shell ||
       (isWindows ? "powershell.exe" : process.env.SHELL || "/bin/bash");
-    const cwd = options.cwd || process.cwd();
+    this.cwd = options.cwd || process.cwd();
 
-    this.logger.info(`Creating pty session ${sessionId}`, { shell, cwd });
+    PtyInstance.logger.info(`Creating pty instance ${this.id}`, {
+      shell: this.shell,
+      cwd: this.cwd,
+    });
 
     const env = {
       ...process.env,
@@ -51,101 +50,93 @@ export class PtySessionManager extends EventEmitter {
       TERM_PROGRAM_VERSION: "1.0.0",
     };
 
-    const ptyProcess = pty.spawn(shell, [], {
+    this.ptyProcess = pty.spawn(this.shell, [], {
       name: "xterm-256color",
       cols: options.cols || 80,
       rows: options.rows || 48,
-      cwd,
+      cwd: this.cwd,
       env,
-      encoding: "utf8", // Force UTF8 to prevent ANSI code corruption
+      encoding: "utf8",
       useConpty: isWindows,
-      // handleFlowControl: false,
     });
 
-    const session: PtySession = {
-      id: sessionId,
-      pty: ptyProcess,
-      shell,
-      cwd,
-    };
-
-    this.sessions.set(sessionId, session);
-
-    // Forward pty data to the renderer
-    ptyProcess.onData((data) => {
-      this.logger.debug(`Pty session ${sessionId} data:`, data);
-      this.emit("data", sessionId, data);
-    });
-
-    // Handle pty exit
-    ptyProcess.onExit(({ exitCode, signal }) => {
-      this.logger.info(`Pty session ${sessionId} exited`, { exitCode, signal });
-      this.sessions.delete(sessionId);
-      this.emit("exit", sessionId, exitCode, signal);
-    });
-
-    this.logger.info(`Pty session ${sessionId} created successfully`);
-    return sessionId;
+    PtyInstance.logger.info(`Pty instance ${this.id} created successfully`);
   }
 
-  write(sessionId: string, data: string): boolean {
-    const session = this.sessions.get(sessionId);
-    if (!session) {
-      this.logger.warn(
-        `Attempted to write to non-existent pty session: ${sessionId}`,
-      );
-      return false;
-    }
-
-    session.pty.write(data);
-    return true;
+  write(data: string): void {
+    this.ptyProcess.write(data);
   }
 
-  resize(sessionId: string, options: PtyResizeOptions): boolean {
-    const session = this.sessions.get(sessionId);
-    if (!session) {
-      this.logger.warn(
-        `Attempted to resize non-existent pty session: ${sessionId}`,
-      );
-      return false;
-    }
-
-    session.pty.resize(options.cols, options.rows);
-    this.logger.debug(
-      `Pty session ${sessionId} resized to ${options.cols}x${options.rows}`,
+  resize(cols: number, rows: number): void {
+    this.ptyProcess.resize(cols, rows);
+    PtyInstance.logger.debug(
+      `Pty instance ${this.id} resized to ${cols}x${rows}`,
     );
-    return true;
   }
 
-  destroy(sessionId: string): boolean {
-    const session = this.sessions.get(sessionId);
-    if (!session) {
-      this.logger.warn(
-        `Attempted to destroy non-existent pty session: ${sessionId}`,
+  kill(): void {
+    PtyInstance.logger.info(`Killing pty instance ${this.id}`);
+    this.ptyProcess.kill();
+  }
+
+  onData(listener: (data: string) => void): void {
+    this.ptyProcess.onData((data) => {
+      // PtyInstance.logger.debug(`Pty instance ${this.id} data:`, data.length);
+      listener(data);
+    });
+  }
+
+  onExit(listener: (e: { exitCode: number; signal?: number }) => void): void {
+    this.ptyProcess.onExit(listener);
+  }
+}
+
+/**
+ * Manages the lifecycle of all PtyInstance objects.
+ * It creates, tracks, and destroys pty sessions for the application.
+ */
+class PtySessionManager {
+  private logger = new Logger({ name: "PtySessionManager" });
+  private sessions = new Map<string, PtyInstance>();
+
+  constructor() {
+    this.logger.info("PtySessionManager initialized");
+  }
+
+  create(options: PtyCreateOptions = {}): PtyInstance {
+    const session = new PtyInstance(options);
+    this.sessions.set(session.id, session);
+    this.logger.info(`Tracking new pty session: ${session.id}`);
+
+    // When the instance exits, stop tracking it.
+    session.onExit(({ exitCode, signal }) => {
+      this.sessions.delete(session.id);
+      this.logger.info(
+        `Pty session ${session.id} exited and is no longer tracked`,
+        { exitCode, signal },
       );
-      return false;
-    }
+    });
 
-    session.pty.kill();
-    this.sessions.delete(sessionId);
-    this.logger.info(`Pty session ${sessionId} destroyed`);
-    return true;
+    return session;
   }
 
-  getSession(sessionId: string): PtySession | undefined {
+  getSession(sessionId: string): PtyInstance | undefined {
     return this.sessions.get(sessionId);
   }
 
-  getAllSessions(): PtySession[] {
+  getAllSessions(): PtyInstance[] {
     return Array.from(this.sessions.values());
   }
 
   destroyAll(): void {
-    for (const [sessionId, session] of this.sessions) {
-      session.pty.kill();
-      this.logger.info(`Destroyed pty session ${sessionId}`);
+    this.logger.info(`Destroying all ${this.sessions.size} pty sessions.`);
+    for (const session of this.sessions.values()) {
+      session.kill();
     }
+    // The onExit handler will clear the sessions map as they terminate.
+    // For immediate cleanup, we can also clear the map here.
     this.sessions.clear();
-    this.logger.info("All pty sessions destroyed");
   }
 }
+
+export const ptySessionManager = new PtySessionManager();

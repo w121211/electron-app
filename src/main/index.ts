@@ -6,11 +6,10 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
-import { PtySessionManager } from "../core/services/pty-session-manager.js";
+import { ptySessionManager } from "../core/services/pty-session-manager.js";
 
 // Global server instance
 let trpcServer: HttpTrpcServer | null = null;
-let ptySessionManager: PtySessionManager | null = null;
 
 function createWindow(): void {
   // Create the browser window.
@@ -90,12 +89,8 @@ app.whenReady().then(async () => {
     return;
   }
 
-  // Initialize PtySessionManager
-  ptySessionManager = new PtySessionManager();
-
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window);
   });
@@ -125,52 +120,58 @@ app.whenReady().then(async () => {
   });
 
   // Pty IPC handlers
-  ipcMain.handle("pty:create", async (_, options?) => {
-    if (!ptySessionManager) return null;
-    return ptySessionManager.create(options);
+  ipcMain.handle("pty:create", async (event, options?) => {
+    const ptyInstance = ptySessionManager.create(options);
+
+    // Forward events from this specific pty instance to the renderer window that created it
+    ptyInstance.onData((data) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("pty:data", ptyInstance.id, data);
+      }
+    });
+
+    ptyInstance.onExit(({ exitCode, signal }) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("pty:exit", ptyInstance.id, exitCode, signal);
+      }
+    });
+
+    return ptyInstance.id;
   });
 
   ipcMain.handle("pty:write", async (_, sessionId: string, data: string) => {
-    if (!ptySessionManager) return false;
-    return ptySessionManager.write(sessionId, data);
+    const session = ptySessionManager.getSession(sessionId);
+    if (session) {
+      session.write(data);
+      return true;
+    }
+    return false;
   });
 
   ipcMain.handle(
     "pty:resize",
     async (_, sessionId: string, options: { cols: number; rows: number }) => {
-      if (!ptySessionManager) return false;
-      return ptySessionManager.resize(sessionId, options);
+      const session = ptySessionManager.getSession(sessionId);
+      if (session) {
+        session.resize(options.cols, options.rows);
+        return true;
+      }
+      return false;
     },
   );
 
   ipcMain.handle("pty:destroy", async (_, sessionId: string) => {
-    if (!ptySessionManager) return false;
-    return ptySessionManager.destroy(sessionId);
+    const session = ptySessionManager.getSession(sessionId);
+    if (session) {
+      session.kill();
+      return true;
+    }
+    return false;
   });
 
   ipcMain.on("ping", () => console.log("pong"));
 
   createWindow();
-
-  // Setup pty service event forwarding to renderer
-  if (ptySessionManager) {
-    ptySessionManager.on("data", (sessionId: string, data: string) => {
-      const windows = BrowserWindow.getAllWindows();
-      windows.forEach((window) => {
-        window.webContents.send("pty:data", sessionId, data);
-      });
-    });
-
-    ptySessionManager.on(
-      "exit",
-      (sessionId: string, exitCode: number, signal?: number) => {
-        const windows = BrowserWindow.getAllWindows();
-        windows.forEach((window) => {
-          window.webContents.send("pty:exit", sessionId, exitCode, signal);
-        });
-      },
-    );
-  }
 
   app.on("activate", function () {
     // On macOS it's common to re-create a window in the app when the
@@ -194,12 +195,10 @@ app.on("window-all-closed", async () => {
 
 // Handle app quit to clean up resources
 app.on("before-quit", async () => {
-  // if (ptySessionManager) {
-  //   ptySessionManager.destroyAll();
-  // }
   if (trpcServer) {
     await trpcServer.stop();
   }
+  ptySessionManager.destroyAll();
 });
 
 // In this file you can include the rest of your app's specific main process
