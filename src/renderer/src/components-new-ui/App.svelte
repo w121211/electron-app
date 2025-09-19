@@ -6,6 +6,7 @@
   import { eventService } from "../services/event-service.js";
   import { projectService } from "../services/project-service.js";
   import { keyboardManager } from "../lib/keyboard.js";
+  import Xterm from "./Xterm.svelte";
 
   const logger = new Logger({ name: "NewApp" });
 
@@ -37,7 +38,13 @@
 </script>
 
 <!-- Main App -->
-<div class="font-sans">
-  <MainLayout />
+<!-- <div class="bg-bg flex h-screen flex-col overflow-hidden font-sans">
+  <div class="flex-grow overflow-hidden">
+    <MainLayout />
+  </div>
   <ToastProvider />
+</div> -->
+
+<div class="h-screen p-10 font-sans">
+  <Xterm />
 </div>

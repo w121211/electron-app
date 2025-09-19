@@ -89,25 +89,17 @@ class PtyClient {
     );
   }
 
-  async createSession(
-    options: PtyCreateOptions = {},
-  ): Promise<PtySession | null> {
-    try {
-      const sessionId = await window.api.pty.create(options);
-      if (!sessionId) {
-        this.logger.error("Failed to create terminal session");
-        return null;
-      }
-
-      const session = new PtySession(sessionId);
-      this.sessions.set(sessionId, session);
-      this.logger.info(`Terminal session created: ${sessionId}`, options);
-
-      return session;
-    } catch (error) {
-      this.logger.error("Error creating terminal session:", error);
-      return null;
+  async createSession(options: PtyCreateOptions = {}): Promise<PtySession> {
+    const sessionId = await window.api.pty.create(options);
+    if (!sessionId) {
+      throw new Error("Failed to create terminal session");
     }
+
+    const session = new PtySession(sessionId);
+    this.sessions.set(sessionId, session);
+    this.logger.info(`Terminal session created: ${sessionId}`, options);
+
+    return session;
   }
 
   getSession(sessionId: string): PtySession | undefined {

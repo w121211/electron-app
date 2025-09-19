@@ -5,7 +5,7 @@
   import MainLayout from "./components/MainLayout.svelte";
   // import MainLayoutDemo from "./components/MainLayoutDemo.svelte";
   // import ToolCallDemo from "./components/ToolCallDemo.svelte";
-  import XtermDemo from "./components/XtermDemo2.svelte";
+  import XtermDemo from "./components/XtermDemo.svelte";
   import ToastProvider from "./components/ToastProvider.svelte";
   // import ErrorBoundary from "./components/ErrorBoundary.svelte";
   // import DevPanel from "./components/shared/DevPanel.svelte";
