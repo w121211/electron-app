@@ -7,7 +7,6 @@
     Pencil,
     PencilSquare,
     Paperclip,
-    ChevronRight,
     House,
     Search,
     LayoutSidebar,
@@ -27,13 +26,13 @@
   } from "../../stores/ui-store.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import { setPreference } from "../../stores/local-preferences-store.svelte.js";
-  import { projectState } from "../../stores/project-store.svelte.js";
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
   import ChatMessage from "./ChatMessage.svelte";
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
   import FileSearchDropdown from "./FileSearchDropdown.svelte";
   import PromptEditor from "./PromptEditor.svelte";
   import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
+  import Breadcrumb from "../Breadcrumb.svelte";
 
   // Derived loading states
   const isLoadingSubmitMessage = $derived(
@@ -43,31 +42,6 @@
   // Derived chat states
   const hasCurrentChat = $derived(chatState.currentChat !== null);
   const currentChatMessages = $derived(chatState.currentChat?.messages || []);
-  const currentChatBreadcrumb = $derived(() => {
-    if (!chatState.currentChat) return null;
-
-    const pathParts = chatState.currentChat.absoluteFilePath.split("/");
-    const fileName = pathParts.pop();
-
-    // Find the project that contains this chat file
-    const chatFilePath = chatState.currentChat.absoluteFilePath;
-    const containingProject = projectState.projectFolders.find((project) =>
-      chatFilePath.startsWith(project.path),
-    );
-
-    const projectName = containingProject
-      ? containingProject.name
-      : pathParts.slice(-2, -1)[0] || "Unknown";
-
-    // Add asterisk to filename if there are unsaved draft changes
-    const displayFileName = chatState.hasUnsavedDraftChanges ? `${fileName}*` : fileName;
-
-    return {
-      parentDir: projectName,
-      fileName: displayFileName,
-      fullPath: chatState.currentChat.absoluteFilePath,
-    };
-  });
 
   let messageInputElement = $state<HTMLTextAreaElement>();
   let messagesContainer = $state<HTMLDivElement>();
@@ -318,19 +292,16 @@
           </button>
         {/if}
 
-        {#if currentChatBreadcrumb()}
-          {@const breadcrumb = currentChatBreadcrumb()}
-          {#if breadcrumb}
-            <span
-              class="text-muted text-xs {!uiState.leftPanelOpen ? 'ml-3' : ''}"
-              >{breadcrumb.parentDir}</span
-            >
-            <ChevronRight class="text-muted text-xs" />
-            <span class="text-muted text-xs">{breadcrumb.fileName}</span>
-            {#if currentChatMessages.length > 0}
-              <span class="text-muted text-xs">[{selectedModelLabel()}]</span>
-            {/if}
-          {/if}
+        {#if chatState.currentChat}
+          <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
+            <Breadcrumb
+              filePath={chatState.currentChat.absoluteFilePath}
+              modelInfo={currentChatMessages.length > 0
+                ? selectedModelLabel()
+                : undefined}
+              hasUnsavedChanges={chatState.hasUnsavedDraftChanges}
+            />
+          </div>
         {/if}
       </div>
       <div class="flex items-center gap-2">

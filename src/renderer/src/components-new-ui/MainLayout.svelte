@@ -9,6 +9,7 @@
   import RightPanel from "./RightPanel.svelte";
   import QuickLauncher from "./QuickLauncher.svelte";
   import FilePanel from "./FilePanel.svelte";
+  import XtermPanel from "./XtermPanel.svelte";
 
   const logger = new Logger({ name: "NewMainLayout" });
 
@@ -50,6 +51,8 @@
         <ChatPanel />
       {:else if uiState.activeView === "filePanel"}
         <FilePanel />
+      {:else if uiState.activeView === "xterm"}
+        <XtermPanel />
       {:else}
         <!-- Welcome Screen / No file open -->
         <div class="bg-surface flex flex-1 items-center justify-center">

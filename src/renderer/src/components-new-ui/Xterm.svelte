@@ -51,18 +51,18 @@
 
   async function initializeTerminal(): Promise<void> {
     terminal = new Terminal({
-      // fontSize: 14,
+      fontSize: 12,
       // fontFamily: "'Cascadia Code', 'Roboto Mono', monospace",
-      // theme: {
-      //   background: "#181818",
-      //   foreground: "#cccccc",
-      //   cursor: "#ffffff",
-      // },
-      // cursorBlink: true,
-      // allowProposedApi: true,
-      // convertEol: true,
-      // macOptionIsMeta: true,
-      // scrollOnUserInput: true,
+      theme: {
+        background: "#181818",
+        foreground: "#cccccc",
+        cursor: "#ffffff",
+      },
+      cursorBlink: true,
+      allowProposedApi: true,
+      convertEol: true,
+      macOptionIsMeta: true,
+      scrollOnUserInput: true,
     });
 
     fitAddon = new FitAddon();
@@ -129,9 +129,9 @@
   <!-- Terminal will be mounted here -->
 </div>
 
-<style>
-  /* .terminal-container {
+<!-- <style>
+  .terminal-container {
     width: 100%;
     height: 100%;
-  } */
-</style>
+  }
+</style> -->

@@ -1,30 +1,10 @@
 <!-- src/renderer/src/components-new-ui/FilePanel.svelte -->
 <script lang="ts">
-  import { ChevronRight, Pencil } from "svelte-bootstrap-icons";
+  import { Pencil } from "svelte-bootstrap-icons";
   import { filePanelState } from "../stores/file-panel-store.svelte.js";
-  import { projectState } from "../stores/project-store.svelte.js";
   import { showToast } from "../stores/ui-store.svelte.js";
   import MarkdownTodoRenderer from "./MarkdownTodoRenderer.svelte";
-
-  const breadcrumb = $derived(() => {
-    if (!filePanelState.filePath) return null;
-
-    const pathParts = filePanelState.filePath.split("/");
-    const fileName = pathParts.pop();
-
-    const containingProject = projectState.projectFolders.find((project) =>
-      filePanelState.filePath!.startsWith(project.path),
-    );
-
-    const projectName = containingProject
-      ? containingProject.name
-      : pathParts.slice(-2, -1)[0] || "Unknown";
-
-    return {
-      projectName,
-      fileName,
-    };
-  });
+  import Breadcrumb from "./Breadcrumb.svelte";
 
   function handleEdit(): void {
     showToast("Edit functionality is not yet implemented.", "info");
@@ -34,12 +14,8 @@
 <section class="relative flex min-w-0 flex-1 flex-col">
   <!-- Header with Breadcrumb -->
   <header class="flex h-10 flex-shrink-0 items-center px-4">
-    {#if breadcrumb()}
-      <div class="flex items-center gap-1">
-        <span class="text-muted text-xs">{breadcrumb()?.projectName}</span>
-        <ChevronRight class="text-muted text-xs" />
-        <span class="text-muted text-xs">{breadcrumb()?.fileName}</span>
-      </div>
+    {#if filePanelState.filePath}
+      <Breadcrumb filePath={filePanelState.filePath} />
     {/if}
   </header>
 

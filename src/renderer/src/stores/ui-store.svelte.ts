@@ -9,7 +9,7 @@ export interface Toast {
   timestamp: number;
 }
 
-export type ActiveView = "welcome" | "chat" | "filePanel";
+export type ActiveView = "welcome" | "chat" | "filePanel" | "xterm";
 
 interface UiState {
   loadingStates: Record<string, boolean>;

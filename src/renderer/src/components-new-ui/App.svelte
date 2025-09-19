@@ -38,13 +38,13 @@
 </script>
 
 <!-- Main App -->
-<!-- <div class="bg-bg flex h-screen flex-col overflow-hidden font-sans">
+<div class="bg-bg flex h-screen flex-col overflow-hidden font-sans">
   <div class="flex-grow overflow-hidden">
     <MainLayout />
   </div>
   <ToastProvider />
-</div> -->
-
-<div class="h-screen p-10 font-sans">
-  <Xterm />
 </div>
+
+<!-- <div class="h-screen p-10 font-sans">
+  <Xterm />
+</div> -->

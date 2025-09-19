@@ -1,5 +1,6 @@
 // src/renderer/src/services/project-service.ts
 import { Logger } from "tslog";
+import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
   setTreeSelectionState,
@@ -18,11 +19,12 @@ import {
   setWorkspaceSetupNeeded,
 } from "../stores/file-explorer-store.svelte.js";
 import { chatService } from "./chat-service.js";
+import { chatState } from "../stores/chat-store.svelte.js";
 import { setActiveView } from "../stores/ui-store.svelte.js";
 import {
   loadFileForPanel,
   closeFilePanel,
-} from "../stores/file-panel-store.svelte.ts";
+} from "../stores/file-panel-store.svelte.js";
 import type {
   ProjectFolder,
   FolderTreeNode,
@@ -41,7 +43,6 @@ interface FileWatcherEvent {
   isDirectory: boolean;
   error?: Error;
 }
-
 
 class ProjectService {
   private logger = new Logger({ name: "ProjectService" });
@@ -188,7 +189,14 @@ class ProjectService {
         this.logger.info("Opening chat file:", filePath);
         closeFilePanel(); // Close any active file panel
         await chatService.openChatFile(filePath);
-        setActiveView("chat"); // Set view to chat
+        if (
+          chatState.currentChat?.modelId &&
+          isTerminalModel(chatState.currentChat.modelId)
+        ) {
+          setActiveView("xterm");
+        } else {
+          setActiveView("chat"); // Set view to chat
+        }
         this.logger.info("Chat file opened successfully");
       } catch (error) {
         this.logger.error("Failed to open chat file:", error);
@@ -381,7 +389,6 @@ class ProjectService {
       }
     }
   }
-
 
   private async loadAllFolderTrees(folders: ProjectFolder[]) {
     for (const folder of folders) {
