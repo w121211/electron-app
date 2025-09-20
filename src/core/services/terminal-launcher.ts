@@ -109,7 +109,9 @@ end if
   }
 }
 
-export function getCommandForModel(modelId: string): { command: string, args: string[] } | undefined {
+export function getCommandForModel(
+  modelId: string,
+): { command: string; args: string[] } | undefined {
   const externalModel = Object.values(presetExternalModels).find(
     (model) => model.modelId === modelId,
   );

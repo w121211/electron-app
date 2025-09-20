@@ -71,7 +71,7 @@ export function createChatClientRouter(
     userSettingsService,
     toolRegistry,
   );
-  
+
   const externalChatClient = new ExternalChatClient(
     eventBus,
     chatSessionRepository,
@@ -114,12 +114,13 @@ export function createChatClientRouter(
 
         if (modelId && isTerminalModel(modelId)) {
           // Create external chat session for terminal models
-          const result = await externalChatClient.createExternalChatSessionFromTemplate(
-            input.templatePath,
-            input.targetDirectory,
-            input.args,
-            input.config,
-          );
+          const result =
+            await externalChatClient.createExternalChatSessionFromTemplate(
+              input.templatePath,
+              input.targetDirectory,
+              input.args,
+              input.config,
+            );
           return result.toJSON();
         } else {
           // Create regular chat session
@@ -181,9 +182,10 @@ export function createChatClientRouter(
         if (input.modelId) {
           // Try to get existing session to check if we can update modelId
           try {
-            const session = await externalChatClient.getOrLoadExternalChatSession(
-              input.absoluteFilePath,
-            );
+            const session =
+              await externalChatClient.getOrLoadExternalChatSession(
+                input.absoluteFilePath,
+              );
             if (session.messages.length > 0) {
               throw new Error(
                 "Model ID can only be set on the first message of a chat session",
@@ -191,29 +193,40 @@ export function createChatClientRouter(
             }
 
             // Update the session's modelId for the first message
-            await externalChatClient.updateExternalChat(input.absoluteFilePath, {
-              modelId: input.modelId,
-            });
+            await externalChatClient.updateExternalChat(
+              input.absoluteFilePath,
+              {
+                modelId: input.modelId,
+              },
+            );
           } catch (error) {
             // If it's not an external session, try to get it as a regular session and convert
-            if (error instanceof Error && error.message.includes("not an external chat session")) {
-              const chatSessionData = await chatSessionRepository.loadFromFile(input.absoluteFilePath);
+            if (
+              error instanceof Error &&
+              error.message.includes("not an external chat session")
+            ) {
+              const chatSessionData = await chatSessionRepository.loadFromFile(
+                input.absoluteFilePath,
+              );
               if (chatSessionData.messages.length > 0) {
                 throw new Error(
                   "Model ID can only be set on the first message of a chat session",
                 );
               }
-              
+
               // Convert to external session
               await externalChatClient.convertToExternalSession(
                 input.absoluteFilePath,
                 chatSessionData,
               );
-              
+
               // Update model ID
-              await externalChatClient.updateExternalChat(input.absoluteFilePath, {
-                modelId: input.modelId,
-              });
+              await externalChatClient.updateExternalChat(
+                input.absoluteFilePath,
+                {
+                  modelId: input.modelId,
+                },
+              );
             } else {
               throw error;
             }
@@ -253,10 +266,14 @@ export function createChatClientRouter(
           updatedChatSession: ChatSessionData;
         }> => {
           // Load session data to determine type
-          const sessionData = await chatSessionRepository.loadFromFile(input.absoluteFilePath);
-          
+          const sessionData = await chatSessionRepository.loadFromFile(
+            input.absoluteFilePath,
+          );
+
           if (sessionData._type === "external_chat") {
-            throw new Error("Tool call confirmation not supported for external chat sessions");
+            throw new Error(
+              "Tool call confirmation not supported for external chat sessions",
+            );
           } else {
             const result = await chatClient.confirmToolCall(
               input.absoluteFilePath,
@@ -281,12 +298,20 @@ export function createChatClientRouter(
       )
       .mutation(async ({ input }) => {
         // Load session data to determine type
-        const sessionData = await chatSessionRepository.loadFromFile(input.absoluteFilePath);
-        
+        const sessionData = await chatSessionRepository.loadFromFile(
+          input.absoluteFilePath,
+        );
+
         if (sessionData._type === "external_chat") {
-          await externalChatClient.abortExternalChat(input.absoluteFilePath, input.chatSessionId);
+          await externalChatClient.abortExternalChat(
+            input.absoluteFilePath,
+            input.chatSessionId,
+          );
         } else {
-          await chatClient.abortChat(input.absoluteFilePath, input.chatSessionId);
+          await chatClient.abortChat(
+            input.absoluteFilePath,
+            input.chatSessionId,
+          );
         }
         return { success: true };
       }),
@@ -311,8 +336,10 @@ export function createChatClientRouter(
       )
       .mutation(async ({ input }) => {
         // Load session data to determine type
-        const sessionData = await chatSessionRepository.loadFromFile(input.absoluteFilePath);
-        
+        const sessionData = await chatSessionRepository.loadFromFile(
+          input.absoluteFilePath,
+        );
+
         if (sessionData._type === "external_chat") {
           await externalChatClient.updateExternalChat(
             input.absoluteFilePath,
@@ -335,8 +362,10 @@ export function createChatClientRouter(
       )
       .mutation(async ({ input }) => {
         // Load session data to determine type
-        const sessionData = await chatSessionRepository.loadFromFile(input.absoluteFilePath);
-        
+        const sessionData = await chatSessionRepository.loadFromFile(
+          input.absoluteFilePath,
+        );
+
         if (sessionData._type === "external_chat") {
           await externalChatClient.deleteExternalChat(input.absoluteFilePath);
         } else {
@@ -353,8 +382,10 @@ export function createChatClientRouter(
       )
       .query(async ({ input }) => {
         // Load session data to determine type
-        const sessionData = await chatSessionRepository.loadFromFile(input.absoluteFilePath);
-        
+        const sessionData = await chatSessionRepository.loadFromFile(
+          input.absoluteFilePath,
+        );
+
         if (sessionData._type === "external_chat") {
           // Use external chat client
           const session = await externalChatClient.getOrLoadExternalChatSession(
@@ -379,8 +410,10 @@ export function createChatClientRouter(
       )
       .mutation(async ({ input }) => {
         // Load session data to determine type
-        const sessionData = await chatSessionRepository.loadFromFile(input.absoluteFilePath);
-        
+        const sessionData = await chatSessionRepository.loadFromFile(
+          input.absoluteFilePath,
+        );
+
         if (sessionData._type === "external_chat") {
           throw new Error("Rerun not supported for external chat sessions");
         } else {

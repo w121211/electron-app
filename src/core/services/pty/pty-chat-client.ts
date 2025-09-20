@@ -9,7 +9,9 @@ import type { ChatSessionData } from "../chat-engine/chat-session-repository.js"
 import { PtyChatSession } from "./pty-chat-session.js";
 
 export class PtyChatClient {
-  private readonly logger: Logger<ILogObj> = new Logger({ name: "PtyChatClient" });
+  private readonly logger: Logger<ILogObj> = new Logger({
+    name: "PtyChatClient",
+  });
   private readonly sessions: Map<string, PtyChatSession> = new Map();
 
   constructor(
@@ -75,10 +77,15 @@ export class PtyChatClient {
     this.logger.info(`Starting PTY session from draft: ${chatId}`);
 
     const existingData = await this.chatSessionRepository.loadFromFile(chatId);
-    const targetDirectory = await this.projectFolderService.getProjectFolderForPath(existingData.absoluteFilePath);
+    const targetDirectory =
+      await this.projectFolderService.getProjectFolderForPath(
+        existingData.absoluteFilePath,
+      );
 
     if (!targetDirectory) {
-        throw new Error(`Chat file ${existingData.absoluteFilePath} is not within any project folder`);
+      throw new Error(
+        `Chat file ${existingData.absoluteFilePath} is not within any project folder`,
+      );
     }
 
     const ptyInstance = ptySessionManager.create({ cwd: targetDirectory.path });
@@ -94,7 +101,10 @@ export class PtyChatClient {
     };
     existingData.updatedAt = new Date();
 
-    await this.chatSessionRepository.saveToFile(existingData.absoluteFilePath, existingData);
+    await this.chatSessionRepository.saveToFile(
+      existingData.absoluteFilePath,
+      existingData,
+    );
 
     ptyInstance.write(initialCommand + "\n");
 

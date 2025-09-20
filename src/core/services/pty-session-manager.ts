@@ -30,9 +30,14 @@ export class PtyInstance {
   public readonly cwd: string;
   private ptyProcess: pty.IPty;
   private onDataListeners = new Set<(data: string) => void>();
-  private onExitListeners = new Set<(e: { exitCode: number; signal?: number }) => void>();
+  private onExitListeners = new Set<
+    (e: { exitCode: number; signal?: number }) => void
+  >();
 
-  constructor(options: PtyCreateOptions = {}, private readonly eventBus?: IEventBus) {
+  constructor(
+    options: PtyCreateOptions = {},
+    private readonly eventBus?: IEventBus,
+  ) {
     this.id = `pty-${++ptySessionCounter}`;
     const isWindows = process.platform === "win32";
     this.shell =
@@ -121,7 +126,9 @@ export class PtyInstance {
     return () => this.onDataListeners.delete(listener);
   }
 
-  onExit(listener: (e: { exitCode: number; signal?: number }) => void): () => void {
+  onExit(
+    listener: (e: { exitCode: number; signal?: number }) => void,
+  ): () => void {
     this.onExitListeners.add(listener);
     return () => this.onExitListeners.delete(listener);
   }

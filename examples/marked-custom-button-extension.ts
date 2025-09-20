@@ -41,9 +41,7 @@ function addCustomButton(token: Token) {
       };
 
       // Find the index of a nested list
-      const nestedListIndex = token.tokens.findIndex(
-        (t) => t.type === "list",
-      );
+      const nestedListIndex = token.tokens.findIndex((t) => t.type === "list");
 
       if (nestedListIndex !== -1) {
         // If a nested list exists, insert the button before it

@@ -186,15 +186,16 @@ export class ExternalChatSession {
     };
   }
 
-
-
   private async _launchExternalTerminal(): Promise<void> {
-    const projectFolder = await this.projectFolderService.getProjectFolderForPath(
-      this.absoluteFilePath,
-    );
+    const projectFolder =
+      await this.projectFolderService.getProjectFolderForPath(
+        this.absoluteFilePath,
+      );
 
     if (!projectFolder) {
-      throw new Error(`Chat file ${this.absoluteFilePath} is not within any project folder`);
+      throw new Error(
+        `Chat file ${this.absoluteFilePath} is not within any project folder`,
+      );
     }
 
     const workingDirectory = projectFolder.path;
@@ -211,7 +212,6 @@ export class ExternalChatSession {
     this.metadata ??= {};
     this.metadata.external = {
       ...this.metadata?.external,
-      mode: "terminal",
       pid: launchResult.pid,
       workingDirectory,
     };

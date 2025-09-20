@@ -24,8 +24,11 @@ export interface CreateExternalChatSessionConfig {
 }
 
 export class ExternalChatClient {
-  private readonly logger: Logger<ILogObj> = new Logger({ name: "ExternalChatClient" });
-  private readonly externalSessions: Map<string, ExternalChatSession> = new Map();
+  private readonly logger: Logger<ILogObj> = new Logger({
+    name: "ExternalChatClient",
+  });
+  private readonly externalSessions: Map<string, ExternalChatSession> =
+    new Map();
   private readonly sessionAccessTime: Map<string, number> = new Map();
   private readonly maxSessions: number = 10;
 
@@ -159,7 +162,8 @@ export class ExternalChatClient {
     turnResult: ExternalTurnResult;
     updatedExternalSession: ExternalChatSession;
   }> {
-    const externalSession = await this.getOrLoadExternalChatSession(absoluteFilePath);
+    const externalSession =
+      await this.getOrLoadExternalChatSession(absoluteFilePath);
 
     if (externalSession.id !== chatSessionId) {
       throw new Error(
@@ -226,9 +230,14 @@ export class ExternalChatClient {
 
       // Handle nested 'external' object safely
       if (newMetadata.external) {
-        const currentExternal = session.metadata?.external || { mode: "terminal" }; // Default if not present
+        const currentExternal = session.metadata?.external || {
+          mode: "terminal",
+        }; // Default if not present
         // Merge 'external' object, preserving the original mode
-        newMetadata.external = { ...currentExternal, ...newMetadata.external, mode: currentExternal.mode };
+        newMetadata.external = {
+          ...currentExternal,
+          ...newMetadata.external,
+        };
       }
 
       session.metadata = { ...session.metadata, ...newMetadata };
@@ -277,7 +286,11 @@ export class ExternalChatClient {
       throw new Error("Data is not for external chat session");
     }
 
-    const externalSession = new ExternalChatSession(data, this.eventBus, this.projectFolderService);
+    const externalSession = new ExternalChatSession(
+      data,
+      this.eventBus,
+      this.projectFolderService,
+    );
 
     // Add to session pool
     this.externalSessions.set(

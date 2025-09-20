@@ -5,9 +5,7 @@ import type {
   PtyDataReceivedEvent,
   PtyExitedEvent,
 } from "../../event-types.js";
-import type {
-  ChatSessionData,
-} from "../chat-engine/chat-session-repository.js";
+import type { ChatSessionData } from "../chat-engine/chat-session-repository.js";
 import type { ProjectFolderService } from "../project-folder-service.js";
 
 export class PtyChatSession {
@@ -53,12 +51,15 @@ export class PtyChatSession {
       return;
     }
 
-    this.eventBus.subscribe("PtyDataReceived", (event: PtyDataReceivedEvent) => {
-      if (event.sessionId === sessionId) {
-        // TODO: Append to a new assistant message, handle streaming
-        console.log("PTY DATA:", event.data);
-      }
-    });
+    this.eventBus.subscribe(
+      "PtyDataReceived",
+      (event: PtyDataReceivedEvent) => {
+        if (event.sessionId === sessionId) {
+          // TODO: Append to a new assistant message, handle streaming
+          console.log("PTY DATA:", event.data);
+        }
+      },
+    );
 
     this.eventBus.subscribe("PtyExited", (event: PtyExitedEvent) => {
       if (event.sessionId === sessionId) {

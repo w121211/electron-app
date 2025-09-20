@@ -60,7 +60,10 @@ export class ChatQueueManager {
     if (!sessionData.modelId) {
       this.logger.error(`Cannot schedule chat ${chatId} without a modelId.`);
       sessionData.sessionStatus = "error";
-      await this.chatSessionRepository.saveToFile(absoluteFilePath, sessionData);
+      await this.chatSessionRepository.saveToFile(
+        absoluteFilePath,
+        sessionData,
+      );
       return;
     }
 
@@ -121,20 +124,26 @@ export class ChatQueueManager {
     }
 
     if (fsEventKind === "unlink") {
-      this.logger.info(`Chat file deleted: ${srcPath}. Removing from queue.`)
+      this.logger.info(`Chat file deleted: ${srcPath}. Removing from queue.`);
       await this.chatQueueRepository.removeItem(srcPath);
     }
 
     if (fsEventKind === "add") {
-        this.logger.info(`Chat file added: ${srcPath}. Checking if it should be scheduled.`)
-        try {
-            const sessionData = await this.chatSessionRepository.loadFromFile(srcPath);
-            if(sessionData.sessionStatus === 'scheduled'){
-                await this.schedule(sessionData.id, sessionData.absoluteFilePath)
-            }
-        } catch (error) {
-            this.logger.error(`Error processing added chat file ${srcPath}:`, error)
+      this.logger.info(
+        `Chat file added: ${srcPath}. Checking if it should be scheduled.`,
+      );
+      try {
+        const sessionData =
+          await this.chatSessionRepository.loadFromFile(srcPath);
+        if (sessionData.sessionStatus === "scheduled") {
+          await this.schedule(sessionData.id, sessionData.absoluteFilePath);
         }
+      } catch (error) {
+        this.logger.error(
+          `Error processing added chat file ${srcPath}:`,
+          error,
+        );
+      }
     }
   }
 
@@ -150,7 +159,7 @@ export class ChatQueueManager {
       return;
     }
 
-    // --- Verification Step --- 
+    // --- Verification Step ---
     try {
       await fs.access(nextChat.absoluteFilePath);
     } catch (error) {

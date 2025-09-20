@@ -22,7 +22,10 @@ import { createModelRouter } from "./routers/model-router.js";
 import { createChatClientRouter } from "./routers/chat-client-router.js";
 import { router } from "./trpc-init.js";
 
-export async function createTrpcRouter(userDataDir: string, eventBus: IEventBus) {
+export async function createTrpcRouter(
+  userDataDir: string,
+  eventBus: IEventBus,
+) {
   // Setup logger
   const logger: Logger<ILogObj> = new Logger({ name: "AppServer" });
 

@@ -77,13 +77,9 @@ async function runPtyChatDemo() {
   logger.info("--- Testing creating a new PTY session ---");
   const session1 = await client.createPtyChatSession(
     tempDir,
-    'echo "Hello from PTY session 1!"'
+    'echo "Hello from PTY session 1!"',
   );
-  logger.info(
-    "Created new PTY session:",
-    session1.id,
-    session1.metadata?.pty,
-  );
+  logger.info("Created new PTY session:", session1.id, session1.metadata?.pty);
 
   // --- Test Case 2: Start a PTY session from a draft chat ---
   await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for first session to settle
@@ -104,18 +100,21 @@ async function runPtyChatDemo() {
     metadata: {
       mode: "chat",
       title: "My Draft Chat",
-      promptDraft: 'echo "Hello from a draft session!"'
+      promptDraft: 'echo "Hello from a draft session!"',
     },
   };
 
-  const draftPath = await services.chatSessionRepository.createNewFile(tempDir, draftData);
+  const draftPath = await services.chatSessionRepository.createNewFile(
+    tempDir,
+    draftData,
+  );
   draftData.absoluteFilePath = draftPath;
 
   logger.info(`Created draft chat file: ${draftPath}`);
 
   const session2 = await client.startFromDraft(
     draftPath,
-    draftData.metadata!.promptDraft!
+    draftData.metadata!.promptDraft!,
   );
   logger.info(
     "Started PTY session from draft:",
@@ -127,13 +126,17 @@ async function runPtyChatDemo() {
   await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for events
   logger.info("--- Testing session termination ---");
 
-  const ptyInstance1 = ptySessionManager.getSession(session1.metadata!.pty!.sessionId);
+  const ptyInstance1 = ptySessionManager.getSession(
+    session1.metadata!.pty!.sessionId,
+  );
   if (ptyInstance1) {
     logger.info(`Killing session 1 (${ptyInstance1.id})`);
     ptyInstance1.kill();
   }
 
-  const ptyInstance2 = ptySessionManager.getSession(session2.metadata!.pty!.sessionId);
+  const ptyInstance2 = ptySessionManager.getSession(
+    session2.metadata!.pty!.sessionId,
+  );
   if (ptyInstance2) {
     logger.info(`Killing session 2 (${ptyInstance2.id})`);
     ptyInstance2.kill();

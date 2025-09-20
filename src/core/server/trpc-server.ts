@@ -36,7 +36,10 @@ export class HttpTrpcServer {
       logger.info("Starting embedded tRPC server...");
 
       // Create the app router with the event bus
-      const trpcRouter = await createTrpcRouter(this.userDataDir, this.eventBus);
+      const trpcRouter = await createTrpcRouter(
+        this.userDataDir,
+        this.eventBus,
+      );
 
       // Create HTTP server with tRPC handler (no CORS needed for Electron)
       this.server = createHTTPServer({

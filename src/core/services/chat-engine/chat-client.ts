@@ -220,7 +220,9 @@ export class ChatClient<TOOLS extends ToolSet> {
     const modelId = config?.modelId;
 
     if (modelId && isTerminalModel(modelId)) {
-      throw new Error("Terminal models not supported by ChatClient. Use ExternalChatClient instead.");
+      throw new Error(
+        "Terminal models not supported by ChatClient. Use ExternalChatClient instead.",
+      );
     }
 
     // Create regular chat session
@@ -292,7 +294,6 @@ export class ChatClient<TOOLS extends ToolSet> {
     return session;
   }
 
-
   async getOrLoadChatSession(
     absoluteFilePath: string,
   ): Promise<ChatSession<TOOLS>> {
@@ -307,7 +308,9 @@ export class ChatClient<TOOLS extends ToolSet> {
       await this.chatSessionRepository.loadFromFile(absoluteFilePath);
 
     if (chatSessionData._type === "external_chat") {
-      throw new Error("External chat sessions not supported by ChatClient. Use ExternalChatClient instead.");
+      throw new Error(
+        "External chat sessions not supported by ChatClient. Use ExternalChatClient instead.",
+      );
     }
 
     // Check session pool size and evict if necessary
@@ -355,12 +358,11 @@ export class ChatClient<TOOLS extends ToolSet> {
     this.sessionAccessTime.delete(absoluteFilePath);
   }
 
-
-  private createChatSessionFromData(
-    data: ChatSessionData,
-  ): ChatSession<TOOLS> {
+  private createChatSessionFromData(data: ChatSessionData): ChatSession<TOOLS> {
     if (data._type === "external_chat") {
-      throw new Error("External chat sessions not supported by ChatClient. Use ExternalChatClient instead.");
+      throw new Error(
+        "External chat sessions not supported by ChatClient. Use ExternalChatClient instead.",
+      );
     }
 
     const chatSession = new ChatSession<TOOLS>(
@@ -399,10 +401,7 @@ export class ChatClient<TOOLS extends ToolSet> {
     }
   }
 
-
-  private async persistSession(
-    session: ChatSession<TOOLS>,
-  ): Promise<void> {
+  private async persistSession(session: ChatSession<TOOLS>): Promise<void> {
     const sessionData = session.toJSON();
     await this.chatSessionRepository.saveToFile(
       sessionData.absoluteFilePath,

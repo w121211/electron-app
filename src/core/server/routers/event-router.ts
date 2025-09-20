@@ -1,20 +1,13 @@
 // src/core/server/routers/event-router.ts
 import { z } from "zod";
-import { tracked } from "@trpc/server";
+// import { tracked } from "@trpc/server";
+import { tracked } from "@trpc/server/unstable-core-do-not-import";
 import { IEventBus, BaseEvent } from "../../event-bus.js";
 import { FileWatcherEvent } from "../../services/file-watcher-service.js";
 import { TaskUpdatedEvent } from "../../services/task-service.js";
 import { ProjectFolderUpdatedEvent } from "../../services/project-folder-service.js";
 import { ChatUpdatedEvent } from "../../services/chat-engine/events.js";
 import { router, publicProcedure } from "../trpc-init.js";
-
-// Define the known event kinds
-const eventKindEnum = z.enum([
-  "FileWatcherEvent",
-  "TaskUpdatedEvent",
-  "ProjectFolderUpdatedEvent",
-  "ChatUpdatedEvent",
-] as const);
 
 // Map event kinds to their event types
 interface EventTypeMap {
@@ -55,27 +48,6 @@ export function createEventRouter(eventBus: IEventBus) {
       "ProjectFolderUpdatedEvent",
     ),
     chatEvents: createEventSubscription(eventBus, "ChatUpdatedEvent"),
-
-    // Subscribe to a specific event kind
-    // subscribeToEvent: publicProcedure
-    //   .input(
-    //     z.object({
-    //       eventKind: eventKindEnum,
-    //       lastEventId: z.string().nullable().optional(), // For tracked events
-    //     })
-    //   )
-    //   .subscription(async function* ({ input, signal }) {
-    //     const { eventKind } = input;
-
-    //     // Subscribe to the specific event kind
-    //     for await (const [event] of eventBus.toIterable<
-    //       EventTypeMap[typeof eventKind]
-    //     >(eventKind, {
-    //       signal,
-    //     })) {
-    //       yield tracked(event.timestamp.toISOString(), event);
-    //     }
-    //   }),
 
     // Send a ping and receive a pong
     ping: publicProcedure
