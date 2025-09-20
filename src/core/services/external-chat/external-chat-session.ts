@@ -6,7 +6,6 @@ import {
   extractChatFileReferences,
   getUserModelMessageContentString,
 } from "../../utils/message-utils.js";
-import { ptySessionManager } from "../pty-session-manager.js";
 import {
   launchTerminalFromConfig,
   getCommandForModel,
@@ -97,36 +96,16 @@ export class ExternalChatSession {
       });
 
       // 2. Check if the external process needs to be started
-      const needsToStart =
-        this.metadata?.external?.mode === "pty"
-          ? !this.metadata.external.sessionId
-          : !this.metadata?.external?.pid;
+      const needsToStart = !this.metadata?.external?.pid;
 
       if (needsToStart) {
-        if (this.metadata?.external?.mode === "terminal") {
-          await this._launchExternalTerminal();
-        } else {
-          await this._launchPtySession();
-        }
+        await this._launchExternalTerminal();
       }
 
       // 3. Write input to the correct process
-      if (this.metadata?.external?.mode === "pty") {
-        const ptySession = ptySessionManager.getSession(
-          this.metadata.external.sessionId!,
-        );
-        if (ptySession) {
-          ptySession.write(textContent + "\n");
-        } else {
-          this.logger.error(
-            `PTY session not found for ID: ${this.metadata.external.sessionId}`,
-          );
-        }
-      } else {
-        this.logger.warn(
-          "Writing input to an external terminal is not supported. Please interact with the spawned terminal window directly.",
-        );
-      }
+      this.logger.warn(
+        "Writing input to an external terminal is not supported. Please interact with the spawned terminal window directly.",
+      );
 
       // Emit status change event if it was changed
       if (this.sessionStatus !== "processing") {
@@ -156,10 +135,7 @@ export class ExternalChatSession {
 
   async terminateExternal(): Promise<void> {
     const externalMeta = this.metadata?.external;
-    if (externalMeta?.mode === "pty" && externalMeta.sessionId) {
-      const ptySession = ptySessionManager.getSession(externalMeta.sessionId);
-      ptySession?.kill();
-    } else if (externalMeta?.mode === "terminal" && externalMeta.pid) {
+    if (externalMeta?.mode === "terminal" && externalMeta.pid) {
       try {
         process.kill(externalMeta.pid);
       } catch (e) {
@@ -172,7 +148,6 @@ export class ExternalChatSession {
 
     if (this.metadata?.external) {
       this.metadata.external.pid = undefined;
-      this.metadata.external.sessionId = undefined;
     }
 
     this.sessionStatus = "external_terminated";
@@ -211,78 +186,7 @@ export class ExternalChatSession {
     };
   }
 
-  private async _launchPtySession(): Promise<void> {
-    if (this.metadata?.external?.sessionId) {
-      throw new Error("PTY session already exists for session ${this.id}.");
-    }
 
-    const projectFolder = await this.projectFolderService.getProjectFolderForPath(
-      this.absoluteFilePath,
-    );
-
-    if (!projectFolder) {
-      throw new Error(`Chat file ${this.absoluteFilePath} is not within any project folder`);
-    }
-
-    const workingDirectory = projectFolder.path;
-
-    const ptySession = ptySessionManager.create({
-      cwd: workingDirectory,
-    });
-
-    this.metadata ??= {};
-    this.metadata.external = {
-      ...this.metadata?.external,
-      mode: "pty",
-      sessionId: ptySession.id,
-    };
-
-    const modelInfo = getCommandForModel(this.modelId);
-    if (!modelInfo) {
-      this.logger.error(`No command found for model: ${this.modelId}`);
-      ptySession.kill();
-      return;
-    }
-
-    const fullCommand = `${modelInfo.command} ${modelInfo.args.join(" ")}`;
-    ptySession.write(`${fullCommand}\n`);
-
-    ptySession.onData((data) => {
-      this.eventBus.emit({
-        kind: "ChatUpdatedEvent",
-        chatId: this.id,
-        updateType: "ASSISTANT_PART_ADDED",
-        update: {
-          part: { type: "text", content: data },
-        },
-        chat: this.toJSON(),
-        timestamp: new Date(),
-      });
-    });
-
-    ptySession.onExit(({ exitCode }) => {
-      this.logger.info(
-        `PTY session ${ptySession.id} exited with code ${exitCode}.`,
-      );
-      this.sessionStatus = "external_terminated";
-      if (this.metadata?.external) {
-        this.metadata.external.sessionId = undefined;
-      }
-      this.eventBus.emit({
-        kind: "ChatUpdatedEvent",
-        chatId: this.id,
-        updateType: "STATUS_CHANGED",
-        update: { status: this.sessionStatus },
-        chat: this.toJSON(),
-        timestamp: new Date(),
-      });
-    });
-
-    this.sessionStatus = "external_active";
-    this.logger.info(
-      `PTY session ${ptySession.id} started for chat ${this.id}`,
-    );
-  }
 
   private async _launchExternalTerminal(): Promise<void> {
     const projectFolder = await this.projectFolderService.getProjectFolderForPath(

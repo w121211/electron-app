@@ -1,6 +1,6 @@
 // src/core/server/root-router.ts
 import { ILogObj, Logger } from "tslog";
-import { createServerEventBus } from "../event-bus.js";
+import type { IEventBus } from "../event-bus.js";
 import { ChatSessionRepositoryImpl } from "../services/chat-engine/chat-session-repository.js";
 import { FileWatcherService } from "../services/file-watcher-service.js";
 import { createProjectFolderService } from "../services/project-folder-service.js";
@@ -22,12 +22,11 @@ import { createModelRouter } from "./routers/model-router.js";
 import { createChatClientRouter } from "./routers/chat-client-router.js";
 import { router } from "./trpc-init.js";
 
-export async function createTrpcRouter(userDataDir: string) {
+export async function createTrpcRouter(userDataDir: string, eventBus: IEventBus) {
   // Setup logger
   const logger: Logger<ILogObj> = new Logger({ name: "AppServer" });
 
-  // Create event bus for server-side events
-  const eventBus = createServerEventBus({ logger });
+  // Use the provided event bus
 
   // Create repositories
   const userSettingsRepo = createUserSettingsRepository(userDataDir);

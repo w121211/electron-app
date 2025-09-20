@@ -21,7 +21,6 @@ export interface CreateExternalChatSessionConfig {
   promptDraft?: string;
   newTask?: boolean;
   modelId?: `${string}/${string}`;
-  externalMode?: "pty" | "terminal";
 }
 
 export class ExternalChatClient {
@@ -102,7 +101,7 @@ export class ExternalChatClient {
         title: "New External Chat",
         promptDraft: config?.promptDraft,
         external: {
-          mode: config?.externalMode || "pty",
+          mode: "terminal",
         },
       },
     };
@@ -227,11 +226,7 @@ export class ExternalChatClient {
 
       // Handle nested 'external' object safely
       if (newMetadata.external) {
-        const currentExternal = session.metadata?.external || { mode: "pty" }; // Default if not present
-        // Log warning if mode change is attempted
-        if ("mode" in newMetadata.external && newMetadata.external.mode !== currentExternal.mode) {
-          this.logger.warn(`Attempted to change immutable property 'external.mode'. Change was ignored.`);
-        }
+        const currentExternal = session.metadata?.external || { mode: "terminal" }; // Default if not present
         // Merge 'external' object, preserving the original mode
         newMetadata.external = { ...currentExternal, ...newMetadata.external, mode: currentExternal.mode };
       }

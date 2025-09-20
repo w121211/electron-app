@@ -4,6 +4,8 @@ import cors from "cors";
 import { ILogObj, Logger } from "tslog";
 import { createContext } from "./trpc-init.js";
 import { createTrpcRouter } from "./root-router.js";
+import type { IEventBus } from "../event-bus.js";
+import { createServerEventBus } from "../event-bus.js";
 
 const logger: Logger<ILogObj> = new Logger({ name: "HttpTrpcServer" });
 
@@ -16,9 +18,11 @@ export class HttpTrpcServer {
   private server: any = null;
   private port: number = 0;
   private userDataDir: string;
+  private eventBus: IEventBus;
 
   constructor(config: ServerConfig) {
     this.userDataDir = config.userDataDir;
+    this.eventBus = createServerEventBus({ logger });
     logger.info(`Using user data directory: ${this.userDataDir}`);
   }
 
@@ -31,8 +35,8 @@ export class HttpTrpcServer {
     try {
       logger.info("Starting embedded tRPC server...");
 
-      // Create the app router
-      const trpcRouter = await createTrpcRouter(this.userDataDir);
+      // Create the app router with the event bus
+      const trpcRouter = await createTrpcRouter(this.userDataDir, this.eventBus);
 
       // Create HTTP server with tRPC handler (no CORS needed for Electron)
       this.server = createHTTPServer({
@@ -96,6 +100,10 @@ export class HttpTrpcServer {
 
   getTrpcUrl(): string {
     return `${this.getBaseUrl()}/api/trpc`;
+  }
+
+  getEventBus(): IEventBus {
+    return this.eventBus;
   }
 
   private async findAvailablePort(preferredPort: number): Promise<number> {

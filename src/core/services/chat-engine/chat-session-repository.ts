@@ -26,7 +26,7 @@ export type ChatFileStatus = "active" | "archived";
 export type ChatMode = "chat" | "agent" | "external";
 
 export interface ExternalSessionMetadata {
-  mode: "pty" | "terminal";
+  // mode: "pty" | "terminal";
   sessionId?: string; // Used for PTY mode
   pid?: number; // Used for terminal mode
   workingDirectory?: string;
@@ -39,6 +39,9 @@ export interface ChatMetadata {
   knowledge?: string[];
   promptDraft?: string;
   external?: ExternalSessionMetadata;
+  pty?: {
+    sessionId: string;
+  };
 }
 
 export interface ChatMessageMetadata {
@@ -58,7 +61,7 @@ export interface ChatMessage {
 }
 
 export interface ChatSessionData {
-  _type: "chat" | "external_chat";
+  _type: "chat" | "external_chat" | "pty_chat";
   id: string;
   absoluteFilePath: string;
   messages: ChatMessage[];
@@ -89,6 +92,11 @@ const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   knowledge: z.array(z.string()).optional(),
   promptDraft: z.string().optional(),
   external: ExternalSessionMetadataSchema.optional(),
+  pty: z
+    .object({
+      sessionId: z.string(),
+    })
+    .optional(),
 });
 
 const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> = z.object({
@@ -112,7 +120,7 @@ const ChatMessageSchema: z.ZodType<ChatMessage> = z.object({
 });
 
 export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
-  _type: z.enum(["chat", "external_chat"]),
+  _type: z.enum(["chat", "external_chat", "pty_chat"]),
   id: z.string(),
   absoluteFilePath: z.string(),
   messages: z.array(ChatMessageSchema),

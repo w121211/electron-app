@@ -1,6 +1,7 @@
 // src/core/services/pty-session-manager.ts
 import * as pty from "node-pty";
 import { Logger } from "tslog";
+import type { IEventBus } from "../event-bus.js";
 
 export interface PtyCreateOptions {
   shell?: string;
@@ -28,8 +29,10 @@ export class PtyInstance {
   public readonly shell: string;
   public readonly cwd: string;
   private ptyProcess: pty.IPty;
+  private onDataListeners = new Set<(data: string) => void>();
+  private onExitListeners = new Set<(e: { exitCode: number; signal?: number }) => void>();
 
-  constructor(options: PtyCreateOptions = {}) {
+  constructor(options: PtyCreateOptions = {}, private readonly eventBus?: IEventBus) {
     this.id = `pty-${++ptySessionCounter}`;
     const isWindows = process.platform === "win32";
     this.shell =
@@ -60,15 +63,49 @@ export class PtyInstance {
       useConpty: isWindows,
     });
 
+    this.ptyProcess.onData((data) => {
+      this.onDataListeners.forEach((listener) => listener(data));
+      this.eventBus?.emit({
+        kind: "PtyDataReceived",
+        sessionId: this.id,
+        data,
+        timestamp: new Date(),
+      });
+    });
+
+    this.ptyProcess.onExit((e) => {
+      this.onExitListeners.forEach((listener) => listener(e));
+      this.eventBus?.emit({
+        kind: "PtyExited",
+        sessionId: this.id,
+        exitCode: e.exitCode,
+        signal: e.signal,
+        timestamp: new Date(),
+      });
+    });
+
     PtyInstance.logger.info(`Pty instance ${this.id} created successfully`);
   }
 
   write(data: string): void {
     this.ptyProcess.write(data);
+    this.eventBus?.emit({
+      kind: "PtyWrite",
+      sessionId: this.id,
+      data,
+      timestamp: new Date(),
+    });
   }
 
   resize(cols: number, rows: number): void {
     this.ptyProcess.resize(cols, rows);
+    this.eventBus?.emit({
+      kind: "PtyResize",
+      sessionId: this.id,
+      cols,
+      rows,
+      timestamp: new Date(),
+    });
     PtyInstance.logger.debug(
       `Pty instance ${this.id} resized to ${cols}x${rows}`,
     );
@@ -79,15 +116,14 @@ export class PtyInstance {
     this.ptyProcess.kill();
   }
 
-  onData(listener: (data: string) => void): void {
-    this.ptyProcess.onData((data) => {
-      // PtyInstance.logger.debug(`Pty instance ${this.id} data:`, data.length);
-      listener(data);
-    });
+  onData(listener: (data: string) => void): () => void {
+    this.onDataListeners.add(listener);
+    return () => this.onDataListeners.delete(listener);
   }
 
-  onExit(listener: (e: { exitCode: number; signal?: number }) => void): void {
-    this.ptyProcess.onExit(listener);
+  onExit(listener: (e: { exitCode: number; signal?: number }) => void): () => void {
+    this.onExitListeners.add(listener);
+    return () => this.onExitListeners.delete(listener);
   }
 }
 
@@ -98,13 +134,15 @@ export class PtyInstance {
 class PtySessionManager {
   private logger = new Logger({ name: "PtySessionManager" });
   private sessions = new Map<string, PtyInstance>();
+  private eventBus?: IEventBus;
 
-  constructor() {
-    this.logger.info("PtySessionManager initialized");
+  initialize(eventBus: IEventBus) {
+    this.logger.info("PtySessionManager initialized with event bus");
+    this.eventBus = eventBus;
   }
 
   create(options: PtyCreateOptions = {}): PtyInstance {
-    const session = new PtyInstance(options);
+    const session = new PtyInstance(options, this.eventBus);
     this.sessions.set(session.id, session);
     this.logger.info(`Tracking new pty session: ${session.id}`);
 
@@ -133,8 +171,6 @@ class PtySessionManager {
     for (const session of this.sessions.values()) {
       session.kill();
     }
-    // The onExit handler will clear the sessions map as they terminate.
-    // For immediate cleanup, we can also clear the map here.
     this.sessions.clear();
   }
 }

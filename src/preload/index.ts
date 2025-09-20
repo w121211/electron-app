@@ -11,7 +11,7 @@ const api = {
     ipcRenderer.invoke("show-in-folder", filePath),
   // Pty APIs
   pty: {
-    create: (options?: any) => ipcRenderer.invoke("pty:create", options),
+    attach: (sessionId: string) => ipcRenderer.invoke("pty:attach", sessionId),
     write: (sessionId: string, data: string) =>
       ipcRenderer.invoke("pty:write", sessionId, data),
     resize: (sessionId: string, options: { cols: number; rows: number }) =>

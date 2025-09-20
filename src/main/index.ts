@@ -83,6 +83,9 @@ app.whenReady().then(async () => {
     trpcServer = new HttpTrpcServer({ userDataDir });
     const port = await trpcServer.start(3333); // Prefer port 3333, fallback to any available
     console.log(`tRPC server started on port ${port}`);
+
+    // Initialize PTY session manager with event bus
+    ptySessionManager.initialize(trpcServer.getEventBus());
   } catch (error) {
     console.error("Failed to start tRPC server:", error);
     app.quit();
@@ -120,23 +123,33 @@ app.whenReady().then(async () => {
   });
 
   // Pty IPC handlers
-  ipcMain.handle("pty:create", async (event, options?) => {
-    const ptyInstance = ptySessionManager.create(options);
+  ipcMain.handle("pty:attach", (event, sessionId: string) => {
+    const ptyInstance = ptySessionManager.getSession(sessionId);
+    if (!ptyInstance) {
+      console.error(`PTY session not found for ID: ${sessionId}`);
+      return false;
+    }
 
-    // Forward events from this specific pty instance to the renderer window that created it
-    ptyInstance.onData((data) => {
+    // Forward events from this specific pty instance to the renderer window that attached
+    const onDataUnsubscribe = ptyInstance.onData((data) => {
       if (!event.sender.isDestroyed()) {
         event.sender.send("pty:data", ptyInstance.id, data);
       }
     });
 
-    ptyInstance.onExit(({ exitCode, signal }) => {
+    const onExitUnsubscribe = ptyInstance.onExit(({ exitCode, signal }) => {
       if (!event.sender.isDestroyed()) {
         event.sender.send("pty:exit", ptyInstance.id, exitCode, signal);
       }
     });
 
-    return ptyInstance.id;
+    // When the renderer window is closed, unsubscribe from PTY events
+    event.sender.once("destroyed", () => {
+      onDataUnsubscribe();
+      onExitUnsubscribe();
+    });
+
+    return true;
   });
 
   ipcMain.handle("pty:write", async (_, sessionId: string, data: string) => {

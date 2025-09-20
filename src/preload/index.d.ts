@@ -11,7 +11,7 @@ declare global {
       showOpenDialog: () => Promise<string | null>;
       showInFolder: (filePath: string) => Promise<void>;
       pty: {
-        create: (options?: any) => Promise<string | null>;
+        attach: (sessionId: string) => Promise<boolean>;
         write: (sessionId: string, data: string) => Promise<boolean>;
         resize: (
           sessionId: string,
