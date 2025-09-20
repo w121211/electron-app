@@ -25,16 +25,20 @@ export type ChatFileStatus = "active" | "archived";
 
 export type ChatMode = "chat" | "agent" | "external";
 
+export interface ExternalSessionMetadata {
+  mode: "pty" | "terminal";
+  sessionId?: string; // Used for PTY mode
+  pid?: number; // Used for terminal mode
+  workingDirectory?: string;
+}
+
 export interface ChatMetadata {
   title?: string;
   tags?: string[];
   mode?: ChatMode;
   knowledge?: string[];
   promptDraft?: string;
-
-  // External chat session properties
-  externalProcessPid?: number;
-  externalWorkingDirectory?: string;
+  external?: ExternalSessionMetadata;
 }
 
 export interface ChatMessageMetadata {
@@ -71,15 +75,20 @@ export interface ChatSessionData {
 }
 
 // Zod schemas for validation and type inference
+const ExternalSessionMetadataSchema = z.object({
+  mode: z.enum(["pty", "terminal"]),
+  sessionId: z.string().optional(), // Used for PTY mode
+  pid: z.number().optional(), // Used for terminal mode
+  workingDirectory: z.string().optional(),
+});
+
 const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   title: z.string().optional(),
-  summary: z.string().optional(),
   tags: z.array(z.string()).optional(),
   mode: z.enum(["chat", "agent", "external"]).optional(),
   knowledge: z.array(z.string()).optional(),
   promptDraft: z.string().optional(),
-  externalProcessPid: z.number().optional(),
-  workingDirectory: z.string().optional(),
+  external: ExternalSessionMetadataSchema.optional(),
 });
 
 const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> = z.object({

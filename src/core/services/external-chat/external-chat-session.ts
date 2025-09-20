@@ -6,17 +6,21 @@ import {
   extractChatFileReferences,
   getUserModelMessageContentString,
 } from "../../utils/message-utils.js";
-import { launchTerminalFromConfig } from "../terminal-launcher.js";
+import { ptySessionManager } from "../pty-session-manager.js";
+import {
+  launchTerminalFromConfig,
+  getCommandForModel,
+} from "../terminal-launcher.js";
 import type { IEventBus } from "../../event-bus.js";
 import type {
   ChatMessage,
   ChatSessionData,
 } from "../chat-engine/chat-session-repository.js";
+import type { ProjectFolderService } from "../project-folder-service.js";
 
 export interface ExternalTurnResult {
   sessionStatus: ChatSessionData["sessionStatus"];
   currentTurn: number;
-  externalProcessPid?: number;
 }
 
 export class ExternalChatSession {
@@ -37,6 +41,7 @@ export class ExternalChatSession {
   constructor(
     data: ChatSessionData,
     private readonly eventBus: IEventBus,
+    private readonly projectFolderService: ProjectFolderService,
   ) {
     this.id = data.id;
     this.absoluteFilePath = data.absoluteFilePath;
@@ -91,57 +96,85 @@ export class ExternalChatSession {
         timestamp: new Date(),
       });
 
-      // 2. Launch external terminal if not already active
-      if (this.metadata?.externalProcessPid === undefined) {
-        const workingDirectory = this.absoluteFilePath.substring(
-          0,
-          this.absoluteFilePath.lastIndexOf("/"),
-        );
+      // 2. Check if the external process needs to be started
+      const needsToStart =
+        this.metadata?.external?.mode === "pty"
+          ? !this.metadata.external.sessionId
+          : !this.metadata?.external?.pid;
 
-        const launchResult = launchTerminalFromConfig({
-          modelId: this.modelId,
-          workingDirectory,
-        });
-
-        if (!launchResult.success) {
-          throw new Error(`Failed to launch terminal: ${launchResult.error}`);
+      if (needsToStart) {
+        if (this.metadata?.external?.mode === "terminal") {
+          await this._launchExternalTerminal();
+        } else {
+          await this._launchPtySession();
         }
-
-        // Update metadata with process info
-        this.metadata = {
-          ...this.metadata,
-          mode: "external",
-          externalProcessPid: launchResult.pid,
-          externalWorkingDirectory: workingDirectory,
-        };
-
-        this.sessionStatus = "external_active";
       }
 
-      // Emit status change event
-      await this.eventBus.emit({
-        kind: "ChatUpdatedEvent",
-        chatId: this.id,
-        updateType: "STATUS_CHANGED",
-        update: { status: this.sessionStatus },
-        chat: this.toJSON(),
-        timestamp: new Date(),
-      });
+      // 3. Write input to the correct process
+      if (this.metadata?.external?.mode === "pty") {
+        const ptySession = ptySessionManager.getSession(
+          this.metadata.external.sessionId!,
+        );
+        if (ptySession) {
+          ptySession.write(textContent + "\n");
+        } else {
+          this.logger.error(
+            `PTY session not found for ID: ${this.metadata.external.sessionId}`,
+          );
+        }
+      } else {
+        this.logger.warn(
+          "Writing input to an external terminal is not supported. Please interact with the spawned terminal window directly.",
+        );
+      }
+
+      // Emit status change event if it was changed
+      if (this.sessionStatus !== "processing") {
+        await this.eventBus.emit({
+          kind: "ChatUpdatedEvent",
+          chatId: this.id,
+          updateType: "STATUS_CHANGED",
+          update: { status: this.sessionStatus },
+          chat: this.toJSON(),
+          timestamp: new Date(),
+        });
+      }
 
       return {
         sessionStatus: this.sessionStatus,
         currentTurn: this.currentTurn,
-        externalProcessPid: this.metadata?.externalProcessPid,
       };
     } catch (error) {
+      this.sessionStatus = "idle";
       throw error;
     } finally {
-      this.sessionStatus = "idle";
+      if (this.sessionStatus === "processing") {
+        this.sessionStatus = "idle";
+      }
     }
   }
 
   async terminateExternal(): Promise<void> {
-    // Future: implement process termination logic
+    const externalMeta = this.metadata?.external;
+    if (externalMeta?.mode === "pty" && externalMeta.sessionId) {
+      const ptySession = ptySessionManager.getSession(externalMeta.sessionId);
+      ptySession?.kill();
+    } else if (externalMeta?.mode === "terminal" && externalMeta.pid) {
+      try {
+        process.kill(externalMeta.pid);
+      } catch (e) {
+        this.logger.error(
+          `Failed to kill external terminal process ${externalMeta.pid}`,
+          e,
+        );
+      }
+    }
+
+    if (this.metadata?.external) {
+      this.metadata.external.pid = undefined;
+      this.metadata.external.sessionId = undefined;
+    }
+
     this.sessionStatus = "external_terminated";
     this.updatedAt = new Date();
 
@@ -176,5 +209,109 @@ export class ExternalChatSession {
       updatedAt: this.updatedAt,
       metadata: this.metadata,
     };
+  }
+
+  private async _launchPtySession(): Promise<void> {
+    if (this.metadata?.external?.sessionId) {
+      throw new Error("PTY session already exists for session ${this.id}.");
+    }
+
+    const projectFolder = await this.projectFolderService.getProjectFolderForPath(
+      this.absoluteFilePath,
+    );
+
+    if (!projectFolder) {
+      throw new Error(`Chat file ${this.absoluteFilePath} is not within any project folder`);
+    }
+
+    const workingDirectory = projectFolder.path;
+
+    const ptySession = ptySessionManager.create({
+      cwd: workingDirectory,
+    });
+
+    this.metadata ??= {};
+    this.metadata.external = {
+      ...this.metadata?.external,
+      mode: "pty",
+      sessionId: ptySession.id,
+    };
+
+    const modelInfo = getCommandForModel(this.modelId);
+    if (!modelInfo) {
+      this.logger.error(`No command found for model: ${this.modelId}`);
+      ptySession.kill();
+      return;
+    }
+
+    const fullCommand = `${modelInfo.command} ${modelInfo.args.join(" ")}`;
+    ptySession.write(`${fullCommand}\n`);
+
+    ptySession.onData((data) => {
+      this.eventBus.emit({
+        kind: "ChatUpdatedEvent",
+        chatId: this.id,
+        updateType: "ASSISTANT_PART_ADDED",
+        update: {
+          part: { type: "text", content: data },
+        },
+        chat: this.toJSON(),
+        timestamp: new Date(),
+      });
+    });
+
+    ptySession.onExit(({ exitCode }) => {
+      this.logger.info(
+        `PTY session ${ptySession.id} exited with code ${exitCode}.`,
+      );
+      this.sessionStatus = "external_terminated";
+      if (this.metadata?.external) {
+        this.metadata.external.sessionId = undefined;
+      }
+      this.eventBus.emit({
+        kind: "ChatUpdatedEvent",
+        chatId: this.id,
+        updateType: "STATUS_CHANGED",
+        update: { status: this.sessionStatus },
+        chat: this.toJSON(),
+        timestamp: new Date(),
+      });
+    });
+
+    this.sessionStatus = "external_active";
+    this.logger.info(
+      `PTY session ${ptySession.id} started for chat ${this.id}`,
+    );
+  }
+
+  private async _launchExternalTerminal(): Promise<void> {
+    const projectFolder = await this.projectFolderService.getProjectFolderForPath(
+      this.absoluteFilePath,
+    );
+
+    if (!projectFolder) {
+      throw new Error(`Chat file ${this.absoluteFilePath} is not within any project folder`);
+    }
+
+    const workingDirectory = projectFolder.path;
+
+    const launchResult = launchTerminalFromConfig({
+      modelId: this.modelId,
+      workingDirectory,
+    });
+
+    if (!launchResult.success) {
+      throw new Error(`Failed to launch terminal: ${launchResult.error}`);
+    }
+
+    this.metadata ??= {};
+    this.metadata.external = {
+      ...this.metadata?.external,
+      mode: "terminal",
+      pid: launchResult.pid,
+      workingDirectory,
+    };
+
+    this.sessionStatus = "external_active";
   }
 }

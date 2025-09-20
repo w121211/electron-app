@@ -21,6 +21,7 @@ export interface CreateExternalChatSessionConfig {
   promptDraft?: string;
   newTask?: boolean;
   modelId?: `${string}/${string}`;
+  externalMode?: "pty" | "terminal";
 }
 
 export class ExternalChatClient {
@@ -100,6 +101,9 @@ export class ExternalChatClient {
         knowledge: config?.knowledge || [],
         title: "New External Chat",
         promptDraft: config?.promptDraft,
+        external: {
+          mode: config?.externalMode || "pty",
+        },
       },
     };
 
@@ -217,9 +221,24 @@ export class ExternalChatClient {
   ): Promise<void> {
     const session = await this.getOrLoadExternalChatSession(absoluteFilePath);
 
+    // Handle metadata update safely
     if (updates.metadata) {
-      session.metadata = { ...session.metadata, ...updates.metadata };
+      const newMetadata = { ...updates.metadata };
+
+      // Handle nested 'external' object safely
+      if (newMetadata.external) {
+        const currentExternal = session.metadata?.external || { mode: "pty" }; // Default if not present
+        // Log warning if mode change is attempted
+        if ("mode" in newMetadata.external && newMetadata.external.mode !== currentExternal.mode) {
+          this.logger.warn(`Attempted to change immutable property 'external.mode'. Change was ignored.`);
+        }
+        // Merge 'external' object, preserving the original mode
+        newMetadata.external = { ...currentExternal, ...newMetadata.external, mode: currentExternal.mode };
+      }
+
+      session.metadata = { ...session.metadata, ...newMetadata };
     }
+
     if (updates.maxTurns !== undefined) {
       session.maxTurns = updates.maxTurns;
     }
@@ -263,7 +282,7 @@ export class ExternalChatClient {
       throw new Error("Data is not for external chat session");
     }
 
-    const externalSession = new ExternalChatSession(data, this.eventBus);
+    const externalSession = new ExternalChatSession(data, this.eventBus, this.projectFolderService);
 
     // Add to session pool
     this.externalSessions.set(

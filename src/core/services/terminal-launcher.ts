@@ -109,20 +109,28 @@ end if
   }
 }
 
+export function getCommandForModel(modelId: string): { command: string, args: string[] } | undefined {
+  const externalModel = Object.values(presetExternalModels).find(
+    (model) => model.modelId === modelId,
+  );
+  if (!externalModel) {
+    return undefined;
+  }
+  return { command: externalModel.command, args: externalModel.args };
+}
+
 export function launchTerminalFromConfig(
   config: TerminalLaunchConfig,
 ): LaunchTerminalResult {
-  const externalModel = Object.values(presetExternalModels).find(
-    (model) => model.modelId === config.modelId,
-  );
-  if (!externalModel) {
+  const modelInfo = getCommandForModel(config.modelId);
+  if (!modelInfo) {
     return {
       success: false,
       error: `Invalid terminal model: ${config.modelId}`,
     };
   }
 
-  const { command: actualCommand, args } = externalModel;
+  const { command: actualCommand, args } = modelInfo;
 
   return launchTerminal(
     actualCommand,
