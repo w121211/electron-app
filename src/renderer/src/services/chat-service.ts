@@ -441,8 +441,13 @@ ${att.content}`,
     if (event.eventType === "unlink" && !event.isDirectory) {
       const currentChat = chatState.currentChat;
 
-      if (currentChat && currentChat.absoluteFilePath === event.absoluteFilePath) {
-        this.logger.info(`Currently open chat file was deleted: ${event.absoluteFilePath}`);
+      if (
+        currentChat &&
+        currentChat.absoluteFilePath === event.absoluteFilePath
+      ) {
+        this.logger.info(
+          `Currently open chat file was deleted: ${event.absoluteFilePath}`,
+        );
 
         // Clear the current chat since the file no longer exists
         clearCurrentChat();

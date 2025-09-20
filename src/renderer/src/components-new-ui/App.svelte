@@ -6,7 +6,6 @@
   import { eventService } from "../services/event-service.js";
   import { projectService } from "../services/project-service.js";
   import { keyboardManager } from "../lib/keyboard.js";
-  import Xterm from "./Xterm.svelte";
 
   const logger = new Logger({ name: "NewApp" });
 

@@ -1,6 +1,5 @@
 // src/renderer/src/services/project-service.ts
 import { Logger } from "tslog";
-import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
   setTreeSelectionState,
@@ -19,8 +18,7 @@ import {
   setWorkspaceSetupNeeded,
 } from "../stores/file-explorer-store.svelte.js";
 import { chatService } from "./chat-service.js";
-import { chatState } from "../stores/chat-store.svelte.js";
-import { setActiveView } from "../stores/ui-store.svelte.js";
+
 import {
   loadFileForPanel,
   closeFilePanel,
@@ -189,14 +187,6 @@ class ProjectService {
         this.logger.info("Opening chat file:", filePath);
         closeFilePanel(); // Close any active file panel
         await chatService.openChatFile(filePath);
-        if (
-          chatState.currentChat?.modelId &&
-          isTerminalModel(chatState.currentChat.modelId)
-        ) {
-          setActiveView("xterm");
-        } else {
-          setActiveView("chat"); // Set view to chat
-        }
         this.logger.info("Chat file opened successfully");
       } catch (error) {
         this.logger.error("Failed to open chat file:", error);
@@ -204,7 +194,7 @@ class ProjectService {
           `Failed to open chat file: ${error instanceof Error ? error.message : String(error)}`,
           "error",
         );
-        setActiveView("welcome"); // Fallback to welcome screen on error
+        setTreeSelectionState(null, null, null); // Clear selection on error
       }
     } else {
       // Regular file: Open in file viewer
@@ -212,14 +202,13 @@ class ProjectService {
       try {
         this.logger.debug("Opening regular file for view:", filePath);
         await loadFileForPanel(filePath);
-        setActiveView("filePanel"); // Set view to filePanel
       } catch (error) {
         this.logger.error("Failed to open regular file:", error);
         showToast(
           `Failed to open file: ${error instanceof Error ? error.message : String(error)}`,
           "error",
         );
-        setActiveView("welcome"); // Fallback to welcome screen on error
+        setTreeSelectionState(null, null, null); // Clear selection on error
       }
     }
   }

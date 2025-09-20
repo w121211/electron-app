@@ -138,7 +138,6 @@ class EventService {
       unsubscribe: subscription.unsubscribe,
     });
   }
-
 }
 
 export const eventService = new EventService();
