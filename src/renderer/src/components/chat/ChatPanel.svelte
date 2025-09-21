@@ -11,7 +11,9 @@
     Search,
     LayoutSidebar,
   } from "svelte-bootstrap-icons";
+  import { isTerminalModel } from "../../../../core/utils/model-utils.js";
   import { chatService } from "../../services/chat-service.js";
+  import { ptyChatService } from "../../services/pty-chat-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import {
     chatState,
@@ -33,7 +35,6 @@
   import PromptEditor from "./PromptEditor.svelte";
   import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
-  import { isTerminalModel } from "../../../../core/utils/model-utils.js";
 
   // Derived loading states
   const isLoadingSubmitMessage = $derived(
@@ -46,12 +47,11 @@
   // Derived chat states
   const hasCurrentChat = $derived(chatState.currentChat !== null);
   const currentChatMessages = $derived(chatState.currentChat?.messages || []);
-  const isTerminalSelected = $derived(() => {
-    const model = chatState.selectedModel;
-    return model ? isTerminalModel(model) : false;
-  });
+  const isTerminalModelSelected = $derived(
+    isTerminalModel(chatState.selectedModel),
+  );
   const canStartPtySession = $derived(
-    isTerminalSelected && chatState.messageInput.trim().length > 0,
+    isTerminalModelSelected && chatState.messageInput.trim().length > 0,
   );
 
   let messageInputElement = $state<HTMLTextAreaElement>();
@@ -105,8 +105,10 @@
   });
 
   // Smart prompt editor logic - suggest editor for empty chats
-  const shouldShowPromptEditorByDefault = $derived(() => {
-    if (!chatState.currentChat) return false;
+  const shouldShowPromptEditorByDefault = $derived.by(() => {
+    if (!chatState.currentChat) {
+      return false;
+    }
     return currentChatMessages.length === 0; // Empty chat = suggest editor
   });
 
@@ -124,6 +126,11 @@
   });
 
   async function handleSendMessage(): Promise<void> {
+    if (isTerminalModelSelected) {
+      ptyChatService.startPtySessionFromDraft(chatState.messageInput);
+      return;
+    }
+
     if (!chatState.messageInput.trim() || !chatState.currentChat) return;
 
     const message = chatState.messageInput.trim();
@@ -190,11 +197,6 @@
     if (handled) return;
 
     if (event.key === "Enter" && !event.shiftKey) {
-      if (isTerminalSelected) {
-        event.preventDefault();
-        chatService.startPtySessionFromDraft(chatState.messageInput);
-        return;
-      }
       event.preventDefault();
       handleSendMessage();
     }
@@ -320,17 +322,17 @@
         {/if}
       </div>
       <div class="flex items-center gap-2">
-        {#if isTerminalSelected}
+        <!-- {#if isTerminalModelSelected}
           <button
             onclick={() =>
-              chatService.startPtySessionFromDraft(chatState.messageInput)}
+              ptyChatService.startPtySessionFromDraft(chatState.messageInput)}
             class="text-muted hover:text-accent cursor-pointer rounded p-1.5 disabled:opacity-50"
             title="Run in PTY"
             disabled={!canStartPtySession || isStartingPtySession}
           >
             Run in PTY
           </button>
-        {/if}
+        {/if} -->
         <button
           onclick={handleShare}
           class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
@@ -464,7 +466,7 @@
   {/if}
 </section>
 
-<style>
+<!-- <style>
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
   }
@@ -475,4 +477,4 @@
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-</style>
+</style> -->

@@ -6,6 +6,7 @@ import { createContext } from "./trpc-init.js";
 import { createTrpcRouter } from "./root-router.js";
 import type { IEventBus } from "../event-bus.js";
 import { createServerEventBus } from "../event-bus.js";
+import { createPtyInstanceManager, type PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
 
 const logger: Logger<ILogObj> = new Logger({ name: "HttpTrpcServer" });
 
@@ -19,10 +20,12 @@ export class HttpTrpcServer {
   private port: number = 0;
   private userDataDir: string;
   private eventBus: IEventBus;
+  private ptyInstanceManager: PtyInstanceManager;
 
   constructor(config: ServerConfig) {
     this.userDataDir = config.userDataDir;
     this.eventBus = createServerEventBus({ logger });
+    this.ptyInstanceManager = createPtyInstanceManager(this.eventBus);
     logger.info(`Using user data directory: ${this.userDataDir}`);
   }
 
@@ -35,7 +38,11 @@ export class HttpTrpcServer {
     logger.info("Starting embedded tRPC server...");
 
     // Create the app router
-    const trpcRouter = await createTrpcRouter(this.userDataDir);
+    const trpcRouter = await createTrpcRouter({
+      userDataDir: this.userDataDir,
+      eventBus: this.eventBus,
+      ptyInstanceManager: this.ptyInstanceManager,
+    });
 
     // Create HTTP server with tRPC handler (no CORS needed for Electron)
     this.server = createHTTPServer({
@@ -99,6 +106,10 @@ export class HttpTrpcServer {
 
   getEventBus(): IEventBus {
     return this.eventBus;
+  }
+
+  getPtyInstanceManager(): PtyInstanceManager {
+    return this.ptyInstanceManager;
   }
 
   private async findAvailablePort(preferredPort: number): Promise<number> {

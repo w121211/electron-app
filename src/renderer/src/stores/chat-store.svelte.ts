@@ -30,9 +30,8 @@ export const chatState = $state<ChatState>({
   currentChat: null,
   availableModels: [],
   selectedModel:
-    (getPreference("selectedModel") as `${string}/${string}`) ??
-    "terminal/codex",
-  chatMode: (getPreference("chatMode") as ChatMode) ?? "agent",
+    (getPreference("selectedModel") as `${string}/${string}`) || "cli/codex",
+  chatMode: (getPreference("chatMode") as ChatMode) || "agent",
   messageInput: "",
   isSubmittingMessage: false,
   promptCursorPosition: null,
@@ -108,17 +107,17 @@ export function addMessageToCurrentChat(message: ChatMessage) {
   chatState.currentChat.updatedAt = new Date();
 }
 
-export function updateChatMetadata(
-  metadata: Partial<ChatSessionData["metadata"]>,
-) {
-  if (!chatState.currentChat) return;
+// export function updateChatMetadata(
+//   metadata: Partial<ChatSessionData["metadata"]>,
+// ) {
+//   if (!chatState.currentChat) return;
 
-  chatState.currentChat.metadata = {
-    ...chatState.currentChat.metadata,
-    ...metadata,
-  };
-  chatState.currentChat.updatedAt = new Date();
-}
+//   chatState.currentChat.metadata = {
+//     ...chatState.currentChat.metadata,
+//     ...metadata,
+//   };
+//   chatState.currentChat.updatedAt = new Date();
+// }
 
 // Extract file references from message content
 export function extractFileReferences(

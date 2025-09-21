@@ -1,6 +1,6 @@
 // src/core/server/root-router.ts
 import { ILogObj, Logger } from "tslog";
-import type { IEventBus } from "../event-bus.js";
+// import type { IEventBus } from "../event-bus.js";
 import { ChatSessionRepositoryImpl } from "../services/chat-engine/chat-session-repository.js";
 import { FileWatcherService } from "../services/file-watcher-service.js";
 import { createProjectFolderService } from "../services/project-folder-service.js";
@@ -23,21 +23,23 @@ import { createChatClientRouter } from "./routers/chat-client-router.js";
 import { router } from "./trpc-init.js";
 import { PtyChatClient } from "../services/pty/pty-chat-client.js";
 import { createPtyChatRouter } from "./routers/pty-chat-router.js";
-import { createPtySessionManager } from "../services/pty/pty-session-manager.js";
-import { createServerEventBus } from "../event-bus.js";
+import type { PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
+import type { IEventBus } from "../event-bus.js";
 
-export async function createTrpcRouter(userDataDir: string) {
+interface TrpcRouterConfig {
+  userDataDir: string;
+  eventBus: IEventBus;
+  ptyInstanceManager: PtyInstanceManager;
+}
+
+export async function createTrpcRouter(config: TrpcRouterConfig) {
+  const { userDataDir, eventBus, ptyInstanceManager } = config;
+
   // Setup logger
   const logger: Logger<ILogObj> = new Logger({ name: "AppServer" });
 
-  // Create event bus
-  const eventBus = createServerEventBus({ logger });
-
   // Create repositories
   const userSettingsRepo = createUserSettingsRepository(userDataDir);
-
-  // Create PTY session manager
-  const ptySessionManager = createPtySessionManager(eventBus);
 
   // Create services
   const fileWatcherService = new FileWatcherService(eventBus);
@@ -90,7 +92,7 @@ export async function createTrpcRouter(userDataDir: string) {
     eventBus,
     chatSessionRepository,
     projectFolderService,
-    ptySessionManager,
+    ptyInstanceManager,
   );
 
   // Start watching all project folders

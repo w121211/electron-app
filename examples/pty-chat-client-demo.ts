@@ -9,7 +9,7 @@ import { ChatSessionRepositoryImpl } from "../src/core/services/chat-engine/chat
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
 import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";
 import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
-import { createPtySessionManager } from "../src/core/services/pty/pty-session-manager.js";
+import { createPtyInstanceManager } from "../src/core/services/pty/pty-instance-manager.js";
 import { PtyChatClient } from "../src/core/services/pty/pty-chat-client.js";
 import type { ChatSessionData } from "../src/core/services/chat-engine/chat-session-repository.js";
 import {
@@ -41,13 +41,13 @@ async function setupServices() {
   );
   const chatSessionRepository = new ChatSessionRepositoryImpl();
 
-  // Create ptySessionManager with the event bus
-  const ptySessionManager = createPtySessionManager(eventBus);
+  // Create ptyInstanceManager with the event bus
+  const ptyInstanceManager = createPtyInstanceManager(eventBus);
 
   return {
     projectFolderService,
     chatSessionRepository,
-    ptySessionManager,
+    ptyInstanceManager,
   };
 }
 
@@ -60,7 +60,7 @@ async function runPtyChatDemo() {
     eventBus,
     services.chatSessionRepository,
     services.projectFolderService,
-    services.ptySessionManager,
+    services.ptyInstanceManager,
   );
 
   // Listen to PTY events to see the new event-driven architecture in action
@@ -134,7 +134,7 @@ async function runPtyChatDemo() {
   await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for events
   logger.info("--- Testing session termination ---");
 
-  const ptyInstance1 = services.ptySessionManager.getSession(
+  const ptyInstance1 = services.ptyInstanceManager.getSession(
     session1.ptyInstanceId!,
   );
   if (ptyInstance1) {
@@ -142,7 +142,7 @@ async function runPtyChatDemo() {
     ptyInstance1.kill();
   }
 
-  const ptyInstance2 = services.ptySessionManager.getSession(
+  const ptyInstance2 = services.ptyInstanceManager.getSession(
     session2.ptyInstanceId!,
   );
   if (ptyInstance2) {

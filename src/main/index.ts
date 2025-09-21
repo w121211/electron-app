@@ -6,14 +6,11 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
-import {
-  createPtySessionManager,
-  type PtySessionManager,
-} from "../core/services/pty/pty-session-manager.js";
+import { type PtyInstanceManager } from "../core/services/pty/pty-instance-manager.js";
 
 // Global server instance
 let trpcServer: HttpTrpcServer;
-let ptySessionManager: PtySessionManager;
+let ptyInstanceManager: PtyInstanceManager;
 
 function createWindow(): void {
   // Create the browser window.
@@ -38,23 +35,23 @@ function createWindow(): void {
     }
 
     // Take screenshot when app is ready (development only)
-    if (is.dev) {
-      try {
-        // Wait a bit for the app to fully render
-        setTimeout(async () => {
-          const screenshot = await mainWindow.webContents.capturePage();
-          const screenshotPath = path.join(
-            process.cwd(),
-            "screenshots",
-            `app-screenshot-${Date.now()}.png`,
-          );
-          await fs.writeFile(screenshotPath, screenshot.toPNG());
-          console.log(`Screenshot saved to: ${screenshotPath}`);
-        }, 2000); // 2 second delay to ensure full render
-      } catch (error) {
-        console.error("Failed to take screenshot:", error);
-      }
-    }
+    // if (is.dev) {
+    //   try {
+    //     // Wait a bit for the app to fully render
+    //     setTimeout(async () => {
+    //       const screenshot = await mainWindow.webContents.capturePage();
+    //       const screenshotPath = path.join(
+    //         process.cwd(),
+    //         "screenshots",
+    //         `app-screenshot-${Date.now()}.png`,
+    //       );
+    //       await fs.writeFile(screenshotPath, screenshot.toPNG());
+    //       console.log(`Screenshot saved to: ${screenshotPath}`);
+    //     }, 2000); // 2 second delay to ensure full render
+    //   } catch (error) {
+    //     console.error("Failed to take screenshot:", error);
+    //   }
+    // }
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -88,8 +85,8 @@ app.whenReady().then(async () => {
     const port = await trpcServer.start(3333); // Prefer port 3333, fallback to any available
     console.log(`tRPC server started on port ${port}`);
 
-    // Initialize PTY session manager with event bus from tRPC server
-    ptySessionManager = createPtySessionManager(trpcServer.getEventBus());
+    // Get PTY instance manager from tRPC server
+    ptyInstanceManager = trpcServer.getPtyInstanceManager();
   } catch (error) {
     console.error("Failed to start tRPC server:", error);
     app.quit();
@@ -130,7 +127,7 @@ app.whenReady().then(async () => {
 
   // Pty IPC handlers
   ipcMain.handle("pty:attach", (event, sessionId: string) => {
-    const ptyInstance = ptySessionManager.getSession(sessionId);
+    const ptyInstance = ptyInstanceManager.getSession(sessionId);
     if (!ptyInstance) {
       console.error(`PTY session not found for ID: ${sessionId}`);
       return false;
@@ -159,7 +156,7 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle("pty:write", async (_, sessionId: string, data: string) => {
-    const session = ptySessionManager.getSession(sessionId);
+    const session = ptyInstanceManager.getSession(sessionId);
     if (session) {
       session.write(data);
       return true;
@@ -170,7 +167,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(
     "pty:resize",
     async (_, sessionId: string, options: { cols: number; rows: number }) => {
-      const session = ptySessionManager.getSession(sessionId);
+      const session = ptyInstanceManager.getSession(sessionId);
       if (session) {
         session.resize(options.cols, options.rows);
         return true;
@@ -180,7 +177,7 @@ app.whenReady().then(async () => {
   );
 
   ipcMain.handle("pty:destroy", async (_, sessionId: string) => {
-    const session = ptySessionManager.getSession(sessionId);
+    const session = ptyInstanceManager.getSession(sessionId);
     if (session) {
       session.kill();
       return true;
@@ -215,7 +212,7 @@ app.on("before-quit", async () => {
   if (trpcServer) {
     await trpcServer.stop();
   }
-  ptySessionManager.destroyAll();
+  ptyInstanceManager.destroyAll();
 });
 
 // In this file you can include the rest of your app's specific main process

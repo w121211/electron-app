@@ -5,6 +5,8 @@ import { Logger, type ILogObj } from "tslog";
 import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import { createTrpcRouter } from "./root-router.js";
 import { createContext } from "./trpc-init.js";
+import { createServerEventBus } from "../event-bus.js";
+import { createPtyInstanceManager } from "../services/pty/pty-instance-manager.js";
 
 const logger = new Logger<ILogObj>({ name: "Start-Server" });
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3333;
@@ -16,7 +18,15 @@ async function startServer() {
     // Get user data directory from environment or use default
     const userDataDir = process.cwd() + "/my-demo-space/user-data";
 
-    const trpcRouter = await createTrpcRouter(userDataDir);
+    // Create dependencies
+    const eventBus = createServerEventBus({ logger });
+    const ptyInstanceManager = createPtyInstanceManager(eventBus);
+
+    const trpcRouter = await createTrpcRouter({
+      userDataDir,
+      eventBus,
+      ptyInstanceManager,
+    });
 
     // Create HTTP server with tRPC handler
     const server = createHTTPServer({

@@ -12,6 +12,10 @@ import {
   listDirectory,
 } from "../../utils/file-utils.js";
 
+export type ChatSessionType = "chat" | "external_chat" | "pty_chat";
+
+export type ChatMode = "chat" | "agent";
+
 export type ChatSessionStatus =
   | "idle"
   | "processing"
@@ -22,27 +26,6 @@ export type ChatSessionStatus =
   | "external_terminated";
 
 export type ChatFileStatus = "active" | "archived";
-
-export type ChatMode = "chat" | "agent" | "external" | "pty";
-
-export interface ExternalSessionMetadata {
-  // mode: "pty" | "terminal";
-  sessionId?: string; // Used for PTY mode
-  pid?: number; // Used for terminal mode
-  workingDirectory?: string;
-}
-
-export interface ChatMetadata {
-  title?: string;
-  tags?: string[];
-  mode?: ChatMode;
-  knowledge?: string[];
-  promptDraft?: string;
-  external?: ExternalSessionMetadata;
-  pty?: {
-    sessionId: string;
-  };
-}
 
 export interface ChatMessageMetadata {
   timestamp: Date;
@@ -60,12 +43,30 @@ export interface ChatMessage {
   metadata: ChatMessageMetadata;
 }
 
+export interface ExternalSessionMetadata {
+  // sessionId?: string; // Used for PTY mode
+  pid?: number; // Used for terminal mode
+  workingDirectory?: string;
+  pty?: {
+    ptyInstanceId?: string;
+    screenshot?: string;
+  };
+}
+
+export interface ChatMetadata {
+  title?: string;
+  tags?: string[];
+  mode?: ChatMode;
+  knowledge?: string[];
+  promptDraft?: string;
+  external?: ExternalSessionMetadata;
+}
+
 export interface ChatSessionData {
-  _type: "chat" | "external_chat" | "pty_chat";
+  _type: ChatSessionType;
   id: string;
   absoluteFilePath: string;
   messages: ChatMessage[];
-  // modelId: `${string}:${string}`; // `providerId:modelId` format
   modelId: `${string}/${string}`; // `providerId/modelId` format
   sessionStatus: ChatSessionStatus;
   fileStatus: ChatFileStatus;
@@ -78,25 +79,31 @@ export interface ChatSessionData {
 }
 
 // Zod schemas for validation and type inference
+export const ModelIdSchema = z.custom<`${string}/${string}`>(
+  (val) => {
+    return typeof val === "string" && /^.+\/.+$/.test(val);
+  },
+  { message: "Model ID must be in format 'provider/model'" },
+);
+
 const ExternalSessionMetadataSchema = z.object({
-  mode: z.enum(["pty", "terminal"]),
-  sessionId: z.string().optional(), // Used for PTY mode
   pid: z.number().optional(), // Used for terminal mode
   workingDirectory: z.string().optional(),
+  pty: z
+    .object({
+      ptyInstanceId: z.string().optional(),
+      screenshot: z.string().optional(),
+    })
+    .optional(),
 });
 
 const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   title: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  mode: z.enum(["chat", "agent", "external"]).optional(),
+  mode: z.enum(["chat", "agent"]).optional(),
   knowledge: z.array(z.string()).optional(),
   promptDraft: z.string().optional(),
   external: ExternalSessionMetadataSchema.optional(),
-  pty: z
-    .object({
-      sessionId: z.string(),
-    })
-    .optional(),
 });
 
 const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> = z.object({
@@ -124,7 +131,7 @@ export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
   id: z.string(),
   absoluteFilePath: z.string(),
   messages: z.array(ChatMessageSchema),
-  modelId: z.string().regex(/^.+\/.+$/) as z.ZodType<`${string}/${string}`>, // `providerId/modelId` format
+  modelId: ModelIdSchema, // `providerId/modelId` format
   toolSet: z.any().optional(), // ToolSet from AI SDK
   sessionStatus: z.enum([
     "idle",
@@ -157,11 +164,7 @@ export interface ChatSessionRepository {
 }
 
 export class ChatSessionRepositoryImpl implements ChatSessionRepository {
-  private readonly logger: Logger<ILogObj>;
-
-  constructor() {
-    this.logger = new Logger({ name: "ChatSessionRepository" });
-  }
+  private readonly logger = new Logger({ name: "ChatSessionRepository" });
 
   async saveToFile(
     absoluteFilePath: string,

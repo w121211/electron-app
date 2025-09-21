@@ -1,6 +1,7 @@
-// src/core/services/pty/pty-session-manager.ts
+// src/core/services/pty/pty-instance-manager.ts
 import * as pty from "node-pty";
 import { Logger } from "tslog";
+import { v4 as uuidv4 } from "uuid";
 import type { IEventBus } from "../../event-bus.js";
 
 export interface PtyCreateOptions {
@@ -15,8 +16,6 @@ export interface PtyResizeOptions {
   cols: number;
   rows: number;
 }
-
-let ptySessionCounter = 0;
 
 /**
  * A wrapper class for a single node-pty process.
@@ -38,7 +37,7 @@ export class PtyInstance {
     options: PtyCreateOptions = {},
     private readonly eventBus: IEventBus,
   ) {
-    this.id = `pty-${++ptySessionCounter}`;
+    this.id = uuidv4();
     const isWindows = process.platform === "win32";
     this.shell =
       options.shell ||
@@ -94,7 +93,7 @@ export class PtyInstance {
 
   write(data: string): void {
     this.ptyProcess.write(data);
-    this.eventBus?.emit({
+    this.eventBus.emit({
       kind: "PtyWrite",
       sessionId: this.id,
       data,
@@ -104,7 +103,7 @@ export class PtyInstance {
 
   resize(cols: number, rows: number): void {
     this.ptyProcess.resize(cols, rows);
-    this.eventBus?.emit({
+    this.eventBus.emit({
       kind: "PtyResize",
       sessionId: this.id,
       cols,
@@ -138,12 +137,12 @@ export class PtyInstance {
  * Manages the lifecycle of all PtyInstance objects.
  * It creates, tracks, and destroys pty sessions for the application.
  */
-export class PtySessionManager {
-  private logger = new Logger({ name: "PtySessionManager" });
+export class PtyInstanceManager {
+  private logger = new Logger({ name: "PtyInstanceManager" });
   private sessions = new Map<string, PtyInstance>();
 
   constructor(private eventBus: IEventBus) {
-    this.logger.info("PtySessionManager initialized with event bus");
+    this.logger.info("PtyInstanceManager initialized with event bus");
   }
 
   create(options: PtyCreateOptions = {}): PtyInstance {
@@ -180,8 +179,8 @@ export class PtySessionManager {
   }
 }
 
-export function createPtySessionManager(
+export function createPtyInstanceManager(
   eventBus: IEventBus,
-): PtySessionManager {
-  return new PtySessionManager(eventBus);
+): PtyInstanceManager {
+  return new PtyInstanceManager(eventBus);
 }

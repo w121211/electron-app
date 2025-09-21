@@ -12,21 +12,22 @@
   import RightPanel from "./RightPanel.svelte";
   import QuickLauncher from "./QuickLauncher.svelte";
   import FilePanel from "./FilePanel.svelte";
-  import PtyChatPanel from "./PtyChatPanel.svelte";
+  import PtyChatPanel from "./pty-chat/PtyChatPanel.svelte";
 
   const logger = new Logger({ name: "NewMainLayout" });
 
-  type CenterPanelView = "welcome" | "chat" | "filePanel" | "xterm";
+  type CenterPanelView = "welcome" | "chatPanel" | "filePanel" | "ptyChatPanel";
 
   const centerPanelView: CenterPanelView = $derived.by(() => {
     if (treeState.selectedChatFile) {
       if (
-        chatState.currentChat?.modelId &&
-        isTerminalModel(chatState.currentChat.modelId)
+        chatState.currentChat?._type === "pty_chat" ||
+        (chatState.currentChat?.modelId &&
+          isTerminalModel(chatState.currentChat?.modelId))
       ) {
-        return "xterm";
+        return "ptyChatPanel";
       }
-      return "chat";
+      return "chatPanel";
     }
 
     if (treeState.selectedPreviewFile) {
@@ -63,11 +64,11 @@
     <!-- Main Workspace -->
     <main class="flex min-w-0 flex-1">
       <!-- Center Panel: Main View -->
-      {#if centerPanelView === "chat"}
+      {#if centerPanelView === "chatPanel"}
         <ChatPanel />
       {:else if centerPanelView === "filePanel"}
         <FilePanel />
-      {:else if centerPanelView === "xterm"}
+      {:else if centerPanelView === "ptyChatPanel"}
         <PtyChatPanel />
       {:else}
         <!-- Welcome Screen / No file open -->

@@ -9,6 +9,7 @@
   } from "../../stores/chat-store.svelte.js";
   import { uiState } from "../../stores/ui-store.svelte.js";
   import { chatService } from "../../services/chat-service.js";
+  import { ptyChatService } from "../../services/pty-chat-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import FileSearchDropdown from "./FileSearchDropdown.svelte";
@@ -65,15 +66,22 @@
   async function handleSendMessage(): Promise<void> {
     if (!chatState.messageInput.trim() || !chatState.currentChat) return;
 
-    await chatService.sendMesage(
-      chatState.currentChat.absoluteFilePath,
-      chatState.currentChat.id,
-      chatState.messageInput.trim(),
-      chatState.currentChat.messages.length === 0
-        ? chatState.selectedModel
-        : undefined,
-      undefined,
-    );
+    // Check if this is a PTY chat and use appropriate service
+    if (chatState.currentChat._type === "pty_chat") {
+      await ptyChatService.startPtySessionFromDraft(
+        chatState.messageInput.trim(),
+      );
+    } else {
+      await chatService.sendMesage(
+        chatState.currentChat.absoluteFilePath,
+        chatState.currentChat.id,
+        chatState.messageInput.trim(),
+        chatState.currentChat.messages.length === 0
+          ? chatState.selectedModel
+          : undefined,
+        undefined,
+      );
+    }
   }
 
   function handleKeyPress(event: KeyboardEvent): void {

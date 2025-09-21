@@ -1,7 +1,10 @@
 // src/core/services/pty/pty-chat-client.ts
 import { ILogObj, Logger } from "tslog";
 import { v4 as uuidv4 } from "uuid";
-import type { PtySessionManager } from "./pty-session-manager.js";
+import type {
+  PtyInstanceManager,
+  PtyInstance,
+} from "./pty-instance-manager.js";
 import type { IEventBus } from "../../event-bus.js";
 import type { ProjectFolderService } from "../project-folder-service.js";
 import type {
@@ -26,7 +29,7 @@ export class PtyChatClient {
     private readonly eventBus: IEventBus,
     private readonly chatSessionRepository: ChatSessionRepository,
     private readonly projectFolderService: ProjectFolderService,
-    private readonly ptySessionManager: PtySessionManager,
+    private readonly ptyInstanceManager: PtyInstanceManager,
   ) {
     this.setupEventListeners();
   }
@@ -53,8 +56,6 @@ export class PtyChatClient {
   ): Promise<PtyChatSession> {
     this.logger.info("Creating new PTY chat session");
 
-    const ptyInstance = this.ptySessionManager.create({ cwd: targetDirectory });
-
     const now = new Date();
     const sessionData: ChatSessionData = {
       _type: "pty_chat",
@@ -62,15 +63,18 @@ export class PtyChatClient {
       absoluteFilePath: "", // Will be set by repository
       messages: [],
       modelId: options.modelId,
-      sessionStatus: "external_active",
+      sessionStatus: "idle", // Draft state
       fileStatus: "active",
       currentTurn: 0,
       maxTurns: 1000, // High limit for PTY sessions
       createdAt: now,
       updatedAt: now,
       metadata: {
-        mode: "pty",
-        title: "PTY Session",
+        // title: "PTY Session",
+        external: {
+          workingDirectory: targetDirectory,
+          pty: {},
+        },
       },
     };
 
@@ -81,16 +85,20 @@ export class PtyChatClient {
     sessionData.absoluteFilePath = filePath;
 
     const session = new PtyChatSession(sessionData, this.eventBus);
-    session.ptyInstanceId = ptyInstance.id;
+
+    // Only create PTY instance if initialPrompt is provided
+    if (options.initialPrompt) {
+      const ptyInstance = this.ptyInstanceManager.create({
+        cwd: targetDirectory,
+      });
+      session.attachPtyInstance(ptyInstance.id);
+      ptyInstance.write(options.initialPrompt + "\n");
+    }
 
     this.sessions.set(session.absoluteFilePath, {
       session,
       ptyInstanceId: session.ptyInstanceId,
     });
-
-    if (options.initialPrompt) {
-      ptyInstance.write(options.initialPrompt + "\n");
-    }
 
     return session;
   }
@@ -110,7 +118,6 @@ export class PtyChatClient {
 
     const existingData =
       await this.chatSessionRepository.loadFromFile(absoluteFilePath);
-
     if (existingData.messages.length > 0) {
       throw new Error(
         `Cannot create PTY session from draft with existing messages. Session must be empty.`,
@@ -121,33 +128,29 @@ export class PtyChatClient {
       await this.projectFolderService.getProjectFolderForPath(
         existingData.absoluteFilePath,
       );
-
     if (!targetDirectory) {
       throw new Error(
         `Chat file ${existingData.absoluteFilePath} is not within any project folder`,
       );
     }
 
-    const ptyInstance = this.ptySessionManager.create({ cwd: targetDirectory.path });
+    const ptyInstance = this.ptyInstanceManager.create({
+      cwd: targetDirectory.path,
+    });
 
-    existingData._type = "pty_chat";
-    existingData.sessionStatus = "external_active";
-    existingData.modelId = modelId;
-    existingData.metadata = {
-      ...existingData.metadata,
-      mode: "pty",
-    };
-    existingData.updatedAt = new Date();
+    const session = new PtyChatSession(existingData, this.eventBus);
+    session.sessionStatus = "external_active";
+    session.modelId = modelId;
+    session.workingDirectory = targetDirectory.path;
+    session.updatedAt = new Date();
+    session.attachPtyInstance(ptyInstance.id);
+
+    ptyInstance.write(initialPrompt + "\n");
 
     await this.chatSessionRepository.saveToFile(
       existingData.absoluteFilePath,
       existingData,
     );
-
-    ptyInstance.write(initialPrompt + "\n");
-
-    const session = new PtyChatSession(existingData, this.eventBus);
-    session.ptyInstanceId = ptyInstance.id;
 
     this.sessions.set(session.absoluteFilePath, {
       session,
@@ -167,7 +170,17 @@ export class PtyChatClient {
 
     const data =
       await this.chatSessionRepository.loadFromFile(absoluteFilePath);
+
+    // Get existing PTY instance or clean stale reference
+    const ptyInstance = await this.getOrCleanPtyInstance(data);
+
     const newSession = new PtyChatSession(data, this.eventBus);
+
+    // If PTY instance exists, attach it
+    if (ptyInstance) {
+      newSession.attachPtyInstance(ptyInstance.id);
+    }
+
     this.sessions.set(newSession.absoluteFilePath, {
       session: newSession,
       ptyInstanceId: newSession.ptyInstanceId,
@@ -179,7 +192,9 @@ export class PtyChatClient {
     const session = this.sessions.get(absoluteFilePath);
     if (session) {
       if (session.ptyInstanceId) {
-        const instance = this.ptySessionManager.getSession(session.ptyInstanceId);
+        const instance = this.ptyInstanceManager.getSession(
+          session.ptyInstanceId,
+        );
         instance?.kill();
       }
       this.sessions.delete(absoluteFilePath);
@@ -201,12 +216,56 @@ export class PtyChatClient {
     return null;
   }
 
+  private async getOrCleanPtyInstance(
+    sessionData: ChatSessionData,
+  ): Promise<PtyInstance | undefined> {
+    const storedPtyId = sessionData.metadata?.external?.pty?.ptyInstanceId;
+
+    if (storedPtyId) {
+      // Check if PTY instance still exists in manager
+      const ptyInstance = this.ptyInstanceManager.getSession(storedPtyId);
+
+      if (ptyInstance) {
+        return ptyInstance;
+      } else {
+        this.logger.info(
+          `Cleaning stale ptyInstanceId ${storedPtyId} from session ${sessionData.id}`,
+        );
+
+        // PTY instance no longer exists, clear stale reference
+        if (sessionData.metadata?.external?.pty) {
+          sessionData.metadata.external.pty.ptyInstanceId = undefined;
+        }
+
+        // Update session status if it was marked as active
+        if (sessionData.sessionStatus === "external_active") {
+          sessionData.sessionStatus = "external_terminated";
+          sessionData.updatedAt = new Date();
+        }
+
+        // Save the cleaned data back to file
+        await this.chatSessionRepository.saveToFile(
+          sessionData.absoluteFilePath,
+          sessionData,
+        );
+      }
+    }
+
+    return undefined;
+  }
+
   private async handlePtyChatSessionUpdate(
     session: PtyChatSession,
     updateType: PtyChatUpdateType,
     update: PtyChatUpdate,
   ): Promise<void> {
     const payload = session.toJSON();
+
+    console.debug("handlePtyChatSessionUpdate", {
+      session,
+      updateType,
+      update,
+    });
 
     await this.chatSessionRepository.saveToFile(
       session.absoluteFilePath,

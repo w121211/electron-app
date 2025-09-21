@@ -1,16 +1,16 @@
 // examples/pty-session-manager-demo.ts
 import {
-  createPtySessionManager,
+  createPtyInstanceManager,
   PtyInstance,
-} from "../src/core/services/pty/pty-session-manager.js";
+} from "../src/core/services/pty/pty-instance-manager.js";
 import { createServerEventBus } from "../src/core/event-bus.js";
 
-async function runPtySessionManagerDemo() {
-  console.log("🚀 Starting PtySessionManager Demo\n");
+async function runPtyInstanceManagerDemo() {
+  console.log("🚀 Starting PtyInstanceManager Demo\n");
 
-  // Create event bus and pty session manager
+  // Create event bus and pty instance manager
   const eventBus = createServerEventBus();
-  const ptySessionManager = createPtySessionManager(eventBus);
+  const ptyInstanceManager = createPtyInstanceManager(eventBus);
 
   const lineBuffers = new Map<string, string>();
 
@@ -45,7 +45,7 @@ async function runPtySessionManagerDemo() {
 
   // Demo 1: Create a terminal session
   console.log("📝 Creating terminal session...");
-  const session1 = ptySessionManager.create({
+  const session1 = ptyInstanceManager.create({
     shell: process.platform === "win32" ? "powershell.exe" : "/bin/bash",
     cwd: process.cwd(),
     cols: 80,
@@ -62,7 +62,7 @@ async function runPtySessionManagerDemo() {
 
   // Demo 3: Test session management
   console.log("📊 Session management demo...");
-  const allSessions = ptySessionManager.getAllSessions();
+  const allSessions = ptyInstanceManager.getAllSessions();
   console.log(`📈 Active sessions: ${allSessions.length}`);
   allSessions.forEach((s) => {
     console.log(`  - ${s.id}: ${s.shell} in ${s.cwd}`);
@@ -70,16 +70,16 @@ async function runPtySessionManagerDemo() {
 
   // Demo 4: Create multiple sessions
   console.log("\n🔀 Creating multiple sessions...");
-  const session2 = ptySessionManager.create({
+  const session2 = ptyInstanceManager.create({
     shell: process.platform === "win32" ? "cmd.exe" : "/bin/sh",
   });
   setupListeners(session2);
 
-  const session3 = ptySessionManager.create({ cwd: "/tmp" });
+  const session3 = ptyInstanceManager.create({ cwd: "/tmp" });
   setupListeners(session3);
 
   console.log(
-    `📈 Total active sessions: ${ptySessionManager.getAllSessions().length}\n`,
+    `📈 Total active sessions: ${ptyInstanceManager.getAllSessions().length}\n`,
   );
 
   // Demo 5: Test resize functionality
@@ -96,7 +96,7 @@ async function runPtySessionManagerDemo() {
 
   // Demo 7: Test error handling (by getting a non-existent session)
   console.log("⚠️  Testing error handling...");
-  const invalidSession = ptySessionManager.getSession("invalid-id");
+  const invalidSession = ptyInstanceManager.getSession("invalid-id");
   console.log(`❌ Got invalid session: ${invalidSession ? "true" : "false"}\n`);
 
   // Demo 8: Clean up individual session
@@ -106,12 +106,12 @@ async function runPtySessionManagerDemo() {
   // The exit listener will log the exit event
   await new Promise((resolve) => setTimeout(resolve, 500));
   console.log(
-    `📈 Remaining sessions: ${ptySessionManager.getAllSessions().length}\n`,
+    `📈 Remaining sessions: ${ptyInstanceManager.getAllSessions().length}\n`,
   );
 
   // Demo 9: Interactive session demo (Node.js REPL)
   console.log("\n🎬 Starting interactive session demo...");
-  const interactiveSession = ptySessionManager.create({});
+  const interactiveSession = ptyInstanceManager.create({});
   setupListeners(interactiveSession);
 
   interactiveSession.write("node\n");
@@ -130,18 +130,18 @@ async function runPtySessionManagerDemo() {
 
   // Demo 10: Cleanup all sessions
   console.log("🧹 Cleaning up all remaining sessions...");
-  ptySessionManager.destroyAll();
+  ptyInstanceManager.destroyAll();
   await new Promise((resolve) => setTimeout(resolve, 500)); // Allow time for exit events
   console.log(
-    `📈 Final session count: ${ptySessionManager.getAllSessions().length}\n`,
+    `📈 Final session count: ${ptyInstanceManager.getAllSessions().length}\n`,
   );
 
-  console.log("✅ PtySessionManager Demo completed!");
+  console.log("✅ PtyInstanceManager Demo completed!");
 }
 
 // Run the demo
 if (require.main === module) {
-  runPtySessionManagerDemo().catch(console.error);
+  runPtyInstanceManagerDemo().catch(console.error);
 }
 
-export { runPtySessionManagerDemo };
+export { runPtyInstanceManagerDemo };

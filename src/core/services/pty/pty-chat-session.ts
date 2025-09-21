@@ -38,7 +38,6 @@ export class PtyChatSession {
   metadata?: ChatSessionData["metadata"];
 
   private logger: Logger<ILogObj>;
-  private _ptyInstanceId?: string;
   private activeAssistantMessageId: string | null = null;
 
   constructor(
@@ -58,48 +57,83 @@ export class PtyChatSession {
     this.metadata = data.metadata;
 
     this.logger = new Logger({ name: `PtyChatSession-${this.id}` });
-
-    this.subscribeToPtyEvents();
   }
 
   get ptyInstanceId(): string | undefined {
-    return this._ptyInstanceId;
+    return this.metadata?.external?.pty?.ptyInstanceId;
   }
 
   set ptyInstanceId(instanceId: string) {
-    if (instanceId === this._ptyInstanceId) {
-      this.logger.error("Runtime session ID already set");
+    // Store in metadata
+    this.metadata = {
+      ...this.metadata,
+      external: {
+        ...this.metadata?.external,
+        pty: {
+          ...this.metadata?.external?.pty,
+          ptyInstanceId: instanceId,
+        },
+      },
+    };
+  }
+
+  get workingDirectory(): string | undefined {
+    return this.metadata?.external?.workingDirectory;
+  }
+
+  set workingDirectory(directoryPath: string) {
+    // Store in metadata
+    this.metadata = {
+      ...this.metadata,
+      external: {
+        ...this.metadata?.external,
+        workingDirectory: directoryPath,
+      },
+    };
+  }
+
+  attachPtyInstance(instanceId: string): void {
+    if (instanceId === this.ptyInstanceId) {
+      this.logger.error("PTY instance already attached");
       return;
     }
-    this._ptyInstanceId = instanceId;
+
+    this.logger.info(
+      `Attaching PTY instance ${instanceId} to session ${this.id}`,
+    );
+    this.ptyInstanceId = instanceId;
+    this.sessionStatus = "external_active";
+    this.subscribeToPtyEvents();
+
+    // this.eventBus.emit("<PtyChatUpdatedEvent>",")
   }
 
   private subscribeToPtyEvents(): void {
-    if (!this._ptyInstanceId) {
-      return;
+    if (!this.ptyInstanceId) {
+      throw new Error("PTY instance not attached");
     }
 
     this.eventBus.subscribe("PtyOnData", async (event: PtyOnDataEvent) => {
-      if (event.sessionId !== this._ptyInstanceId) {
+      if (event.sessionId !== this.ptyInstanceId) {
         return;
       }
       await this.handlePtyDataReceived(event.data);
     });
 
     this.eventBus.subscribe("PtyWrite", async (event: PtyWriteEvent) => {
-      if (event.sessionId !== this._ptyInstanceId) {
+      if (event.sessionId !== this.ptyInstanceId) {
         return;
       }
       await this.handlePtyWrite(event.data);
     });
 
     this.eventBus.subscribe("PtyOnExit", async (event: PtyOnExitEvent) => {
-      if (event.sessionId !== this._ptyInstanceId) {
+      if (event.sessionId !== this.ptyInstanceId) {
         return;
       }
       this.sessionStatus = "external_terminated";
       this.updatedAt = new Date();
-      this.logger.info(`PTY session ${this._ptyInstanceId} exited.`);
+      this.logger.info(`PTY session ${this.ptyInstanceId} exited.`);
       this.eventBus.emit<PtyChatUpdatedEvent>({
         kind: "PtyChatUpdatedEvent",
         timestamp: new Date(),
@@ -112,6 +146,7 @@ export class PtyChatSession {
   }
 
   private async handlePtyWrite(data: string): Promise<void> {
+    console.log("handlePtyWrite", data);
     const message: ChatMessage = {
       id: uuidv4(),
       metadata: {

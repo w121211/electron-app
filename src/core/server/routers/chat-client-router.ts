@@ -73,7 +73,6 @@ export function createChatClientRouter(
     toolRegistry,
   );
 
-
   return router({
     createNewChatSession: publicProcedure
       .input(
@@ -165,7 +164,6 @@ export function createChatClientRouter(
         };
       },
     ),
-
 
     confirmToolCall: publicProcedure
       .input(

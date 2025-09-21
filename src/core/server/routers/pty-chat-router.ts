@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc-init.js";
 import { PtyChatClient } from "../../services/pty/pty-chat-client.js";
+import { isTerminalModel } from "../../utils/model-utils.js";
 
 const terminalModelIdSchema = z
   .custom<`${string}/${string}`>(
@@ -10,12 +11,9 @@ const terminalModelIdSchema = z
     },
     { message: "Model ID must be in format 'provider/model'" },
   )
-  .refine(
-    (value) => value.startsWith("cli/") || value.startsWith("terminal/"),
-    {
-      message: "Model must be a terminal PTY model",
-    },
-  );
+  .refine((value) => isTerminalModel(value), {
+    message: "Model must be a terminal PTY model",
+  });
 
 export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
   return router({

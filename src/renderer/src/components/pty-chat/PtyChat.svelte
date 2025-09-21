@@ -1,12 +1,13 @@
-<!-- src/renderer/src/components/PtyChat.svelte -->
+<!-- src/renderer/src/components/pty-chat/PtyChat.svelte -->
 <script lang="ts">
   import "@xterm/xterm/css/xterm.css";
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
   import { FitAddon } from "@xterm/addon-fit";
+  import { onMount, onDestroy } from "svelte";
   import { Logger } from "tslog";
-  import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository";
-  import { getModelMessageContentString } from "../utils/message-helper.js";
+  import type { ChatSessionData } from "../../../../core/services/chat-engine/chat-session-repository";
+  import { getModelMessageContentString } from "../../utils/message-helper.js";
 
   const logger = new Logger({ name: "PtyChat" });
 
@@ -21,10 +22,13 @@
   let terminalElement: HTMLDivElement;
   let terminal: Terminal;
   let fitAddon: FitAddon;
+  let webglAddon: WebglAddon;
+  let resizeObserver: ResizeObserver;
 
-  // Reactive effect to initialize and clean up the terminal
-  $effect(() => {
+  onMount(() => {
     if (!terminalElement) return;
+
+    console.log("Initializing terminal for chat", chat.id);
 
     logger.info(`Initializing terminal for chat ${chat.id}`);
 
@@ -41,11 +45,11 @@
       macOptionIsMeta: true,
       scrollOnUserInput: true,
       // Disable input if the session is terminated
-      disableStdin: isReadOnly || chat.sessionStatus === "external_terminated",
+      // disableStdin: isReadOnly || chat.sessionStatus === "external_terminated",
     });
 
     fitAddon = new FitAddon();
-    const webglAddon = new WebglAddon();
+    webglAddon = new WebglAddon();
 
     terminal.loadAddon(webglAddon);
     terminal.loadAddon(fitAddon);
@@ -55,17 +59,18 @@
     const dims = fitAddon.proposeDimensions();
 
     // Handle resizing
-    const resizeObserver = new ResizeObserver(() => {
+    resizeObserver = new ResizeObserver(() => {
       fitAddon.fit();
       const newDims = fitAddon.proposeDimensions();
-      if (chat.metadata?.pty?.sessionId && newDims) {
-        window.api.pty.resize(chat.metadata.pty.sessionId, newDims);
+      const sessionId = chat.metadata?.external?.pty?.ptyInstanceId;
+      if (sessionId && newDims) {
+        window.api.pty.resize(sessionId, newDims);
       }
     });
     resizeObserver.observe(terminalElement);
 
     // --- Session Handling ---
-    const sessionId = chat.metadata?.pty?.sessionId;
+    const ptyInstanceId = chat.metadata?.external?.pty?.ptyInstanceId;
 
     if (chat.sessionStatus === "external_terminated") {
       // 4. Frontend Opens a Deactivated (Terminated) PTY Chat
@@ -78,24 +83,26 @@
         terminal.write(prefix + content.replace(/\n/g, "\r\n") + "\r\n");
       }
       terminal.write("\r\n[Session has ended]\r\n");
-    } else if (sessionId) {
+    } else if (ptyInstanceId) {
       // 3. Frontend Opens an Active PTY Chat
-      logger.info(`Attaching to active session ${sessionId}`);
-      window.api.pty.attach(sessionId);
+      logger.info(`Attaching to active session ${ptyInstanceId}`);
+      window.api.pty.attach(ptyInstanceId);
 
       // 2. Frontend Interacts with an Active PTY Session
       terminal.onData((data: string) => {
-        window.api.pty.write(sessionId, data);
+        console.log("terminal onData", data);
+        window.api.pty.write(ptyInstanceId, data);
       });
 
-      window.api.pty.onData((id, data) => {
-        if (id === sessionId) {
+      window.api.pty.onData((id: string, data: string) => {
+        console.log("pty onData", id, data);
+        if (id === ptyInstanceId) {
           terminal.write(data);
         }
       });
 
-      window.api.pty.onExit((id, exitCode) => {
-        if (id === sessionId) {
+      window.api.pty.onExit((id: string, exitCode: number) => {
+        if (id === ptyInstanceId) {
           logger.info(`Terminal session ${id} exited with code: ${exitCode}`);
           terminal.write(
             `\r\n\r\n[Process completed with exit code ${exitCode}]`,
@@ -105,20 +112,20 @@
       });
 
       if (dims) {
-        window.api.pty.resize(sessionId, dims);
+        window.api.pty.resize(ptyInstanceId, dims);
       }
     }
+  });
 
-    // Cleanup function for when the component unmounts or props change
-    return () => {
-      logger.info(`Cleaning up terminal for chat ${chat.id}`);
-      resizeObserver.disconnect();
-      terminal.dispose();
-      webglAddon.dispose();
-      fitAddon.dispose();
-      // Remove all listeners to prevent memory leaks from re-renders
-      window.api.pty.removeAllListeners();
-    };
+  onDestroy(() => {
+    console.debug("onDestroy for chat ${chat.absoluteFilePath}");
+    logger.info(`Cleaning up terminal for chat ${chat.absoluteFilePath}`);
+    resizeObserver?.disconnect();
+    terminal?.dispose();
+    webglAddon?.dispose();
+    fitAddon?.dispose();
+    // Remove all listeners to prevent memory leaks from re-renders
+    window.api.pty.removeAllListeners();
   });
 </script>
 

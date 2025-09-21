@@ -1,11 +1,8 @@
 // src/renderer/src/services/chat-service.ts
 import { Logger } from "tslog";
-import type { TurnResult } from "../../../core/services/chat-engine/chat-session.js";
-import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository.js";
 import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
 import type { CreateChatSessionConfig } from "../../../core/services/chat-engine/chat-client.js";
 import type { FileWatcherEvent } from "../../../core/services/file-watcher-service.js";
-import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
   chatState,
@@ -61,24 +58,15 @@ class ChatService {
 
       const selectedModel = chatState.selectedModel;
 
-      let newChat: ChatSessionData;
-      if (selectedModel && isTerminalModel(selectedModel)) {
-        newChat = await trpcClient.ptyChat.create.mutate({
-          targetDirectory: containingDirectory,
+      const newChat = await trpcClient.chatClient.createNewChatSession.mutate({
+        targetDirectory: containingDirectory,
+        config: {
+          mode: "agent", // Default mode for new chat sessions
           modelId: selectedModel,
-        });
-      } else {
-        newChat = await trpcClient.chatClient.createNewChatSession.mutate({
-          targetDirectory: containingDirectory,
-          config: {
-            mode: "agent", // Default mode for new chat sessions
-            modelId: selectedModel,
-          },
-        });
-      }
+        },
+      });
 
       setCurrentChat(newChat);
-      showToast("Chat created successfully", "success");
       this.logger.info("Empty chat created:", newChat.id);
 
       // Expand parent directories and select the newly created chat file
@@ -153,7 +141,6 @@ class ChatService {
       const chat = await trpcClient.chatClient.getChatSession.query({
         absoluteFilePath: filePath,
       });
-
       setCurrentChat(chat);
 
       this.logger.info("Chat file opened:", chat.id);
@@ -195,11 +182,6 @@ ${att.content}`,
         ];
       }
 
-      if (currentModelId && isTerminalModel(currentModelId)) {
-        showToast("Use Run in PTY to execute terminal sessions", "info");
-        return;
-      }
-
       const messagePayload = {
         absoluteFilePath,
         chatSessionId,
@@ -210,22 +192,8 @@ ${att.content}`,
         modelId,
       };
 
-      // Determine which API to call based on model type
-      // Use the current chat's modelId or the provided modelId for routing
-      const currentModelId = modelId ?? chatState.currentChat?.modelId;
-
-      let result: {
-        turnResult: TurnResult;
-        updatedChatSession: ChatSessionData;
-      };
-      if (currentModelId && isTerminalModel(currentModelId)) {
-        result =
-          await trpcClient.chatClient.sendMessageToExternal.mutate(
-            messagePayload,
-          );
-      } else {
-        result = await trpcClient.chatClient.sendMessage.mutate(messagePayload);
-      }
+      const result =
+        await trpcClient.chatClient.sendMessage.mutate(messagePayload);
       setCurrentChat(result.updatedChatSession);
       clearMessageInput();
 
@@ -244,52 +212,6 @@ ${att.content}`,
       throw error;
     } finally {
       chatState.isSubmittingMessage = false;
-    }
-  }
-
-  async startPtySessionFromDraft(initialCommand: string) {
-    const currentChat = chatState.currentChat;
-    if (!currentChat) {
-      return;
-    }
-
-    const trimmedCommand = initialCommand.trim();
-    if (!trimmedCommand) {
-      showToast("Enter a command before starting a PTY session", "info");
-      return;
-    }
-
-    const selectedModel = chatState.selectedModel;
-    if (!selectedModel || !isTerminalModel(selectedModel)) {
-      showToast("Select a terminal model before starting a PTY session", "info");
-      return;
-    }
-
-    setLoading("startPtySession", true);
-
-    try {
-      const session = await trpcClient.ptyChat.startFromDraft.mutate({
-        absoluteFilePath: currentChat.absoluteFilePath,
-        initialCommand: trimmedCommand,
-        modelId: selectedModel,
-      });
-
-      setCurrentChat(session);
-      clearMessageInput();
-      setHasUnsavedDraftChanges(false);
-      showToast("PTY session started", "success");
-
-      await projectService.refreshProjectTreeForFile(session.absoluteFilePath);
-    } catch (error) {
-      this.logger.error("Failed to start PTY session:", error);
-      showToast(
-        `Failed to start PTY session: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        "error",
-      );
-    } finally {
-      setLoading("startPtySession", false);
     }
   }
 
@@ -373,7 +295,7 @@ ${att.content}`,
     const modelOptions: ModelOption[] = [];
 
     // Add external models
-    Object.entries(models.external).forEach(([key, model]) => {
+    Object.entries(models.external).forEach(([, model]) => {
       const externalModel = model;
       modelOptions.push({
         modelId: model.modelId,
