@@ -1,7 +1,7 @@
-// src/core/services/pty-session-manager.ts
+// src/core/services/pty/pty-session-manager.ts
 import * as pty from "node-pty";
 import { Logger } from "tslog";
-import type { IEventBus } from "../event-bus.js";
+import type { IEventBus } from "../../event-bus.js";
 
 export interface PtyCreateOptions {
   shell?: string;
@@ -36,7 +36,7 @@ export class PtyInstance {
 
   constructor(
     options: PtyCreateOptions = {},
-    private readonly eventBus?: IEventBus,
+    private readonly eventBus: IEventBus,
   ) {
     this.id = `pty-${++ptySessionCounter}`;
     const isWindows = process.platform === "win32";
@@ -71,7 +71,7 @@ export class PtyInstance {
     this.ptyProcess.onData((data) => {
       this.onDataListeners.forEach((listener) => listener(data));
       this.eventBus?.emit({
-        kind: "PtyDataReceived",
+        kind: "PtyOnData",
         sessionId: this.id,
         data,
         timestamp: new Date(),
@@ -81,7 +81,7 @@ export class PtyInstance {
     this.ptyProcess.onExit((e) => {
       this.onExitListeners.forEach((listener) => listener(e));
       this.eventBus?.emit({
-        kind: "PtyExited",
+        kind: "PtyOnExit",
         sessionId: this.id,
         exitCode: e.exitCode,
         signal: e.signal,
@@ -138,14 +138,12 @@ export class PtyInstance {
  * Manages the lifecycle of all PtyInstance objects.
  * It creates, tracks, and destroys pty sessions for the application.
  */
-class PtySessionManager {
+export class PtySessionManager {
   private logger = new Logger({ name: "PtySessionManager" });
   private sessions = new Map<string, PtyInstance>();
-  private eventBus?: IEventBus;
 
-  initialize(eventBus: IEventBus) {
+  constructor(private eventBus: IEventBus) {
     this.logger.info("PtySessionManager initialized with event bus");
-    this.eventBus = eventBus;
   }
 
   create(options: PtyCreateOptions = {}): PtyInstance {
@@ -182,4 +180,8 @@ class PtySessionManager {
   }
 }
 
-export const ptySessionManager = new PtySessionManager();
+export function createPtySessionManager(
+  eventBus: IEventBus,
+): PtySessionManager {
+  return new PtySessionManager(eventBus);
+}

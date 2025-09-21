@@ -1,12 +1,12 @@
 // src/core/server/start-server.ts
-// Run with: `AI_GATEWAY_API_KEY="your_api_key" pnpm tsx --watch src/server/start-server.ts`
+// Direct run: `AI_GATEWAY_API_KEY="your_api_key" pnpm tsx --watch src/server/start-server.ts`
 import cors from "cors";
-import { Logger } from "tslog";
+import { Logger, type ILogObj } from "tslog";
 import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import { createTrpcRouter } from "./root-router.js";
 import { createContext } from "./trpc-init.js";
 
-const logger = new Logger({ name: "Start-Server" });
+const logger = new Logger<ILogObj>({ name: "Start-Server" });
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3333;
 
 async function startServer() {
@@ -15,6 +15,7 @@ async function startServer() {
   try {
     // Get user data directory from environment or use default
     const userDataDir = process.cwd() + "/my-demo-space/user-data";
+
     const trpcRouter = await createTrpcRouter(userDataDir);
 
     // Create HTTP server with tRPC handler

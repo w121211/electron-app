@@ -1,5 +1,5 @@
 // examples/pty-chat-client-demo.ts
-// Run with: `pnpm dlx tsx examples/pty-chat-client-demo.ts`
+// Run with: `npx tsx examples/pty-chat-client-demo.ts`
 
 import { Logger } from "tslog";
 import type { ILogObj } from "tslog";
@@ -9,9 +9,14 @@ import { ChatSessionRepositoryImpl } from "../src/core/services/chat-engine/chat
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
 import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";
 import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
-import { ptySessionManager } from "../src/core/services/pty-session-manager.js";
+import { createPtySessionManager } from "../src/core/services/pty/pty-session-manager.js";
 import { PtyChatClient } from "../src/core/services/pty/pty-chat-client.js";
 import type { ChatSessionData } from "../src/core/services/chat-engine/chat-session-repository.js";
+import {
+  PtyOnDataEvent,
+  PtyOnExitEvent,
+  PtyWriteEvent,
+} from "../src/core/services/pty/events.js";
 
 const logger = new Logger<ILogObj>();
 const eventBus = new EventBus({
@@ -36,12 +41,13 @@ async function setupServices() {
   );
   const chatSessionRepository = new ChatSessionRepositoryImpl();
 
-  // Initialize the singleton ptySessionManager with the event bus
-  ptySessionManager.initialize(eventBus);
+  // Create ptySessionManager with the event bus
+  const ptySessionManager = createPtySessionManager(eventBus);
 
   return {
     projectFolderService,
     chatSessionRepository,
+    ptySessionManager,
   };
 }
 
@@ -54,17 +60,18 @@ async function runPtyChatDemo() {
     eventBus,
     services.chatSessionRepository,
     services.projectFolderService,
+    services.ptySessionManager,
   );
 
   // Listen to PTY events to see the new event-driven architecture in action
-  eventBus.subscribe("PtyWrite", (event) => {
+  eventBus.subscribe("PtyWrite", (event: PtyWriteEvent) => {
     logger.info("EVENT CATCHED: PtyWrite", event);
   });
-  eventBus.subscribe("PtyDataReceived", (event) => {
-    logger.info("EVENT CATCHED: PtyDataReceived", { data: event.data.trim() });
+  eventBus.subscribe("PtyOnData", (event: PtyOnDataEvent) => {
+    logger.info("EVENT CATCHED: PtyOnData", { data: event.data.trim() });
   });
-  eventBus.subscribe("PtyExited", (event) => {
-    logger.info("EVENT CATCHED: PtyExited", event);
+  eventBus.subscribe("PtyOnExit", (event: PtyOnExitEvent) => {
+    logger.info("EVENT CATCHED: PtyOnExit", event);
   });
 
   const tempDir = "/tmp/pty-chat-demo";
@@ -75,11 +82,11 @@ async function runPtyChatDemo() {
 
   // --- Test Case 1: Create a new PTY session from scratch ---
   logger.info("--- Testing creating a new PTY session ---");
-  const session1 = await client.createPtyChatSession(
-    tempDir,
-    'echo "Hello from PTY session 1!"',
-  );
-  logger.info("Created new PTY session:", session1.id, session1.metadata?.pty);
+  const session1 = await client.createPtyChatSession(tempDir, {
+    modelId: "cli/codex",
+    initialPrompt: 'echo "Hello from PTY session 1!"',
+  });
+  logger.info("Created new PTY session:", session1.id, session1.ptyInstanceId);
 
   // --- Test Case 2: Start a PTY session from a draft chat ---
   await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for first session to settle
@@ -112,30 +119,31 @@ async function runPtyChatDemo() {
 
   logger.info(`Created draft chat file: ${draftPath}`);
 
-  const session2 = await client.startFromDraft(
+  const session2 = await client.createFromDraft(
     draftPath,
     draftData.metadata!.promptDraft!,
+    "cli/codex",
   );
   logger.info(
     "Started PTY session from draft:",
     session2.id,
-    session2.metadata?.pty,
+    session2.ptyInstanceId,
   );
 
   // --- Test Case 3: Terminate sessions ---
   await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for events
   logger.info("--- Testing session termination ---");
 
-  const ptyInstance1 = ptySessionManager.getSession(
-    session1.metadata!.pty!.sessionId,
+  const ptyInstance1 = services.ptySessionManager.getSession(
+    session1.ptyInstanceId!,
   );
   if (ptyInstance1) {
     logger.info(`Killing session 1 (${ptyInstance1.id})`);
     ptyInstance1.kill();
   }
 
-  const ptyInstance2 = ptySessionManager.getSession(
-    session2.metadata!.pty!.sessionId,
+  const ptyInstance2 = services.ptySessionManager.getSession(
+    session2.ptyInstanceId!,
   );
   if (ptyInstance2) {
     logger.info(`Killing session 2 (${ptyInstance2.id})`);

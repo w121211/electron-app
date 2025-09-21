@@ -1,12 +1,28 @@
 // src/core/services/pty/pty-chat-session.ts
 import { Logger, type ILogObj } from "tslog";
+import { v4 as uuidv4 } from "uuid";
 import type { IEventBus } from "../../event-bus.js";
 import type {
-  PtyDataReceivedEvent,
-  PtyExitedEvent,
-} from "../../event-types.js";
-import type { ChatSessionData } from "../chat-engine/chat-session-repository.js";
-import type { ProjectFolderService } from "../project-folder-service.js";
+  PtyOnDataEvent,
+  PtyOnExitEvent,
+  PtyWriteEvent,
+} from "./events.js";
+import type {
+  ChatMessage,
+  ChatSessionData,
+} from "../chat-engine/chat-session-repository.js";
+import type { PtyChatUpdatedEvent } from "./events.js";
+
+export type PtyChatUpdateType =
+  | "MESSAGE_ADDED"
+  | "METADATA_UPDATED"
+  | "STATUS_CHANGED";
+
+export interface PtyChatUpdate {
+  message?: ChatMessage;
+  metadata?: ChatSessionData["metadata"];
+  status?: ChatSessionData["sessionStatus"];
+}
 
 export class PtyChatSession {
   id: ChatSessionData["id"];
@@ -15,18 +31,19 @@ export class PtyChatSession {
   modelId: ChatSessionData["modelId"];
   sessionStatus: ChatSessionData["sessionStatus"] = "idle";
   fileStatus: ChatSessionData["fileStatus"] = "active";
-  currentTurn: ChatSessionData["currentTurn"] = 0;
-  maxTurns: ChatSessionData["maxTurns"] = 20;
+  currentTurn: ChatSessionData["currentTurn"] = -1; // not used in pty chat
+  maxTurns: ChatSessionData["maxTurns"] = -1; // not used in pty chat
   createdAt: ChatSessionData["createdAt"];
   updatedAt: ChatSessionData["updatedAt"];
   metadata?: ChatSessionData["metadata"];
 
   private logger: Logger<ILogObj>;
+  private _ptyInstanceId?: string;
+  private activeAssistantMessageId: string | null = null;
 
   constructor(
     data: ChatSessionData,
     private readonly eventBus: IEventBus,
-    private readonly _projectFolderService: ProjectFolderService,
   ) {
     this.id = data.id;
     this.absoluteFilePath = data.absoluteFilePath;
@@ -45,29 +62,129 @@ export class PtyChatSession {
     this.subscribeToPtyEvents();
   }
 
+  get ptyInstanceId(): string | undefined {
+    return this._ptyInstanceId;
+  }
+
+  set ptyInstanceId(instanceId: string) {
+    if (instanceId === this._ptyInstanceId) {
+      this.logger.error("Runtime session ID already set");
+      return;
+    }
+    this._ptyInstanceId = instanceId;
+  }
+
   private subscribeToPtyEvents(): void {
-    const sessionId = this.metadata?.external?.sessionId;
-    if (!sessionId) {
+    if (!this._ptyInstanceId) {
       return;
     }
 
-    this.eventBus.subscribe(
-      "PtyDataReceived",
-      (event: PtyDataReceivedEvent) => {
-        if (event.sessionId === sessionId) {
-          // TODO: Append to a new assistant message, handle streaming
-          console.log("PTY DATA:", event.data);
-        }
-      },
-    );
-
-    this.eventBus.subscribe("PtyExited", (event: PtyExitedEvent) => {
-      if (event.sessionId === sessionId) {
-        this.sessionStatus = "external_terminated";
-        this.updatedAt = new Date();
-        this.logger.info(`PTY session ${sessionId} exited.`);
-        // TODO: Emit chat updated event
+    this.eventBus.subscribe("PtyOnData", async (event: PtyOnDataEvent) => {
+      if (event.sessionId !== this._ptyInstanceId) {
+        return;
       }
+      await this.handlePtyDataReceived(event.data);
+    });
+
+    this.eventBus.subscribe("PtyWrite", async (event: PtyWriteEvent) => {
+      if (event.sessionId !== this._ptyInstanceId) {
+        return;
+      }
+      await this.handlePtyWrite(event.data);
+    });
+
+    this.eventBus.subscribe("PtyOnExit", async (event: PtyOnExitEvent) => {
+      if (event.sessionId !== this._ptyInstanceId) {
+        return;
+      }
+      this.sessionStatus = "external_terminated";
+      this.updatedAt = new Date();
+      this.logger.info(`PTY session ${this._ptyInstanceId} exited.`);
+      this.eventBus.emit<PtyChatUpdatedEvent>({
+        kind: "PtyChatUpdatedEvent",
+        timestamp: new Date(),
+        sessionId: this.id,
+        updateType: "STATUS_CHANGED",
+        update: { status: this.sessionStatus },
+        session: this,
+      });
+    });
+  }
+
+  private async handlePtyWrite(data: string): Promise<void> {
+    const message: ChatMessage = {
+      id: uuidv4(),
+      metadata: {
+        timestamp: new Date(),
+      },
+      message: {
+        role: "user",
+        content: data,
+      },
+    };
+
+    this.messages.push(message);
+    this.currentTurn += 1;
+    this.updatedAt = new Date();
+    this.activeAssistantMessageId = null;
+
+    this.eventBus.emit({
+      kind: "PtyChatUpdatedEvent",
+      timestamp: new Date(),
+      sessionId: this.id,
+      updateType: "MESSAGE_ADDED",
+      update: { message },
+      session: this,
+    } as PtyChatUpdatedEvent);
+  }
+
+  private async handlePtyDataReceived(data: string): Promise<void> {
+    if (!data) {
+      return;
+    }
+
+    let message: ChatMessage | undefined;
+    if (this.activeAssistantMessageId) {
+      message = this.messages.find(
+        (msg) => msg.id === this.activeAssistantMessageId,
+      );
+    }
+
+    if (!message || message.message.role !== "assistant") {
+      message = {
+        id: uuidv4(),
+        metadata: {
+          timestamp: new Date(),
+        },
+        message: {
+          role: "assistant",
+          content: data,
+        },
+      };
+      this.messages.push(message);
+      this.activeAssistantMessageId = message.id;
+      this.currentTurn += 1;
+    } else {
+      const currentContent = message.message.content;
+      if (Array.isArray(currentContent)) {
+        currentContent.push({ type: "text", text: data });
+      } else if (typeof currentContent === "string") {
+        message.message.content = currentContent + data;
+      } else {
+        message.message.content = data;
+      }
+      message.metadata.timestamp = new Date();
+    }
+
+    this.updatedAt = new Date();
+
+    this.eventBus.emit<PtyChatUpdatedEvent>({
+      kind: "PtyChatUpdatedEvent",
+      timestamp: new Date(),
+      sessionId: this.id,
+      updateType: "MESSAGE_ADDED",
+      update: { message },
+      session: this,
     });
   }
 

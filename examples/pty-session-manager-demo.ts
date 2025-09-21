@@ -1,11 +1,16 @@
 // examples/pty-session-manager-demo.ts
 import {
-  ptySessionManager,
+  createPtySessionManager,
   PtyInstance,
-} from "../src/core/services/pty-session-manager.js";
+} from "../src/core/services/pty/pty-session-manager.js";
+import { createServerEventBus } from "../src/core/event-bus.js";
 
 async function runPtySessionManagerDemo() {
   console.log("🚀 Starting PtySessionManager Demo\n");
+
+  // Create event bus and pty session manager
+  const eventBus = createServerEventBus();
+  const ptySessionManager = createPtySessionManager(eventBus);
 
   const lineBuffers = new Map<string, string>();
 

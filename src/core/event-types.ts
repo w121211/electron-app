@@ -83,11 +83,6 @@ export const ServerEventKind = [
   "TOOL_CALLS_UPDATE",
   "TOOL_CALLS_COMPLETE",
 
-  // PTY events
-  "PtyDataReceived",
-  "PtyWrite",
-  "PtyResize",
-  "PtyExited",
 ] as const;
 
 export type ServerEventKind = (typeof ServerEventKind)[number];
@@ -526,37 +521,8 @@ export type ServerEventUnion =
   | ToolPermissionRequestEvent
   | ToolOutputUpdateEvent
   | ToolCallsUpdateEvent
-  | ToolCallsCompleteEvent
-  | PtyDataReceivedEvent
-  | PtyWriteEvent
-  | PtyResizeEvent
-  | PtyExitedEvent;
+  | ToolCallsCompleteEvent;
 
-export interface PtyDataReceivedEvent extends BaseServerEvent {
-  kind: "PtyDataReceived";
-  sessionId: string;
-  data: string;
-}
-
-export interface PtyWriteEvent extends BaseServerEvent {
-  kind: "PtyWrite";
-  sessionId: string;
-  data: string;
-}
-
-export interface PtyResizeEvent extends BaseServerEvent {
-  kind: "PtyResize";
-  sessionId: string;
-  cols: number;
-  rows: number;
-}
-
-export interface PtyExitedEvent extends BaseServerEvent {
-  kind: "PtyExited";
-  sessionId: string;
-  exitCode: number;
-  signal?: number;
-}
 
 // Combined event union for backward compatibility
 export type EventUnion = ClientEventUnion | ServerEventUnion;

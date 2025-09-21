@@ -21,18 +21,23 @@ import { createModelRouter } from "./routers/model-router.js";
 // import { createToolCallRouter } from "./routers/tool-call-router.js";
 import { createChatClientRouter } from "./routers/chat-client-router.js";
 import { router } from "./trpc-init.js";
+import { PtyChatClient } from "../services/pty/pty-chat-client.js";
+import { createPtyChatRouter } from "./routers/pty-chat-router.js";
+import { createPtySessionManager } from "../services/pty/pty-session-manager.js";
+import { createServerEventBus } from "../event-bus.js";
 
-export async function createTrpcRouter(
-  userDataDir: string,
-  eventBus: IEventBus,
-) {
+export async function createTrpcRouter(userDataDir: string) {
   // Setup logger
   const logger: Logger<ILogObj> = new Logger({ name: "AppServer" });
 
-  // Use the provided event bus
+  // Create event bus
+  const eventBus = createServerEventBus({ logger });
 
   // Create repositories
   const userSettingsRepo = createUserSettingsRepository(userDataDir);
+
+  // Create PTY session manager
+  const ptySessionManager = createPtySessionManager(eventBus);
 
   // Create services
   const fileWatcherService = new FileWatcherService(eventBus);
@@ -81,6 +86,13 @@ export async function createTrpcRouter(
   // Initialize chat session repository
   const chatSessionRepository = new ChatSessionRepositoryImpl();
 
+  const ptyChatClient = new PtyChatClient(
+    eventBus,
+    chatSessionRepository,
+    projectFolderService,
+    ptySessionManager,
+  );
+
   // Start watching all project folders
   projectFolderService
     .startWatchingAllProjectFolders()
@@ -98,7 +110,9 @@ export async function createTrpcRouter(
       userSettingsService,
       toolRegistry,
       chatSessionRepository,
+      ptyChatClient,
     ),
+    ptyChat: createPtyChatRouter(ptyChatClient),
     projectFolder: createProjectFolderRouter(projectFolderService),
     file: createFileRouter(),
     event: createEventRouter(eventBus),

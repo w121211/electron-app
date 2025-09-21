@@ -33,15 +33,26 @@
   import PromptEditor from "./PromptEditor.svelte";
   import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
+  import { isTerminalModel } from "../../../../core/utils/model-utils.js";
 
   // Derived loading states
   const isLoadingSubmitMessage = $derived(
     uiState.loadingStates["submitMessage"] || false,
   );
+  const isStartingPtySession = $derived(
+    uiState.loadingStates["startPtySession"] || false,
+  );
 
   // Derived chat states
   const hasCurrentChat = $derived(chatState.currentChat !== null);
   const currentChatMessages = $derived(chatState.currentChat?.messages || []);
+  const isTerminalSelected = $derived(() => {
+    const model = chatState.selectedModel;
+    return model ? isTerminalModel(model) : false;
+  });
+  const canStartPtySession = $derived(
+    isTerminalSelected && chatState.messageInput.trim().length > 0,
+  );
 
   let messageInputElement = $state<HTMLTextAreaElement>();
   let messagesContainer = $state<HTMLDivElement>();
@@ -178,8 +189,12 @@
 
     if (handled) return;
 
-    // Normal message sending
     if (event.key === "Enter" && !event.shiftKey) {
+      if (isTerminalSelected) {
+        event.preventDefault();
+        chatService.startPtySessionFromDraft(chatState.messageInput);
+        return;
+      }
       event.preventDefault();
       handleSendMessage();
     }
@@ -305,6 +320,17 @@
         {/if}
       </div>
       <div class="flex items-center gap-2">
+        {#if isTerminalSelected}
+          <button
+            onclick={() =>
+              chatService.startPtySessionFromDraft(chatState.messageInput)}
+            class="text-muted hover:text-accent cursor-pointer rounded p-1.5 disabled:opacity-50"
+            title="Run in PTY"
+            disabled={!canStartPtySession || isStartingPtySession}
+          >
+            Run in PTY
+          </button>
+        {/if}
         <button
           onclick={handleShare}
           class="text-muted hover:text-accent cursor-pointer rounded p-1.5"

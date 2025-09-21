@@ -6,10 +6,14 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
-import { ptySessionManager } from "../core/services/pty-session-manager.js";
+import {
+  createPtySessionManager,
+  type PtySessionManager,
+} from "../core/services/pty/pty-session-manager.js";
 
 // Global server instance
-let trpcServer: HttpTrpcServer | null = null;
+let trpcServer: HttpTrpcServer;
+let ptySessionManager: PtySessionManager;
 
 function createWindow(): void {
   // Create the browser window.
@@ -84,8 +88,8 @@ app.whenReady().then(async () => {
     const port = await trpcServer.start(3333); // Prefer port 3333, fallback to any available
     console.log(`tRPC server started on port ${port}`);
 
-    // Initialize PTY session manager with event bus
-    ptySessionManager.initialize(trpcServer.getEventBus());
+    // Initialize PTY session manager with event bus from tRPC server
+    ptySessionManager = createPtySessionManager(trpcServer.getEventBus());
   } catch (error) {
     console.error("Failed to start tRPC server:", error);
     app.quit();
@@ -99,6 +103,8 @@ app.whenReady().then(async () => {
   });
 
   // IPC handlers
+  ipcMain.on("ping", () => console.log("pong"));
+
   ipcMain.handle("get-trpc-url", () => {
     return trpcServer?.getTrpcUrl() || null;
   });
@@ -181,8 +187,6 @@ app.whenReady().then(async () => {
     }
     return false;
   });
-
-  ipcMain.on("ping", () => console.log("pong"));
 
   createWindow();
 

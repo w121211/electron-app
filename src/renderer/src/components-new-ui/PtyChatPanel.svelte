@@ -17,6 +17,11 @@
   <div class="flex-1 overflow-y-auto p-5">
     {#if chatState.currentChat}
       <PtyChat chat={chatState.currentChat} />
+      {#if chatState.currentChat.sessionStatus === "external_terminated"}
+        <div class="text-muted mt-4 rounded-md border border-dashed border-border px-4 py-2 text-xs">
+          Session ended. Run a new command from another chat or draft to start a fresh PTY session.
+        </div>
+      {/if}
     {/if}
   </div>
 </section>

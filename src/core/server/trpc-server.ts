@@ -32,45 +32,37 @@ export class HttpTrpcServer {
       return this.port;
     }
 
-    try {
-      logger.info("Starting embedded tRPC server...");
+    logger.info("Starting embedded tRPC server...");
 
-      // Create the app router with the event bus
-      const trpcRouter = await createTrpcRouter(
-        this.userDataDir,
-        this.eventBus,
-      );
+    // Create the app router
+    const trpcRouter = await createTrpcRouter(this.userDataDir);
 
-      // Create HTTP server with tRPC handler (no CORS needed for Electron)
-      this.server = createHTTPServer({
-        middleware: cors(),
-        router: trpcRouter,
-        createContext,
-        basePath: "/api/trpc/",
+    // Create HTTP server with tRPC handler (no CORS needed for Electron)
+    this.server = createHTTPServer({
+      middleware: cors(),
+      router: trpcRouter,
+      createContext,
+      basePath: "/api/trpc/",
+    });
+
+    // Find available port
+    const actualPort = await this.findAvailablePort(preferredPort);
+
+    return new Promise<number>((resolve, reject) => {
+      this.server.listen(actualPort, "127.0.0.1", () => {
+        this.port = actualPort;
+        logger.info(
+          `Http tRPC server listening on http://127.0.0.1:${this.port}`,
+        );
+        logger.info(`tRPC endpoint: http://127.0.0.1:${this.port}/api/trpc`);
+        resolve(this.port);
       });
 
-      // Find available port
-      const actualPort = await this.findAvailablePort(preferredPort);
-
-      return new Promise<number>((resolve, reject) => {
-        this.server.listen(actualPort, "127.0.0.1", () => {
-          this.port = actualPort;
-          logger.info(
-            `Http tRPC server listening on http://127.0.0.1:${this.port}`,
-          );
-          logger.info(`tRPC endpoint: http://127.0.0.1:${this.port}/api/trpc`);
-          resolve(this.port);
-        });
-
-        this.server.on("error", (error: any) => {
-          logger.error("Failed to start http server:", error);
-          reject(error);
-        });
+      this.server.on("error", (error: any) => {
+        logger.error("Failed to start http server:", error);
+        reject(error);
       });
-    } catch (error) {
-      logger.error("Failed to initialize http server:", error);
-      throw error;
-    }
+    });
   }
 
   async stop(): Promise<void> {

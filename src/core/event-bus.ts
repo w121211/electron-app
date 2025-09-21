@@ -197,6 +197,6 @@ export const createClientEventBus = (
 export const createServerEventBus = (
   options: Omit<EventBusOptions, "environment"> = {},
 ) => {
-  const logger = options.logger || new Logger({ name: "EventBus-server" });
+  const logger = options.logger ?? new Logger({ name: "EventBus-server" });
   return new EventBus({ ...options, logger, environment: "server" });
 };

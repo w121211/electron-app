@@ -23,7 +23,7 @@ export type ChatSessionStatus =
 
 export type ChatFileStatus = "active" | "archived";
 
-export type ChatMode = "chat" | "agent" | "external";
+export type ChatMode = "chat" | "agent" | "external" | "pty";
 
 export interface ExternalSessionMetadata {
   // mode: "pty" | "terminal";
