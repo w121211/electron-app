@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/file-explorer/TreeNode.svelte -->
+<!-- src/renderer/src/components/file-explorer/TreeNode.svelte -->
 <script lang="ts">
   import {
     ThreeDotsVertical,

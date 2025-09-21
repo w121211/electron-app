@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/PtyChat.svelte -->
+<!-- src/renderer/src/components/PtyChat.svelte -->
 <script lang="ts">
   import "@xterm/xterm/css/xterm.css";
   import { Terminal } from "@xterm/xterm";

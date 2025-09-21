@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/PromptEditor.svelte -->
+<!-- src/renderer/src/components/PromptEditor.svelte -->
 <script lang="ts">
   import { tick } from "svelte";
   import { Paperclip, XLg, Send } from "svelte-bootstrap-icons";

@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/Breadcrumb.svelte -->
+<!-- src/renderer/src/components/Breadcrumb.svelte -->
 <script lang="ts">
   import { ChevronRight } from "svelte-bootstrap-icons";
   import { projectState } from "../stores/project-store.svelte.js";

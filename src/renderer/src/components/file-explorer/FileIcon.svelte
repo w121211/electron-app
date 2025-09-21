@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/file-explorer/FileIcon.svelte -->
+<!-- src/renderer/src/components/file-explorer/FileIcon.svelte -->
 <script lang="ts">
   import {
     ChatDots,

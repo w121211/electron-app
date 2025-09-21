@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/XtermFitted.svelte -->
+<!-- src/renderer/src/components/XtermFitted.svelte -->
 <script lang="ts">
   import "@xterm/xterm/css/xterm.css";
   import { onMount, onDestroy } from "svelte";

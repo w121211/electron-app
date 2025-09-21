@@ -1,4 +1,4 @@
-<!-- // src/renderer/src/components-new-ui/chat/ModelSelectorDropdown.svelte -->
+<!-- // src/renderer/src/components/chat/ModelSelectorDropdown.svelte -->
 <script lang="ts">
   import { ChevronDown } from "svelte-bootstrap-icons";
   import { chatState } from "../../stores/chat-store.svelte.js";

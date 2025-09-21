@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/App.svelte -->
+<!-- src/renderer/src/components/App.svelte -->
 <script lang="ts">
   import { Logger } from "tslog";
   import MainLayout from "./MainLayout.svelte";

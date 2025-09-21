@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/MarkdownTodoRenderer.svelte -->
+<!-- src/renderer/src/components/MarkdownTodoRenderer.svelte -->
 <script lang="ts">
   import { PlayCircle } from "svelte-bootstrap-icons";
   import { chatService } from "../services/chat-service.js";

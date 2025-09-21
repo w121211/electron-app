@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/file-explorer/ExplorerPanel.svelte -->
+<!-- src/renderer/src/components/file-explorer/ExplorerPanel.svelte -->
 <script lang="ts">
   import {
     House,

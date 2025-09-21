@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/MainLayout.svelte -->
+<!-- src/renderer/src/components/MainLayout.svelte -->
 <script lang="ts">
   import { Logger } from "tslog";
   import { isTerminalModel } from "../../../core/utils/model-utils.js";

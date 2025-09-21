@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/QuickLauncher.svelte -->
+<!-- src/renderer/src/components/QuickLauncher.svelte -->
 <script lang="ts">
   import { Search, Hash, FileText } from "svelte-bootstrap-icons";
   import { quickLauncherService } from "../services/quick-launcher-service.js";

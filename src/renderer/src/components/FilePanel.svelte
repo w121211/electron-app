@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/FilePanel.svelte -->
+<!-- src/renderer/src/components/FilePanel.svelte -->
 <script lang="ts">
   import { Pencil } from "svelte-bootstrap-icons";
   import { filePanelState } from "../stores/file-panel-store.svelte.js";

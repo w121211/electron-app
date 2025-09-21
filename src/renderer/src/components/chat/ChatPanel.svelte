@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/ChatPanel.svelte -->
+<!-- src/renderer/src/components/ChatPanel.svelte -->
 <script lang="ts">
   import { tick } from "svelte";
   import {

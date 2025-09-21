@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components-new-ui/RightPanel.svelte -->
+<!-- src/renderer/src/components/RightPanel.svelte -->
 <script lang="ts">
   import { Pencil, Download, XLg, FileEarmark } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
