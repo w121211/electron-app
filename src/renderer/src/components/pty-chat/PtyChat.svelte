@@ -4,6 +4,7 @@
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
   import { FitAddon } from "@xterm/addon-fit";
+  import { SerializeAddon } from "@xterm/addon-serialize";
   import { onMount, onDestroy } from "svelte";
   import { Logger } from "tslog";
   import { ptyStreamManager } from "../../services/pty-stream-manager.js";
@@ -22,7 +23,63 @@
   let terminal: Terminal;
   let fitAddon: FitAddon;
   let webglAddon: WebglAddon;
+  let serializeAddon: SerializeAddon;
   let resizeObserver: ResizeObserver;
+  let resizeTimeout: ReturnType<typeof setTimeout>;
+  let idleTimeout: ReturnType<typeof setTimeout>;
+  let isIdle = false;
+
+  // Screenshot functionality
+  const takeScreenshot = (): void => {
+    if (serializeAddon && ptyStream) {
+      const serializedContent = serializeAddon.serialize();
+      const htmlContent = serializeAddon.serializeAsHTML();
+
+      // Save the snapshot to the PtyStream
+      ptyStream.saveTerminalSnapshot(serializedContent);
+
+      logger.info(`Screenshot taken for chat ${chat.absoluteFilePath}`);
+      logger.debug("Terminal content (text):", serializedContent.length);
+      logger.debug("Terminal content (HTML):", htmlContent.length);
+    }
+  };
+
+  // Restore terminal buffer from saved snapshot
+  const restoreTerminalBuffer = (): void => {
+    if (terminal && ptyStream) {
+      const savedSnapshot = ptyStream.getTerminalSnapshot();
+      if (savedSnapshot) {
+        // Temporarily disconnect PTY input
+        const wasDisabled = terminal.options.disableStdin;
+        terminal.options.disableStdin = true;
+
+        terminal.clear();
+        terminal.write(savedSnapshot);
+
+        // Restore the cursor visibility to its last known state from the stream
+        if (ptyStream.isCursorVisible) {
+          terminal.write("\x1b[?25h"); // Show cursor
+        } else {
+          terminal.write("\x1b[?25l"); // Hide cursor
+        }
+
+        // Restore original input state
+        terminal.options.disableStdin = wasDisabled;
+      }
+    }
+  };
+
+  const resetIdleTimer = (): void => {
+    clearTimeout(idleTimeout);
+    isIdle = false; // Mark as active since we received data
+    idleTimeout = setTimeout(() => {
+      if (!isIdle) {
+        logger.info(`PTY stream idle for chat ${chat.id}, taking screenshot`);
+        takeScreenshot();
+        isIdle = true; // Mark as idle to prevent repeated screenshots
+      }
+    }, 2000); // 2 seconds of idle time
+  };
 
   // Derived state for the current PTY stream
   const ptyStream = $derived.by(() => {
@@ -52,19 +109,27 @@
 
     fitAddon = new FitAddon();
     webglAddon = new WebglAddon();
+    serializeAddon = new SerializeAddon();
 
     terminal.loadAddon(webglAddon);
     terminal.loadAddon(fitAddon);
+    terminal.loadAddon(serializeAddon);
     terminal.open(terminalElement);
 
-    fitAddon.fit();
+    // Reset terminal to a clean state before restoring the snapshot
+    // terminal.reset();
+    // Restore any previously saved terminal snapshot
+    restoreTerminalBuffer();
 
     resizeObserver = new ResizeObserver(() => {
-      fitAddon.fit();
-      const newDims = fitAddon.proposeDimensions();
-      if (ptyStream && newDims) {
-        ptyStream.resize(newDims.cols, newDims.rows);
-      }
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        fitAddon.fit();
+        const newDims = fitAddon.proposeDimensions();
+        if (ptyStream && newDims) {
+          ptyStream.resize(newDims.cols, newDims.rows);
+        }
+      }, 100);
     });
     resizeObserver.observe(terminalElement);
 
@@ -83,7 +148,7 @@
   });
 
   $effect(() => {
-    logger.info(
+    logger.debug(
       `PTY effect running for chat: ${chat.id}, session: ${ptyStream?.sessionId}`,
     );
 
@@ -92,6 +157,7 @@
 
       const unsubscribeData = ptyStream.onData.on((data) => {
         terminal.write(data);
+        // resetIdleTimer();
       });
 
       const unsubscribeExit = ptyStream.onExit.on(({ exitCode }) => {
@@ -104,6 +170,7 @@
         ptyStream.write(data);
       });
 
+      // fitAddon.fit();
       const dims = fitAddon.proposeDimensions();
       if (dims) {
         ptyStream.resize(dims.cols, dims.rows);
@@ -114,7 +181,9 @@
         unsubscribeData();
         unsubscribeExit();
         onDataDisposable.dispose();
+        clearTimeout(idleTimeout);
 
+        takeScreenshot();
         terminal.clear();
       };
     }
@@ -124,10 +193,13 @@
 
   onDestroy(() => {
     logger.info(`Cleaning up terminal for chat ${chat.absoluteFilePath}`);
+    clearTimeout(resizeTimeout);
+    clearTimeout(idleTimeout);
     resizeObserver.disconnect();
     terminal.dispose();
     webglAddon.dispose();
     fitAddon.dispose();
+    serializeAddon.dispose();
   });
 </script>
 

@@ -3,6 +3,7 @@ import { Logger } from "tslog";
 
 // A simple generic event emitter
 type Listener<T> = (data: T) => void;
+
 class EventEmitter<T> {
   private listeners = new Set<Listener<T>>();
 
@@ -31,7 +32,21 @@ export class PtyStream {
     signal?: number;
   }>();
 
+  public isCursorVisible: boolean = true;
+  private terminalSnapshot: string = "";
+  private lastActivity: Date | null = null;
+
   constructor(public readonly sessionId: string) {}
+
+  public processStateFromData(data: string): void {
+    // Check for cursor visibility commands
+    if (data.includes("\x1b[?25l")) {
+      this.isCursorVisible = false;
+    }
+    if (data.includes("\x1b[?25h")) {
+      this.isCursorVisible = true;
+    }
+  }
 
   write(data: string): Promise<boolean> {
     return window.api.pty.write(this.sessionId, data);
@@ -43,6 +58,19 @@ export class PtyStream {
 
   destroy(): Promise<boolean> {
     return window.api.pty.destroy(this.sessionId);
+  }
+
+  saveTerminalSnapshot(serializedContent: string): void {
+    this.terminalSnapshot = serializedContent;
+    this.lastActivity = new Date();
+  }
+
+  getTerminalSnapshot(): string {
+    return this.terminalSnapshot;
+  }
+
+  getLastActivity(): Date | null {
+    return this.lastActivity;
   }
 
   dispose(): void {
@@ -63,9 +91,18 @@ class PtyStreamManager {
   }
 
   private setupGlobalListeners(): void {
-    this.unsubscribeOnData = window.api.pty.onData((sessionId: string, data: string) => {
-      this.streams.get(sessionId)?.onData.emit(data);
-    });
+    this.unsubscribeOnData = window.api.pty.onData(
+      (sessionId: string, data: string) => {
+        const stream = this.streams.get(sessionId);
+        if (stream) {
+          // Step 1: Update the stream's internal state
+          stream.processStateFromData(data);
+
+          // Step 2: Explicitly pass the data to UI listeners
+          stream.onData.emit(data);
+        }
+      },
+    );
 
     this.unsubscribeOnExit = window.api.pty.onExit(
       (sessionId: string, exitCode: number, signal?: number) => {

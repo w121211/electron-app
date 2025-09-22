@@ -137,13 +137,10 @@ class ChatService {
     setLoading("openChat", true);
 
     try {
-      this.logger.info("Opening chat file:", filePath);
       const chat = await trpcClient.chatClient.getChatSession.query({
         absoluteFilePath: filePath,
       });
       setCurrentChat(chat);
-
-      this.logger.info("Chat file opened:", chat.id);
       return chat;
     } catch (error) {
       this.logger.error("Failed to open chat file:", error);

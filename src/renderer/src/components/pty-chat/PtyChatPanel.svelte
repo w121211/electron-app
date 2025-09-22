@@ -35,15 +35,6 @@
         <Breadcrumb filePath={chatState.currentChat.absoluteFilePath} />
       {/if}
     </div>
-    <!-- <div class="flex items-center">
-      <button
-        onclick={chatService.togglePromptEditor}
-        title="Prompt Editor"
-        class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
-      >
-        <PencilSquare />
-      </button>
-    </div> -->
   </header>
 
   <!-- Content based on session status -->
@@ -53,7 +44,9 @@
     {:else if chatState.currentChat.sessionStatus === "external_active"}
       <!-- Terminal Content -->
       <div class="flex-1 overflow-y-auto p-5">
-        <PtyChat chat={chatState.currentChat} />
+        {#key chatState.currentChat.id}
+          <PtyChat chat={chatState.currentChat} />
+        {/key}
       </div>
     {:else if chatState.currentChat.sessionStatus === "external_terminated"}
       <!-- Terminated Session Message -->

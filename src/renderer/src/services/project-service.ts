@@ -184,10 +184,8 @@ class ProjectService {
       setTreeSelectionState(filePath, filePath, null);
 
       try {
-        this.logger.info("Opening chat file:", filePath);
         closeFilePanel(); // Close any active file panel
         await chatService.openChatFile(filePath);
-        this.logger.info("Chat file opened successfully");
       } catch (error) {
         this.logger.error("Failed to open chat file:", error);
         showToast(
