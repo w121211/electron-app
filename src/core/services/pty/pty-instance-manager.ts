@@ -116,7 +116,10 @@ export class PtyInstance {
   }
 
   kill(): void {
-    PtyInstance.logger.info(`Killing pty instance ${this.id}`);
+    PtyInstance.logger.info(
+      `Killing pty instance ${this.id} with PID ${this.ptyProcess.pid}`,
+    );
+    // process.kill(this.ptyProcess.pid);
     this.ptyProcess.kill();
   }
 
@@ -170,12 +173,14 @@ export class PtyInstanceManager {
     return Array.from(this.sessions.values());
   }
 
-  destroyAll(): void {
+  async destroyAll(): Promise<void> {
     this.logger.info(`Destroying all ${this.sessions.size} pty sessions.`);
-    for (const session of this.sessions.values()) {
+    const sessionsToDestroy = [...this.sessions.values()];
+    for (const session of sessionsToDestroy) {
+      this.logger.debug("Destroying session", session.id);
       session.kill();
+      await sleep(100);
     }
-    this.sessions.clear();
   }
 }
 
@@ -183,4 +188,9 @@ export function createPtyInstanceManager(
   eventBus: IEventBus,
 ): PtyInstanceManager {
   return new PtyInstanceManager(eventBus);
+}
+
+// Helpers
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

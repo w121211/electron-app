@@ -209,20 +209,38 @@ app.whenReady().then(async () => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", async () => {
   if (process.platform !== "darwin") {
-    // Stop tRPC server before quitting
-    if (trpcServer) {
-      await trpcServer.stop();
-    }
     app.quit();
   }
 });
 
 // Handle app quit to clean up resources
-app.on("before-quit", async () => {
-  if (trpcServer) {
-    await trpcServer.stop();
+let quitting = false;
+app.on("before-quit", async (event) => {
+  if (quitting) {
+    return; // Prevent re-entry
   }
-  ptyInstanceManager.destroyAll();
+  event.preventDefault(); // Prevent immediate quit
+  quitting = true;
+
+  try {
+    console.log("Gracefully shutting down...");
+
+    if (ptyInstanceManager) {
+      await ptyInstanceManager.destroyAll();
+      console.log("All PTY instances destroyed.");
+    }
+
+    if (trpcServer) {
+      await trpcServer.stop();
+      console.log("tRPC server stopped.");
+    }
+
+    console.log("Cleanup complete.");
+  } catch (error) {
+    console.error("Error during shutdown:", error);
+  } finally {
+    app.quit(); // Now quit the app
+  }
 });
 
 // In this file you can include the rest of your app's specific main process
