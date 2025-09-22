@@ -8,8 +8,6 @@ import { getPreference } from "./local-preferences-store.svelte.js";
 
 export interface ModelOption {
   modelId: `${string}/${string}`;
-  // name: string;
-  // provider: string;
   enabled: boolean;
 }
 
@@ -25,7 +23,7 @@ interface ChatState {
   hasUnsavedDraftChanges: boolean;
 }
 
-// Core chat state - using object wrapper pattern for mutable state
+// Core chat state
 export const chatState = $state<ChatState>({
   currentChat: null,
   availableModels: [],
@@ -37,25 +35,21 @@ export const chatState = $state<ChatState>({
   promptCursorPosition: null,
   isDraftSaving: false,
   hasUnsavedDraftChanges: false,
-  // modelsLoading: false,
 });
 
-// Helper functions for working with chat stores
+// Helper functions
 export function setCurrentChat(chat: ChatSessionData | null) {
   chatState.currentChat = chat;
 
-  // Reset message input when switching chats
   if (chat?.metadata?.promptDraft) {
     chatState.messageInput = chat.metadata.promptDraft;
   } else {
     chatState.messageInput = "";
   }
 
-  // Reset draft states when switching chats
   chatState.isDraftSaving = false;
   chatState.hasUnsavedDraftChanges = false;
 
-  // Update chat settings from metadata
   if (chat?.metadata?.mode) {
     chatState.chatMode = chat.metadata.mode;
   }
@@ -72,7 +66,6 @@ export function clearCurrentChat() {
 export function updateMessageInput(value: string) {
   chatState.messageInput = value;
 
-  // Check if input differs from saved draft to mark as unsaved
   if (chatState.currentChat) {
     const savedDraft = chatState.currentChat.metadata?.promptDraft || "";
     const hasChanges = value !== savedDraft;
@@ -106,18 +99,6 @@ export function addMessageToCurrentChat(message: ChatMessage) {
   chatState.currentChat.messages = [...chatState.currentChat.messages, message];
   chatState.currentChat.updatedAt = new Date();
 }
-
-// export function updateChatMetadata(
-//   metadata: Partial<ChatSessionData["metadata"]>,
-// ) {
-//   if (!chatState.currentChat) return;
-
-//   chatState.currentChat.metadata = {
-//     ...chatState.currentChat.metadata,
-//     ...metadata,
-//   };
-//   chatState.currentChat.updatedAt = new Date();
-// }
 
 // Extract file references from message content
 export function extractFileReferences(

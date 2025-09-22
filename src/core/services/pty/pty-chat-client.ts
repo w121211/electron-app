@@ -261,16 +261,16 @@ export class PtyChatClient {
   ): Promise<void> {
     const payload = session.toJSON();
 
-    console.debug("handlePtyChatSessionUpdate", {
-      session,
-      updateType,
-      update,
-    });
+    // console.debug("handlePtyChatSessionUpdate", {
+    //   session,
+    //   updateType,
+    //   update,
+    // });
 
-    await this.chatSessionRepository.saveToFile(
-      session.absoluteFilePath,
-      payload,
-    );
+    // await this.chatSessionRepository.saveToFile(
+    //   session.absoluteFilePath,
+    //   payload,
+    // );
 
     await this.eventBus.emit({
       kind: "PtyChatSessionUpdated",

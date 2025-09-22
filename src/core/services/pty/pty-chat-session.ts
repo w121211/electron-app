@@ -146,7 +146,6 @@ export class PtyChatSession {
   }
 
   private async handlePtyWrite(data: string): Promise<void> {
-    console.log("handlePtyWrite", data);
     const message: ChatMessage = {
       id: uuidv4(),
       metadata: {

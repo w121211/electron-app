@@ -1,9 +1,7 @@
 <!-- src/renderer/src/components/pty-chat/PtyChatPanel.svelte -->
 <script lang="ts">
-  import { PencilSquare } from "svelte-bootstrap-icons";
   import { chatState } from "../../stores/chat-store.svelte.js";
   import { uiState } from "../../stores/ui-store.svelte.js";
-  import { chatService } from "../../services/chat-service.js";
   import PtyChat from "./PtyChat.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
   import PromptEditor from "../chat/PromptEditor.svelte";
@@ -37,7 +35,7 @@
         <Breadcrumb filePath={chatState.currentChat.absoluteFilePath} />
       {/if}
     </div>
-    <div class="flex items-center">
+    <!-- <div class="flex items-center">
       <button
         onclick={chatService.togglePromptEditor}
         title="Prompt Editor"
@@ -45,7 +43,7 @@
       >
         <PencilSquare />
       </button>
-    </div>
+    </div> -->
   </header>
 
   <!-- Content based on session status -->

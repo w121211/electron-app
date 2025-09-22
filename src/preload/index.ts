@@ -19,20 +19,26 @@ const api = {
     destroy: (sessionId: string) =>
       ipcRenderer.invoke("pty:destroy", sessionId),
     onData: (callback: (sessionId: string, data: string) => void) => {
-      ipcRenderer.on("pty:data", (_, sessionId, data) =>
-        callback(sessionId, data),
-      );
+      const handler = (_: unknown, sessionId: string, data: string) =>
+        callback(sessionId, data);
+      ipcRenderer.on("pty:data", handler);
+      return () => {
+        ipcRenderer.removeListener("pty:data", handler);
+      };
     },
     onExit: (
       callback: (sessionId: string, exitCode: number, signal?: number) => void,
     ) => {
-      ipcRenderer.on("pty:exit", (_, sessionId, exitCode, signal) =>
-        callback(sessionId, exitCode, signal),
-      );
-    },
-    removeAllListeners: () => {
-      ipcRenderer.removeAllListeners("pty:data");
-      ipcRenderer.removeAllListeners("pty:exit");
+      const handler = (
+        _: unknown,
+        sessionId: string,
+        exitCode: number,
+        signal?: number,
+      ) => callback(sessionId, exitCode, signal);
+      ipcRenderer.on("pty:exit", handler);
+      return () => {
+        ipcRenderer.removeListener("pty:exit", handler);
+      };
     },
   },
 };

@@ -18,15 +18,14 @@ declare global {
           options: { cols: number; rows: number },
         ) => Promise<boolean>;
         destroy: (sessionId: string) => Promise<boolean>;
-        onData: (callback: (sessionId: string, data: string) => void) => void;
+        onData: (callback: (sessionId: string, data: string) => void) => () => void;
         onExit: (
           callback: (
             sessionId: string,
             exitCode: number,
             signal?: number,
           ) => void,
-        ) => void;
-        removeAllListeners: () => void;
+        ) => () => void;
       };
     };
   }

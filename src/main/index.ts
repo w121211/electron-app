@@ -152,6 +152,16 @@ app.whenReady().then(async () => {
       onExitUnsubscribe();
     });
 
+    event.sender.on("render-process-gone", () => {
+      onDataUnsubscribe();
+      onExitUnsubscribe();
+    });
+
+    event.sender.on("did-start-navigation", () => {
+      onDataUnsubscribe();
+      onExitUnsubscribe();
+    });
+
     return true;
   });
 

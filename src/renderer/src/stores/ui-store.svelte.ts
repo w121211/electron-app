@@ -64,7 +64,7 @@ export function showToast(
     id: `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     message,
     type,
-    duration: duration || (type === "error" ? 0 : 5000), // Errors stay until dismissed
+    duration: duration || (type === "error" ? 2000 : 1000), // Errors stay until dismissed
     timestamp: Date.now(),
   };
 
