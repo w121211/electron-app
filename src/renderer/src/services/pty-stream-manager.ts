@@ -31,6 +31,7 @@ export class PtyStream {
     exitCode: number;
     signal?: number;
   }>();
+  public readonly onPressEnter = new EventEmitter<string>();
 
   public isCursorVisible: boolean = true;
   private terminalSnapshot: string = "";
@@ -49,6 +50,9 @@ export class PtyStream {
   }
 
   write(data: string): Promise<boolean> {
+    if (data === '\r') {
+      this.onPressEnter.emit(data);
+    }
     return window.api.pty.write(this.sessionId, data);
   }
 
@@ -76,6 +80,7 @@ export class PtyStream {
   dispose(): void {
     this.onData.dispose();
     this.onExit.dispose();
+    this.onPressEnter.dispose();
   }
 }
 

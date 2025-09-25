@@ -55,6 +55,27 @@ export async function writeJsonFile<T>(
 }
 
 /**
+ * Writes text content to a file with atomic write guarantees
+ */
+export async function writeTextFile(
+  filePath: string,
+  content: string,
+): Promise<void> {
+  // Ensure directory exists before writing
+  const dirPath = path.dirname(filePath);
+  await createDirectory(dirPath);
+
+  // Create a temporary file path with timestamp for uniqueness
+  const tempFilePath = `${filePath}.${Date.now()}.tmp`;
+
+  // Write content to the temporary file first
+  await fs.writeFile(tempFilePath, content, "utf8");
+
+  // Atomically rename the temporary file to the target file
+  await fs.rename(tempFilePath, filePath);
+}
+
+/**
  * Reads and parses a JSON file
  */
 export async function readJsonFile<T>(filePath: string): Promise<T> {

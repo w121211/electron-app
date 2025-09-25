@@ -9,6 +9,7 @@
   import { Logger } from "tslog";
   import { ptyStreamManager } from "../../services/pty-stream-manager.js";
   import { getModelMessageContentString } from "../../utils/message-helper.js";
+  import { fileService } from "../../services/file-service.js";
   import type { ChatSessionData } from "../../../../core/services/chat-engine/chat-session-repository";
 
   const logger = new Logger({ name: "PtyChat" });
@@ -41,6 +42,31 @@
       logger.info(`Screenshot taken for chat ${chat.absoluteFilePath}`);
       logger.debug("Terminal content (text):", serializedContent.length);
       logger.debug("Terminal content (HTML):", htmlContent.length);
+    }
+  };
+
+  // Save terminal snapshot to file
+  const saveTerminalSnapshotToFile = async (): Promise<void> => {
+    if (serializeAddon && ptyStream) {
+      const serializedContent = serializeAddon.serialize();
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `terminal-snapshot-${chat.id}-${timestamp}.txt`;
+
+      // Use same directory as chat file
+      const chatDir = chat.absoluteFilePath.substring(
+        0,
+        chat.absoluteFilePath.lastIndexOf("/"),
+      );
+      const filePath = `${chatDir}/${filename}`;
+
+      try {
+        await fileService.writeFile(filePath, serializedContent);
+        logger.info(`Terminal snapshot saved to: ${filePath}`);
+      } catch (error) {
+        logger.error("Failed to save terminal snapshot:", error);
+      }
     }
   };
 
@@ -166,6 +192,11 @@
         terminal.options.disableStdin = true;
       });
 
+      const unsubscribeEnter = ptyStream.onPressEnter.on(() => {
+        logger.info("Enter pressed, saving terminal snapshot to file");
+        saveTerminalSnapshotToFile();
+      });
+
       const onDataDisposable = terminal.onData((data: string) => {
         ptyStream.write(data);
       });
@@ -180,6 +211,7 @@
         logger.info(`Unsubscribing from PTY session: ${ptyStream.sessionId}`);
         unsubscribeData();
         unsubscribeExit();
+        unsubscribeEnter();
         onDataDisposable.dispose();
         clearTimeout(idleTimeout);
 

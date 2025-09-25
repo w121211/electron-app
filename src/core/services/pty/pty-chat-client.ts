@@ -16,7 +16,7 @@ import type { PtyChatUpdatedEvent } from "./events.js";
 import type { PtyChatUpdateType, PtyChatUpdate } from "./pty-chat-session.js";
 import {
   isTerminalModel,
-  presetExternalModels,
+  buildCliModelCommand,
 } from "../../utils/model-utils.js";
 
 export class PtyChatClient {
@@ -50,21 +50,6 @@ export class PtyChatClient {
     );
   }
 
-  private constructCliCommand(
-    modelId: `${string}/${string}`,
-    prompt: string,
-  ): string {
-    const model = presetExternalModels[modelId];
-    if (!model) {
-      throw new Error(`Unknown external model: ${modelId}`);
-    }
-
-    const command = model.command;
-    const args = model.args.join(" ");
-    const fullCommand = args ? `${command} ${args}` : command;
-
-    return `${fullCommand} "${prompt.replace(/"/g, '\\"')}"`;
-  }
 
   async createPtyChatSession(
     targetDirectory: string,
@@ -111,7 +96,7 @@ export class PtyChatClient {
         cwd: targetDirectory,
       });
       session.attachPtyInstance(ptyInstance.id);
-      const cliCommand = this.constructCliCommand(
+      const cliCommand = buildCliModelCommand(
         options.modelId,
         options.initialPrompt,
       );
@@ -168,7 +153,7 @@ export class PtyChatClient {
     session.updatedAt = new Date();
     session.attachPtyInstance(ptyInstance.id);
 
-    const cliCommand = this.constructCliCommand(modelId, initialPrompt);
+    const cliCommand = buildCliModelCommand(modelId, initialPrompt);
     ptyInstance.write(cliCommand + "\n");
 
     await this.chatSessionRepository.saveToFile(

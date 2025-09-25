@@ -31,7 +31,7 @@ async function runGeminiCliDemo() {
 
   // 2. Pipe PTY data to the headless terminal
   ptyProcess.onData((data) => {
-    // process.stdout.write(data); // Also write to real stdout to see what's happening
+    // process.stdout.write(data); // Uncomment for debug: write to real stdout to see what's happening
     terminal.write(data);
   });
 
@@ -94,7 +94,7 @@ async function runGeminiCliDemo() {
 
   console.log("🤖 Starting Gemini CLI interactive session...");
   ptyProcess.write("gemini\n");
-  await captureScreen(3000);
+  await captureScreen(5000);
 
   console.log("💬 Sending prompt to Gemini...");
   ptyProcess.write(
@@ -104,11 +104,15 @@ async function runGeminiCliDemo() {
 
   console.log("⏎ Submitting prompt...");
   ptyProcess.write("\r"); // Press Enter to submit
-  await captureScreen(10000);
+  await captureScreen(30000);
+
+  console.log("⏹️ Stopping Gemini generation...");
+  ptyProcess.write("\x1b"); // ESC key to stop generation
+  await captureScreen(2000);
 
   console.log("🚪 Exiting Gemini CLI...");
   ptyProcess.write("\x03"); // First Ctrl+C
-  await captureScreen(1000);
+  await captureScreen(500);
   ptyProcess.write("\x03"); // Second Ctrl+C to fully exit
   await captureScreen(2000);
 

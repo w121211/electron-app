@@ -41,6 +41,12 @@ export const presetExternalModels: Record<string, ExternalModel> = {
     args: [],
     enabled: true,
   },
+  "cli/debug": {
+    modelId: "cli/debug",
+    command: "",
+    args: [],
+    enabled: true,
+  },
 };
 
 export const presetInternalModels: Record<string, InternalModel> = {
@@ -60,3 +66,19 @@ export const presetInternalModels: Record<string, InternalModel> = {
     enabled: false,
   },
 };
+
+export function buildCliModelCommand(
+  modelId: `${string}/${string}`,
+  prompt: string,
+): string {
+  const model = presetExternalModels[modelId];
+  if (!model) {
+    throw new Error(`Unknown external model: ${modelId}`);
+  }
+
+  const command = model.command;
+  const args = model.args.join(" ");
+  const fullCommand = args ? `${command} ${args}` : command;
+
+  return `${fullCommand} "${prompt.replace(/"/g, '\\"')}"`;
+}

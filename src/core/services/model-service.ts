@@ -16,8 +16,6 @@ export class ModelService {
   }
 
   public async getAvailableModels(): Promise<AvailableModels> {
-    this.logger.info("Getting available models");
-
     return {
       external: presetExternalModels,
       internal: presetInternalModels,

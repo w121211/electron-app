@@ -55,6 +55,31 @@ class FileService {
     }
   }
 
+  async writeFile(filePath: string, content: string): Promise<{ success: boolean }> {
+    setLoading("writeFile", true);
+
+    try {
+      this.logger.info("Writing file:", filePath);
+      const result = await trpcClient.file.writeFile.mutate({
+        filePath,
+        content,
+      });
+
+      this.logger.info("File written successfully:", filePath);
+      showToast(`File saved: ${filePath}`, "success");
+      return result;
+    } catch (error) {
+      this.logger.error("Failed to write file:", error);
+      showToast(
+        `Failed to write file: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
+      throw error;
+    } finally {
+      setLoading("writeFile", false);
+    }
+  }
+
   getFileIcon(fileName: string, isDirectory: boolean, isExpanded = false) {
     if (isDirectory) {
       return isExpanded ? "folder-open" : "folder";

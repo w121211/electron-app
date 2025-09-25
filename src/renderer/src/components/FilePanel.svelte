@@ -2,9 +2,10 @@
 <script lang="ts">
   import { Pencil } from "svelte-bootstrap-icons";
   import { filePanelState } from "../stores/file-panel-store.svelte.js";
-  import { showToast } from "../stores/ui-store.svelte.js";
+  import { uiState, showToast } from "../stores/ui-store.svelte.js";
   import MarkdownTodoRenderer from "./MarkdownTodoRenderer.svelte";
   import Breadcrumb from "./Breadcrumb.svelte";
+  import NavigationButtons from "./NavigationButtons.svelte";
 
   function handleEdit(): void {
     showToast("Edit functionality is not yet implemented.", "info");
@@ -13,10 +14,16 @@
 
 <section class="relative flex min-w-0 flex-1 flex-col">
   <!-- Header with Breadcrumb -->
-  <header class="flex h-10 flex-shrink-0 items-center px-4">
-    {#if filePanelState.filePath}
-      <Breadcrumb filePath={filePanelState.filePath} />
-    {/if}
+  <header class="flex h-12 items-center justify-between px-4">
+    <div class="flex items-center gap-1">
+      <NavigationButtons />
+
+      {#if filePanelState.filePath}
+        <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
+          <Breadcrumb filePath={filePanelState.filePath} />
+        </div>
+      {/if}
+    </div>
   </header>
 
   <!-- File Viewer -->

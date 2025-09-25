@@ -5,6 +5,7 @@
   import PtyChat from "./PtyChat.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
   import PromptEditor from "../chat/PromptEditor.svelte";
+  import NavigationButtons from "../NavigationButtons.svelte";
 
   // Session status-based display logic
   const shouldShowPromptEditor = $derived.by(() => {
@@ -31,8 +32,12 @@
   <!-- Header with Breadcrumb -->
   <header class="flex h-12 items-center justify-between px-4">
     <div class="flex items-center gap-1">
+      <NavigationButtons />
+
       {#if chatState.currentChat}
-        <Breadcrumb filePath={chatState.currentChat.absoluteFilePath} />
+        <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
+          <Breadcrumb filePath={chatState.currentChat.absoluteFilePath} />
+        </div>
       {/if}
     </div>
   </header>

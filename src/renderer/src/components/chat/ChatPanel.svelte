@@ -7,9 +7,6 @@
     Pencil,
     PencilSquare,
     Paperclip,
-    House,
-    Search,
-    LayoutSidebar,
   } from "svelte-bootstrap-icons";
   import { isTerminalModel } from "../../../../core/utils/model-utils.js";
   import { chatService } from "../../services/chat-service.js";
@@ -21,11 +18,7 @@
     savePromptCursorPosition,
     clearPromptCursorPosition,
   } from "../../stores/chat-store.svelte.js";
-  import {
-    uiState,
-    showToast,
-    toggleLeftPanel,
-  } from "../../stores/ui-store.svelte.js";
+  import { uiState, showToast } from "../../stores/ui-store.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import { setPreference } from "../../stores/local-preferences-store.svelte.js";
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
@@ -35,6 +28,7 @@
   import PromptEditor from "./PromptEditor.svelte";
   import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
+  import NavigationButtons from "../NavigationButtons.svelte";
 
   // Derived loading states
   const isLoadingSubmitMessage = $derived(
@@ -286,28 +280,7 @@
     <!-- Breadcrumb Header -->
     <header class="flex h-12 items-center justify-between px-4">
       <div class="flex items-center gap-1">
-        <!-- Show navigation buttons when left panel is closed -->
-        {#if !uiState.leftPanelOpen}
-          <button
-            class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
-            title="Home"
-          >
-            <House class="text-base" />
-          </button>
-          <button
-            class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
-            title="Search"
-          >
-            <Search class="text-base" />
-          </button>
-          <button
-            onclick={toggleLeftPanel}
-            class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
-            title="Toggle Sidebar"
-          >
-            <LayoutSidebar class="text-base" />
-          </button>
-        {/if}
+        <NavigationButtons />
 
         {#if chatState.currentChat}
           <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
