@@ -284,7 +284,7 @@ async function createIgnoreInstance(
     "**/.DS_Store",
     "**/Thumbs.db",
     "**/node_modules/",
-    ".*", // dot files
+    // ".*", // dot files
     "**/*.tmp",
     "**/*.log",
   ];

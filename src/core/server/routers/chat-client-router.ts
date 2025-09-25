@@ -249,8 +249,11 @@ export function createChatClientRouter(
         );
 
         if (sessionData._type === "pty_chat") {
-          // PTY chat sessions don't support updates
-          throw new Error("Updates not supported for PTY chat sessions");
+          // Route PTY chat updates to PtyChatClient
+          await ptyChatClient.updatePtyChat(
+            input.absoluteFilePath,
+            input.updates || {},
+          );
         } else {
           await chatClient.updateChat(
             input.absoluteFilePath,

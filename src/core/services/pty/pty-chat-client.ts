@@ -14,7 +14,10 @@ import type {
 import { PtyChatSession } from "./pty-chat-session.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
 import type { PtyChatUpdateType, PtyChatUpdate } from "./pty-chat-session.js";
-import { isTerminalModel } from "../../utils/model-utils.js";
+import {
+  isTerminalModel,
+  presetExternalModels,
+} from "../../utils/model-utils.js";
 
 export class PtyChatClient {
   private readonly logger: Logger<ILogObj> = new Logger({
@@ -45,6 +48,22 @@ export class PtyChatClient {
         );
       },
     );
+  }
+
+  private constructCliCommand(
+    modelId: `${string}/${string}`,
+    prompt: string,
+  ): string {
+    const model = presetExternalModels[modelId];
+    if (!model) {
+      throw new Error(`Unknown external model: ${modelId}`);
+    }
+
+    const command = model.command;
+    const args = model.args.join(" ");
+    const fullCommand = args ? `${command} ${args}` : command;
+
+    return `${fullCommand} "${prompt.replace(/"/g, '\\"')}"`;
   }
 
   async createPtyChatSession(
@@ -92,7 +111,11 @@ export class PtyChatClient {
         cwd: targetDirectory,
       });
       session.attachPtyInstance(ptyInstance.id);
-      ptyInstance.write(options.initialPrompt + "\n");
+      const cliCommand = this.constructCliCommand(
+        options.modelId,
+        options.initialPrompt,
+      );
+      ptyInstance.write(cliCommand + "\n");
     }
 
     this.sessions.set(session.absoluteFilePath, {
@@ -145,7 +168,8 @@ export class PtyChatClient {
     session.updatedAt = new Date();
     session.attachPtyInstance(ptyInstance.id);
 
-    ptyInstance.write(initialPrompt + "\n");
+    const cliCommand = this.constructCliCommand(modelId, initialPrompt);
+    ptyInstance.write(cliCommand + "\n");
 
     await this.chatSessionRepository.saveToFile(
       existingData.absoluteFilePath,
@@ -252,6 +276,49 @@ export class PtyChatClient {
     }
 
     return undefined;
+  }
+
+  async updatePtyChat(
+    absoluteFilePath: string,
+    updates: Partial<ChatSessionData>,
+  ): Promise<void> {
+    const sessionEntry = Array.from(this.sessions.values()).find(
+      (entry) => entry.session.absoluteFilePath === absoluteFilePath,
+    );
+
+    if (!sessionEntry) {
+      throw new Error(`PTY chat session not found: ${absoluteFilePath}`);
+    }
+
+    const session = sessionEntry.session;
+
+    // Update metadata if provided
+    if (updates.metadata) {
+      session.metadata = { ...session.metadata, ...updates.metadata };
+      session.updatedAt = new Date();
+
+      // Emit update event
+      this.eventBus.emit<PtyChatUpdatedEvent>({
+        kind: "PtyChatUpdatedEvent",
+        timestamp: new Date(),
+        sessionId: session.id,
+        updateType: "METADATA_UPDATED",
+        update: { metadata: session.metadata },
+        session,
+      });
+    }
+
+    // Update maxTurns if provided (though not used in PTY chats)
+    if (updates.maxTurns !== undefined) {
+      session.maxTurns = updates.maxTurns;
+      session.updatedAt = new Date();
+    }
+
+    // Persist the updated session
+    await this.chatSessionRepository.saveToFile(
+      session.absoluteFilePath,
+      session.toJSON(),
+    );
   }
 
   private async handlePtyChatSessionUpdate(

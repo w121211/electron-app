@@ -341,9 +341,9 @@ export class ProjectFolderService {
     projectPath: string,
     limit: number = 20,
   ): Promise<ProjectFileSearchResult[]> {
-    this.logger.info(
-      `Searching paths in project ${projectPath} with query: ${query}`,
-    );
+    // this.logger.debug(
+    //   `Searching paths in project ${projectPath} with query: ${query}`,
+    // );
 
     // Find the project folder by path
     const settings = await this.userSettingsRepository.getSettings();
