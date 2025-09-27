@@ -15,6 +15,22 @@ const terminalModelIdSchema = z
     message: "Model must be a terminal PTY model",
   });
 
+const chatMetadataUpdateSchema = z.object({
+  title: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  mode: z.enum(["chat", "agent"]).optional(),
+  knowledge: z.array(z.string()).optional(),
+  promptDraft: z.string().optional(),
+  external: z.object({
+    pid: z.number().optional(),
+    workingDirectory: z.string().optional(),
+    pty: z.object({
+      ptyInstanceId: z.string().optional(),
+      screenshot: z.string().optional(),
+    }).optional(),
+  }).optional(),
+}).partial();
+
 export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
   return router({
     createPtyChatSession: publicProcedure
@@ -62,6 +78,25 @@ export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
         }),
       )
       .query(async ({ input }) => {
+        const session = await ptyChatClient.getOrLoadPtyChatSession(
+          input.absoluteFilePath,
+        );
+
+        return session.toJSON();
+      }),
+
+    updateMetadata: publicProcedure
+      .input(
+        z.object({
+          absoluteFilePath: z.string(),
+          metadata: chatMetadataUpdateSchema,
+        }),
+      )
+      .mutation(async ({ input }) => {
+        await ptyChatClient.updatePtyChat(input.absoluteFilePath, {
+          metadata: input.metadata,
+        });
+
         const session = await ptyChatClient.getOrLoadPtyChatSession(
           input.absoluteFilePath,
         );

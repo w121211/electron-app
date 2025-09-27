@@ -9,8 +9,13 @@
   import { Logger } from "tslog";
   import { ptyStreamManager } from "../../services/pty-stream-manager.js";
   import { getModelMessageContentString } from "../../utils/message-helper.js";
-  import { fileService } from "../../services/file-service.js";
+  import {
+    isCliModelReady,
+    saveTerminalSnapshotToFile,
+  } from "../../utils/xterm-utils.js";
   import type { ChatSessionData } from "../../../../core/services/chat-engine/chat-session-repository";
+  import { fileService } from "../../services/file-service.js";
+  import { ptyChatService } from "../../services/pty-chat-service.js";
 
   const logger = new Logger({ name: "PtyChat" });
 
@@ -29,44 +34,19 @@
   let resizeTimeout: ReturnType<typeof setTimeout>;
   let idleTimeout: ReturnType<typeof setTimeout>;
   let isIdle = false;
+  let promptWritten = false;
 
   // Screenshot functionality
   const takeScreenshot = (): void => {
     if (serializeAddon && ptyStream) {
       const serializedContent = serializeAddon.serialize();
-      const htmlContent = serializeAddon.serializeAsHTML();
 
       // Save the snapshot to the PtyStream
       ptyStream.saveTerminalSnapshot(serializedContent);
 
       logger.info(`Screenshot taken for chat ${chat.absoluteFilePath}`);
-      logger.debug("Terminal content (text):", serializedContent.length);
-      logger.debug("Terminal content (HTML):", htmlContent.length);
-    }
-  };
-
-  // Save terminal snapshot to file
-  const saveTerminalSnapshotToFile = async (): Promise<void> => {
-    if (serializeAddon && ptyStream) {
-      const serializedContent = serializeAddon.serialize();
-
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const filename = `terminal-snapshot-${chat.id}-${timestamp}.txt`;
-
-      // Use same directory as chat file
-      const chatDir = chat.absoluteFilePath.substring(
-        0,
-        chat.absoluteFilePath.lastIndexOf("/"),
-      );
-      const filePath = `${chatDir}/${filename}`;
-
-      try {
-        await fileService.writeFile(filePath, serializedContent);
-        logger.info(`Terminal snapshot saved to: ${filePath}`);
-      } catch (error) {
-        logger.error("Failed to save terminal snapshot:", error);
-      }
+      // logger.debug("Terminal content (text):", serializedContent.length);
+      // logger.debug("Terminal content (HTML):", htmlContent.length);
     }
   };
 
@@ -107,6 +87,28 @@
     }, 2000); // 2 seconds of idle time
   };
 
+  // Write initial prompt to terminal without sending enter
+  const writeInitialPromptWithoutEnter = (): void => {
+    const initialPrompt = chat.metadata?.promptDraft;
+
+    if (!initialPrompt || !ptyStream) {
+      logger.warn("No initial prompt or PTY stream available");
+      return;
+    }
+
+    logger.info(
+      `Pre-populating initial prompt: ${initialPrompt.substring(0, 50)}...`,
+    );
+
+    // Focus terminal first
+    terminal.focus();
+
+    // Write prompt to PTY stream (without \n)
+    ptyStream.write(initialPrompt);
+
+    promptWritten = true;
+  };
+
   // Derived state for the current PTY stream
   const ptyStream = $derived.by(() => {
     const ptyInstanceId = chat.metadata?.external?.pty?.ptyInstanceId;
@@ -114,6 +116,16 @@
       return ptyStreamManager.getOrAttachStream(ptyInstanceId);
     }
     return null;
+  });
+
+  // Reset prompt written state when PTY stream changes
+  $effect(() => {
+    if (ptyStream) {
+      promptWritten = false;
+      logger.debug(
+        `Reset promptWritten state for PTY stream: ${ptyStream.sessionId}`,
+      );
+    }
   });
 
   onMount(() => {
@@ -141,6 +153,19 @@
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(serializeAddon);
     terminal.open(terminalElement);
+
+    // Handle Shift+Enter differently from Enter
+    terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      if (event.type === "keydown" && event.key === "Enter" && event.shiftKey) {
+        // Shift+Enter: send newline
+        event.preventDefault();
+        if (ptyStream) {
+          ptyStream.write("\n");
+        }
+        return false; // Prevent xterm from handling this
+      }
+      return true; // Let xterm handle other keys
+    });
 
     // Reset terminal to a clean state before restoring the snapshot
     // terminal.reset();
@@ -183,6 +208,19 @@
 
       const unsubscribeData = ptyStream.onData.on((data) => {
         terminal.write(data);
+
+        // Check if CLI is ready and prompt hasn't been written yet
+        if (
+          !promptWritten &&
+          chat.metadata?.promptDraft &&
+          isCliModelReady(data)
+        ) {
+          // Small delay to ensure terminal has processed all data
+          setTimeout(() => {
+            writeInitialPromptWithoutEnter();
+          }, 100);
+        }
+
         // resetIdleTimer();
       });
 
@@ -192,9 +230,27 @@
         terminal.options.disableStdin = true;
       });
 
-      const unsubscribeEnter = ptyStream.onPressEnter.on(() => {
-        logger.info("Enter pressed, saving terminal snapshot to file");
-        saveTerminalSnapshotToFile();
+      const unsubscribeEnter = ptyStream.onPressEnter.on(async () => {
+        logger.info("Enter pressed, saving terminal snapshot to metadata");
+        if (serializeAddon && ptyStream) {
+          const serializedContent = serializeAddon.serialize();
+
+          // Save to PTY stream (existing functionality)
+          ptyStream.saveTerminalSnapshot(serializedContent);
+
+          // Update chat metadata with latest snapshot
+          try {
+            await ptyChatService.updateMetadata(chat.absoluteFilePath, {
+              external: {
+                pty: {
+                  screenshot: serializedContent,
+                },
+              },
+            });
+          } catch (error) {
+            logger.error("Failed to update PTY chat metadata with snapshot:", error);
+          }
+        }
       });
 
       const onDataDisposable = terminal.onData((data: string) => {

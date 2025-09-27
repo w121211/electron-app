@@ -10,7 +10,7 @@ interface FileContent {
   isBase64?: boolean;
 }
 
-class FileService {
+export class FileService {
   private logger = new Logger({ name: "FileService" });
 
   async openFile(filePath: string): Promise<FileContent> {
@@ -55,7 +55,10 @@ class FileService {
     }
   }
 
-  async writeFile(filePath: string, content: string): Promise<{ success: boolean }> {
+  async writeFile(
+    filePath: string,
+    content: string,
+  ): Promise<{ success: boolean }> {
     setLoading("writeFile", true);
 
     try {

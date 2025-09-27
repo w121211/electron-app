@@ -36,7 +36,10 @@
 
       {#if chatState.currentChat}
         <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
-          <Breadcrumb filePath={chatState.currentChat.absoluteFilePath} />
+          <Breadcrumb
+            filePath={chatState.currentChat.absoluteFilePath}
+            hasUnsavedChanges={chatState.hasUnsavedDraftChanges}
+          />
         </div>
       {/if}
     </div>

@@ -50,7 +50,6 @@ export class PtyChatClient {
     );
   }
 
-
   async createPtyChatSession(
     targetDirectory: string,
     options: {
@@ -152,6 +151,10 @@ export class PtyChatClient {
     session.workingDirectory = targetDirectory.path;
     session.updatedAt = new Date();
     session.attachPtyInstance(ptyInstance.id);
+    session.metadata = {
+      ...session.metadata,
+      promptDraft: initialPrompt,
+    };
 
     const cliCommand = buildCliModelCommand(modelId, initialPrompt);
     ptyInstance.write(cliCommand + "\n");

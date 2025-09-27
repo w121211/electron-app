@@ -168,9 +168,9 @@ export class FileWatcherService {
       );
     }
 
-    // this.logger.debug(
-    //   `Chokidar fs event: ${eventType} - ${filePath} (${isDirectory ? "directory" : "file"})`,
-    // );
+    this.logger.debug(
+      `Chokidar fs event: ${eventType} - ${filePath} (${isDirectory ? "directory" : "file"})`,
+    );
 
     this.eventBus
       .emit<FileWatcherEvent>({

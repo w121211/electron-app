@@ -2,6 +2,7 @@
 import { Logger } from "tslog";
 import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
+import type { ChatMetadata } from "../../../core/services/chat-engine/chat-session-repository.js";
 import {
   chatState,
   setCurrentChat,
@@ -119,6 +120,27 @@ class PtyChatService {
       throw error;
     } finally {
       setLoading("loadPtyChat", false);
+    }
+  }
+
+  async updateMetadata(absoluteFilePath: string, metadata: Partial<ChatMetadata>) {
+    try {
+      this.logger.info("Updating PTY chat metadata:", absoluteFilePath);
+      const session = await trpcClient.ptyChat.updateMetadata.mutate({
+        absoluteFilePath,
+        metadata,
+      });
+
+      setCurrentChat(session);
+      this.logger.info("PTY chat metadata updated:", session.id);
+      return session;
+    } catch (error) {
+      this.logger.error("Failed to update PTY chat metadata:", error);
+      showToast(
+        `Failed to update PTY chat metadata: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
+      throw error;
     }
   }
 }

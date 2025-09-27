@@ -188,6 +188,22 @@ function isBinaryFile(fileType: string): boolean {
 // File validation constants
 export const INVALID_FILE_CHARS = /[<>:"/\\|?*]/;
 
+// Default ignore patterns applied to all projects
+export const DEFAULT_IGNORES = [
+  "**/.git",
+  "**/.svn",
+  "**/.hg",
+  "**/.DS_Store",
+  "**/Thumbs.db",
+  "**/node_modules/",
+  // ".*", // dot files
+  "**/*.tmp",
+  "**/*.log",
+];
+
+// Default patterns to exclude from .gitignore rules
+export const DEFAULT_EXCLUDE_IGNORES: string[] = ["/chats"];
+
 // Types for project folder operations
 export interface FolderTreeNode {
   name: string;
@@ -297,26 +313,22 @@ export async function validateProjectFolderPath(
 
 async function createIgnoreInstance(
   projectPath: string,
+  excludeIgnores: string[] = DEFAULT_EXCLUDE_IGNORES,
 ): Promise<ReturnType<typeof ignore>> {
-  const defaultIgnores = [
-    "**/.git",
-    "**/.svn",
-    "**/.hg",
-    "**/.DS_Store",
-    "**/Thumbs.db",
-    "**/node_modules/",
-    // ".*", // dot files
-    "**/*.tmp",
-    "**/*.log",
-  ];
-
   try {
     const gitignorePath = path.join(projectPath, ".gitignore");
     const gitignoreContent = await fs.readFile(gitignorePath, "utf8");
-    return ignore().add(defaultIgnores).add(gitignoreContent);
+
+    // Filter out excluded patterns
+    const filteredContent = gitignoreContent
+      .split("\n")
+      .filter((line) => !excludeIgnores.includes(line.trim()))
+      .join("\n");
+
+    return ignore().add(DEFAULT_IGNORES).add(filteredContent);
   } catch (error) {
     // .gitignore doesn't exist or can't be read, use default ignores
-    return ignore().add(defaultIgnores);
+    return ignore().add(DEFAULT_IGNORES);
   }
 }
 
@@ -363,8 +375,9 @@ async function getPathsWithIgnore(
 
 export async function getSearchablePaths(
   projectPath: string,
+  excludeIgnores: string[] = DEFAULT_EXCLUDE_IGNORES,
 ): Promise<FileSearchResult[]> {
-  const ig = await createIgnoreInstance(projectPath);
+  const ig = await createIgnoreInstance(projectPath, excludeIgnores);
   const absolutePaths = await getPathsWithIgnore(projectPath, projectPath, ig);
 
   return absolutePaths.map((absolutePath) => {
@@ -379,6 +392,7 @@ export async function getSearchablePaths(
 
 export async function buildFolderTree(
   targetPath: string,
+  excludeIgnores: string[] = DEFAULT_EXCLUDE_IGNORES,
 ): Promise<FolderTreeNode> {
   const baseName = path.basename(targetPath);
 
@@ -394,7 +408,7 @@ export async function buildFolderTree(
   }
 
   // Load .gitignore rules
-  const ig = await createIgnoreInstance(targetPath);
+  const ig = await createIgnoreInstance(targetPath, excludeIgnores);
 
   async function buildNodeRecursive(
     currentPath: string,

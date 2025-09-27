@@ -1,72 +1,65 @@
 // src/renderer/src/utils/xterm-utils.ts
-import { Terminal } from "@xterm/xterm";
+import type { SerializeAddon } from "@xterm/addon-serialize";
+import { Logger } from "tslog";
+import type { FileService } from "../services/file-service.js";
 
-export interface ITerminalFont {
-  fontFamily: string;
-  fontSize: number;
-  letterSpacing: number;
-  lineHeight: number;
-  charWidth?: number;
-  charHeight?: number;
-}
+const logger = new Logger({ name: "XtermUtils" });
 
-/**
- * Reference: https://github.com/microsoft/vscode  getFont()
- */
-export function getFont(w: Window, xterm: Terminal): ITerminalFont {
-  const fontFamily = xterm.options.fontFamily;
-  const fontSize = xterm.options.fontSize;
-  const letterSpacing = xterm.options.letterSpacing;
-  const lineHeight = xterm.options.lineHeight;
+// Check if CLI model is ready based on terminal content
+// export const isCliModelReady = (serializeAddon: SerializeAddon): boolean => {
+//   const terminalContent = serializeAddon.serialize();
 
-  // Get the character dimensions from xterm if it's available
-  const xtermCore = (xterm as any)._core;
-  if (xtermCore?._renderService?._renderer.value) {
-    const cellDims = xtermCore._renderService.dimensions.css.cell;
-    if (cellDims?.width && cellDims?.height) {
-      return {
-        fontFamily,
-        fontSize,
-        letterSpacing,
-        lineHeight,
-        charHeight: cellDims.height / lineHeight,
-        charWidth:
-          cellDims.width - Math.round(letterSpacing) / w.devicePixelRatio,
-      };
-    }
+//   // Common CLI ready patterns
+//   const readyPatterns = [
+//     '> [2mTry "', // claude code
+//     "Type your message or @path/to/file", // gemini cli
+//   ];
+
+//   return readyPatterns.some((pattern) => terminalContent.includes(pattern));
+// };
+
+export const isCliModelReady = (streamData: string): boolean => {
+  //   const terminalContent = serializeAddon.serialize();
+
+  // Common CLI model ready patterns
+  const readyPatterns = [
+    '> [2mTry "', // claude
+    "Type your message or @path/to/file", // gemini
+    ">_ \u001b[22m\u001b[1mOpenAI Codex", // codex
+    "To get started, describe a task or try one of these commands:", // codex
+  ];
+
+  return readyPatterns.some((pattern) => streamData.includes(pattern));
+};
+
+// Save terminal snapshot to file
+export const saveTerminalSnapshotToFile = async (
+  chatDir: string,
+  chatId: string,
+  serializeAddon: SerializeAddon,
+  fileService: FileService,
+): Promise<void> => {
+  const serializedContent = serializeAddon.serialize();
+  const htmlContent = serializeAddon.serializeAsHTML();
+
+  // Generate timestamp for filenames
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+
+  // Save both text and HTML versions
+  const textFilename = `terminal-snapshot-${chatId}-${timestamp}.txt`;
+  const htmlFilename = `terminal-snapshot-${chatId}-${timestamp}.html`;
+  const textFilePath = `${chatDir}/${textFilename}`;
+  const htmlFilePath = `${chatDir}/${htmlFilename}`;
+
+  try {
+    await Promise.all([
+      fileService.writeFile(textFilePath, serializedContent),
+      fileService.writeFile(htmlFilePath, htmlContent),
+    ]);
+    logger.info(
+      `Terminal snapshots saved to: ${textFilePath} and ${htmlFilePath}`,
+    );
+  } catch (error) {
+    logger.error("Failed to save terminal snapshots:", error);
   }
-
-  // Fall back to measuring the font ourselves
-  return this._measureFont(w, fontFamily, fontSize, letterSpacing, lineHeight);
-}
-
-export function getXtermScaledDimensions(
-  w: Window,
-  font: ITerminalFont,
-  width: number,
-  height: number,
-): { rows: number; cols: number } | null {
-  if (!font.charWidth || !font.charHeight) {
-    return null;
-  }
-
-  // Because xterm.js converts from CSS pixels to actual pixels through
-  // the use of canvas, window.devicePixelRatio needs to be used here in
-  // order to be precise. font.charWidth/charHeight alone as insufficient
-  // when window.devicePixelRatio changes.
-  const scaledWidthAvailable = width * w.devicePixelRatio;
-
-  const scaledCharWidth =
-    font.charWidth * w.devicePixelRatio + font.letterSpacing;
-  const cols = Math.max(Math.floor(scaledWidthAvailable / scaledCharWidth), 1);
-
-  const scaledHeightAvailable = height * w.devicePixelRatio;
-  const scaledCharHeight = Math.ceil(font.charHeight * w.devicePixelRatio);
-  const scaledLineHeight = Math.floor(scaledCharHeight * font.lineHeight);
-  const rows = Math.max(
-    Math.floor(scaledHeightAvailable / scaledLineHeight),
-    1,
-  );
-
-  return { rows, cols };
-}
+};

@@ -470,9 +470,16 @@ class ProjectService {
           // Remove file/folder
           if (existingIndex !== -1) {
             node.children.splice(existingIndex, 1);
-            this.logger.debug("Removed child:", currentSegment);
+            this.logger.debug("Removed child:", currentSegment, "from parent:", node.name);
           } else {
-            this.logger.debug("Child not found for removal:", currentSegment);
+            this.logger.warn(
+              "Child not found for removal - segment:",
+              currentSegment,
+              "in parent:",
+              node.name,
+              "available children:",
+              node.children?.map(c => c.name)
+            );
           }
         }
 
@@ -505,7 +512,12 @@ class ProjectService {
     // Get relative path from tree root
     const treePath = tree.path;
     if (!filePath.startsWith(treePath + "/") && filePath !== treePath) {
-      this.logger.warn("File path does not start with tree path");
+      this.logger.warn(
+        "File path does not start with tree path - filePath:",
+        filePath,
+        "treePath:",
+        treePath
+      );
       return newTree;
     }
 
