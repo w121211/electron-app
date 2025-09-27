@@ -1,7 +1,14 @@
 // src/main/index.ts
 import path from "node:path";
 import fs from "node:fs/promises";
-import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  type WebContents,
+} from "electron";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
@@ -11,6 +18,62 @@ import { type PtyInstanceManager } from "../core/services/pty/pty-instance-manag
 // Global server instance
 let trpcServer: HttpTrpcServer;
 let ptyInstanceManager: PtyInstanceManager;
+// Track per-session attachments per WebContents to prevent duplicate forwarding
+const ptyAttachments = new Map<
+  string,
+  Map<number, { offData: () => void; offExit: () => void }>
+>();
+
+function attachPtyToWebContents(ptyId: string, sender: WebContents): boolean {
+  const ptyInstance = ptyInstanceManager.getSession(ptyId);
+  if (!ptyInstance) {
+    console.error(`PTY session not found for ID: ${ptyId}`);
+    return false;
+  }
+
+  const senderId = sender.id;
+  let perSender = ptyAttachments.get(ptyId);
+  if (!perSender) {
+    perSender = new Map();
+    ptyAttachments.set(ptyId, perSender);
+  }
+
+  // If already attached for this sender, unsubscribe first to avoid duplicates
+  const existing = perSender.get(senderId);
+  if (existing) {
+    existing.offData();
+    existing.offExit();
+  }
+
+  const offData = ptyInstance.onData((data) => {
+    if (!sender.isDestroyed()) {
+      sender.send("pty:data", ptyInstance.id, data);
+    }
+  });
+
+  const offExit = ptyInstance.onExit(({ exitCode, signal }) => {
+    if (!sender.isDestroyed()) {
+      sender.send("pty:exit", ptyInstance.id, exitCode, signal);
+    }
+  });
+
+  perSender.set(senderId, { offData, offExit });
+
+  const cleanup = () => {
+    const entry = perSender?.get(senderId);
+    if (entry) {
+      entry.offData();
+      entry.offExit();
+      perSender?.delete(senderId);
+    }
+  };
+
+  sender.once("destroyed", cleanup);
+  sender.on("render-process-gone", cleanup);
+  sender.on("did-start-navigation", cleanup);
+
+  return true;
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -36,7 +99,6 @@ function createWindow(): void {
 
     // Take screenshot when app is ready (development only)
     // if (is.dev) {
-    //   try {
     //     // Wait a bit for the app to fully render
     //     setTimeout(async () => {
     //       const screenshot = await mainWindow.webContents.capturePage();
@@ -48,9 +110,6 @@ function createWindow(): void {
     //       await fs.writeFile(screenshotPath, screenshot.toPNG());
     //       console.log(`Screenshot saved to: ${screenshotPath}`);
     //     }, 2000); // 2 second delay to ensure full render
-    //   } catch (error) {
-    //     console.error("Failed to take screenshot:", error);
-    //   }
     // }
   });
 
@@ -125,44 +184,44 @@ app.whenReady().then(async () => {
     return shell.showItemInFolder(filePath);
   });
 
+  // Create a new PTY session and return its id
+  ipcMain.handle(
+    "pty:create",
+    async (
+      _,
+      options: { cols?: number; rows?: number; cwd?: string; shell?: string },
+    ) => {
+      const instance = ptyInstanceManager.create({
+        cols: options?.cols,
+        rows: options?.rows,
+        cwd: options?.cwd,
+        shell: options?.shell,
+      });
+      return instance.id;
+    },
+  );
+
+  // Create and attach in one go to avoid dropping initial output
+  ipcMain.handle(
+    "pty:createAndAttach",
+    async (
+      event,
+      options: { cols?: number; rows?: number; cwd?: string; shell?: string },
+    ) => {
+      const instance = ptyInstanceManager.create({
+        cols: options?.cols,
+        rows: options?.rows,
+        cwd: options?.cwd,
+        shell: options?.shell,
+      });
+      attachPtyToWebContents(instance.id, event.sender);
+      return instance.id;
+    },
+  );
+
   // Pty IPC handlers
   ipcMain.handle("pty:attach", (event, sessionId: string) => {
-    const ptyInstance = ptyInstanceManager.getSession(sessionId);
-    if (!ptyInstance) {
-      console.error(`PTY session not found for ID: ${sessionId}`);
-      return false;
-    }
-
-    // Forward events from this specific pty instance to the renderer window that attached
-    const onDataUnsubscribe = ptyInstance.onData((data) => {
-      if (!event.sender.isDestroyed()) {
-        event.sender.send("pty:data", ptyInstance.id, data);
-      }
-    });
-
-    const onExitUnsubscribe = ptyInstance.onExit(({ exitCode, signal }) => {
-      if (!event.sender.isDestroyed()) {
-        event.sender.send("pty:exit", ptyInstance.id, exitCode, signal);
-      }
-    });
-
-    // When the renderer window is closed, unsubscribe from PTY events
-    event.sender.once("destroyed", () => {
-      onDataUnsubscribe();
-      onExitUnsubscribe();
-    });
-
-    event.sender.on("render-process-gone", () => {
-      onDataUnsubscribe();
-      onExitUnsubscribe();
-    });
-
-    event.sender.on("did-start-navigation", () => {
-      onDataUnsubscribe();
-      onExitUnsubscribe();
-    });
-
-    return true;
+    return attachPtyToWebContents(sessionId, event.sender);
   });
 
   ipcMain.handle("pty:write", async (_, sessionId: string, data: string) => {

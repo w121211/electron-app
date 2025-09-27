@@ -11,6 +11,18 @@ declare global {
       showOpenDialog: () => Promise<string | null>;
       showInFolder: (filePath: string) => Promise<void>;
       pty: {
+        createAndAttach: (options: {
+          cols?: number;
+          rows?: number;
+          cwd?: string;
+          shell?: string;
+        }) => Promise<string>;
+        create: (options: {
+          cols?: number;
+          rows?: number;
+          cwd?: string;
+          shell?: string;
+        }) => Promise<string>;
         attach: (sessionId: string) => Promise<boolean>;
         write: (sessionId: string, data: string) => Promise<boolean>;
         resize: (

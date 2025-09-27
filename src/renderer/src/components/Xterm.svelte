@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/XtermFitted.svelte -->
+<!-- src/renderer/src/components/Xterm.svelte -->
 <script lang="ts">
   import "@xterm/xterm/css/xterm.css";
   import { onMount, onDestroy } from "svelte";
@@ -6,9 +6,9 @@
   import { WebglAddon } from "@xterm/addon-webgl";
   import { FitAddon } from "@xterm/addon-fit";
   import { ptyClient, type PtySession } from "../services/pty-client";
-  import { Logger } from "tslog";
 
-  const logger = new Logger({ name: "XtermFitted" });
+  // Visible flag provided by parent
+  let { visible = true }: { visible?: boolean } = $props();
 
   // let terminalDivContainer: HTMLDivElement;
   let terminalElement: HTMLDivElement;
@@ -19,27 +19,22 @@
   let isInitialized = false;
   let resizeObserver: ResizeObserver;
   let resizeTimeout: ReturnType<typeof setTimeout>;
+  let lastWidth = 0;
+  let lastHeight = 0;
 
   onMount(async () => {
     if (isInitialized || !terminalElement) return;
 
     await initializeTerminal();
-
-    const fitTerminal = (): void => {
-      fitAddon.fit();
-      const dims = fitAddon.proposeDimensions();
-
-      if (session && dims) {
-        session.resize(dims.cols, dims.rows);
-      }
-    };
-
-    const debouncedFitTerminal = (): void => {
+    const debounced = (): void => {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(fitTerminal, 100);
+      resizeTimeout = setTimeout(resizeTerminal, 150);
     };
 
-    resizeObserver = new ResizeObserver(debouncedFitTerminal);
+    resizeObserver = new ResizeObserver(() => {
+      if (!visible) return;
+      debounced();
+    });
     resizeObserver.observe(terminalElement);
 
     isInitialized = true;
@@ -72,8 +67,6 @@
     terminal.loadAddon(fitAddon);
     terminal.open(terminalElement);
 
-    fitAddon.fit();
-    // console.log(fitAddon.proposeDimensions());
     const dims = fitAddon.proposeDimensions();
 
     session = await ptyClient.createSession({
@@ -90,7 +83,7 @@
     });
 
     session.onExit.on(({ exitCode }) => {
-      logger.info(`Terminal session exited with code: ${exitCode}`);
+      console.info(`Terminal session exited with code: ${exitCode}`);
       terminal?.write(`
 
     [Process completed]`);
@@ -100,9 +93,14 @@
       session?.write(data);
     });
 
-    logger.info("Terminal initialized successfully", {
+    console.info("Terminal initialized successfully", {
       sessionId: session.sessionId,
     });
+
+    // Initial resize after mount when visible
+    setTimeout(() => {
+      if (visible) resizeTerminal();
+    }, 100);
   }
 
   function cleanup(): void {
@@ -116,8 +114,48 @@
     resizeObserver?.disconnect();
     clearTimeout(resizeTimeout);
 
-    logger.info("Terminal cleanup completed");
+    console.info("Terminal cleanup completed");
   }
+
+  // Manual, visibility-aware terminal resize
+  function resizeTerminal(): void {
+    if (!terminal || !terminalElement) return;
+
+    const rect = terminalElement.getBoundingClientRect();
+    // console.log(rect.width, rect.height);
+    if (rect.width === 0 || rect.height === 0) return; // hidden or not laid out
+
+    if (rect.width === lastWidth && rect.height === lastHeight) return;
+    lastWidth = rect.width;
+    lastHeight = rect.height;
+
+    const dims = fitAddon.proposeDimensions();
+    if (!dims) return;
+
+    const { cols, rows } = dims;
+    if (
+      cols > 0 &&
+      rows > 0 &&
+      (cols !== terminal.cols || rows !== terminal.rows)
+    ) {
+      terminal.resize(cols, rows);
+      session?.resize(cols, rows);
+      console.debug(`Resized to ${cols}x${rows}`);
+    }
+  }
+
+  // React when visibility changes to true
+  $effect(() => {
+    if (visible) {
+      setTimeout(() => {
+        resizeTerminal();
+        terminal?.focus();
+      }, 0);
+    } else if (isInitialized) {
+      // Unfocus when hidden to prevent capturing keyboard input
+      terminal?.blur();
+    }
+  });
 </script>
 
 <div

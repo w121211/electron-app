@@ -11,6 +11,18 @@ const api = {
     ipcRenderer.invoke("show-in-folder", filePath),
   // Pty APIs
   pty: {
+    createAndAttach: (options: {
+      cols?: number;
+      rows?: number;
+      cwd?: string;
+      shell?: string;
+    }) => ipcRenderer.invoke("pty:createAndAttach", options),
+    create: (options: {
+      cols?: number;
+      rows?: number;
+      cwd?: string;
+      shell?: string;
+    }) => ipcRenderer.invoke("pty:create", options),
     attach: (sessionId: string) => ipcRenderer.invoke("pty:attach", sessionId),
     write: (sessionId: string, data: string) =>
       ipcRenderer.invoke("pty:write", sessionId, data),
