@@ -9,12 +9,8 @@
   import { Logger } from "tslog";
   import { ptyStreamManager } from "../../services/pty-stream-manager.js";
   import { getModelMessageContentString } from "../../utils/message-helper.js";
-  import {
-    isCliModelReady,
-    saveTerminalSnapshotToFile,
-  } from "../../utils/xterm-utils.js";
+  import { isCliModelReady } from "../../utils/xterm-utils.js";
   import type { ChatSessionData } from "../../../../core/services/chat-engine/chat-session-repository";
-  import { fileService } from "../../services/file-service.js";
   import { ptyChatService } from "../../services/pty-chat-service.js";
 
   const logger = new Logger({ name: "PtyChat" });
@@ -34,7 +30,9 @@
   let resizeTimeout: ReturnType<typeof setTimeout>;
   let idleTimeout: ReturnType<typeof setTimeout>;
   let isIdle = false;
-  let promptWritten = false;
+
+  type TerminalState = 'initializing' | 'ready' | 'prompt_written';
+  let terminalState: TerminalState = 'initializing';
 
   // Screenshot functionality
   const takeScreenshot = (): void => {
@@ -105,8 +103,6 @@
 
     // Write prompt to PTY stream (without \n)
     ptyStream.write(initialPrompt);
-
-    promptWritten = true;
   };
 
   // Derived state for the current PTY stream
@@ -118,12 +114,12 @@
     return null;
   });
 
-  // Reset prompt written state when PTY stream changes
+  // Reset terminal state when PTY stream changes
   $effect(() => {
     if (ptyStream) {
-      promptWritten = false;
+      terminalState = 'initializing';
       logger.debug(
-        `Reset promptWritten state for PTY stream: ${ptyStream.sessionId}`,
+        `Reset terminal state to initializing for PTY stream: ${ptyStream.sessionId}`,
       );
     }
   });
@@ -209,15 +205,18 @@
       const unsubscribeData = ptyStream.onData.on((data) => {
         terminal.write(data);
 
-        // Check if CLI is ready and prompt hasn't been written yet
-        if (
-          !promptWritten &&
-          chat.metadata?.promptDraft &&
-          isCliModelReady(data)
-        ) {
+        // State transition: initializing → ready
+        if (terminalState === 'initializing' && isCliModelReady(data)) {
+          terminalState = 'ready';
+          logger.debug('Terminal state: initializing → ready');
+
           // Small delay to ensure terminal has processed all data
           setTimeout(() => {
-            writeInitialPromptWithoutEnter();
+            if (terminalState === 'ready' && chat.metadata?.promptDraft) {
+              terminalState = 'prompt_written';
+              logger.debug('Terminal state: ready → prompt_written');
+              writeInitialPromptWithoutEnter();
+            }
           }, 100);
         }
 
@@ -234,22 +233,20 @@
         logger.info("Enter pressed, saving terminal snapshot to metadata");
         if (serializeAddon && ptyStream) {
           const serializedContent = serializeAddon.serialize();
+          const screenshotHtml = serializeAddon.serializeAsHTML();
 
           // Save to PTY stream (existing functionality)
           ptyStream.saveTerminalSnapshot(serializedContent);
 
-          // Update chat metadata with latest snapshot
-          try {
-            await ptyChatService.updateMetadata(chat.absoluteFilePath, {
-              external: {
-                pty: {
-                  screenshot: serializedContent,
-                },
+          // Update chat metadata with latest snapshot including HTML
+          await ptyChatService.updateMetadata(chat.absoluteFilePath, {
+            external: {
+              pty: {
+                screenshot: serializedContent,
+                // screenshotHtml: screenshotHtml,
               },
-            });
-          } catch (error) {
-            logger.error("Failed to update PTY chat metadata with snapshot:", error);
-          }
+            },
+          });
         }
       });
 

@@ -27,6 +27,7 @@ const chatMetadataUpdateSchema = z.object({
     pty: z.object({
       ptyInstanceId: z.string().optional(),
       screenshot: z.string().optional(),
+      screenshotHtml: z.string().optional(),
     }).optional(),
   }).optional(),
 }).partial();

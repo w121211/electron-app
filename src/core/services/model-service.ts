@@ -9,10 +9,11 @@ import {
 } from "../utils/model-utils.js";
 
 export class ModelService {
-  private readonly logger: Logger<ILogObj>;
+  // @ts-expect-error - Intentionally unused for future use
+  private readonly _logger: Logger<ILogObj>;
 
   constructor() {
-    this.logger = new Logger({ name: "ModelService" });
+    this._logger = new Logger({ name: "ModelService" });
   }
 
   public async getAvailableModels(): Promise<AvailableModels> {

@@ -1,6 +1,7 @@
 // src/core/services/chat-engine/chat-session-repository.ts
 import { promises as fs } from "fs";
 import path from "path";
+// @ts-expect-error - Intentionally unused for future use
 import { ILogObj, Logger } from "tslog";
 import { z } from "zod";
 import { modelMessageSchema } from "ai";
@@ -44,12 +45,14 @@ export interface ChatMessage {
 }
 
 export interface ExternalSessionMetadata {
+  mode?: "terminal" | "pty";
   // sessionId?: string; // Used for PTY mode
   pid?: number; // Used for terminal mode
   workingDirectory?: string;
   pty?: {
     ptyInstanceId?: string;
     screenshot?: string;
+    screenshotHtml?: string;
   };
 }
 
@@ -87,12 +90,14 @@ export const ModelIdSchema = z.custom<`${string}/${string}`>(
 );
 
 const ExternalSessionMetadataSchema = z.object({
+  mode: z.enum(["terminal", "pty"]).optional(),
   pid: z.number().optional(), // Used for terminal mode
   workingDirectory: z.string().optional(),
   pty: z
     .object({
       ptyInstanceId: z.string().optional(),
       screenshot: z.string().optional(),
+      screenshotHtml: z.string().optional(),
     })
     .optional(),
 });
@@ -164,7 +169,8 @@ export interface ChatSessionRepository {
 }
 
 export class ChatSessionRepositoryImpl implements ChatSessionRepository {
-  private readonly logger = new Logger({ name: "ChatSessionRepository" });
+  // @ts-expect-error - Intentionally unused for future use
+  private readonly _logger = new Logger({ name: "ChatSessionRepository" });
 
   async saveToFile(
     absoluteFilePath: string,

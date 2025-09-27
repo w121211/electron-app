@@ -38,12 +38,13 @@ export interface TaskUpdatedEvent extends BaseEvent {
 }
 
 export class TaskService {
-  private readonly logger: Logger<ILogObj>;
+  // @ts-expect-error - Intentionally unused for future use
+  private readonly _logger: Logger<ILogObj>;
   private readonly eventBus: IEventBus;
   private readonly taskRepo: TaskRepository;
 
   constructor(eventBus: IEventBus, taskRepo: TaskRepository) {
-    this.logger = new Logger({ name: "TaskService" });
+    this._logger = new Logger({ name: "TaskService" });
     this.eventBus = eventBus;
     this.taskRepo = taskRepo;
   }
@@ -52,7 +53,7 @@ export class TaskService {
     taskName: string,
     taskConfig: Record<string, unknown>,
     parentAbsoluteDirectoryPath: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<{ taskId: string; absoluteDirectoryPath: string }> {
     const taskId = uuidv4();
     const now = new Date();

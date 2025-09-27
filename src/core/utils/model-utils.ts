@@ -69,7 +69,7 @@ export const presetInternalModels: Record<string, InternalModel> = {
 
 export function buildCliModelCommand(
   modelId: `${string}/${string}`,
-  prompt: string,
+  _prompt: string,
 ): string {
   const model = presetExternalModels[modelId];
   if (!model) {

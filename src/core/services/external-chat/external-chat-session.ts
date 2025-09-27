@@ -8,7 +8,7 @@ import {
 } from "../../utils/message-utils.js";
 import {
   launchTerminalFromConfig,
-  getCommandForModel,
+  getCommandForModel as _getCommandForModel,
 } from "../terminal-launcher.js";
 import type { IEventBus } from "../../event-bus.js";
 import type {

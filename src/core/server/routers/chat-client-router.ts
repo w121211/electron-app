@@ -182,7 +182,8 @@ export function createChatClientRouter(
           updatedChatSession: ChatSessionData;
         }> => {
           // Load session data to determine type
-          const sessionData = await chatSessionRepository.loadFromFile(
+          // @ts-expect-error - Intentionally unused for future use
+          const _sessionData = await chatSessionRepository.loadFromFile(
             input.absoluteFilePath,
           );
 

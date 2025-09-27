@@ -119,7 +119,7 @@ export class ProjectFolderService {
 
   public async addProjectFolder(
     absoluteProjectFolderPath: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<ProjectFolder> {
     this.logger.info(`Adding project folder: ${absoluteProjectFolderPath}`);
 
@@ -198,7 +198,7 @@ export class ProjectFolderService {
     await this.eventBus.emit<ProjectFolderUpdatedEvent>({
       kind: "ProjectFolderUpdatedEvent",
       timestamp: new Date(),
-      correlationId,
+      correlationId: _correlationId,
       projectFolders: settings.projectFolders,
       updateType: "PROJECT_FOLDER_ADDED",
     });
@@ -211,7 +211,7 @@ export class ProjectFolderService {
 
   public async removeProjectFolder(
     projectFolderPath: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<ProjectFolder[]> {
     this.logger.info(`Removing project folder: ${projectFolderPath}`);
 
@@ -242,7 +242,7 @@ export class ProjectFolderService {
     await this.eventBus.emit<ProjectFolderUpdatedEvent>({
       kind: "ProjectFolderUpdatedEvent",
       timestamp: new Date(),
-      correlationId,
+      correlationId: _correlationId,
       projectFolders: settings.projectFolders,
       updateType: "PROJECT_FOLDER_REMOVED",
     });
@@ -260,7 +260,7 @@ export class ProjectFolderService {
   }
 
   public async startWatchingAllProjectFolders(
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<number> {
     this.logger.info("Starting to watch all project folders");
 
@@ -408,7 +408,7 @@ export class ProjectFolderService {
   public async copyFile(
     sourceAbsolutePath: string,
     destinationAbsolutePath: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<void> {
     this.logger.info(
       `Copying from ${sourceAbsolutePath} to ${destinationAbsolutePath}`,
@@ -483,7 +483,7 @@ export class ProjectFolderService {
   public async moveFile(
     sourceAbsolutePath: string,
     destinationAbsolutePath: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<void> {
     this.logger.info(
       `Moving from ${sourceAbsolutePath} to ${destinationAbsolutePath}`,
@@ -551,7 +551,7 @@ export class ProjectFolderService {
   public async renameFile(
     absolutePath: string,
     newName: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<void> {
     this.logger.info(`Renaming ${absolutePath} to ${newName}`);
 
@@ -612,7 +612,7 @@ export class ProjectFolderService {
    */
   public async deleteFile(
     absolutePath: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<void> {
     this.logger.info(`Deleting ${absolutePath}`);
 
@@ -654,7 +654,7 @@ export class ProjectFolderService {
   public async duplicateFile(
     sourceAbsolutePath: string,
     newName?: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<string> {
     this.logger.info(`Duplicating ${sourceAbsolutePath}`);
 
@@ -685,7 +685,7 @@ export class ProjectFolderService {
     );
 
     // Use existing copyFile method to perform the duplication
-    await this.copyFile(sourceAbsolutePath, destinationPath, correlationId);
+    await this.copyFile(sourceAbsolutePath, destinationPath, _correlationId);
 
     this.logger.info(
       `Successfully duplicated ${sourceAbsolutePath} to ${destinationPath}`,
@@ -699,7 +699,7 @@ export class ProjectFolderService {
   public async createFolder(
     parentPath: string,
     folderName: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<void> {
     this.logger.info(`Creating folder ${folderName} in ${parentPath}`);
 
@@ -726,7 +726,7 @@ export class ProjectFolderService {
    */
   public async createNewProjectFolder(
     folderName: string,
-    correlationId?: string,
+    _correlationId?: string,
   ): Promise<ProjectFolder> {
     this.logger.info(`Creating new project folder: ${folderName}`);
 
@@ -748,7 +748,7 @@ export class ProjectFolderService {
     );
     const projectFolder = await this.addProjectFolder(
       newProjectFolderPath,
-      correlationId,
+      _correlationId,
     );
 
     return projectFolder;

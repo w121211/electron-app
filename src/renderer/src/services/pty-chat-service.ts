@@ -123,25 +123,23 @@ class PtyChatService {
     }
   }
 
-  async updateMetadata(absoluteFilePath: string, metadata: Partial<ChatMetadata>) {
-    try {
-      this.logger.info("Updating PTY chat metadata:", absoluteFilePath);
-      const session = await trpcClient.ptyChat.updateMetadata.mutate({
-        absoluteFilePath,
-        metadata,
-      });
+  async updateMetadata(
+    absoluteFilePath: string,
+    metadata: Partial<ChatMetadata>,
+  ) {
+    const session = await trpcClient.ptyChat.updateMetadata.mutate({
+      absoluteFilePath,
+      metadata,
+    });
 
-      setCurrentChat(session);
-      this.logger.info("PTY chat metadata updated:", session.id);
-      return session;
-    } catch (error) {
-      this.logger.error("Failed to update PTY chat metadata:", error);
-      showToast(
-        `Failed to update PTY chat metadata: ${error instanceof Error ? error.message : String(error)}`,
-        "error",
-      );
-      throw error;
-    }
+    // Update the store if this is the current chat
+    // Disabled: when setting the store, it causes the PTY chat renderer weird output (yet to investigate)
+    // For now just comment it out, do not remove
+    // if (chatState.currentChat?.absoluteFilePath === absoluteFilePath) {
+    //   setCurrentChat(session);
+    // }
+
+    return session;
   }
 }
 

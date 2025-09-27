@@ -40,12 +40,13 @@ export interface EventBusOptions {
 // Event bus implementation
 export class EventBus implements IEventBus {
   private handlers: Map<string, Set<EventHandler<any>>> = new Map();
-  private logger: Logger<ILogObj>;
+  // @ts-expect-error - Intentionally unused for future use
+  private _logger: Logger<ILogObj>;
   private environment: EventBusEnvironment;
 
   constructor(options: EventBusOptions) {
     this.environment = options.environment;
-    this.logger =
+    this._logger =
       options.logger || new Logger({ name: `EventBus-${this.environment}` });
   }
 

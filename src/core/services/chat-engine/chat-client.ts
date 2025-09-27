@@ -31,7 +31,8 @@ export interface CreateChatSessionConfig {
 }
 
 export class ChatClient<TOOLS extends ToolSet> {
-  private readonly logger: Logger<ILogObj> = new Logger({ name: "ChatClient" });
+  // @ts-expect-error - Intentionally unused for future use
+  private readonly _logger: Logger<ILogObj> = new Logger({ name: "ChatClient" });
   private readonly sessions: Map<string, ChatSession<TOOLS>> = new Map();
   private readonly sessionAccessTime: Map<string, number> = new Map();
   private readonly maxSessions: number = 10;
@@ -41,7 +42,8 @@ export class ChatClient<TOOLS extends ToolSet> {
     private readonly chatSessionRepository: ChatSessionRepository,
     private readonly taskService: TaskService,
     private readonly projectFolderService: ProjectFolderService,
-    private readonly userSettingsService: UserSettingsService,
+    // @ts-expect-error - Intentionally unused for future use
+    private readonly _userSettingsService: UserSettingsService,
     private readonly toolRegistry: ToolRegistry,
     // private readonly providerRegistry: ProviderRegistryProvider,
   ) {}

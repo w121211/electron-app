@@ -1,6 +1,6 @@
 // src/core/services/chat-engine/chat-session.ts
 import { gateway } from "@ai-sdk/gateway";
-import { streamText } from "ai";
+import { streamText, wrapLanguageModel } from "ai";
 import { v4 as uuidv4 } from "uuid";
 import { Logger, type ILogObj } from "tslog";
 import type {
@@ -12,7 +12,7 @@ import type {
 } from "ai";
 import { ToolConfirmationRequiredError } from "../tool-call/tool-call-confirmation.js";
 import {
-  processFileReferences,
+  processFileReferences as _processFileReferences,
   extractChatFileReferences,
   getUserModelMessageContentString,
 } from "../../utils/message-utils.js";
@@ -32,6 +32,7 @@ import type {
   ChatSessionData,
 } from "./chat-session-repository.js";
 import type { ToolRegistry } from "../tool-call/tool-registry.js";
+import { chatCacheMiddleware } from "./chat-cache-middleware.js";
 
 export interface TurnResult<TOOLS extends ToolSet = ToolSet> {
   sessionStatus: ChatSessionStatus;
@@ -56,7 +57,8 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
   metadata?: ChatSessionData["metadata"];
 
   private currentAbortController: AbortController | null = null;
-  private logger: Logger<ILogObj> = new Logger({ name: "ChatSession" });
+  // @ts-expect-error - Intentionally unused for future use
+  private _logger: Logger<ILogObj> = new Logger({ name: "ChatSession" });
   private toolCallRunner: ToolCallRunner<TOOLS>;
 
   // Tool call state management
@@ -203,10 +205,12 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
       }
 
       // 2. Generate AI response using streamText
-      const model = gateway(this.modelId);
+      const baseModel = gateway(this.modelId);
+      const model = wrapLanguageModel({
+        model: baseModel,
+        middleware: chatCacheMiddleware,
+      });
       const streamResult = streamText({
-        // model: this.providerRegistry.languageModel(this.modelId),
-        // model: model.withMiddleware([chatCacheMiddleware]),
         model,
         messages: this.messages.map((msg) => msg.message),
         tools: this.toolSet,

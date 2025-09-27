@@ -6,20 +6,25 @@ import {
   type LanguageModelV2,
   type LanguageModelV2Middleware,
   type LanguageModelV2StreamPart,
-  simulateReadableStream,
-} from "ai";
+} from "@ai-sdk/provider";
+import { simulateReadableStream } from "ai";
 
 const cacheDir = path.join(app.getPath("userData"), "chat-cache");
-const db = new Level(cacheDir, { valueEncoding: "json" });
+const generateDb = new Level<
+  string,
+  Awaited<ReturnType<LanguageModelV2["doGenerate"]>>
+>(path.join(cacheDir, "generate"), { valueEncoding: "json" });
+const streamDb = new Level<string, LanguageModelV2StreamPart[]>(
+  path.join(cacheDir, "stream"),
+  { valueEncoding: "json" },
+);
 
-export const chatCacheMiddleware: LanguageModelMiddleware = {
+export const chatCacheMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify(params);
 
     try {
-      const cached = (await db.get(cacheKey)) as Awaited<
-        ReturnType<LanguageModel["doGenerate"]>
-      >;
+      const cached = await generateDb.get(cacheKey);
 
       return {
         ...cached,
@@ -33,7 +38,7 @@ export const chatCacheMiddleware: LanguageModelMiddleware = {
     } catch {
       // Cache miss - proceed with generation
       const result = await doGenerate();
-      await db.put(cacheKey, result);
+      await generateDb.put(cacheKey, result);
       return result;
     }
   },
@@ -43,7 +48,7 @@ export const chatCacheMiddleware: LanguageModelMiddleware = {
 
     try {
       // Check if the result is in the cache
-      const cached = (await db.get(cacheKey)) as LanguageModelV2StreamPart[];
+      const cached = await streamDb.get(cacheKey);
 
       // Format the timestamps in the cached response
       const formattedChunks = cached.map((p) => {
@@ -76,7 +81,7 @@ export const chatCacheMiddleware: LanguageModelMiddleware = {
         },
         flush() {
           // Store the full response in the cache after streaming is complete
-          db.put(cacheKey, fullResponse);
+          streamDb.put(cacheKey, fullResponse).catch(() => {});
         },
       });
 

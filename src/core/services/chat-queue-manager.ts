@@ -59,7 +59,7 @@ export class ChatQueueManager {
 
     if (!sessionData.modelId) {
       this.logger.error(`Cannot schedule chat ${chatId} without a modelId.`);
-      sessionData.sessionStatus = "error";
+      sessionData.sessionStatus = "idle";
       await this.chatSessionRepository.saveToFile(
         absoluteFilePath,
         sessionData,

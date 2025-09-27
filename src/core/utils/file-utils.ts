@@ -11,7 +11,8 @@ export interface FileContent {
   isBase64?: boolean;
 }
 
-const logger: Logger<ILogObj> = new Logger({ name: "FileUtils" });
+// @ts-expect-error - Intentionally unused for future use
+const _logger: Logger<ILogObj> = new Logger({ name: "FileUtils" });
 
 /**
  * Creates a directory if it doesn't exist

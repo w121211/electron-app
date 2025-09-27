@@ -10,7 +10,7 @@ import {
   writeJsonFile,
   listDirectory,
 } from "../utils/file-utils.js";
-import type { Task, TaskStatus } from "./task-service.js";
+import type { Task } from "./task-service.js";
 
 export class TaskRepositoryError extends Error {
   constructor(message: string) {

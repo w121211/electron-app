@@ -5,11 +5,13 @@ import superjson from "superjson";
 import { Logger } from "tslog";
 import type { CreateHTTPContextOptions } from "@trpc/server/adapters/standalone";
 
-const logger = new Logger({ name: "Server" });
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3333;
+// @ts-expect-error - Intentionally unused for future use
+const _logger = new Logger({ name: "Server" });
+// @ts-expect-error - Intentionally unused for future use
+const _PORT = process.env.PORT ? parseInt(process.env.PORT) : 3333;
 
 // Create context type
-export function createContext(opts: CreateHTTPContextOptions) {
+export function createContext(_opts: CreateHTTPContextOptions) {
   return {};
 }
 type Context = Awaited<ReturnType<typeof createContext>>;

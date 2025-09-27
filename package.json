@@ -37,6 +37,7 @@
     "chokidar": "^4.0.3",
     "cors": "^2.8.5",
     "electron-updater": "^6.3.9",
+    "es-toolkit": "^1.39.10",
     "fuzzysort": "^3.1.0",
     "gray-matter": "^4.0.3",
     "ignore": "^7.0.5",

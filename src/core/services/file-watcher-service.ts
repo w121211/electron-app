@@ -87,7 +87,7 @@ export class FileWatcherService {
       ...this.chokidarOptions,
       ignored: (filePath) => {
         const relativePath = path.relative(absoluteFolderPath, filePath);
-        return relativePath && ig.ignores(relativePath);
+        return Boolean(relativePath && ig.ignores(relativePath));
       },
     });
 
@@ -156,7 +156,7 @@ export class FileWatcherService {
   private handleFsEvent(
     eventType: FileEventType,
     filePath: string, // Should be absolute since we pass absolute path to chokidar
-    absoluteBasePath: string,
+    _absoluteBasePath: string,
     isDirectory: boolean,
     error?: Error,
   ): void {

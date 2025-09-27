@@ -48,7 +48,8 @@ export interface ToolExecutionContext {
 export class ToolCallRunner<TOOLS extends ToolSet> {
   constructor(
     public readonly toolRegistry: ToolRegistry,
-    private readonly eventBus: IEventBus,
+    // @ts-expect-error - Intentionally unused for future use
+    private readonly _eventBus: IEventBus,
   ) {}
 
   async execute(

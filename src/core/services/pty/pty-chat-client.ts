@@ -1,6 +1,7 @@
 // src/core/services/pty/pty-chat-client.ts
 import { ILogObj, Logger } from "tslog";
 import { v4 as uuidv4 } from "uuid";
+import { merge } from "es-toolkit";
 import type {
   PtyInstanceManager,
   PtyInstance,
@@ -282,7 +283,7 @@ export class PtyChatClient {
 
     // Update metadata if provided
     if (updates.metadata) {
-      session.metadata = { ...session.metadata, ...updates.metadata };
+      session.metadata = merge(session.metadata || {}, updates.metadata);
       session.updatedAt = new Date();
 
       // Emit update event

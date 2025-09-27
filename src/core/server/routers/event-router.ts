@@ -29,7 +29,7 @@ function createEventSubscription<K extends keyof EventTypeMap>(
         lastEventId: z.string().nullable().optional(),
       }),
     )
-    .subscription(async function* ({ input, signal }) {
+    .subscription(async function* ({ input: _input, signal }) {
       for await (const [event] of eventBus.toIterable<EventTypeMap[K]>(
         eventKind,
         { signal },

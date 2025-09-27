@@ -262,7 +262,7 @@ export class ToolRegistryImpl implements ToolRegistry {
     throw new Error("checkToolsHealth is not implemented yet");
   }
 
-  private async getOAuthToken(serverConfig: MCPServerConfig): Promise<string> {
+  private async getOAuthToken(_serverConfig: MCPServerConfig): Promise<string> {
     throw new Error("OAuth support is not implemented yet");
   }
 }

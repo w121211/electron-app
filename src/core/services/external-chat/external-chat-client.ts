@@ -24,7 +24,8 @@ export interface CreateExternalChatSessionConfig {
 }
 
 export class ExternalChatClient {
-  private readonly logger: Logger<ILogObj> = new Logger({
+  // @ts-expect-error - Intentionally unused for future use
+  private readonly _logger: Logger<ILogObj> = new Logger({
     name: "ExternalChatClient",
   });
   private readonly externalSessions: Map<string, ExternalChatSession> =
@@ -99,7 +100,6 @@ export class ExternalChatClient {
       createdAt: now,
       updatedAt: now,
       metadata: {
-        mode: "external",
         knowledge: config?.knowledge || [],
         title: "New External Chat",
         promptDraft: config?.promptDraft,
@@ -205,7 +205,6 @@ export class ExternalChatClient {
       updatedAt: new Date(),
       metadata: {
         ...existingSessionData.metadata,
-        mode: "external",
       },
     };
 
