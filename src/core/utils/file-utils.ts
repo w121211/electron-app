@@ -312,7 +312,7 @@ export async function validateProjectFolderPath(
   }
 }
 
-async function createIgnoreInstance(
+export async function createIgnoreInstance(
   projectPath: string,
   excludeIgnores: string[] = DEFAULT_EXCLUDE_IGNORES,
 ): Promise<ReturnType<typeof ignore>> {

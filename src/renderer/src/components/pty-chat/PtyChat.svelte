@@ -31,8 +31,8 @@
   let idleTimeout: ReturnType<typeof setTimeout>;
   let isIdle = false;
 
-  type TerminalState = 'initializing' | 'ready' | 'prompt_written';
-  let terminalState: TerminalState = 'initializing';
+  type TerminalState = "initializing" | "ready" | "prompt_written";
+  let terminalState: TerminalState = "initializing";
 
   // Screenshot functionality
   const takeScreenshot = (): void => {
@@ -73,6 +73,8 @@
     }
   };
 
+  // @ts-expect-error unused but keeping for potential future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resetIdleTimer = (): void => {
     clearTimeout(idleTimeout);
     isIdle = false; // Mark as active since we received data
@@ -115,14 +117,14 @@
   });
 
   // Reset terminal state when PTY stream changes
-  $effect(() => {
-    if (ptyStream) {
-      terminalState = 'initializing';
-      logger.debug(
-        `Reset terminal state to initializing for PTY stream: ${ptyStream.sessionId}`,
-      );
-    }
-  });
+  // $effect(() => {
+  //   if (ptyStream) {
+  //     terminalState = "initializing";
+  //     logger.debug(
+  //       `Reset terminal state to initializing for PTY stream: ${ptyStream.sessionId}`,
+  //     );
+  //   }
+  // });
 
   onMount(() => {
     logger.info(`Initializing terminal for chat ${chat.id}`);
@@ -206,15 +208,15 @@
         terminal.write(data);
 
         // State transition: initializing → ready
-        if (terminalState === 'initializing' && isCliModelReady(data)) {
-          terminalState = 'ready';
-          logger.debug('Terminal state: initializing → ready');
+        if (terminalState === "initializing" && isCliModelReady(data)) {
+          terminalState = "ready";
+          logger.debug("Terminal state: initializing → ready");
 
           // Small delay to ensure terminal has processed all data
           setTimeout(() => {
-            if (terminalState === 'ready' && chat.metadata?.promptDraft) {
-              terminalState = 'prompt_written';
-              logger.debug('Terminal state: ready → prompt_written');
+            if (terminalState === "ready" && chat.metadata?.promptDraft) {
+              terminalState = "prompt_written";
+              logger.debug("Terminal state: ready → prompt_written");
               writeInitialPromptWithoutEnter();
             }
           }, 100);
@@ -233,7 +235,7 @@
         logger.info("Enter pressed, saving terminal snapshot to metadata");
         if (serializeAddon && ptyStream) {
           const serializedContent = serializeAddon.serialize();
-          const screenshotHtml = serializeAddon.serializeAsHTML();
+          // const screenshotHtml = serializeAddon.serializeAsHTML();
 
           // Save to PTY stream (existing functionality)
           ptyStream.saveTerminalSnapshot(serializedContent);

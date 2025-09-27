@@ -1,10 +1,9 @@
 // src/core/services/file-watcher-service.ts
 import path from "node:path";
-import fs from "node:fs/promises";
 import chokidar, { FSWatcher, ChokidarOptions } from "chokidar";
 import { Logger, ILogObj } from "tslog";
-import ignore from "ignore";
 import type { IEventBus, BaseEvent } from "../event-bus.js";
+import { createIgnoreInstance } from "../utils/file-utils.js";
 
 // Define the FileWatcherEvent
 export type FileEventType =
@@ -32,12 +31,12 @@ export class FileWatcherService {
 
   private static readonly DEFAULT_OPTIONS: ChokidarOptions = {
     persistent: true,
-    ignored: [
-      /(^|[\/\\])\../, // Ignore dot files/folders
-      "**/*.tmp", // Ignore temp files
-      "**/*.log", // Ignore log files
-      "**/node_modules/**", // Ignore node_modules
-    ],
+    // ignored: [
+    //   /(^|[\/\\])\../, // Ignore dot files/folders
+    //   "**/*.tmp", // Ignore temp files
+    //   "**/*.log", // Ignore log files
+    //   "**/node_modules/**", // Ignore node_modules
+    // ],
     ignoreInitial: false, // Report existing files on startup
     awaitWriteFinish: true, // Wait for writes to complete
   };
@@ -67,21 +66,8 @@ export class FileWatcherService {
 
     this.logger.info(`Starting file watcher on ${absoluteFolderPath}`);
 
-    // Load .gitignore if it exists
-    let ig: ReturnType<typeof ignore>;
-    try {
-      const gitignorePath = path.join(absoluteFolderPath, ".gitignore");
-      const gitignoreContent = await fs.readFile(gitignorePath, "utf8");
-      ig = ignore().add(gitignoreContent);
-    } catch (error) {
-      // .gitignore doesn't exist or can't be read, use default ignores
-      ig = ignore().add([
-        ".*", // dot files
-        "node_modules/**",
-        "**/*.tmp",
-        "**/*.log",
-      ]);
-    }
+    // Use the shared ignore helper that includes DEFAULT_IGNORES
+    const ig = await createIgnoreInstance(absoluteFolderPath);
 
     const watcher = chokidar.watch(absoluteFolderPath, {
       ...this.chokidarOptions,
