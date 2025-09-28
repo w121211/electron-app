@@ -13,7 +13,11 @@ import {
   listDirectory,
 } from "../../utils/file-utils.js";
 
-export type ChatSessionType = "chat" | "external_chat" | "pty_chat";
+export type ChatSessionType =
+  | "chat"
+  | "chat_draft"
+  | "external_chat"
+  | "pty_chat";
 
 export type ChatMode = "chat" | "agent";
 
@@ -70,7 +74,7 @@ export interface ChatSessionData {
   id: string;
   absoluteFilePath: string;
   messages: ChatMessage[];
-  modelId: `${string}/${string}`; // `providerId/modelId` format
+  modelId?: `${string}/${string}`; // Drafts omit model selection
   sessionStatus: ChatSessionStatus;
   fileStatus: ChatFileStatus;
   currentTurn: number;
@@ -131,13 +135,13 @@ const ChatMessageSchema: z.ZodType<ChatMessage> = z.object({
   metadata: ChatMessageMetadataSchema,
 });
 
-export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
-  _type: z.enum(["chat", "external_chat", "pty_chat"]),
+const ChatSessionDataSchemaBase = z.object({
+  _type: z.enum(["chat", "chat_draft", "external_chat", "pty_chat"]),
   id: z.string(),
   absoluteFilePath: z.string(),
   messages: z.array(ChatMessageSchema),
-  modelId: ModelIdSchema, // `providerId/modelId` format
-  toolSet: z.any().optional(), // ToolSet from AI SDK
+  modelId: ModelIdSchema.optional(),
+  toolSet: z.any().optional(),
   sessionStatus: z.enum([
     "idle",
     "processing",
@@ -154,6 +158,29 @@ export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
   updatedAt: z.coerce.date(),
   metadata: ChatMetadataSchema.optional(),
 });
+
+export const ChatSessionDataSchema: z.ZodType<ChatSessionData> =
+  ChatSessionDataSchemaBase.superRefine((data, ctx) => {
+    if (data._type !== "chat_draft" && data.modelId === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Active chat sessions must include a modelId",
+        path: ["modelId"],
+      });
+    }
+  });
+
+export function isDraftSession(
+  data: ChatSessionData,
+): data is ChatSessionData & { _type: "chat_draft"; modelId?: undefined } {
+  return data._type === "chat_draft";
+}
+
+export function isEngineSession(
+  data: ChatSessionData,
+): data is ChatSessionData & { _type: "chat"; modelId: `${string}/${string}` } {
+  return data._type === "chat";
+}
 
 export interface ChatSessionRepository {
   saveToFile(

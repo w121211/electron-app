@@ -1,23 +1,23 @@
-// src/core/services/chat-engine/chat-client.ts
+// src/core/services/chat-engine/chat-engine-client.ts
 import { ILogObj, Logger } from "tslog";
-import { v4 as uuidv4 } from "uuid";
 import { parseChatTemplate } from "../../utils/chat-template-parser.js";
 import { isTerminalModel } from "../../utils/model-utils.js";
 import { ChatSession } from "./chat-session.js";
+import { ChatDraftService } from "./chat-draft-service.js";
 import type { StreamTextResult, ToolSet, UserModelMessage } from "ai";
 import type { IEventBus } from "../../event-bus.js";
-import type { ProjectFolderService } from "../project-folder-service.js";
-import type { TaskService } from "../task-service.js";
 import type { UserSettingsService } from "../user-settings-service.js";
 import type { ToolCallConfirmationOutcome } from "../tool-call/tool-call-confirmation.js";
 import type { ToolExecutionResult } from "../tool-call/tool-call-runner.js";
 import type { ToolRegistry } from "../tool-call/tool-registry.js";
 import type { TurnResult } from "./chat-session.js";
+import type { LanguageModelV2Middleware } from "@ai-sdk/provider";
 import type {
   ChatMode,
   ChatSessionData,
   ChatSessionRepository,
 } from "./chat-session-repository.js";
+import { isDraftSession, isEngineSession } from "./chat-session-repository.js";
 
 // const DEFAULT_MODEL_ID = "anthropic:claude-3-sonnet"; // Format: `providerId:modelId`
 const DEFAULT_MODEL_ID = "openai/gpt-4o"; // Gateway model id format: `providerId/modelId`
@@ -30,9 +30,11 @@ export interface CreateChatSessionConfig {
   modelId?: `${string}/${string}`;
 }
 
-export class ChatClient<TOOLS extends ToolSet> {
+export class ChatEngineClient<TOOLS extends ToolSet> {
   // @ts-expect-error - Intentionally unused for future use
-  private readonly _logger: Logger<ILogObj> = new Logger({ name: "ChatClient" });
+  private readonly _logger: Logger<ILogObj> = new Logger({
+    name: "ChatEngineClient",
+  });
   private readonly sessions: Map<string, ChatSession<TOOLS>> = new Map();
   private readonly sessionAccessTime: Map<string, number> = new Map();
   private readonly maxSessions: number = 10;
@@ -40,11 +42,11 @@ export class ChatClient<TOOLS extends ToolSet> {
   constructor(
     private readonly eventBus: IEventBus,
     private readonly chatSessionRepository: ChatSessionRepository,
-    private readonly taskService: TaskService,
-    private readonly projectFolderService: ProjectFolderService,
+    private readonly chatDraftService: ChatDraftService,
     // @ts-expect-error - Intentionally unused for future use
     private readonly _userSettingsService: UserSettingsService,
     private readonly toolRegistry: ToolRegistry,
+    private readonly cacheMiddleware?: LanguageModelV2Middleware,
     // private readonly providerRegistry: ProviderRegistryProvider,
   ) {}
 
@@ -223,77 +225,61 @@ export class ChatClient<TOOLS extends ToolSet> {
 
     if (modelId && isTerminalModel(modelId)) {
       throw new Error(
-        "Terminal models not supported by ChatClient. Use ExternalChatClient instead.",
+        "Terminal models not supported by ChatEngineClient. Use ExternalChatClient instead.",
       );
     }
 
-    // Create regular chat session
-    const session = await this.createChatSession(targetDirectory, {
-      ...config,
+    const draft = await this.chatDraftService.createDraft(targetDirectory, {
+      mode: config?.mode,
+      knowledge: config?.knowledge,
       promptDraft: initialPrompt,
+      newTask: config?.newTask,
     });
 
-    return session;
+    const draftData = await this.chatDraftService.getDraft(
+      draft.absoluteFilePath,
+    );
+    const activated: ChatSessionData = {
+      ...draftData,
+      _type: "chat",
+      modelId: modelId ?? DEFAULT_MODEL_ID,
+      sessionStatus: "idle",
+      updatedAt: new Date(),
+    };
+    await this.chatSessionRepository.saveToFile(
+      draft.absoluteFilePath,
+      activated,
+    );
+
+    return this.createChatSessionFromData(activated);
   }
 
   async createChatSession(
     targetDirectory: string,
     config?: CreateChatSessionConfig,
   ): Promise<ChatSession<TOOLS>> {
-    // Validate project folder
-    const isInProjectFolder =
-      await this.projectFolderService.isPathInProjectFolder(targetDirectory);
-
-    if (!isInProjectFolder) {
-      throw new Error(
-        `Cannot create chat outside of project folders. Path ${targetDirectory} is not within any registered project folder.`,
-      );
-    }
-
-    // Create task if requested
-    if (config?.newTask) {
-      const result = await this.taskService.createTask(
-        "New Chat Task",
-        {},
-        targetDirectory,
-      );
-      targetDirectory = result.absoluteDirectoryPath;
-    }
-
-    // if (this.providerRegistry === null) {
-    //   throw new Error("Provider registry not initialized");
-    // }
-
-    const now = new Date();
-    const chatSessionData: ChatSessionData = {
-      _type: "chat",
-      id: uuidv4(),
-      absoluteFilePath: "", // Will be set by repository
-      messages: [],
-      modelId: config?.modelId || DEFAULT_MODEL_ID,
-      sessionStatus: "idle",
-      fileStatus: "active",
-      currentTurn: 0,
-      maxTurns: 20,
-      createdAt: now,
-      updatedAt: now,
-      metadata: {
-        mode: config?.mode || "chat",
-        knowledge: config?.knowledge || [],
-        title: "New Chat",
-        promptDraft: config?.promptDraft,
-      },
-    };
-
-    const filePath = await this.chatSessionRepository.createNewFile(
+    const { modelId, ...draftConfig } = config ?? {};
+    const draft = await this.chatDraftService.createDraft(
       targetDirectory,
-      chatSessionData,
+      draftConfig,
     );
-    chatSessionData.absoluteFilePath = filePath;
 
-    const session = this.createChatSessionFromData(chatSessionData);
+    const draftData = await this.chatDraftService.getDraft(
+      draft.absoluteFilePath,
+    );
+    const activated: ChatSessionData = {
+      ...draftData,
+      _type: "chat",
+      modelId: modelId ?? DEFAULT_MODEL_ID,
+      sessionStatus: "idle",
+      updatedAt: new Date(),
+    };
+    await this.chatSessionRepository.saveToFile(
+      draft.absoluteFilePath,
+      activated,
+    );
 
-    return session;
+    return this.createChatSessionFromData(activated);
   }
 
   async getOrLoadChatSession(
@@ -311,7 +297,13 @@ export class ChatClient<TOOLS extends ToolSet> {
 
     if (chatSessionData._type === "external_chat") {
       throw new Error(
-        "External chat sessions not supported by ChatClient. Use ExternalChatClient instead.",
+        "External chat sessions not supported by ChatEngineClient. Use ExternalChatClient instead.",
+      );
+    }
+
+    if (isDraftSession(chatSessionData)) {
+      throw new Error(
+        "Chat session is still a draft. Activate it before starting the conversation.",
       );
     }
 
@@ -323,6 +315,22 @@ export class ChatClient<TOOLS extends ToolSet> {
     const session = this.createChatSessionFromData(chatSessionData);
 
     return session;
+  }
+
+  async activateDraft(
+    absoluteFilePath: string,
+    modelId: `${string}/${string}`,
+  ): Promise<ChatSession<TOOLS>> {
+    const draftData = await this.chatDraftService.getDraft(absoluteFilePath);
+    const activated: ChatSessionData = {
+      ...draftData,
+      _type: "chat",
+      modelId,
+      sessionStatus: "idle",
+      updatedAt: new Date(),
+    };
+    await this.chatSessionRepository.saveToFile(absoluteFilePath, activated);
+    return this.createChatSessionFromData(activated);
   }
 
   async updateChat(
@@ -361,9 +369,9 @@ export class ChatClient<TOOLS extends ToolSet> {
   }
 
   private createChatSessionFromData(data: ChatSessionData): ChatSession<TOOLS> {
-    if (data._type === "external_chat") {
+    if (!isEngineSession(data)) {
       throw new Error(
-        "External chat sessions not supported by ChatClient. Use ExternalChatClient instead.",
+        "ChatEngineClient can only load internal chat engine sessions.",
       );
     }
 
@@ -371,6 +379,7 @@ export class ChatClient<TOOLS extends ToolSet> {
       data,
       this.toolRegistry,
       this.eventBus,
+      this.cacheMiddleware,
       // this.providerRegistry,
     );
 

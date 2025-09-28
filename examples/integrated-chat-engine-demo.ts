@@ -1,5 +1,5 @@
 // packages/events-core/examples/integrated-chat-engine-demo.ts
-import { ChatClient } from "../src/services/chat-engine/chat-client.js";
+import { ChatEngineClient } from "../src/services/chat-engine/chat-engine-client.js";
 import { ChatSessionRepositoryImpl } from "../src/services/chat-engine/chat-session-repository.js";
 import { TaskService } from "../src/services/task-service.js";
 import { createProjectFolderService } from "../src/services/project-folder-service.js";
@@ -13,7 +13,7 @@ import type { ChatUpdatedEvent } from "../src/services/chat-engine/events.js";
 import path from "path";
 import fs from "fs/promises";
 
-async function setupIntegratedDemo(): Promise<ChatClient> {
+async function setupIntegratedDemo(): Promise<ChatEngineClient> {
   // Create event bus
   const eventBus = createServerEventBus();
 
@@ -43,7 +43,7 @@ async function setupIntegratedDemo(): Promise<ChatClient> {
   await chatSessionRepository.buildPathIndex();
 
   // Create integrated ChatClient with UserSettingsService
-  const chatClient = new ChatClient(
+  const chatClient = new ChatEngineClient(
     eventBus,
     chatSessionRepository,
     taskService,
@@ -63,7 +63,7 @@ async function setupIntegratedDemo(): Promise<ChatClient> {
   return chatClient;
 }
 
-async function demonstrateModelConfiguration(chatClient: ChatClient) {
+async function demonstrateModelConfiguration(chatClient: ChatEngineClient) {
   console.log("\n🔵 === Model Configuration Demo ===");
 
   // Test available models
@@ -100,7 +100,7 @@ async function demonstrateModelConfiguration(chatClient: ChatClient) {
 }
 
 async function demonstrateEnhancedChatCreation(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   projectDir: string,
   modelConfig: ChatModelConfig,
 ) {
@@ -149,7 +149,7 @@ async function demonstrateEnhancedChatCreation(
 }
 
 async function demonstrateAdvancedMessaging(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   sessionIds: string[],
 ) {
   console.log("\n🔵 === Advanced Messaging Demo ===");
@@ -193,7 +193,7 @@ async function demonstrateAdvancedMessaging(
 }
 
 async function demonstrateStreamingCapabilities(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   sessionId: string,
 ) {
   console.log("\n🔵 === Streaming Capabilities Demo ===");
@@ -233,7 +233,7 @@ async function demonstrateStreamingCapabilities(
 }
 
 async function demonstrateBackwardCompatibility(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   projectDir: string,
 ) {
   console.log("\n🔵 === Backward Compatibility Demo ===");
@@ -264,7 +264,7 @@ async function demonstrateBackwardCompatibility(
   return legacySessionId;
 }
 
-async function demonstrateProviderRegistry(chatClient: ChatClient) {
+async function demonstrateProviderRegistry(chatClient: ChatEngineClient) {
   console.log("\n🔵 === Provider Registry Demo ===");
 
   // Test different provider configurations

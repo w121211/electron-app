@@ -25,7 +25,7 @@ class PtyChatService {
     try {
       this.logger.info("Creating PTY chat in:", targetDirectory);
 
-      const newChat = await trpcClient.ptyChat.createPtyChatSession.mutate({
+      const newChat = await trpcClient.ptyChat.createPtyChat.mutate({
         targetDirectory,
         modelId,
         initialPrompt,
@@ -99,12 +99,12 @@ class PtyChatService {
     }
   }
 
-  async getPtyChatSession(absoluteFilePath: string) {
+  async getPtyChat(absoluteFilePath: string) {
     setLoading("loadPtyChat", true);
 
     try {
       this.logger.info("Loading PTY chat session:", absoluteFilePath);
-      const session = await trpcClient.ptyChat.getPtyChatSession.query({
+      const session = await trpcClient.ptyChat.getPtyChat.query({
         absoluteFilePath,
       });
 

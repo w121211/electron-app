@@ -48,11 +48,13 @@
       targetDirectory = todoChatDirectory.path;
     }
 
+    const initialModelId: `${string}/${string}` = "cli/gemini";
+
     const newChat = await chatService.createChatFromTemplate(
       templatePath,
       [todoContent],
       targetDirectory,
-      { mode: "agent", modelId: "cli/gemini" },
+      { mode: "agent" },
     );
 
     // Automatically send the initial prompt if present
@@ -61,6 +63,7 @@
         newChat.absoluteFilePath,
         newChat.id,
         newChat.metadata.promptDraft,
+        initialModelId,
       );
     }
   }

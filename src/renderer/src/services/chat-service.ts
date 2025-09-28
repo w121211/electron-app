@@ -1,7 +1,7 @@
 // src/renderer/src/services/chat-service.ts
 import { Logger } from "tslog";
 import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
-import type { CreateChatSessionConfig } from "../../../core/services/chat-engine/chat-client.js";
+import type { CreateChatDraftConfig } from "../../../core/services/chat-engine/chat-draft-service.js";
 import type { FileWatcherEvent } from "../../../core/services/file-watcher-service.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
@@ -27,12 +27,11 @@ class ChatService {
   private logger = new Logger({ name: "ChatService" });
   private draftSaveTimeouts = new Map<string, NodeJS.Timeout>();
 
-  async createEmptyChat(targetPath: string) {
+  async createChatDraft(targetPath: string) {
     setLoading("createChat", true);
 
     try {
       const result = findNodeAndParent(projectState.folderTrees, targetPath);
-
       if (!result) {
         throw new Error(
           "Selected file or folder not found in the project tree.",
@@ -54,31 +53,28 @@ class ChatService {
         containingDirectory = parent.path;
       }
 
-      this.logger.info("Creating empty chat in:", containingDirectory);
+      this.logger.info("Creating chat draft in:", containingDirectory);
 
-      const selectedModel = chatState.selectedModel;
-
-      const newChat = await trpcClient.chatClient.createNewChatSession.mutate({
+      const draft = await trpcClient.chatDraft.createDraft.mutate({
         targetDirectory: containingDirectory,
         config: {
           mode: "agent", // Default mode for new chat sessions
-          modelId: selectedModel,
         },
       });
 
-      setCurrentChat(newChat);
-      this.logger.info("Empty chat created:", newChat.id);
+      setCurrentChat(draft);
+      this.logger.info("Chat draft created:", draft.id);
 
       // Expand parent directories and select the newly created chat file
-      expandParentDirectories(newChat.absoluteFilePath);
-      selectFile(newChat.absoluteFilePath);
+      expandParentDirectories(draft.absoluteFilePath);
+      selectFile(draft.absoluteFilePath);
 
       // Refresh file tree to show the newly created chat file
-      await projectService.refreshProjectTreeForFile(newChat.absoluteFilePath);
+      await projectService.refreshProjectTreeForFile(draft.absoluteFilePath);
 
-      return newChat;
+      return draft;
     } catch (error) {
-      this.logger.error("Failed to create empty chat:", error);
+      this.logger.error("Failed to create chat draft:", error);
       showToast(
         `Failed to create chat: ${error instanceof Error ? error.message : String(error)}`,
         "error",
@@ -93,19 +89,20 @@ class ChatService {
     templatePath: string,
     args: string[],
     targetDirectory: string,
-    config?: CreateChatSessionConfig,
+    config?: CreateChatDraftConfig,
   ) {
     setLoading("createChatFromTemplate", true);
     try {
       this.logger.info("Creating chat from template:", templatePath);
 
-      const newChat =
-        await trpcClient.chatClient.createChatSessionFromTemplate.mutate({
+      const newChat = await trpcClient.chatDraft.createDraftFromTemplate.mutate(
+        {
           templatePath,
           args,
           targetDirectory,
           config,
-        });
+        },
+      );
 
       setCurrentChat(newChat);
       showToast("Chat created from template successfully", "success");
@@ -137,11 +134,11 @@ class ChatService {
     setLoading("openChat", true);
 
     try {
-      const chat = await trpcClient.chatClient.getChatSession.query({
+      const session = await trpcClient.chatSession.getSession.query({
         absoluteFilePath: filePath,
       });
-      setCurrentChat(chat);
-      return chat;
+      setCurrentChat(session);
+      return session;
     } catch (error) {
       this.logger.error("Failed to open chat file:", error);
       showToast(
@@ -179,19 +176,47 @@ ${att.content}`,
         ];
       }
 
-      const messagePayload = {
-        absoluteFilePath,
-        chatSessionId,
-        message: {
-          role: "user" as const,
-          content,
-        },
-        modelId,
+      const message = {
+        role: "user" as const,
+        content,
       };
 
-      const result =
-        await trpcClient.chatClient.sendMessage.mutate(messagePayload);
-      setCurrentChat(result.updatedChatSession);
+      const currentChat = chatState.currentChat;
+
+      if (!currentChat) {
+        throw new Error("No chat session selected");
+      }
+
+      if (currentChat._type === "chat_draft") {
+        if (!modelId) {
+          throw new Error("Model ID is required to start a chat session");
+        }
+
+        const startResult = await trpcClient.chatEngine.startFromDraft.mutate({
+          absoluteFilePath,
+          modelId,
+          message,
+        });
+        setCurrentChat(startResult.updatedChatSession);
+        clearMessageInput();
+        setHasUnsavedDraftChanges(false);
+        showToast("Message sent successfully", "success");
+        this.logger.info("Message submitted successfully");
+        return startResult;
+      }
+
+      if (currentChat._type === "pty_chat") {
+        throw new Error(
+          "Use the terminal interface to interact with PTY chats",
+        );
+      }
+
+      const sendResult = await trpcClient.chatEngine.sendMessage.mutate({
+        absoluteFilePath,
+        chatSessionId,
+        message,
+      });
+      setCurrentChat(sendResult.updatedChatSession);
       clearMessageInput();
 
       // Clear draft changes when message is sent
@@ -199,7 +224,7 @@ ${att.content}`,
 
       showToast("Message sent successfully", "success");
       this.logger.info("Message submitted successfully");
-      return result;
+      return sendResult;
     } catch (error) {
       this.logger.error("Failed to submit message:", error);
       showToast(
@@ -241,7 +266,7 @@ ${att.content}`,
   ) {
     try {
       this.logger.info("Confirming tool call:", toolCallId, outcome);
-      const result = await trpcClient.chatClient.confirmToolCall.mutate({
+      const result = await trpcClient.chatEngine.confirmToolCall.mutate({
         absoluteFilePath,
         chatSessionId,
         toolCallId,
@@ -267,7 +292,7 @@ ${att.content}`,
 
     try {
       this.logger.info("Aborting chat:", chatSessionId);
-      const result = await trpcClient.chatClient.abortChat.mutate({
+      const result = await trpcClient.chatEngine.abortChat.mutate({
         absoluteFilePath,
         chatSessionId,
       });
@@ -323,9 +348,54 @@ ${att.content}`,
 
     try {
       this.logger.info("Deleting chat:", absoluteFilePath);
-      const result = await trpcClient.chatClient.deleteChat.mutate({
-        absoluteFilePath,
-      });
+      const current = chatState.currentChat;
+      let result: { success: boolean };
+
+      if (current && current.absoluteFilePath === absoluteFilePath) {
+        if (current._type === "chat_draft") {
+          result = await trpcClient.chatDraft.deleteDraft.mutate({
+            absoluteFilePath,
+          });
+        } else if (current._type === "pty_chat") {
+          result = await trpcClient.ptyChat.deletePtyChat.mutate({
+            absoluteFilePath,
+          });
+        } else {
+          result = await trpcClient.chatEngine.deleteSession.mutate({
+            absoluteFilePath,
+          });
+        }
+      } else {
+        try {
+          result = await trpcClient.chatEngine.deleteSession.mutate({
+            absoluteFilePath,
+          });
+        } catch (engineError) {
+          const isEngineTypeMismatch =
+            engineError instanceof Error &&
+            engineError.message.includes("chat engine session");
+          if (!isEngineTypeMismatch) {
+            throw engineError;
+          }
+
+          try {
+            result = await trpcClient.chatDraft.deleteDraft.mutate({
+              absoluteFilePath,
+            });
+          } catch (draftError) {
+            const isDraftTypeMismatch =
+              draftError instanceof Error &&
+              draftError.message.includes("not a draft session");
+            if (!isDraftTypeMismatch) {
+              throw draftError;
+            }
+
+            result = await trpcClient.ptyChat.deletePtyChat.mutate({
+              absoluteFilePath,
+            });
+          }
+        }
+      }
       this.logger.info("Chat deleted successfully");
 
       // Clear current chat if it was the deleted one
@@ -357,7 +427,7 @@ ${att.content}`,
 
     try {
       this.logger.info("Re-running chat:", chatSessionId);
-      const result = await trpcClient.chatClient.rerunChat.mutate({
+      const result = await trpcClient.chatEngine.rerunSession.mutate({
         absoluteFilePath,
         chatSessionId,
       });
@@ -390,12 +460,28 @@ ${att.content}`,
       }
 
       try {
-        await trpcClient.chatClient.updateChat.mutate({
-          absoluteFilePath,
-          updates: {
+        const current = chatState.currentChat;
+
+        if (current && current._type === "chat_draft") {
+          await trpcClient.chatDraft.updateDraft.mutate({
+            absoluteFilePath,
+            updates: {
+              metadata: { promptDraft: draft },
+            },
+          });
+        } else if (current && current._type === "pty_chat") {
+          await trpcClient.ptyChat.updateMetadata.mutate({
+            absoluteFilePath,
             metadata: { promptDraft: draft },
-          },
-        });
+          });
+        } else {
+          await trpcClient.chatEngine.updateSession.mutate({
+            absoluteFilePath,
+            updates: {
+              metadata: { promptDraft: draft },
+            },
+          });
+        }
         this.logger.debug("Prompt draft saved for chat:", absoluteFilePath);
 
         // Mark as saved if this is the current chat

@@ -1,5 +1,5 @@
 // packages/events-core/examples/enhanced-chat-client-demo.ts
-import { ChatClient } from "../src/services/chat-engine/chat-client.js";
+import { ChatEngineClient } from "../src/services/chat-engine/chat-engine-client.js";
 import { ChatSessionRepositoryImpl } from "../src/services/chat-engine/chat-session-repository.js";
 import { TaskService } from "../src/services/task-service.js";
 import { ProjectFolderService } from "../src/services/project-folder-service.js";
@@ -11,7 +11,7 @@ import { UserSettingsService } from "../src/services/user-settings-service.js";
 import path from "path";
 import fs from "fs/promises";
 
-async function setupEnhancedDemo(): Promise<ChatClient> {
+async function setupEnhancedDemo(): Promise<ChatEngineClient> {
   // Create event bus
   const eventBus = new EventBus({ environment: "server" });
 
@@ -43,7 +43,7 @@ async function setupEnhancedDemo(): Promise<ChatClient> {
   await chatSessionRepository.buildPathIndex();
 
   // Create enhanced ChatClient
-  const chatClient = new ChatClient(
+  const chatClient = new ChatEngineClient(
     eventBus,
     chatSessionRepository,
     taskService,
@@ -63,7 +63,7 @@ async function setupEnhancedDemo(): Promise<ChatClient> {
 }
 
 async function demonstrateNewChatCreation(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   projectDir: string,
 ) {
   console.log("\n🔵 === New Chat Creation Demo (Enhanced API) ===");
@@ -92,7 +92,7 @@ async function demonstrateNewChatCreation(
 }
 
 async function demonstrateSessionPoolManagement(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   projectDir: string,
 ) {
   console.log("\n🔵 === Session Pool Management Demo ===");
@@ -132,7 +132,7 @@ async function demonstrateSessionPoolManagement(
 }
 
 async function demonstrateEnhancedMessaging(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   sessionIds: string[],
 ) {
   console.log("\n🔵 === Enhanced Messaging Demo ===");
@@ -168,7 +168,7 @@ async function demonstrateEnhancedMessaging(
 }
 
 async function demonstrateToolConfirmation(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   sessionId: string,
 ) {
   console.log("\n🔵 === Tool Confirmation Demo ===");
@@ -192,7 +192,7 @@ async function demonstrateToolConfirmation(
 }
 
 async function demonstrateChatManagement(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   sessionIds: string[],
 ) {
   console.log("\n🔵 === Chat Management Demo ===");
@@ -229,7 +229,7 @@ async function demonstrateChatManagement(
 }
 
 async function demonstrateConcurrentSessions(
-  chatClient: ChatClient,
+  chatClient: ChatEngineClient,
   projectDir: string,
 ) {
   console.log("\n🔵 === Concurrent Sessions Demo ===");
@@ -270,7 +270,7 @@ async function demonstrateConcurrentSessions(
   return sessions;
 }
 
-async function demonstrateErrorHandling(chatClient: ChatClient) {
+async function demonstrateErrorHandling(chatClient: ChatEngineClient) {
   console.log("\n🔵 === Error Handling Demo ===");
 
   try {

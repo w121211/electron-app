@@ -87,7 +87,7 @@
 
   function handleNewChat(e: MouseEvent): void {
     e.stopPropagation();
-    chatService.createEmptyChat(node.path);
+    chatService.createChatDraft(node.path);
   }
 
   function handleContextMenu(e: MouseEvent): void {

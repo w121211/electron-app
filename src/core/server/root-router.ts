@@ -1,4 +1,5 @@
 // src/core/server/root-router.ts
+import path from "path";
 import { ILogObj, Logger } from "tslog";
 // import type { IEventBus } from "../event-bus.js";
 import { ChatSessionRepositoryImpl } from "../services/chat-engine/chat-session-repository.js";
@@ -19,10 +20,15 @@ import { createFileRouter } from "./routers/file-router.js";
 import { createUserSettingsRouter } from "./routers/user-settings-router.js";
 import { createModelRouter } from "./routers/model-router.js";
 // import { createToolCallRouter } from "./routers/tool-call-router.js";
-import { createChatClientRouter } from "./routers/chat-client-router.js";
+import { createChatDraftRouter } from "./routers/chat-draft-router.js";
+import { createChatEngineRouter } from "./routers/chat-engine-router.js";
+import { createChatSessionRouter } from "./routers/chat-session-router.js";
 import { router } from "./trpc-init.js";
 import { PtyChatClient } from "../services/pty/pty-chat-client.js";
 import { createPtyChatRouter } from "./routers/pty-chat-router.js";
+import { ChatDraftService } from "../services/chat-engine/chat-draft-service.js";
+import { ChatEngineClient } from "../services/chat-engine/chat-engine-client.js";
+import { createChatCacheMiddleware } from "../services/chat-engine/chat-cache-middleware.js";
 import type { PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
 import type { IEventBus } from "../event-bus.js";
 
@@ -88,6 +94,26 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   // Initialize chat session repository
   const chatSessionRepository = new ChatSessionRepositoryImpl();
 
+  const chatDraftService = new ChatDraftService(
+    chatSessionRepository,
+    taskService,
+    projectFolderService,
+  );
+
+  // Create singleton chat cache middleware
+  const chatCacheMiddleware = createChatCacheMiddleware(
+    path.join(userDataDir, "chat-cache")
+  );
+
+  const chatClient = new ChatEngineClient(
+    eventBus,
+    chatSessionRepository,
+    chatDraftService,
+    userSettingsService,
+    toolRegistry,
+    chatCacheMiddleware,
+  );
+
   const ptyChatClient = new PtyChatClient(
     eventBus,
     chatSessionRepository,
@@ -105,12 +131,15 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   // Create the application router
   return router({
     task: createTaskRouter(taskService),
-    chatClient: createChatClientRouter(
-      eventBus,
-      taskService,
-      projectFolderService,
-      userSettingsService,
-      toolRegistry,
+    chatDraft: createChatDraftRouter(chatDraftService),
+    chatEngine: createChatEngineRouter(
+      chatClient,
+      chatDraftService,
+      chatSessionRepository,
+    ),
+    chatSession: createChatSessionRouter(
+      chatDraftService,
+      chatClient,
       chatSessionRepository,
       ptyChatClient,
     ),

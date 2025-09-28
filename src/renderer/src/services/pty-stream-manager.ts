@@ -37,7 +37,7 @@ export class PtyStream {
   private terminalSnapshot: string = "";
   private lastActivity: Date | null = null;
 
-  constructor(public readonly sessionId: string) {}
+  constructor(public readonly ptySessionId: string) {}
 
   public processStateFromData(data: string): void {
     // Check for cursor visibility commands
@@ -50,18 +50,18 @@ export class PtyStream {
   }
 
   write(data: string): Promise<boolean> {
-    if (data === '\r') {
+    if (data === "\r") {
       this.onPressEnter.emit(data);
     }
-    return window.api.pty.write(this.sessionId, data);
+    return window.api.pty.write(this.ptySessionId, data);
   }
 
   resize(cols: number, rows: number): Promise<boolean> {
-    return window.api.pty.resize(this.sessionId, { cols, rows });
+    return window.api.pty.resize(this.ptySessionId, { cols, rows });
   }
 
   destroy(): Promise<boolean> {
-    return window.api.pty.destroy(this.sessionId);
+    return window.api.pty.destroy(this.ptySessionId);
   }
 
   saveTerminalSnapshot(serializedContent: string): void {
@@ -97,8 +97,8 @@ class PtyStreamManager {
 
   private setupGlobalListeners(): void {
     this.unsubscribeOnData = window.api.pty.onData(
-      (sessionId: string, data: string) => {
-        const stream = this.streams.get(sessionId);
+      (ptySessionId: string, data: string) => {
+        const stream = this.streams.get(ptySessionId);
         if (stream) {
           // Step 1: Update the stream's internal state
           stream.processStateFromData(data);
@@ -110,13 +110,13 @@ class PtyStreamManager {
     );
 
     this.unsubscribeOnExit = window.api.pty.onExit(
-      (sessionId: string, exitCode: number, signal?: number) => {
-        const stream = this.streams.get(sessionId);
+      (ptySessionId: string, exitCode: number, signal?: number) => {
+        const stream = this.streams.get(ptySessionId);
         if (stream) {
           stream.onExit.emit({ exitCode, signal });
           stream.dispose();
-          this.streams.delete(sessionId);
-          this.logger.info(`Terminal session ${sessionId} ended`, {
+          this.streams.delete(ptySessionId);
+          this.logger.info(`Terminal session ${ptySessionId} ended`, {
             exitCode,
             signal,
           });
@@ -125,19 +125,39 @@ class PtyStreamManager {
     );
   }
 
-  getOrAttachStream(sessionId: string): PtyStream {
-    let stream = this.streams.get(sessionId);
+  async createStream(options: {
+    cols: number;
+    rows: number;
+    cwd?: string;
+    shell?: string;
+  }): Promise<PtyStream> {
+    this.logger.info("Requesting new PTY stream from backend", options);
+    const ptySessionId = await window.api.pty.create({
+      cols: options.cols,
+      rows: options.rows,
+      cwd: options.cwd,
+      shell: options.shell,
+    });
+    this.logger.info(`PTY session created on backend: ${ptySessionId}`);
+    const stream = this.getOrAttachStream(ptySessionId);
+    return stream;
+  }
+
+  getOrAttachStream(ptySessionId: string): PtyStream {
+    let stream = this.streams.get(ptySessionId);
     if (!stream) {
-      stream = new PtyStream(sessionId);
-      this.streams.set(sessionId, stream);
-      window.api.pty.attach(sessionId);
-      this.logger.info(`PTY session created and attached: ${sessionId}`);
+      stream = new PtyStream(ptySessionId);
+      this.streams.set(ptySessionId, stream);
+      window.api.pty.attach(ptySessionId);
+      this.logger.info(
+        `New PtyStream created and attached to session: ${ptySessionId}`,
+      );
     }
     return stream;
   }
 
-  getStream(sessionId: string): PtyStream | undefined {
-    return this.streams.get(sessionId);
+  getStream(ptySessionId: string): PtyStream | undefined {
+    return this.streams.get(ptySessionId);
   }
 
   getAllStreams(): PtyStream[] {

@@ -86,7 +86,11 @@
 
   // Sync selected model with current chat's modelId
   $effect(() => {
-    if (chatState.currentChat && chatState.currentChat.messages.length > 0) {
+    if (
+      chatState.currentChat &&
+      chatState.currentChat.messages.length > 0 &&
+      chatState.currentChat.modelId
+    ) {
       // Chat has messages, set selectedModel to the chat's current modelId
       chatState.selectedModel = chatState.currentChat.modelId;
     }

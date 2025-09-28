@@ -26,7 +26,7 @@ export class ExternalChatSession {
   id: ChatSessionData["id"];
   absoluteFilePath: ChatSessionData["absoluteFilePath"];
   messages: ChatSessionData["messages"] = [];
-  modelId: ChatSessionData["modelId"];
+  modelId: `${string}/${string}`;
   sessionStatus: ChatSessionData["sessionStatus"] = "idle";
   fileStatus: ChatSessionData["fileStatus"] = "active";
   currentTurn: ChatSessionData["currentTurn"] = 0;
@@ -42,6 +42,10 @@ export class ExternalChatSession {
     private readonly eventBus: IEventBus,
     private readonly projectFolderService: ProjectFolderService,
   ) {
+    if (data.modelId === undefined) {
+      throw new Error("External chat sessions require a modelId");
+    }
+
     this.id = data.id;
     this.absoluteFilePath = data.absoluteFilePath;
     this.messages = data.messages;

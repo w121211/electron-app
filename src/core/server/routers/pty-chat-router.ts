@@ -34,7 +34,7 @@ const chatMetadataUpdateSchema = z.object({
 
 export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
   return router({
-    createPtyChatSession: publicProcedure
+    createPtyChat: publicProcedure
       .input(
         z.object({
           targetDirectory: z.string(),
@@ -43,7 +43,7 @@ export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
         }),
       )
       .mutation(async ({ input }) => {
-        const session = await ptyChatClient.createPtyChatSession(
+        const session = await ptyChatClient.createPtyChat(
           input.targetDirectory,
           {
             modelId: input.modelId,
@@ -72,14 +72,14 @@ export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
         return session.toJSON();
       }),
 
-    getPtyChatSession: publicProcedure
+    getPtyChat: publicProcedure
       .input(
         z.object({
           absoluteFilePath: z.string(),
         }),
       )
       .query(async ({ input }) => {
-        const session = await ptyChatClient.getOrLoadPtyChatSession(
+        const session = await ptyChatClient.getOrLoadPtyChat(
           input.absoluteFilePath,
         );
 
@@ -98,11 +98,18 @@ export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
           metadata: input.metadata,
         });
 
-        const session = await ptyChatClient.getOrLoadPtyChatSession(
+        const session = await ptyChatClient.getOrLoadPtyChat(
           input.absoluteFilePath,
         );
 
         return session.toJSON();
+      }),
+
+    deletePtyChat: publicProcedure
+      .input(z.object({ absoluteFilePath: z.string() }))
+      .mutation(async ({ input }) => {
+        await ptyChatClient.deletePtyChat(input.absoluteFilePath);
+        return { success: true };
       }),
   });
 }

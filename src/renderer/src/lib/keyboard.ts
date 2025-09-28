@@ -15,7 +15,7 @@ async function handleNewChat() {
     showToast("Select a folder first", "warning");
     return;
   }
-  await chatService.createEmptyChat(selected);
+  await chatService.createChatDraft(selected);
 }
 
 function handleEscape() {

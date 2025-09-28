@@ -82,7 +82,7 @@ async function runPtyChatDemo() {
 
   // --- Test Case 1: Create a new PTY session from scratch ---
   logger.info("--- Testing creating a new PTY session ---");
-  const session1 = await client.createPtyChatSession(tempDir, {
+  const session1 = await client.createPtyChat(tempDir, {
     modelId: "cli/codex",
     initialPrompt: 'echo "Hello from PTY session 1!"',
   });

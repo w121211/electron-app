@@ -32,7 +32,7 @@ import type {
   ChatSessionData,
 } from "./chat-session-repository.js";
 import type { ToolRegistry } from "../tool-call/tool-registry.js";
-import { chatCacheMiddleware } from "./chat-cache-middleware.js";
+import type { LanguageModelV2Middleware } from "@ai-sdk/provider";
 
 export interface TurnResult<TOOLS extends ToolSet = ToolSet> {
   sessionStatus: ChatSessionStatus;
@@ -46,7 +46,7 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
   id: ChatSessionData["id"];
   absoluteFilePath: ChatSessionData["absoluteFilePath"];
   messages: ChatSessionData["messages"] = [];
-  modelId: ChatSessionData["modelId"];
+  modelId: `${string}/${string}`;
   sessionStatus: ChatSessionData["sessionStatus"] = "idle";
   fileStatus: ChatSessionData["fileStatus"] = "active";
   currentTurn: ChatSessionData["currentTurn"] = 0;
@@ -70,8 +70,13 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
     data: ChatSessionData,
     toolRegistry: ToolRegistry,
     private readonly eventBus: IEventBus,
+    private readonly cacheMiddleware?: LanguageModelV2Middleware,
     // private readonly providerRegistry: ProviderRegistryProvider,
   ) {
+    if (data.modelId === undefined) {
+      throw new Error("ChatSession requires a modelId");
+    }
+
     this.id = data.id;
     this.absoluteFilePath = data.absoluteFilePath;
     this.messages = data.messages;
@@ -206,10 +211,12 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
 
       // 2. Generate AI response using streamText
       const baseModel = gateway(this.modelId);
-      const model = wrapLanguageModel({
-        model: baseModel,
-        middleware: chatCacheMiddleware,
-      });
+      const model = this.cacheMiddleware
+        ? wrapLanguageModel({
+            model: baseModel,
+            middleware: this.cacheMiddleware,
+          })
+        : baseModel;
       const streamResult = streamText({
         model,
         messages: this.messages.map((msg) => msg.message),

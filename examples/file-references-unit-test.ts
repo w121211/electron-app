@@ -137,7 +137,7 @@ async function main() {
 
     try {
       // Try to create a chat in the project folder
-      const chat = await chatService.createEmptyChat(firstProject.path);
+      const chat = await chatService.createChatDraft(firstProject.path);
       console.log(`✅ Created chat: ${chat.id}`);
 
       // Test message with file references

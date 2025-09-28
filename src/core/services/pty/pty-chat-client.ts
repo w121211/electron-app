@@ -51,7 +51,7 @@ export class PtyChatClient {
     );
   }
 
-  async createPtyChatSession(
+  async createPtyChat(
     targetDirectory: string,
     options: {
       initialPrompt?: string;
@@ -173,7 +173,7 @@ export class PtyChatClient {
     return session;
   }
 
-  async getOrLoadPtyChatSession(
+  async getOrLoadPtyChat(
     absoluteFilePath: string,
   ): Promise<PtyChatSession> {
     const session = this.sessions.get(absoluteFilePath);
@@ -201,7 +201,7 @@ export class PtyChatClient {
     return newSession;
   }
 
-  async deleteSession(absoluteFilePath: string): Promise<void> {
+  async deletePtyChat(absoluteFilePath: string): Promise<void> {
     const session = this.sessions.get(absoluteFilePath);
     if (session) {
       if (session.ptyInstanceId) {

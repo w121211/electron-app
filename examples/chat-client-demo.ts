@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { ToolSet, UserModelMessage } from "ai";
 import type { ILogObj } from "tslog";
 import { EventBus } from "../src/core/event-bus.js";
-import { ChatClient } from "../src/core/services/chat-engine/chat-client.js";
+import { ChatEngineClient } from "../src/core/services/chat-engine/chat-engine-client.js";
 import { ChatSessionRepositoryImpl } from "../src/core/services/chat-engine/chat-session-repository.js";
 import { ToolRegistryImpl } from "../src/core/services/tool-call/tool-registry.js";
 import { TaskService } from "../src/core/services/task-service.js";
@@ -157,7 +157,7 @@ async function setupTools(toolRegistry: ToolRegistry) {
 }
 
 async function runChatDemo(): Promise<{
-  chatClient: ChatClient<ToolSet>;
+  chatClient: ChatEngineClient<ToolSet>;
   chatSession: ChatSession<ToolSet>;
   services: DemoServices;
 }> {
@@ -168,7 +168,7 @@ async function runChatDemo(): Promise<{
   await setupTools(services.toolRegistry);
 
   // Create chat client
-  const chatClient = new ChatClient(
+  const chatClient = new ChatEngineClient(
     eventBus,
     services.chatSessionRepository,
     services.taskService,
@@ -300,11 +300,11 @@ async function runChatDemo(): Promise<{
 }
 
 async function testRerunFunction(
-  chatClient: ChatClient<ToolSet>,
+  chatClient: ChatEngineClient<ToolSet>,
   chatSession: ChatSession<ToolSet>,
   services: DemoServices,
 ): Promise<{
-  chatClient: ChatClient<ToolSet>;
+  chatClient: ChatEngineClient<ToolSet>;
   chatSession: ChatSession<ToolSet>;
   services: DemoServices;
 }> {
