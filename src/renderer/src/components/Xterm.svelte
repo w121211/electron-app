@@ -93,9 +93,7 @@
       session?.write(data);
     });
 
-    console.info("Terminal initialized successfully", {
-      sessionId: session.sessionId,
-    });
+    console.info("Terminal initialized successfully", session.ptySessionId);
 
     // Initial resize after mount when not hidden
     setTimeout(() => {
