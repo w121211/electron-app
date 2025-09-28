@@ -7,8 +7,8 @@
   import { FitAddon } from "@xterm/addon-fit";
   import { ptyClient, type PtySession } from "../services/pty-client";
 
-  // Visible flag provided by parent
-  let { visible = true }: { visible?: boolean } = $props();
+  // Hidden flag provided by parent
+  let { hidden = false }: { hidden?: boolean } = $props();
 
   // let terminalDivContainer: HTMLDivElement;
   let terminalElement: HTMLDivElement;
@@ -32,7 +32,7 @@
     };
 
     resizeObserver = new ResizeObserver(() => {
-      if (!visible) return;
+      if (hidden) return;
       debounced();
     });
     resizeObserver.observe(terminalElement);
@@ -97,9 +97,9 @@
       sessionId: session.sessionId,
     });
 
-    // Initial resize after mount when visible
+    // Initial resize after mount when not hidden
     setTimeout(() => {
-      if (visible) resizeTerminal();
+      if (!hidden) resizeTerminal();
     }, 100);
   }
 
@@ -122,7 +122,7 @@
     if (!terminal || !terminalElement) return;
 
     const rect = terminalElement.getBoundingClientRect();
-    // console.log(rect.width, rect.height);
+    console.log(rect.width, rect.height);
     if (rect.width === 0 || rect.height === 0) return; // hidden or not laid out
 
     if (rect.width === lastWidth && rect.height === lastHeight) return;
@@ -144,9 +144,9 @@
     }
   }
 
-  // React when visibility changes to true
+  // React when visibility changes
   $effect(() => {
-    if (visible) {
+    if (!hidden) {
       setTimeout(() => {
         resizeTerminal();
         terminal?.focus();
@@ -163,13 +163,7 @@
   role="application"
   aria-label="Terminal"
   class="h-full w-full"
+  class:hidden
 >
   <!-- Terminal will be mounted here -->
 </div>
-
-<!-- <style>
-  .terminal-container {
-    width: 100%;
-    height: 100%;
-  }
-</style> -->
