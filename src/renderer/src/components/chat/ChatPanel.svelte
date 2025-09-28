@@ -125,7 +125,7 @@
 
   async function handleSendMessage(): Promise<void> {
     if (isTerminalModelSelected) {
-      ptyChatService.startPtySessionFromDraft(chatState.messageInput);
+      ptyChatService.createPtyChatFromDraft(chatState.messageInput);
       return;
     }
 

@@ -112,15 +112,15 @@
       </div>
     {:else}
       {#each streams as stream (stream.ptySessionId)}
-        <div
+        <!-- <div
           class="absolute inset-0"
           class:hidden={stream.ptySessionId !== selectedSessionId}
-        >
-          <XtermStream
-            ptyStream={stream}
-            hidden={stream.ptySessionId !== selectedSessionId}
-          />
-        </div>
+        > -->
+        <XtermStream
+          ptyStream={stream}
+          hidden={stream.ptySessionId !== selectedSessionId}
+        />
+        <!-- </div> -->
       {/each}
     {/if}
   </div>

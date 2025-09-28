@@ -54,7 +54,7 @@ export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
         return session.toJSON();
       }),
 
-    createFromDraft: publicProcedure
+    createPtyChatFromDraft: publicProcedure
       .input(
         z.object({
           absoluteFilePath: z.string(),

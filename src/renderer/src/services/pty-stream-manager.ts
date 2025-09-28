@@ -164,6 +164,18 @@ class PtyStreamManager {
     return Array.from(this.streams.values());
   }
 
+  async disposeStream(ptySessionId: string): Promise<void> {
+    const stream = this.streams.get(ptySessionId);
+    if (stream) {
+      stream.dispose();
+      await stream.destroy();
+      this.streams.delete(ptySessionId);
+      this.logger.info(`Terminal session ${ptySessionId} disposed`);
+    } else {
+      this.logger.warn(`Stream ${ptySessionId} not found for disposal`);
+    }
+  }
+
   async destroyAllStreams(): Promise<void> {
     const destroyPromises = Array.from(this.streams.values()).map((stream) =>
       stream.destroy(),

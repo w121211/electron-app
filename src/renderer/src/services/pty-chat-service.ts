@@ -50,7 +50,7 @@ class PtyChatService {
     }
   }
 
-  async startPtySessionFromDraft(initialCommand: string) {
+  async createPtyChatFromDraft(initialCommand: string) {
     const currentChat = chatState.currentChat;
     if (!currentChat) {
       return;
@@ -74,7 +74,7 @@ class PtyChatService {
     setLoading("startPtySession", true);
 
     try {
-      const session = await trpcClient.ptyChat.createFromDraft.mutate({
+      const session = await trpcClient.ptyChat.createPtyChatFromDraft.mutate({
         absoluteFilePath: currentChat.absoluteFilePath,
         initialPrompt: trimmedCommand,
         modelId: selectedModel,

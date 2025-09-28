@@ -68,7 +68,7 @@
 
     // Check if this is a PTY chat and use appropriate service
     if (chatState.currentChat._type === "pty_chat") {
-      await ptyChatService.startPtySessionFromDraft(
+      await ptyChatService.createPtyChatFromDraft(
         chatState.messageInput.trim(),
       );
     } else {
