@@ -31,6 +31,9 @@ import { ChatEngineClient } from "../services/chat-engine/chat-engine-client.js"
 import { createChatCacheMiddleware } from "../services/chat-engine/chat-cache-middleware.js";
 import type { PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
 import type { IEventBus } from "../event-bus.js";
+import { PromptDocRepository } from "../services/prompt-doc/prompt-doc-repository.js";
+import { PromptDocService } from "../services/prompt-doc/prompt-doc-service.js";
+import { createPromptDocRouter } from "./routers/prompt-doc-router.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
@@ -54,6 +57,12 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     eventBus,
     userSettingsRepo,
     fileWatcherService,
+  );
+
+  const promptDocRepository = new PromptDocRepository();
+  const promptDocService = new PromptDocService(
+    promptDocRepository,
+    projectFolderService,
   );
 
   // Create task repository
@@ -144,6 +153,7 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
       ptyChatClient,
     ),
     ptyChat: createPtyChatRouter(ptyChatClient),
+    promptDoc: createPromptDocRouter(promptDocService),
     projectFolder: createProjectFolderRouter(projectFolderService),
     file: createFileRouter(),
     event: createEventRouter(eventBus),
