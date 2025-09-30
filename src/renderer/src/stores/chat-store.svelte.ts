@@ -73,24 +73,12 @@ export function updateMessageInput(value: string) {
   }
 }
 
-export function clearMessageInput() {
-  chatState.messageInput = "";
-}
-
 export function savePromptCursorPosition(start: number, end: number) {
   chatState.promptCursorPosition = { start, end };
 }
 
 export function clearPromptCursorPosition() {
   chatState.promptCursorPosition = null;
-}
-
-export function setDraftSaving(saving: boolean) {
-  chatState.isDraftSaving = saving;
-}
-
-export function setHasUnsavedDraftChanges(hasChanges: boolean) {
-  chatState.hasUnsavedDraftChanges = hasChanges;
 }
 
 export function addMessageToCurrentChat(message: ChatMessage) {

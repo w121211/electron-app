@@ -116,8 +116,6 @@ export class PtyChatClient {
     initialPrompt: string,
     modelId: `${string}/${string}`,
   ): Promise<PtyChatSession> {
-    this.logger.info(`Creating PTY session from draft: ${absoluteFilePath}`);
-
     if (!isTerminalModel(modelId)) {
       throw new Error(
         `Invalid model for PTY session: ${modelId}. Model must be a terminal model.`,
@@ -147,22 +145,27 @@ export class PtyChatClient {
     });
 
     const session = new PtyChatSession(existingData, this.eventBus);
+    session.attachPtyInstance(ptyInstance.id);
     session.sessionStatus = "external_active";
     session.modelId = modelId;
     session.workingDirectory = targetDirectory.path;
     session.updatedAt = new Date();
-    session.attachPtyInstance(ptyInstance.id);
-    session.metadata = {
-      ...session.metadata,
-      promptDraft: initialPrompt,
-    };
 
     const cliCommand = buildCliModelCommand(modelId, initialPrompt);
-    ptyInstance.write(cliCommand + "\n");
+    session.metadata = {
+      ...session.metadata,
+      external: {
+        ...session.metadata?.external,
+        pty: {
+          ...session.metadata?.external?.pty,
+          initialCommand: cliCommand,
+        },
+      },
+    };
 
     await this.chatSessionRepository.saveToFile(
       existingData.absoluteFilePath,
-      existingData,
+      session.toJSON(),
     );
 
     this.sessions.set(session.absoluteFilePath, {
@@ -173,9 +176,7 @@ export class PtyChatClient {
     return session;
   }
 
-  async getOrLoadPtyChat(
-    absoluteFilePath: string,
-  ): Promise<PtyChatSession> {
+  async getOrLoadPtyChat(absoluteFilePath: string): Promise<PtyChatSession> {
     const session = this.sessions.get(absoluteFilePath);
     if (session) {
       return session.session;

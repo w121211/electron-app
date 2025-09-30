@@ -117,7 +117,7 @@
           class:hidden={stream.ptySessionId !== selectedSessionId}
         > -->
         <XtermStream
-          ptyStream={stream}
+          {stream}
           hidden={stream.ptySessionId !== selectedSessionId}
         />
         <!-- </div> -->

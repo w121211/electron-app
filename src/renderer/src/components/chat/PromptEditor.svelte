@@ -44,7 +44,7 @@
         promptEditorTextarea.selectionEnd,
       );
     }
-    chatService.closePromptEditor();
+    uiState.promptEditorOpen = false;
   }
 
   function handleInputChange(value: string): void {
@@ -57,8 +57,8 @@
     if (chatState.currentChat) {
       clearTimeout(draftTimeout);
       const currentChatPath = chatState.currentChat.absoluteFilePath;
-      draftTimeout = setTimeout(() => {
-        chatService.savePromptDraft(currentChatPath, value);
+      draftTimeout = setTimeout(async () => {
+        await chatService.savePromptDraft(currentChatPath, value);
       }, 1500);
     }
   }
@@ -73,8 +73,7 @@
       );
     } else {
       await chatService.sendMesage(
-        chatState.currentChat.absoluteFilePath,
-        chatState.currentChat.id,
+        chatState.currentChat,
         chatState.messageInput.trim(),
         chatState.currentChat.messages.length === 0
           ? chatState.selectedModel

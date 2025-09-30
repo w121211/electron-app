@@ -3,17 +3,15 @@ import { Logger } from "tslog";
 import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
 import type { CreateChatDraftConfig } from "../../../core/services/chat-engine/chat-draft-service.js";
 import type { FileWatcherEvent } from "../../../core/services/file-watcher-service.js";
+import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository.js";
+import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import {
   chatState,
   setCurrentChat,
   clearCurrentChat,
-  clearMessageInput,
-  setDraftSaving,
-  setHasUnsavedDraftChanges,
   type ModelOption,
 } from "../stores/chat-store.svelte.js";
-import { uiState } from "../stores/ui-store.svelte.js";
 import {
   selectFile,
   expandParentDirectories,
@@ -23,9 +21,47 @@ import { setLoading, showToast } from "../stores/ui-store.svelte.js";
 import { projectService } from "./project-service.js";
 import { projectState } from "../stores/project-store.svelte.js";
 
+async function startChatFromDraft(
+  chat: ChatSessionData,
+  modelId: `${string}/${string}`,
+  message: { role: "user"; content: string | any[] },
+) {
+  // Validation
+  if (chat._type !== "chat_draft") {
+    throw new Error("Can only start chats from draft sessions");
+  }
+  if (!modelId) {
+    throw new Error("Model ID is required to start a chat session");
+  }
+
+  if (isTerminalModel(modelId)) {
+    // Use PTY chat router for terminal models
+    if (typeof message.content !== "string") {
+      console.error(message);
+      throw new Error("Terminal models only accept string messages");
+    }
+    const updatedChat = await trpcClient.ptyChat.createPtyChatFromDraft.mutate({
+      absoluteFilePath: chat.absoluteFilePath,
+      modelId,
+      initialPrompt: message.content,
+    });
+    return {
+      turnResult: null, // PTY chats don't return turn results
+      updatedChatSession: updatedChat,
+    };
+  } else {
+    // Use chat engine router for non-terminal models
+    const startResult = await trpcClient.chatEngine.startFromDraft.mutate({
+      absoluteFilePath: chat.absoluteFilePath,
+      modelId,
+      message,
+    });
+    return startResult;
+  }
+}
+
 class ChatService {
   private logger = new Logger({ name: "ChatService" });
-  private draftSaveTimeouts = new Map<string, NodeJS.Timeout>();
 
   async createChatDraft(targetPath: string) {
     setLoading("createChat", true);
@@ -152,89 +188,64 @@ class ChatService {
   }
 
   async sendMesage(
-    absoluteFilePath: string,
-    chatSessionId: string,
+    chat: ChatSessionData,
     messageText: string,
     modelId?: `${string}/${string}`,
     attachments?: Array<{ fileName: string; content: string }>,
   ) {
+    // Ensure attachments is an array if provided
+    const safeAttachments =
+      attachments && Array.isArray(attachments) ? attachments : [];
+
+    // Convert message and attachments to proper format
+    let content: string | any[] = messageText;
+    if (safeAttachments.length > 0) {
+      content = [
+        { type: "text", text: messageText },
+        ...safeAttachments.map((att) => ({
+          type: "text",
+          text: `File: ${att.fileName}
+${att.content}`,
+        })),
+      ];
+    }
+    const message = {
+      role: "user" as const,
+      content,
+    };
+
     chatState.isSubmittingMessage = true;
 
-    try {
-      this.logger.info("Submitting message to chat:", chatSessionId);
+    const postSendMessage = (updatedChatSession: ChatSessionData) => {
+      setCurrentChat(updatedChatSession);
+      chatState.messageInput = "";
+      chatState.hasUnsavedDraftChanges = false;
+      chatState.isSubmittingMessage = false;
+    };
 
-      // Convert message and attachments to proper format
-      let content: string | any[] = messageText;
-      if (attachments && attachments.length > 0) {
-        content = [
-          { type: "text", text: messageText },
-          ...attachments.map((att) => ({
-            type: "text",
-            text: `File: ${att.fileName}
-${att.content}`,
-          })),
-        ];
-      }
+    if (chat._type === "chat_draft") {
+      const startResult = await startChatFromDraft(chat, modelId!, message);
 
-      const message = {
-        role: "user" as const,
-        content,
-      };
-
-      const currentChat = chatState.currentChat;
-
-      if (!currentChat) {
-        throw new Error("No chat session selected");
-      }
-
-      if (currentChat._type === "chat_draft") {
-        if (!modelId) {
-          throw new Error("Model ID is required to start a chat session");
-        }
-
-        const startResult = await trpcClient.chatEngine.startFromDraft.mutate({
-          absoluteFilePath,
-          modelId,
-          message,
-        });
-        setCurrentChat(startResult.updatedChatSession);
-        clearMessageInput();
-        setHasUnsavedDraftChanges(false);
-        showToast("Message sent successfully", "success");
-        this.logger.info("Message submitted successfully");
-        return startResult;
-      }
-
-      if (currentChat._type === "pty_chat") {
-        throw new Error(
-          "Use the terminal interface to interact with PTY chats",
-        );
-      }
-
+      postSendMessage(startResult.updatedChatSession);
+      return startResult;
+    }
+    if (chat._type === "chat_engine") {
       const sendResult = await trpcClient.chatEngine.sendMessage.mutate({
-        absoluteFilePath,
-        chatSessionId,
+        absoluteFilePath: chat.absoluteFilePath,
+        chatSessionId: chat.id,
         message,
       });
-      setCurrentChat(sendResult.updatedChatSession);
-      clearMessageInput();
+      postSendMessage(sendResult.updatedChatSession);
 
-      // Clear draft changes when message is sent
-      setHasUnsavedDraftChanges(false);
-
-      showToast("Message sent successfully", "success");
-      this.logger.info("Message submitted successfully");
       return sendResult;
-    } catch (error) {
-      this.logger.error("Failed to submit message:", error);
-      showToast(
-        `Failed to send message: ${error instanceof Error ? error.message : String(error)}`,
-        "error",
-      );
-      throw error;
-    } finally {
-      chatState.isSubmittingMessage = false;
     }
+    if (chat._type === "pty_chat") {
+      throw new Error("Use the terminal interface to interact with PTY chats");
+    }
+
+    throw new Error(
+      "Send message not yet support chat session type:" + chat._type,
+    );
   }
 
   async getAllChats() {
@@ -445,62 +456,44 @@ ${att.content}`,
     }
   }
 
-  savePromptDraft(absoluteFilePath: string, draft: string) {
-    // Clear existing timeout for this chat
-    const existingTimeout = this.draftSaveTimeouts.get(absoluteFilePath);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
+  async savePromptDraft(absoluteFilePath: string, draft: string) {
+    const chat = chatState.currentChat;
+
+    if (chat === null) {
+      throw new Error("No current chat");
+    }
+    if (chat.absoluteFilePath !== absoluteFilePath) {
+      throw new Error(
+        "Chat file path does not match current chat. Now only support working chat to save draft",
+      );
     }
 
-    // Set new timeout to save draft after 1.5 seconds of inactivity
-    const timeout = setTimeout(async () => {
-      // Only set saving state if this is the current chat
-      if (chatState.currentChat?.absoluteFilePath === absoluteFilePath) {
-        setDraftSaving(true);
-      }
+    chatState.isDraftSaving = true;
 
-      try {
-        const current = chatState.currentChat;
+    if (chat._type === "chat_draft") {
+      await trpcClient.chatDraft.updateDraft.mutate({
+        absoluteFilePath,
+        updates: {
+          metadata: { promptDraft: draft },
+        },
+      });
+    } else if (chat._type === "pty_chat") {
+      await trpcClient.ptyChat.updateMetadata.mutate({
+        absoluteFilePath,
+        metadata: { promptDraft: draft },
+      });
+    } else {
+      await trpcClient.chatEngine.updateSession.mutate({
+        absoluteFilePath,
+        updates: {
+          metadata: { promptDraft: draft },
+        },
+      });
+    }
+    this.logger.debug("Prompt draft saved for chat:", absoluteFilePath);
 
-        if (current && current._type === "chat_draft") {
-          await trpcClient.chatDraft.updateDraft.mutate({
-            absoluteFilePath,
-            updates: {
-              metadata: { promptDraft: draft },
-            },
-          });
-        } else if (current && current._type === "pty_chat") {
-          await trpcClient.ptyChat.updateMetadata.mutate({
-            absoluteFilePath,
-            metadata: { promptDraft: draft },
-          });
-        } else {
-          await trpcClient.chatEngine.updateSession.mutate({
-            absoluteFilePath,
-            updates: {
-              metadata: { promptDraft: draft },
-            },
-          });
-        }
-        this.logger.debug("Prompt draft saved for chat:", absoluteFilePath);
-
-        // Mark as saved if this is the current chat
-        if (chatState.currentChat?.absoluteFilePath === absoluteFilePath) {
-          setHasUnsavedDraftChanges(false);
-        }
-      } catch (error) {
-        this.logger.error("Failed to save prompt draft:", error);
-      } finally {
-        this.draftSaveTimeouts.delete(absoluteFilePath);
-
-        // Clear saving state if this is the current chat
-        if (chatState.currentChat?.absoluteFilePath === absoluteFilePath) {
-          setDraftSaving(false);
-        }
-      }
-    }, 1500);
-
-    this.draftSaveTimeouts.set(absoluteFilePath, timeout);
+    chatState.isDraftSaving = false;
+    chatState.hasUnsavedDraftChanges = false;
   }
 
   // Event handlers
@@ -560,27 +553,6 @@ ${att.content}`,
           setCurrentChat(event.chat);
       }
     }
-  }
-
-  // Prompt editor methods
-  openPromptEditor() {
-    uiState.promptEditorOpen = true;
-  }
-
-  closePromptEditor() {
-    uiState.promptEditorOpen = false;
-  }
-
-  togglePromptEditor() {
-    uiState.promptEditorOpen = !uiState.promptEditorOpen;
-  }
-
-  // Cleanup draft timeouts when service is destroyed
-  cleanup() {
-    this.draftSaveTimeouts.forEach((timeout) => {
-      clearTimeout(timeout);
-    });
-    this.draftSaveTimeouts.clear();
   }
 }
 

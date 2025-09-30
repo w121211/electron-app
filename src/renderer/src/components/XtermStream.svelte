@@ -5,24 +5,29 @@
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
   import { FitAddon } from "@xterm/addon-fit";
+  import { Logger } from "tslog";
   import { type PtyStream } from "../services/pty-stream-manager.js";
+
+  const logger = new Logger({ name: "XtermStream" });
 
   // Hidden flag provided by parent
   let {
     hidden = false,
-    ptyStream,
+    stream,
+    onTerminalReady = () => {}, // Callback for when terminal is ready
   }: {
     hidden?: boolean;
-    ptyStream: PtyStream;
+    stream: PtyStream;
+    onTerminalReady?: (stream: PtyStream) => void;
   } = $props();
 
-  // let terminalDivContainer: HTMLDivElement;
+  let isTerminalInitialized = $state(false);
+  let isTerminalFullyReady = $state(false);
+
   let terminalElement: HTMLDivElement;
   let terminal: Terminal;
   let fitAddon: FitAddon;
   let webglAddon: WebglAddon;
-  let attachedStream: PtyStream | null = null;
-  let isInitialized = false;
   let resizeObserver: ResizeObserver;
   let resizeTimeout: ReturnType<typeof setTimeout>;
   let lastWidth = 0;
@@ -30,13 +35,8 @@
   let unsubscribeData: (() => void) | undefined;
   let unsubscribeExit: (() => void) | undefined;
 
-  const debouncedResizeTerminal = (): void => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(resizeTerminal, 150);
-  };
-
   onMount(async () => {
-    if (isInitialized || !terminalElement) return;
+    if (isTerminalInitialized || !terminalElement) return;
 
     await initializeTerminal();
 
@@ -45,19 +45,46 @@
     });
     resizeObserver.observe(terminalElement);
 
-    isInitialized = true;
+    isTerminalInitialized = true;
   });
 
   onDestroy(() => {
     cleanup();
   });
 
-  async function initializeTerminal(): Promise<void> {
+  // Effect to call the onTerminalReady callback when the terminal is fully ready
+  $effect(() => {
+    if (isTerminalFullyReady) {
+      logger.debug(
+        `XtermStream for session ${stream.ptySessionId} is fully ready. Calling onTerminalReady callback.`,
+      );
+      onTerminalReady(stream);
+    }
+  });
+
+  $effect(() => {
+    if (!hidden) {
+      setTimeout(() => {
+        terminal?.focus();
+      }, 0);
+    } else if (isTerminalInitialized) {
+      // Unfocus when hidden to prevent capturing keyboard input
+      terminal?.blur();
+    }
+  });
+
+  const debouncedResizeTerminal = (): void => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(resizeTerminal, 150);
+  };
+
+  const initializeTerminal = async (): Promise<void> => {
     terminal = new Terminal({
       fontSize: 12,
       // fontFamily: "'Cascadia Code', 'Roboto Mono', monospace",
       theme: {
         background: "#181818",
+        // background: "#cccccc",
         foreground: "#cccccc",
         cursor: "#ffffff",
       },
@@ -75,12 +102,6 @@
     terminal.loadAddon(fitAddon);
     terminal.open(terminalElement);
 
-    const stream = ptyStream;
-    if (!stream) {
-      throw new Error("Failed to attach PTY stream");
-    }
-    attachedStream = stream;
-
     const dims = fitAddon.proposeDimensions();
     const cols = dims?.cols;
     const rows = dims?.rows;
@@ -94,49 +115,54 @@
     });
 
     unsubscribeExit = stream.onExit.on(({ exitCode }) => {
-      console.info(`Terminal session exited with code: ${exitCode}`);
-      terminal?.write(`
-
-    [Process completed]`);
+      logger.info(`Terminal session exited with code: ${exitCode}`);
+      terminal?.write(`\r\n    [Process completed]`);
     });
 
     terminal.onData((data: string) => {
       stream.write(data);
     });
 
-    console.info("Terminal initialized successfully", {
-      sessionId: stream.ptySessionId,
+    // Readiness Detection: Wait for initial resize to complete, then for the first render
+    const disposeResizeListener = terminal.onResize(() => {
+      logger.debug(`Initial terminal resize complete`);
+      disposeResizeListener.dispose(); // Remove resize listener after first resize
+
+      // Now wait for the first render event
+      const disposeRenderListener = terminal.onRender(() => {
+        logger.debug(`First terminal render complete`);
+        disposeRenderListener.dispose(); // Remove render listener after first render
+        isTerminalFullyReady = true; // Mark as fully ready
+      });
     });
 
-    // Initial resize after mount when not hidden
-    // Disabled: ResizeObserver handles initial resize when terminal renders
-    setTimeout(() => {
-      debouncedResizeTerminal();
-    }, 100);
-  }
+    debouncedResizeTerminal(); // Trigger initial resize check
 
-  function cleanup(): void {
-    terminal.dispose();
-    fitAddon.dispose();
-    webglAddon.dispose();
+    logger.info("Terminal initialized successfully", {
+      sessionId: stream.ptySessionId,
+    });
+  };
+
+  const cleanup = (): void => {
+    terminal?.dispose(); // Use optional chaining for safety
+    fitAddon?.dispose();
+    webglAddon?.dispose();
     unsubscribeData?.();
     unsubscribeExit?.();
-    attachedStream = null;
-    isInitialized = false;
+    isTerminalInitialized = false;
+    isTerminalFullyReady = false; // Reset readiness state
 
     resizeObserver?.disconnect();
     clearTimeout(resizeTimeout);
 
-    console.info("Terminal cleanup completed");
-  }
+    logger.debug("Terminal cleanup completed");
+  };
 
-  // Manual, visibility-aware terminal resize
-  function resizeTerminal(): void {
-    if (!terminal || !terminalElement) return;
-    if (hidden) return;
+  const resizeTerminal = (): void => {
+    if (!terminal || !terminalElement || hidden) return;
 
     const rect = terminalElement.getBoundingClientRect();
-    console.log("resizeTerminal()", rect.width, rect.height);
+    // logger.debug("resizeTerminal()", rect.width, rect.height);
     if (rect.width === 0 || rect.height === 0) return; // hidden or not laid out
 
     if (rect.width === lastWidth && rect.height === lastHeight) return;
@@ -153,22 +179,10 @@
       (cols !== terminal.cols || rows !== terminal.rows)
     ) {
       terminal.resize(cols, rows);
-      attachedStream?.resize(cols, rows);
-      console.debug(`Resized to ${cols}x${rows}`);
+      stream.resize(cols, rows);
+      // logger.debug(`Resized to ${cols}x${rows}`);
     }
-  }
-
-  // React when visibility changes
-  $effect(() => {
-    if (!hidden) {
-      setTimeout(() => {
-        terminal?.focus();
-      }, 0);
-    } else if (isInitialized) {
-      // Unfocus when hidden to prevent capturing keyboard input
-      terminal?.blur();
-    }
-  });
+  };
 </script>
 
 <div

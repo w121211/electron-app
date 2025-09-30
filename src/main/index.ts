@@ -18,6 +18,7 @@ import { type PtyInstanceManager } from "../core/services/pty/pty-instance-manag
 // Global server instance
 let trpcServer: HttpTrpcServer;
 let ptyInstanceManager: PtyInstanceManager;
+
 // Track per-session attachments per WebContents to prevent duplicate forwarding
 const ptyAttachments = new Map<
   string,
@@ -79,7 +80,7 @@ function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1200,
-    height: 1200,
+    height: 800,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === "linux" ? { icon } : {}),

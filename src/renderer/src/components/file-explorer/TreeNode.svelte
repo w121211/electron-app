@@ -323,6 +323,19 @@
         >
           <StopFill width={12} height={12} />
         </button>
+      {:else if sessionStatus === "external_active"}
+        <span
+          class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
+        >
+          active
+        </span>
+        <button
+          onclick={handleStopTask}
+          class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
+          title="Stop Chat"
+        >
+          <StopFill width={12} height={12} />
+        </button>
       {:else if sessionStatus === "waiting_confirmation"}
         <span
           class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"

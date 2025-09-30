@@ -89,6 +89,7 @@ class PtyStreamManager {
   private streams = new Map<string, PtyStream>();
   private unsubscribeOnData: (() => void) | undefined;
   private unsubscribeOnExit: (() => void) | undefined;
+  public readonly onStreamsChanged = new EventEmitter<void>();
 
   constructor() {
     this.logger.info("PtyStreamManager initialized");
@@ -120,6 +121,7 @@ class PtyStreamManager {
             exitCode,
             signal,
           });
+          this.onStreamsChanged.emit();
         }
       },
     );
@@ -152,6 +154,7 @@ class PtyStreamManager {
       this.logger.info(
         `New PtyStream created and attached to session: ${ptySessionId}`,
       );
+      this.onStreamsChanged.emit();
     }
     return stream;
   }
@@ -171,6 +174,7 @@ class PtyStreamManager {
       await stream.destroy();
       this.streams.delete(ptySessionId);
       this.logger.info(`Terminal session ${ptySessionId} disposed`);
+      this.onStreamsChanged.emit();
     } else {
       this.logger.warn(`Stream ${ptySessionId} not found for disposal`);
     }

@@ -14,7 +14,7 @@ import {
 } from "../../utils/file-utils.js";
 
 export type ChatSessionType =
-  | "chat"
+  | "chat_engine"
   | "chat_draft"
   | "external_chat"
   | "pty_chat";
@@ -48,15 +48,16 @@ export interface ChatMessage {
   metadata: ChatMessageMetadata;
 }
 
-export interface ExternalSessionMetadata {
+export interface ExternalChatMetadata {
   mode?: "terminal" | "pty";
-  // sessionId?: string; // Used for PTY mode
   pid?: number; // Used for terminal mode
   workingDirectory?: string;
+  // Embedded terminal (node-pty) options
   pty?: {
+    initialCommand?: string;
     ptyInstanceId?: string;
-    screenshot?: string;
-    screenshotHtml?: string;
+    snapshot?: string;
+    snapshotHtml?: string;
   };
 }
 
@@ -66,7 +67,7 @@ export interface ChatMetadata {
   mode?: ChatMode;
   knowledge?: string[];
   promptDraft?: string;
-  external?: ExternalSessionMetadata;
+  external?: ExternalChatMetadata;
 }
 
 export interface ChatSessionData {
@@ -93,7 +94,7 @@ export const ModelIdSchema = z.custom<`${string}/${string}`>(
   { message: "Model ID must be in format 'provider/model'" },
 );
 
-const ExternalSessionMetadataSchema = z.object({
+const ExternalChatMetadataSchema = z.object({
   mode: z.enum(["terminal", "pty"]).optional(),
   pid: z.number().optional(), // Used for terminal mode
   workingDirectory: z.string().optional(),
@@ -112,7 +113,7 @@ const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   mode: z.enum(["chat", "agent"]).optional(),
   knowledge: z.array(z.string()).optional(),
   promptDraft: z.string().optional(),
-  external: ExternalSessionMetadataSchema.optional(),
+  external: ExternalChatMetadataSchema.optional(),
 });
 
 const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> = z.object({
@@ -136,7 +137,7 @@ const ChatMessageSchema: z.ZodType<ChatMessage> = z.object({
 });
 
 const ChatSessionDataSchemaBase = z.object({
-  _type: z.enum(["chat", "chat_draft", "external_chat", "pty_chat"]),
+  _type: z.enum(["chat_engine", "chat_draft", "external_chat", "pty_chat"]),
   id: z.string(),
   absoluteFilePath: z.string(),
   messages: z.array(ChatMessageSchema),
@@ -178,8 +179,11 @@ export function isDraftSession(
 
 export function isEngineSession(
   data: ChatSessionData,
-): data is ChatSessionData & { _type: "chat"; modelId: `${string}/${string}` } {
-  return data._type === "chat";
+): data is ChatSessionData & {
+  _type: "chat_engine";
+  modelId: `${string}/${string}`;
+} {
+  return data._type === "chat_engine";
 }
 
 export interface ChatSessionRepository {

@@ -1,7 +1,9 @@
 // src/renderer/src/utils/xterm-utils.ts
 import type { SerializeAddon } from "@xterm/addon-serialize";
 import { Logger } from "tslog";
+import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository";
 import type { FileService } from "../services/file-service.js";
+import { getModelMessageContentString } from "./message-helper.js";
 
 const logger = new Logger({ name: "XtermUtils" });
 
@@ -62,4 +64,31 @@ export const saveTerminalSnapshotToFile = async (
   } catch (error) {
     logger.error("Failed to save terminal snapshots:", error);
   }
+};
+
+export const buildTerminatedSessionSnapshot = (
+  chat: ChatSessionData,
+): string => {
+  const metadataSnapshot = chat.metadata?.external?.pty?.screenshot;
+  if (metadataSnapshot && metadataSnapshot.trim().length > 0) {
+    return metadataSnapshot;
+  }
+
+  const reconstructedSnapshot = chat.messages
+    .map((entry) => {
+      const content = getModelMessageContentString(entry.message);
+      if (!content.trim()) {
+        return "";
+      }
+      const prefix = entry.message.role === "user" ? "$ " : "";
+      return `${prefix}${content}`;
+    })
+    .filter((line) => line.length > 0)
+    .join("\n");
+
+  if (reconstructedSnapshot.trim().length > 0) {
+    return `${reconstructedSnapshot}\n[Session has ended]`;
+  }
+
+  return "";
 };

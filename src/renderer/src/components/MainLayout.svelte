@@ -1,7 +1,6 @@
 <!-- src/renderer/src/components/MainLayout.svelte -->
 <script lang="ts">
   import { Logger } from "tslog";
-  import { isTerminalModel } from "../../../core/utils/model-utils.js";
   import { projectService } from "../services/project-service.js";
   // import { taskService } from "../services/task-service.js";
   import { uiState } from "../stores/ui-store.svelte.js";
@@ -18,13 +17,11 @@
 
   type CenterPanelView = "welcome" | "chatPanel" | "filePanel" | "ptyChatPanel";
 
+  $inspect(chatState.currentChat);
+
   const centerPanelView: CenterPanelView = $derived.by(() => {
     if (treeState.selectedChatFile) {
-      if (
-        chatState.currentChat?._type === "pty_chat" ||
-        (chatState.currentChat?.modelId &&
-          isTerminalModel(chatState.currentChat?.modelId))
-      ) {
+      if (chatState.currentChat?._type === "pty_chat") {
         return "ptyChatPanel";
       }
       return "chatPanel";
@@ -49,6 +46,8 @@
     }
 
     initializeData();
+
+    console.log(centerPanelView);
   });
 </script>
 
@@ -63,15 +62,11 @@
 
     <!-- Main Workspace -->
     <main class="flex min-w-0 flex-1">
-      <!-- Center Panel: Main View -->
       {#if centerPanelView === "chatPanel"}
         <ChatPanel />
       {:else if centerPanelView === "filePanel"}
         <FilePanel />
-      {:else if centerPanelView === "ptyChatPanel"}
-        <PtyChatPanel />
-      {:else}
-        <!-- Welcome Screen / No file open -->
+      {:else if centerPanelView === "welcome"}
         <div class="bg-surface flex flex-1 items-center justify-center">
           <div class="text-muted text-center">
             <div class="mx-auto mb-4 text-5xl">👋</div>
@@ -82,6 +77,9 @@
           </div>
         </div>
       {/if}
+
+      <!-- Keep PTY terminal mounted so the underlying xterm stream is not disposed while hidden -->
+      <PtyChatPanel hidden={centerPanelView !== "ptyChatPanel"} />
 
       <!-- Right Panel -->
       {#if uiState.rightPanelOpen}

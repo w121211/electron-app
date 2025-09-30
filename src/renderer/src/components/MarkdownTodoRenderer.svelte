@@ -60,8 +60,7 @@
     // Automatically send the initial prompt if present
     if (newChat.metadata?.promptDraft) {
       await chatService.sendMesage(
-        newChat.absoluteFilePath,
-        newChat.id,
+        newChat,
         newChat.metadata.promptDraft,
         initialModelId,
       );

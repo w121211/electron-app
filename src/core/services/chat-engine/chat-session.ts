@@ -412,7 +412,7 @@ export class ChatSession<TOOLS extends ToolSet = ToolSet> {
 
   toJSON(): ChatSessionData {
     return {
-      _type: "chat",
+      _type: "chat_engine",
       id: this.id,
       absoluteFilePath: this.absoluteFilePath,
       messages: this.messages,

@@ -77,9 +77,10 @@ export function buildCliModelCommand(
   }
 
   const command = model.command;
-  const args = model.args.join(" ");
-  const fullCommand = args ? `${command} ${args}` : command;
+  // const args = model.args.join(" ");
+  // const fullCommand = args ? `${command} ${args}` : command;
 
   // return `${fullCommand} "${prompt.replace(/"/g, '\\"')}"`;
-  return `${fullCommand}`;
+  // return `${fullCommand}`;
+  return command;
 }

@@ -25,7 +25,7 @@ export function createChatSessionRouter(
           return await chatDraftService.getDraft(input.absoluteFilePath);
         }
 
-        if (sessionData._type === "chat") {
+        if (sessionData._type === "chat_engine") {
           const session = await chatClient.getOrLoadChatSession(
             input.absoluteFilePath,
           );

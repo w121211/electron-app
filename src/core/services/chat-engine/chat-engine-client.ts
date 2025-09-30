@@ -241,7 +241,7 @@ export class ChatEngineClient<TOOLS extends ToolSet> {
     );
     const activated: ChatSessionData = {
       ...draftData,
-      _type: "chat",
+      _type: "chat_engine",
       modelId: modelId ?? DEFAULT_MODEL_ID,
       sessionStatus: "idle",
       updatedAt: new Date(),
@@ -269,7 +269,7 @@ export class ChatEngineClient<TOOLS extends ToolSet> {
     );
     const activated: ChatSessionData = {
       ...draftData,
-      _type: "chat",
+      _type: "chat_engine",
       modelId: modelId ?? DEFAULT_MODEL_ID,
       sessionStatus: "idle",
       updatedAt: new Date(),
@@ -324,7 +324,7 @@ export class ChatEngineClient<TOOLS extends ToolSet> {
     const draftData = await this.chatDraftService.getDraft(absoluteFilePath);
     const activated: ChatSessionData = {
       ...draftData,
-      _type: "chat",
+      _type: "chat_engine",
       modelId,
       sessionStatus: "idle",
       updatedAt: new Date(),

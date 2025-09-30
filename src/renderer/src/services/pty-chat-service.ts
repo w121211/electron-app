@@ -3,13 +3,8 @@ import { Logger } from "tslog";
 import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import type { ChatMetadata } from "../../../core/services/chat-engine/chat-session-repository.js";
-import {
-  chatState,
-  setCurrentChat,
-  clearMessageInput,
-  setHasUnsavedDraftChanges,
-} from "../stores/chat-store.svelte.js";
-import { setLoading, showToast } from "../stores/ui-store.svelte.js";
+import { chatState, setCurrentChat } from "../stores/chat-store.svelte.js";
+import { showToast } from "../stores/ui-store.svelte.js";
 import { projectService } from "./project-service.js";
 
 class PtyChatService {
@@ -20,34 +15,17 @@ class PtyChatService {
     modelId: `${string}/${string}`,
     initialPrompt?: string,
   ) {
-    setLoading("createPtyChat", true);
+    const newChat = await trpcClient.ptyChat.createPtyChat.mutate({
+      targetDirectory,
+      modelId,
+      initialPrompt,
+    });
+    setCurrentChat(newChat);
 
-    try {
-      this.logger.info("Creating PTY chat in:", targetDirectory);
+    // Refresh file tree to show the newly created chat file
+    await projectService.refreshProjectTreeForFile(newChat.absoluteFilePath);
 
-      const newChat = await trpcClient.ptyChat.createPtyChat.mutate({
-        targetDirectory,
-        modelId,
-        initialPrompt,
-      });
-
-      setCurrentChat(newChat);
-      this.logger.info("PTY chat created:", newChat.id);
-
-      // Refresh file tree to show the newly created chat file
-      await projectService.refreshProjectTreeForFile(newChat.absoluteFilePath);
-
-      return newChat;
-    } catch (error) {
-      this.logger.error("Failed to create PTY chat:", error);
-      showToast(
-        `Failed to create PTY chat: ${error instanceof Error ? error.message : String(error)}`,
-        "error",
-      );
-      throw error;
-    } finally {
-      setLoading("createPtyChat", false);
-    }
+    return newChat;
   }
 
   async createPtyChatFromDraft(initialCommand: string) {
@@ -71,56 +49,27 @@ class PtyChatService {
       return;
     }
 
-    setLoading("startPtySession", true);
+    const session = await trpcClient.ptyChat.createPtyChatFromDraft.mutate({
+      absoluteFilePath: currentChat.absoluteFilePath,
+      initialPrompt: trimmedCommand,
+      modelId: selectedModel,
+    });
 
-    try {
-      const session = await trpcClient.ptyChat.createPtyChatFromDraft.mutate({
-        absoluteFilePath: currentChat.absoluteFilePath,
-        initialPrompt: trimmedCommand,
-        modelId: selectedModel,
-      });
+    setCurrentChat(session);
+    chatState.messageInput = "";
+    chatState.hasUnsavedDraftChanges = false;
 
-      setCurrentChat(session);
-      clearMessageInput();
-      setHasUnsavedDraftChanges(false);
-      showToast("PTY session started", "success");
-
-      await projectService.refreshProjectTreeForFile(session.absoluteFilePath);
-    } catch (error) {
-      this.logger.error("Failed to start PTY session:", error);
-      showToast(
-        `Failed to start PTY session: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        "error",
-      );
-    } finally {
-      setLoading("startPtySession", false);
-    }
+    await projectService.refreshProjectTreeForFile(session.absoluteFilePath);
   }
 
   async getPtyChat(absoluteFilePath: string) {
-    setLoading("loadPtyChat", true);
+    const session = await trpcClient.ptyChat.getPtyChat.query({
+      absoluteFilePath,
+    });
 
-    try {
-      this.logger.info("Loading PTY chat session:", absoluteFilePath);
-      const session = await trpcClient.ptyChat.getPtyChat.query({
-        absoluteFilePath,
-      });
-
-      setCurrentChat(session);
-      this.logger.info("PTY chat session loaded:", session.id);
-      return session;
-    } catch (error) {
-      this.logger.error("Failed to load PTY chat session:", error);
-      showToast(
-        `Failed to load PTY chat: ${error instanceof Error ? error.message : String(error)}`,
-        "error",
-      );
-      throw error;
-    } finally {
-      setLoading("loadPtyChat", false);
-    }
+    setCurrentChat(session);
+    this.logger.info("PTY chat session loaded:", session.id);
+    return session;
   }
 
   async updateMetadata(

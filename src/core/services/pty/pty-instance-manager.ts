@@ -37,11 +37,12 @@ export class PtyInstance {
     options: PtyCreateOptions = {},
     private readonly eventBus: IEventBus,
   ) {
-    this.id = uuidv4();
     const isWindows = process.platform === "win32";
+
+    this.id = uuidv4();
     this.shell =
       options.shell ||
-      (isWindows ? "powershell.exe" : process.env.SHELL || "/bin/bash");
+      (isWindows ? "powershell.exe" : process.env.SHELL || "bash");
     this.cwd = options.cwd || process.cwd();
 
     PtyInstance.logger.info(`Creating pty instance ${this.id}`, {

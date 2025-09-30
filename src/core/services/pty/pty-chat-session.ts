@@ -10,6 +10,7 @@ import type {
 import type {
   ChatMessage,
   ChatSessionData,
+  ExternalChatMetadata,
 } from "../chat-engine/chat-session-repository.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
 

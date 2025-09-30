@@ -1,8 +1,6 @@
 // src/renderer/src/services/quick-launcher-service.ts
+import path from "node:path";
 import { Logger } from "tslog";
-import path from "path";
-import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
-import { fileSearchService } from "./file-search-service.js";
 import { projectState } from "../stores/project-store.svelte.js";
 import {
   quickLauncherState,
@@ -12,6 +10,13 @@ import {
   type ChatSearchResult,
   type QuickLauncherResult,
 } from "../stores/quick-launcher-store.svelte.js";
+import {
+  selectFile,
+  expandParentDirectories,
+} from "../stores/tree-store.svelte.js";
+import { chatService } from "./chat-service.js";
+import { fileSearchService } from "./file-search-service.js";
+import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
 
 class QuickLauncherService {
   private logger = new Logger({ name: "QuickLauncherService" });
@@ -24,8 +29,11 @@ class QuickLauncherService {
 
       // Scan project folders for .chat.json files
       for (const projectFolder of projectState.projectFolders) {
-        const chatFiles = await this.findChatFiles(projectFolder.folderTree);
-        recentChats.push(...chatFiles);
+        const folderTree = projectState.folderTrees[projectFolder.path];
+        if (folderTree) {
+          const chatFiles = await this.findChatFiles(folderTree);
+          recentChats.push(...chatFiles);
+        }
       }
 
       // Sort by last modified date (most recent first)
@@ -189,17 +197,13 @@ class QuickLauncherService {
         const chatData = result.data as ChatSearchResult;
         this.logger.info("Opening chat:", chatData.absolutePath);
 
-        // Import and use chat service to open the chat file
-        const { chatService } = await import("./chat-service.js");
+        // Use chat service to open the chat file
         await chatService.openChatFile(chatData.absolutePath);
       } else {
         const fileData = result.data as ProjectFileSearchResult;
         this.logger.info("Opening file:", fileData.absolutePath);
 
-        // Import and use tree store to select the file
-        const { selectFile, expandParentDirectories } = await import(
-          "../stores/tree-store.svelte.js"
-        );
+        // Use tree store to select the file
         expandParentDirectories(fileData.absolutePath);
         selectFile(fileData.absolutePath);
       }

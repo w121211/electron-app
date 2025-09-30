@@ -141,8 +141,7 @@
         : undefined;
 
     await chatService.sendMesage(
-      chatState.currentChat.absoluteFilePath,
-      chatId,
+      chatState.currentChat,
       message,
       modelId,
       undefined, // attachments
