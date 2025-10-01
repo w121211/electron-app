@@ -5,7 +5,7 @@ import type { IEventBus } from "../event-bus.js";
 import type { ChatUpdatedEvent } from "./chat-engine/events.js";
 import type { UserModelMessage } from "ai";
 import { isTerminalModel } from "../utils/model-utils.js";
-import type { ChatEngineClient } from "./chat-engine/chat-engine-client.js";
+import type { ApiChatClient } from "./chat-engine/api-chat-client.js";
 import type { ExternalChatClient } from "./external-chat/external-chat-client.js";
 import { ChatQueueRepository } from "./chat-queue-repository.js";
 import type { ServerFileWatcherEvent } from "../event-types.js";
@@ -21,7 +21,7 @@ export class ChatQueueManager {
     private readonly chatSessionRepository: ChatSessionRepository,
     private readonly chatQueueRepository: ChatQueueRepository,
     private readonly eventBus: IEventBus,
-    private readonly chatClient: ChatEngineClient<any>,
+    private readonly chatClient: ApiChatClient,
     private readonly externalChatClient: ExternalChatClient,
   ) {
     this.logger.info("ChatQueueManager initialized");

@@ -1,116 +1,105 @@
 // src/core/server/routers/pty-chat-router.ts
 import { z } from "zod";
-import { router, publicProcedure } from "../trpc-init.js";
+import type {
+  ChatMetadata,
+  ChatSessionData,
+  ChatSessionRepository,
+} from "../../services/chat-engine/chat-session-repository.js";
 import { PtyChatClient } from "../../services/pty/pty-chat-client.js";
-import { isTerminalModel } from "../../utils/model-utils.js";
+import { router, publicProcedure } from "../trpc-init.js";
 
-const terminalModelIdSchema = z
-  .custom<`${string}/${string}`>(
-    (val) => {
-      return typeof val === "string" && /^.+\/.+$/.test(val);
-    },
-    { message: "Model ID must be in format 'provider/model'" },
-  )
-  .refine((value) => isTerminalModel(value), {
-    message: "Model must be a terminal PTY model",
+const metadataSchema: z.ZodType<Partial<ChatMetadata>> = z.object({
+    title: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    mode: z.enum(["chat", "agent"]).optional(),
+    knowledge: z.array(z.string()).optional(),
+    promptDraft: z.string().optional(),
+    external: z
+      .object({
+        mode: z.enum(["terminal", "pty"]).optional(),
+        pid: z.number().optional(),
+        workingDirectory: z.string().optional(),
+        pty: z
+          .object({
+            initialCommand: z.string().optional(),
+            ptyInstanceId: z.string().optional(),
+            snapshot: z.string().optional(),
+            snapshotHtml: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+    modelId: z
+      .string()
+      .regex(/^.+\/.+$/)
+      .transform((value) => value as `${string}/${string}`)
+      .optional(),
+    currentTurn: z.number().optional(),
+    maxTurns: z.number().optional(),
   });
 
-const chatMetadataUpdateSchema = z.object({
-  title: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  mode: z.enum(["chat", "agent"]).optional(),
-  knowledge: z.array(z.string()).optional(),
-  promptDraft: z.string().optional(),
-  external: z.object({
-    pid: z.number().optional(),
-    workingDirectory: z.string().optional(),
-    pty: z.object({
-      ptyInstanceId: z.string().optional(),
-      screenshot: z.string().optional(),
-      screenshotHtml: z.string().optional(),
-    }).optional(),
-  }).optional(),
-}).partial();
+const modelIdSchema = z
+  .string()
+  .regex(/^.+\/.+$/)
+  .transform((value) => value as `${string}/${string}`);
 
-export function createPtyChatRouter(ptyChatClient: PtyChatClient) {
+export function createPtyChatRouter(
+  client: PtyChatClient,
+  repository: ChatSessionRepository,
+) {
   return router({
-    createPtyChat: publicProcedure
+    createSession: publicProcedure
       .input(
         z.object({
-          targetDirectory: z.string(),
-          modelId: terminalModelIdSchema,
+          workingDirectory: z.string(),
+          modelId: modelIdSchema,
           initialPrompt: z.string().optional(),
+          metadata: metadataSchema.optional(),
         }),
       )
-      .mutation(async ({ input }) => {
-        const session = await ptyChatClient.createPtyChat(
-          input.targetDirectory,
-          {
-            modelId: input.modelId,
-            initialPrompt: input.initialPrompt,
-          },
-        );
-
-        return session.toJSON();
-      }),
-
-    createPtyChatFromDraft: publicProcedure
-      .input(
-        z.object({
-          absoluteFilePath: z.string(),
-          initialPrompt: z.string(),
-          modelId: terminalModelIdSchema,
-        }),
-      )
-      .mutation(async ({ input }) => {
-        const session = await ptyChatClient.createFromDraft(
-          input.absoluteFilePath,
-          input.initialPrompt,
-          input.modelId,
-        );
-
-        return session.toJSON();
-      }),
-
-    getPtyChat: publicProcedure
-      .input(
-        z.object({
-          absoluteFilePath: z.string(),
-        }),
-      )
-      .query(async ({ input }) => {
-        const session = await ptyChatClient.getOrLoadPtyChat(
-          input.absoluteFilePath,
-        );
-
-        return session.toJSON();
-      }),
-
-    updateMetadata: publicProcedure
-      .input(
-        z.object({
-          absoluteFilePath: z.string(),
-          metadata: chatMetadataUpdateSchema,
-        }),
-      )
-      .mutation(async ({ input }) => {
-        await ptyChatClient.updatePtyChat(input.absoluteFilePath, {
+      .mutation(async ({ input }): Promise<ChatSessionData> => {
+        const session = await client.createSession({
+          workingDirectory: input.workingDirectory,
+          modelId: input.modelId,
+          initialPrompt: input.initialPrompt,
           metadata: input.metadata,
         });
-
-        const session = await ptyChatClient.getOrLoadPtyChat(
-          input.absoluteFilePath,
-        );
-
-        return session.toJSON();
+        return session;
       }),
 
-    deletePtyChat: publicProcedure
-      .input(z.object({ absoluteFilePath: z.string() }))
+    sendInput: publicProcedure
+      .input(
+        z.object({
+          chatSessionId: z.string(),
+          data: z.string(),
+        }),
+      )
       .mutation(async ({ input }) => {
-        await ptyChatClient.deletePtyChat(input.absoluteFilePath);
+        await client.sendInput(input.chatSessionId, input.data);
         return { success: true };
       }),
+
+    closeSession: publicProcedure
+      .input(z.object({ chatSessionId: z.string() }))
+      .mutation(async ({ input }) => {
+        await client.closeSession(input.chatSessionId);
+        return { success: true };
+      }),
+
+    getSession: publicProcedure
+      .input(z.object({ chatSessionId: z.string() }))
+      .query(async ({ input }) => {
+        const session = await repository.getById(input.chatSessionId);
+        if (!session || session.sessionType !== "pty_chat") {
+          throw new Error(`PTY chat session ${input.chatSessionId} not found`);
+        }
+        return session;
+      }),
+
+    listSessions: publicProcedure.query(async () => {
+      const sessions = await repository.list();
+      return sessions.filter((session) => session.sessionType === "pty_chat");
+    }),
   });
 }
 

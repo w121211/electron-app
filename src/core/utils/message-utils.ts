@@ -41,6 +41,26 @@ export function getUserModelMessageContentString(
   );
 }
 
+export function getModelMessageContentString(
+  message: ModelMessage,
+): string {
+  if (message.role === "user") {
+    return getUserModelMessageContentString(message);
+  }
+
+  const content = message.content;
+  if (typeof content === "string") {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter((part) => part.type === "text")
+      .map((part) => (part as { text: string }).text)
+      .join(" ");
+  }
+  return String(content);
+}
+
 export function convertModelMessageContentToParts(
   modelMessage: ModelMessage,
 ): UIMessage["parts"] {

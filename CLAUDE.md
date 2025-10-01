@@ -17,12 +17,14 @@ This is an Electron desktop application with integrated core business logic:
 
 ```bash
 # Electron app development
-npm dev        # Start development server (includes tRPC server and renderer)
-npm run build      # Build for production
-npm run test       # Run tests
-npm run typecheck  # Type checking (includes both node and svelte)
-npm run format     # Format code with Prettier
-npm run lint       # ESLint code checking
+npm dev                # Start development server (includes tRPC server and renderer)
+npm run build          # Build for production
+npm run test           # Run all tests with Vitest
+npm run typecheck      # Type checking (includes both node and svelte)
+npm run typecheck:node # Type check Node.js code only
+npm run svelte-check   # Type check Svelte components only
+npm run format         # Format code with Prettier
+npm run lint           # ESLint code checking
 ```
 
 ### Build Commands
@@ -40,9 +42,9 @@ npm run build:linux   # Build for Linux
 
 **Event-Driven Architecture**: All system communication flows through a central EventBus using pub/sub patterns with strongly typed events for both client and server sides.
 
-**tRPC API Layer**: Type-safe end-to-end API with modular routers (chatClient, task, file, projectFolder, event, userSettings) and real-time capabilities via subscriptions.
+**tRPC API Layer**: Type-safe end-to-end API with modular routers (apiChat, ptyChat, task, file, projectFolder, event, userSettings, model) and real-time capabilities via subscriptions.
 
-**Repository Pattern**: Consistent data access layer with file-based persistence using human-readable JSON files for chats, tasks, and settings.
+**Repository Pattern**: Consistent data access layer with dual persistence strategies - SQLite database (via Kysely and better-sqlite3) for chat sessions, and file-based JSON for tasks and settings.
 
 ### Key Services
 
@@ -179,6 +181,17 @@ The embedded tRPC server (`HttpTrpcServer`) runs on localhost and handles:
   - Node.js with TypeScript
   - tRPC for API layer
   - Logger: tslog
+  - Testing: Vitest
+
+### Testing
+
+- **Test Framework:** Vitest
+- **Test Location:** All test files are located in the `tests/` directory
+- **Test File Naming:** `*.test.ts` convention
+- **Running Tests:**
+  - `npm test` - Run all tests in watch mode
+  - Test files import from compiled source using `.js` extensions (TypeScript paths)
+- **Test Structure:** Standard describe/it/expect pattern with beforeEach/afterEach for setup/teardown
 
 ### UI Design
 

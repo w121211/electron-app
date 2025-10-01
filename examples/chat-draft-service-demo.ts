@@ -9,7 +9,7 @@ import type { ILogObj } from "tslog";
 import { EventBus } from "../src/core/event-bus.js";
 import { ChatSessionRepositoryImpl } from "../src/core/services/chat-engine/chat-session-repository.js";
 import { ChatDraftService } from "../src/core/services/chat-engine/chat-draft-service.js";
-import { ChatEngineClient } from "../src/core/services/chat-engine/chat-engine-client.js";
+import { ApiChatClient as ChatEngineClient } from "../src/core/services/chat-engine/api-chat-client.js";
 import { ToolRegistryImpl } from "../src/core/services/tool-call/tool-registry.js";
 import { TaskService } from "../src/core/services/task-service.js";
 import { TaskRepository } from "../src/core/services/task-repository.js";

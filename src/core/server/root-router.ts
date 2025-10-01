@@ -1,15 +1,12 @@
 // src/core/server/root-router.ts
 import path from "path";
 import { ILogObj, Logger } from "tslog";
-// import type { IEventBus } from "../event-bus.js";
 import { ChatSessionRepositoryImpl } from "../services/chat-engine/chat-session-repository.js";
 import { FileWatcherService } from "../services/file-watcher-service.js";
 import { createProjectFolderService } from "../services/project-folder-service.js";
 import { TaskRepository } from "../services/task-repository.js";
 import { TaskService } from "../services/task-service.js";
-// import { ToolCallScheduler } from "../services/tool-call/tool-call-scheduler.js";
 import { ToolRegistryImpl } from "../services/tool-call/tool-registry.js";
-// import { ApprovalMode } from "../services/tool-call/types.js";
 import { createUserSettingsRepository } from "../services/user-settings-repository.js";
 import { createUserSettingsService } from "../services/user-settings-service.js";
 import { createModelService } from "../services/model-service.js";
@@ -19,21 +16,14 @@ import { createProjectFolderRouter } from "./routers/project-folder-router.js";
 import { createFileRouter } from "./routers/file-router.js";
 import { createUserSettingsRouter } from "./routers/user-settings-router.js";
 import { createModelRouter } from "./routers/model-router.js";
-// import { createToolCallRouter } from "./routers/tool-call-router.js";
-import { createChatDraftRouter } from "./routers/chat-draft-router.js";
-import { createChatEngineRouter } from "./routers/chat-engine-router.js";
-import { createChatSessionRouter } from "./routers/chat-session-router.js";
 import { router } from "./trpc-init.js";
 import { PtyChatClient } from "../services/pty/pty-chat-client.js";
 import { createPtyChatRouter } from "./routers/pty-chat-router.js";
-import { ChatDraftService } from "../services/chat-engine/chat-draft-service.js";
-import { ChatEngineClient } from "../services/chat-engine/chat-engine-client.js";
 import { createChatCacheMiddleware } from "../services/chat-engine/chat-cache-middleware.js";
 import type { PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
 import type { IEventBus } from "../event-bus.js";
-import { PromptDocRepository } from "../services/prompt-doc/prompt-doc-repository.js";
-import { PromptDocService } from "../services/prompt-doc/prompt-doc-service.js";
-import { createPromptDocRouter } from "./routers/prompt-doc-router.js";
+import { ApiChatClient } from "../services/chat-engine/api-chat-client.js";
+import { createApiChatRouter } from "./routers/api-chat-router.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
@@ -57,12 +47,6 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     eventBus,
     userSettingsRepo,
     fileWatcherService,
-  );
-
-  const promptDocRepository = new PromptDocRepository();
-  const promptDocService = new PromptDocService(
-    promptDocRepository,
-    projectFolderService,
   );
 
   // Create task repository
@@ -100,33 +84,30 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   // Note: ToolCallRunner is instantiated per chat session, not globally here.
   const toolRegistry = new ToolRegistryImpl(eventBus, logger);
 
-  // Initialize chat session repository
-  const chatSessionRepository = new ChatSessionRepositoryImpl();
-
-  const chatDraftService = new ChatDraftService(
-    chatSessionRepository,
-    taskService,
-    projectFolderService,
+  const databaseFilePath = path.join(
+    userDataDir,
+    "databases",
+    "chat-sessions.db",
   );
 
-  // Create singleton chat cache middleware
+  const chatSessionRepository = new ChatSessionRepositoryImpl({
+    databaseFilePath,
+  });
+
   const chatCacheMiddleware = createChatCacheMiddleware(
     path.join(userDataDir, "chat-cache")
   );
 
-  const chatClient = new ChatEngineClient(
+  const apiChatClient = new ApiChatClient({
+    repository: chatSessionRepository,
     eventBus,
-    chatSessionRepository,
-    chatDraftService,
-    userSettingsService,
     toolRegistry,
-    chatCacheMiddleware,
-  );
+    cacheMiddleware: chatCacheMiddleware,
+  });
 
   const ptyChatClient = new PtyChatClient(
     eventBus,
     chatSessionRepository,
-    projectFolderService,
     ptyInstanceManager,
   );
 
@@ -140,20 +121,8 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   // Create the application router
   return router({
     task: createTaskRouter(taskService),
-    chatDraft: createChatDraftRouter(chatDraftService),
-    chatEngine: createChatEngineRouter(
-      chatClient,
-      chatDraftService,
-      chatSessionRepository,
-    ),
-    chatSession: createChatSessionRouter(
-      chatDraftService,
-      chatClient,
-      chatSessionRepository,
-      ptyChatClient,
-    ),
-    ptyChat: createPtyChatRouter(ptyChatClient),
-    promptDoc: createPromptDocRouter(promptDocService),
+    apiChat: createApiChatRouter(apiChatClient),
+    ptyChat: createPtyChatRouter(ptyChatClient, chatSessionRepository),
     projectFolder: createProjectFolderRouter(projectFolderService),
     file: createFileRouter(),
     event: createEventRouter(eventBus),
