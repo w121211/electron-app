@@ -10,7 +10,7 @@
   import { ptyStreamManager } from "../../services/pty-stream-manager.js";
   import { getModelMessageContentString } from "../../utils/message-helper.js";
   import { isCliModelReady } from "../../utils/xterm-utils.js";
-  import type { ChatSessionData } from "../../../../core/services/chat-engine/chat-session-repository";
+  import type { ChatSessionData } from "../../../../core/services/chat/chat-session-repository";
   import { ptyChatService } from "../../services/pty-chat-service.js";
 
   const logger = new Logger({ name: "PtyChat" });

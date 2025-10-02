@@ -17,7 +17,7 @@ import {
   cancelInlineFolderCreation,
   setWorkspaceSetupNeeded,
 } from "../stores/file-explorer-store.svelte.js";
-import { chatService } from "./chat-service.js";
+import { documentService } from "./document-service.js";
 
 import {
   loadFileForPanel,
@@ -179,35 +179,35 @@ class ProjectService {
     // Expand parent directories to ensure file is visible
     expandParentDirectories(filePath);
 
-    if (filePath.endsWith(".chat.json")) {
-      // Chat file: Open the chat and set chat-specific state
-      setTreeSelectionState(filePath, filePath, null);
+    const isPromptScript = filePath.endsWith(".prompt.md");
+    const isLegacyChatFile = filePath.endsWith(".chat.json");
 
-      try {
-        closeFilePanel(); // Close any active file panel
-        await chatService.openChatFile(filePath);
-      } catch (error) {
-        this.logger.error("Failed to open chat file:", error);
-        showToast(
-          `Failed to open chat file: ${error instanceof Error ? error.message : String(error)}`,
-          "error",
-        );
-        setTreeSelectionState(null, null, null); // Clear selection on error
-      }
-    } else {
-      // Regular file: Open in file viewer
-      setTreeSelectionState(filePath, null, filePath);
-      try {
-        this.logger.debug("Opening regular file for view:", filePath);
+    setTreeSelectionState(filePath, null, filePath);
+
+    if (isLegacyChatFile) {
+      showToast(
+        "Legacy chat files are no longer supported. Open the associated prompt script instead.",
+        "warning",
+      );
+      setTreeSelectionState(null, null, null);
+      return;
+    }
+
+    try {
+      if (isPromptScript) {
+        await documentService.openDocument(filePath, { focus: true });
+        closeFilePanel();
+      } else {
+        // Non prompt-script files continue using the lightweight preview panel
         await loadFileForPanel(filePath);
-      } catch (error) {
-        this.logger.error("Failed to open regular file:", error);
-        showToast(
-          `Failed to open file: ${error instanceof Error ? error.message : String(error)}`,
-          "error",
-        );
-        setTreeSelectionState(null, null, null); // Clear selection on error
       }
+    } catch (error) {
+      this.logger.error("Failed to open file", { filePath, error });
+      showToast(
+        `Failed to open file: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
+      setTreeSelectionState(null, null, null);
     }
   }
 

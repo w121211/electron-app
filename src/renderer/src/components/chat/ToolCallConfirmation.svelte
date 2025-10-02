@@ -2,7 +2,7 @@
 <script lang="ts">
   import { Logger } from "tslog";
   import type { ModelMessage } from "ai";
-  import { chatService } from "../../services/chat-service.js";
+  import { showToast } from "../../stores/ui-store.svelte.js";
 
   interface Props {
     chatId: string;
@@ -34,16 +34,17 @@
     outcome: "yes" | "no" | "yes_always",
   ): Promise<void> {
     try {
-      logger.info("Confirming tool call:", toolCallId, outcome);
-      await chatService.confirmToolCall(
-        absoluteFilePath,
+      logger.info("Tool confirmation requested", {
         chatId,
         toolCallId,
         outcome,
+      });
+      showToast(
+        "Tool confirmation for prompt scripts is not yet supported.",
+        "info",
       );
     } catch (error) {
-      logger.error("Failed to confirm tool call:", error);
-      // Error handling is done in the service
+      logger.error("Failed to handle tool call confirmation", error);
     }
   }
 </script>

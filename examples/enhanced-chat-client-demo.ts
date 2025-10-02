@@ -1,6 +1,6 @@
 // packages/events-core/examples/enhanced-chat-client-demo.ts
 import { ApiChatClient as ChatEngineClient } from "../src/services/chat-engine/api-chat-client.js";
-import { ChatSessionRepositoryImpl } from "../src/services/chat-engine/chat-session-repository.js";
+import { ChatSessionRepositoryImpl } from "../src/services/chat/chat-session-repository.js";
 import { TaskService } from "../src/services/task-service.js";
 import { ProjectFolderService } from "../src/services/project-folder-service.js";
 import { FileWatcherService } from "../src/services/file-watcher-service.js";

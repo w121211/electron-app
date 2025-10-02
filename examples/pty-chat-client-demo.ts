@@ -5,13 +5,13 @@ import { Logger } from "tslog";
 import type { ILogObj } from "tslog";
 import { v4 as uuidv4 } from "uuid";
 import { EventBus } from "../src/core/event-bus.js";
-import { ChatSessionRepositoryImpl } from "../src/core/services/chat-engine/chat-session-repository.js";
+import { ChatSessionRepositoryImpl } from "../src/core/services/chat/chat-session-repository.js";
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
 import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";
 import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
 import { createPtyInstanceManager } from "../src/core/services/pty/pty-instance-manager.js";
 import { PtyChatClient } from "../src/core/services/pty/pty-chat-client.js";
-import type { ChatSessionData } from "../src/core/services/chat-engine/chat-session-repository.js";
+import type { ChatSessionData } from "../src/core/services/chat/chat-session-repository.js";
 import {
   PtyOnDataEvent,
   PtyOnExitEvent,

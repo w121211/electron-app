@@ -16,7 +16,7 @@ import {
   type ChatSessionType,
   type ChatSessionStatus,
   type ChatMetadata,
-} from "../src/core/services/chat-engine/chat-session-repository.js";
+} from "../src/core/services/chat/chat-session-repository.js";
 import { EventBus, type IEventBus } from "../src/core/event-bus.js";
 import type { ToolRegistry } from "../src/core/services/tool-call/tool-registry.js";
 import type { ToolExecutionResult } from "../src/core/services/tool-call/tool-call-runner.js";

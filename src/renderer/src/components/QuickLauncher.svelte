@@ -12,7 +12,7 @@
     setSelectedIndex,
     getSelectedResult,
     getFilteredResults,
-    type ChatSearchResult,
+    type PromptScriptSearchResult,
   } from "../stores/quick-launcher-store.svelte.js";
   import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
 
@@ -25,10 +25,10 @@
     }
   });
 
-  // Load recent chats when launcher opens
+  // Load recent prompt scripts when launcher opens
   $effect(() => {
     if (uiState.quickLauncherOpen) {
-      quickLauncherService.loadRecentChats();
+      quickLauncherService.loadRecentPromptScripts();
     }
   });
 
@@ -90,18 +90,20 @@
     }
   }
 
-  function getResultIcon(type: "chat" | "file"): typeof Hash | typeof FileText {
-    return type === "chat" ? Hash : FileText;
+  function getResultIcon(
+    type: "promptScript" | "file",
+  ): typeof Hash | typeof FileText {
+    return type === "promptScript" ? Hash : FileText;
   }
 
   function formatResultPath(
-    result: ChatSearchResult | ProjectFileSearchResult,
+    result: PromptScriptSearchResult | ProjectFileSearchResult,
   ): string {
     return result.relativePath;
   }
 
   function getResultTitle(
-    result: ChatSearchResult | ProjectFileSearchResult,
+    result: PromptScriptSearchResult | ProjectFileSearchResult,
   ): string {
     if ("title" in result) {
       return result.title;
@@ -132,7 +134,7 @@
           bind:this={searchInput}
           type="text"
           placeholder={quickLauncherState.searchQuery === ""
-            ? "Search files or recent chats..."
+            ? "Search files or prompt scripts..."
             : "Searching..."}
           class="text-foreground placeholder:text-muted w-full bg-transparent text-sm outline-none"
           value={quickLauncherState.searchQuery}
@@ -152,7 +154,7 @@
         {:else if getFilteredResults().length === 0}
           <div class="text-muted py-8 text-center text-sm">
             {quickLauncherState.searchQuery === ""
-              ? "No recent chats found"
+              ? "No recent prompt scripts found"
               : "No results found"}
           </div>
         {:else}
@@ -161,7 +163,7 @@
               <div
                 class="text-muted px-4 py-2 text-xs font-medium tracking-wide uppercase"
               >
-                Recent Chats
+                Recent Prompt Scripts
               </div>
             {/if}
 

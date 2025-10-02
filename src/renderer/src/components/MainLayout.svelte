@@ -5,7 +5,7 @@
   // import { taskService } from "../services/task-service.js";
   import { uiState } from "../stores/ui-store.svelte.js";
   import { treeState } from "../stores/tree-store.svelte.js";
-  import { chatState } from "../stores/chat-store.svelte.js";
+  import { getActiveEditorContext } from "../stores/ui.svelte.js";
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
   import ChatPanel from "./chat/ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
@@ -15,22 +15,38 @@
 
   const logger = new Logger({ name: "NewMainLayout" });
 
-  type CenterPanelView = "welcome" | "chatPanel" | "filePanel" | "ptyChatPanel";
+  type CenterPanelView =
+    | "welcome"
+    | "apiChatPanel"
+    | "filePanel"
+    | "ptyChatPanel";
 
-  $inspect(chatState.currentChat);
+  const editorContext = $derived.by(getActiveEditorContext);
 
   const centerPanelView: CenterPanelView = $derived.by(() => {
-    if (treeState.selectedChatFile) {
-      if (chatState.currentChat?._type === "pty_chat") {
+    if (editorContext?.chatSessionState) {
+      if (editorContext.chatSessionState.data.sessionType === "pty_chat") {
         return "ptyChatPanel";
+      } else if (
+        editorContext.chatSessionState.data.sessionType === "chat_engine"
+      ) {
+        return "apiChatPanel";
+      } else {
+        throw new Error(
+          "Unhandled chat session type" +
+            editorContext.chatSessionState.data.sessionType,
+        );
       }
-      return "chatPanel";
     }
 
-    if (treeState.selectedPreviewFile) {
+    // Prompt script has no attached chat session
+    // if (editorContext?.documentState?.kind === "promptScript") {
+    //   return "filePanel";
+    // }
+
+    if (editorContext?.documentState) {
       return "filePanel";
     }
-
     return "welcome";
   });
 
@@ -46,9 +62,9 @@
     }
 
     initializeData();
-
-    console.log(centerPanelView);
   });
+
+  $inspect(centerPanelView);
 </script>
 
 <div
@@ -62,7 +78,7 @@
 
     <!-- Main Workspace -->
     <main class="flex min-w-0 flex-1">
-      {#if centerPanelView === "chatPanel"}
+      {#if centerPanelView === "apiChatPanel"}
         <ChatPanel />
       {:else if centerPanelView === "filePanel"}
         <FilePanel />

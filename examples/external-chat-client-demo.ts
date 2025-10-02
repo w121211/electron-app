@@ -4,7 +4,7 @@
 import { Logger } from "tslog";
 import type { ILogObj } from "tslog";
 import { EventBus } from "../src/core/event-bus.js";
-import { ChatSessionRepositoryImpl } from "../src/core/services/chat-engine/chat-session-repository.js";
+import { ChatSessionRepositoryImpl } from "../src/core/services/chat/chat-session-repository.js";
 import { TaskService } from "../src/core/services/task-service.js";
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
 import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";

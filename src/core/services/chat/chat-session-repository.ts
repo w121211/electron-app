@@ -1,4 +1,4 @@
-// src/core/services/chat-engine/chat-session-repository.ts
+// src/core/services/chat/chat-session-repository.ts
 import path from "node:path";
 import { Kysely, type Insertable, type Selectable } from "kysely";
 import { z } from "zod";

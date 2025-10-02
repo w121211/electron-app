@@ -10,7 +10,7 @@ import type {
 import type {
   ChatMessage,
   ChatSessionData,
-} from "../chat-engine/chat-session-repository.js";
+} from "../chat/chat-session-repository.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
 
 export type PtyChatUpdateType =

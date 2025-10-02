@@ -8,7 +8,7 @@ import type { ToolSet, UserModelMessage } from "ai";
 import type { ILogObj } from "tslog";
 import { EventBus } from "../src/core/event-bus.js";
 import { ApiChatClient as ChatEngineClient } from "../src/core/services/chat-engine/api-chat-client.js";
-import { ChatSessionRepositoryImpl } from "../src/core/services/chat-engine/chat-session-repository.js";
+import { ChatSessionRepositoryImpl } from "../src/core/services/chat/chat-session-repository.js";
 import { ToolRegistryImpl } from "../src/core/services/tool-call/tool-registry.js";
 import { TaskService } from "../src/core/services/task-service.js";
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";

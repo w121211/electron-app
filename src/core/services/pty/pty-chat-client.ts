@@ -5,7 +5,7 @@ import type {
   ChatMetadata,
   ChatSessionData,
   ChatSessionRepository,
-} from "../chat-engine/chat-session-repository.js";
+} from "../chat/chat-session-repository.js";
 import type { PtyInstance } from "./pty-instance-manager.js";
 import { PtyInstanceManager } from "./pty-instance-manager.js";
 import type {

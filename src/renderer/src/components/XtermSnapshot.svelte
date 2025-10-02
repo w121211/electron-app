@@ -70,6 +70,7 @@
   <!-- Terminal will be mounted here -->
 </div>
 
+<!-- 
 <style>
   :global(.xterm-snapshot .xterm) {
     pointer-events: auto;
@@ -82,4 +83,4 @@
   :global(.xterm-snapshot .xterm .xterm-viewport) {
     scrollbar-width: thin;
   }
-</style>
+</style> -->

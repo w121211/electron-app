@@ -6,11 +6,11 @@ import { ChatDraftService } from "../../services/chat-engine/chat-draft-service.
 import type {
   ChatSessionData,
   ChatSessionRepository,
-} from "../../services/chat-engine/chat-session-repository.js";
+} from "../../services/chat/chat-session-repository.js";
 import {
   isDraftSession,
   isEngineSession,
-} from "../../services/chat-engine/chat-session-repository.js";
+} from "../../services/chat/chat-session-repository.js";
 import { isTerminalModel } from "../../utils/model-utils.js";
 import { TurnResult } from "../../services/chat-engine/chat-session.js";
 

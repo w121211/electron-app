@@ -14,7 +14,7 @@ import type { IEventBus } from "../../event-bus.js";
 import type {
   ChatMessage,
   ChatSessionData,
-} from "../chat-engine/chat-session-repository.js";
+} from "../chat/chat-session-repository.js";
 import type { ProjectFolderService } from "../project-folder-service.js";
 
 export interface ExternalTurnResult {

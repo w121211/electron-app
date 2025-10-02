@@ -11,7 +11,7 @@ import type { ProjectFolderService } from "../project-folder-service.js";
 import type {
   ChatSessionRepository,
   ChatSessionData,
-} from "../chat-engine/chat-session-repository.js";
+} from "../chat/chat-session-repository.js";
 import { PtyChatSession } from "./pty-chat-session.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
 import type { PtyChatUpdateType, PtyChatUpdate } from "./pty-chat-session.js";

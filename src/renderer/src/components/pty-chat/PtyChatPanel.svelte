@@ -1,6 +1,6 @@
 <!-- src/renderer/src/components/pty-chat/PtyChatPanel.svelte -->
 <script lang="ts">
-  import { chatState } from "../../stores/chat-store.svelte.js";
+  // import { chatState } from "../../stores/chat-store.svelte.js";
   import { uiState } from "../../stores/ui-store.svelte.js";
   import Breadcrumb from "../Breadcrumb.svelte";
   import PromptEditor from "../chat/PromptEditor.svelte";
@@ -13,6 +13,7 @@
   import XtermSnapshot from "../XtermSnapshot.svelte";
 
   import { Logger } from "tslog"; // Import Logger
+  import { getActiveEditorContext } from "../../stores/ui.svelte.js";
 
   const logger = new Logger({ name: "PtyChatPanel" }); // Initialize logger
 
@@ -24,9 +25,14 @@
 
   let selectedPtyStream: PtyStream | null = $state(null);
 
+  const activeContext = $derived.by(getActiveEditorContext);
+  const chatSession = $derived(activeContext?.chatSessionState?.data);
+
+  $inspect(chatSession);
+  $inspect(selectedPtyStream);
+
   $effect(() => {
-    const ptyInstanceId =
-      chatState.currentChat?.metadata?.external?.pty?.ptyInstanceId;
+    const ptyInstanceId = chatSession?.metadata?.external?.pty?.ptyInstanceId;
     if (ptyInstanceId) {
       selectedPtyStream = ptyStreamManager.getOrAttachStream(ptyInstanceId);
     } else {
@@ -35,18 +41,18 @@
   });
 
   $effect(() => {
-    if (!hidden && chatState.currentChat?._type !== "pty_chat") {
+    if (!hidden && chatSession?.sessionType !== "pty_chat") {
       throw new Error(
         "PtyChatPanel requires a PTY chat session but current chat type is: " +
-          chatState.currentChat?._type,
+          chatSession?.sessionType,
       );
     }
   });
 
   // Show prompt editor only for chat draft
-  $effect(() => {
-    uiState.promptEditorOpen = chatState.currentChat?._type === "chat_draft";
-  });
+  // $effect(() => {
+  //   uiState.promptEditorOpen = session?.sessionType === "chat_draft";
+  // });
 
   // Event handlers
   const handleXtermReady = (readyStream: PtyStream): void => {
@@ -57,7 +63,7 @@
       readyStream.ptySessionId === selectedPtyStream.ptySessionId
     ) {
       const initialCommand =
-        chatState.currentChat?.metadata?.external?.pty?.initialCommand;
+        chatSession?.metadata?.external?.pty?.initialCommand;
 
       if (initialCommand) {
         logger.debug(
@@ -78,9 +84,6 @@
     }
   };
 
-  $inspect(chatState.currentChat);
-  $inspect(selectedPtyStream);
-
   // $effect(() => {
   //   console.debug(chatState.currentChat);
   //   console.debug(selectedPtyStream);
@@ -97,23 +100,23 @@
     <div class="flex items-center gap-1">
       <NavigationButtons />
 
-      {#if chatState.currentChat}
+      {#if activeContext}
         <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
           <Breadcrumb
-            filePath={chatState.currentChat.absoluteFilePath}
-            hasUnsavedChanges={chatState.hasUnsavedDraftChanges}
+            filePath={activeContext.filePath}
+            hasUnsavedChanges={activeContext.isDirty}
           />
         </div>
       {/if}
     </div>
   </header>
 
-  {#if !hidden && chatState.currentChat}
-    {#if chatState.currentChat.sessionStatus === "external_terminated"}
+  {#if !hidden && chatSession}
+    {#if chatSession.sessionStatus === "external_terminated"}
       <div class="flex-1 overflow-hidden p-5">
-        {#if chatState.currentChat.metadata?.external?.pty?.screenshot}
+        {#if chatSession.metadata?.external?.pty?.snapshot}
           <XtermSnapshot
-            snapshot={chatState.currentChat.metadata.external.pty.screenshot}
+            snapshot={chatSession.metadata.external.pty.snapshot}
           />
         {:else}
           <div

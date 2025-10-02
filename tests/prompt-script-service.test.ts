@@ -12,7 +12,7 @@ import { PromptScriptService } from "../src/core/services/prompt-script/prompt-s
 import {
   ChatSessionRepositoryImpl,
   type ChatSessionData,
-} from "../src/core/services/chat-engine/chat-session-repository.js";
+} from "../src/core/services/chat/chat-session-repository.js";
 
 describe("PromptScriptService", () => {
   let tempDir: string;

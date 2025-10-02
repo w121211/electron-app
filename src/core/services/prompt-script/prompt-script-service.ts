@@ -3,7 +3,7 @@ import path from "node:path";
 import {
   type ChatSessionData,
   type ChatSessionRepository,
-} from "../chat-engine/chat-session-repository.js";
+} from "../chat/chat-session-repository.js";
 import {
   PromptScriptRepository,
   type PromptScriptFile,

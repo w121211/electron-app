@@ -1,6 +1,5 @@
 // src/renderer/src/lib/keyboard.ts
 import { treeState } from "../stores/tree-store.svelte.js";
-import { chatService } from "../services/chat-service.js";
 import {
   showToast,
   uiState,
@@ -9,13 +8,17 @@ import {
 
 // --- 1. Standalone Handlers ---
 
-async function handleNewChat() {
+function handleNewPromptScript() {
   const selected = treeState.selectedNode;
   if (!selected) {
     showToast("Select a folder first", "warning");
     return;
   }
-  await chatService.createChatDraft(selected);
+
+  showToast(
+    "Prompt script creation is coming soon. Use the filesystem to add a .prompt.md file in the meantime.",
+    "info",
+  );
 }
 
 function handleEscape() {
@@ -75,24 +78,24 @@ const shortcutDefinitions: ShortcutDefinition[] = [
     key: "n",
     meta: true,
     os: "mac",
-    handler: handleNewChat,
-    description: "Create new chat in selected folder",
+    handler: handleNewPromptScript,
+    description: "Create new prompt script in selected folder",
     preventDefault: true,
   },
   {
     key: "n",
     ctrl: true,
     os: "windows",
-    handler: handleNewChat,
-    description: "Create new chat in selected folder",
+    handler: handleNewPromptScript,
+    description: "Create new prompt script in selected folder",
     preventDefault: true,
   },
   {
     key: "n",
     ctrl: true,
     os: "linux",
-    handler: handleNewChat,
-    description: "Create new chat in selected folder",
+    handler: handleNewPromptScript,
+    description: "Create new prompt script in selected folder",
     preventDefault: true,
   },
 

@@ -1,7 +1,7 @@
 // src/renderer/src/utils/xterm-utils.ts
 import type { SerializeAddon } from "@xterm/addon-serialize";
 import { Logger } from "tslog";
-import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository";
+import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository";
 import type { FileService } from "../services/file-service.js";
 import { getModelMessageContentString } from "./message-helper.js";
 

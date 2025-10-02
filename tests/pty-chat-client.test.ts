@@ -8,7 +8,7 @@ import {
   type ChatSessionData,
   type ChatMessage,
   type ChatMetadata,
-} from "../src/core/services/chat-engine/chat-session-repository.js";
+} from "../src/core/services/chat/chat-session-repository.js";
 import { EventBus, type IEventBus } from "../src/core/event-bus.js";
 import type { PtyInstanceManager, PtyInstance } from "../src/core/services/pty/pty-instance-manager.js";
 import type {

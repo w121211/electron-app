@@ -1,7 +1,6 @@
 <!-- src/renderer/src/components/MarkdownTodoRenderer.svelte -->
 <script lang="ts">
   import { PlayCircle } from "svelte-bootstrap-icons";
-  import { chatService } from "../services/chat-service.js";
   import { parseAtCommands } from "../utils/at-command-parser.js";
   import { parseMarkdownTodos } from "../utils/markdown-todo-parser.js";
   import type { ParsedLine } from "../utils/markdown-todo-parser.js";
@@ -37,34 +36,10 @@
       return;
     }
 
-    const { todoTemplatePath, todoChatDirectory } = settings.agent;
-
-    const templatePath = `${projectPath}/${todoTemplatePath}`;
-
-    let targetDirectory: string;
-    if (todoChatDirectory.mode === "project") {
-      targetDirectory = `${projectPath}/${todoChatDirectory.path}`;
-    } else {
-      targetDirectory = todoChatDirectory.path;
-    }
-
-    const initialModelId: `${string}/${string}` = "cli/gemini";
-
-    const newChat = await chatService.createChatFromTemplate(
-      templatePath,
-      [todoContent],
-      targetDirectory,
-      { mode: "agent" },
+    showToast(
+      "Markdown TODO launch will return soon. Create a prompt script manually for now.",
+      "info",
     );
-
-    // Automatically send the initial prompt if present
-    if (newChat.metadata?.promptDraft) {
-      await chatService.sendMesage(
-        newChat,
-        newChat.metadata.promptDraft,
-        initialModelId,
-      );
-    }
   }
 </script>
 

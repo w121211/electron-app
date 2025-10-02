@@ -16,7 +16,7 @@ import type {
   ChatMetadata,
   ChatSessionStatus,
   ChatSessionType,
-} from "../../services/chat-engine/chat-session-repository.js";
+} from "../../services/chat/chat-session-repository.js";
 import {
   ApiChatClient,
   type ApiTurnResult,

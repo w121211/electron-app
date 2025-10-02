@@ -5,70 +5,61 @@ import { projectState } from "../stores/project-store.svelte.js";
 import {
   quickLauncherState,
   setResults,
-  setRecentChats,
+  setRecentPromptScripts,
   setLoading,
-  type ChatSearchResult,
+  type PromptScriptSearchResult,
   type QuickLauncherResult,
 } from "../stores/quick-launcher-store.svelte.js";
 import {
   selectFile,
   expandParentDirectories,
 } from "../stores/tree-store.svelte.js";
-import { chatService } from "./chat-service.js";
 import { fileSearchService } from "./file-search-service.js";
 import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
+import { documentService } from "./document-service.js";
 
 class QuickLauncherService {
   private logger = new Logger({ name: "QuickLauncherService" });
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  async loadRecentChats(): Promise<void> {
+  async loadRecentPromptScripts(): Promise<void> {
     try {
-      this.logger.debug("Loading recent chats");
-      const recentChats: ChatSearchResult[] = [];
+      this.logger.debug("Loading recent prompt scripts");
+      const scripts: PromptScriptSearchResult[] = [];
 
-      // Scan project folders for .chat.json files
+      // Scan project folders for .prompt.md files
       for (const projectFolder of projectState.projectFolders) {
         const folderTree = projectState.folderTrees[projectFolder.path];
         if (folderTree) {
-          const chatFiles = await this.findChatFiles(folderTree);
-          recentChats.push(...chatFiles);
+          const items = await this.findPromptScripts(folderTree, projectFolder.path);
+          scripts.push(...items);
         }
       }
 
-      // Sort by last modified date (most recent first)
-      recentChats.sort(
+      scripts.sort(
         (a, b) => b.lastModified.getTime() - a.lastModified.getTime(),
       );
 
-      // Limit to 10 most recent chats
-      const limitedChats = recentChats.slice(0, 10);
+      const limited = scripts.slice(0, 10);
 
-      setRecentChats(limitedChats);
-      this.logger.debug(`Loaded ${limitedChats.length} recent chats`);
+      setRecentPromptScripts(limited);
+      this.logger.debug(`Loaded ${limited.length} recent prompt scripts`);
     } catch (error) {
-      this.logger.error("Failed to load recent chats:", error);
-      setRecentChats([]);
+      this.logger.error("Failed to load recent prompt scripts:", error);
+      setRecentPromptScripts([]);
     }
   }
 
-  private async findChatFiles(
+  private async findPromptScripts(
     node: any,
-    results: ChatSearchResult[] = [],
-  ): Promise<ChatSearchResult[]> {
+    projectRoot: string,
+    results: PromptScriptSearchResult[] = [],
+  ): Promise<PromptScriptSearchResult[]> {
     if (!node) return results;
 
-    // Check if this is a chat file
-    if (!node.isDirectory && node.name?.endsWith(".chat.json")) {
-      const relativePath = path.relative(
-        projectState.projectFolders[0]?.path || "",
-        node.path,
-      );
-
-      // Extract title from filename (remove .chat.json extension)
-      const title = node.name
-        .replace(".chat.json", "")
-        .replace(/^chat\d+$/, "Untitled Chat");
+    if (!node.isDirectory && node.name?.endsWith(".prompt.md")) {
+      const relativePath = path.relative(projectRoot, node.path);
+      const title = node.name.replace(/\.prompt\.md$/, "");
 
       results.push({
         id: node.path,
@@ -83,7 +74,7 @@ class QuickLauncherService {
     // Recursively search children
     if (node.children && Array.isArray(node.children)) {
       for (const child of node.children) {
-        await this.findChatFiles(child, results);
+        await this.findPromptScripts(child, projectRoot, results);
       }
     }
 
@@ -128,28 +119,28 @@ class QuickLauncherService {
       });
 
       // Search through recent chats
-      const chatResults = quickLauncherState.recentChats.filter((chat) => {
-        const searchText = `${chat.title} ${chat.relativePath}`.toLowerCase();
+      const chatResults = quickLauncherState.recentPromptScripts.filter((script) => {
+        const searchText = `${script.title} ${script.relativePath}`.toLowerCase();
         return searchText.includes(query.toLowerCase());
       });
 
       // Add highlighted chat results
-      chatResults.forEach((chat) => {
-        const highlightedChat: ChatSearchResult = {
-          ...chat,
-          highlightTokens: this.highlightText(chat.relativePath, query),
+      chatResults.forEach((script) => {
+        const highlighted: PromptScriptSearchResult = {
+          ...script,
+          highlightTokens: this.highlightText(script.relativePath, query),
         };
 
         results.push({
-          type: "chat",
-          data: highlightedChat,
+          type: "promptScript",
+          data: highlighted,
         });
       });
 
       // Sort results: chats first, then files
       results.sort((a, b) => {
-        if (a.type === "chat" && b.type === "file") return -1;
-        if (a.type === "file" && b.type === "chat") return 1;
+        if (a.type === "promptScript" && b.type === "file") return -1;
+        if (a.type === "file" && b.type === "promptScript") return 1;
         return 0;
       });
 
@@ -193,12 +184,11 @@ class QuickLauncherService {
 
   async selectResult(result: QuickLauncherResult): Promise<void> {
     try {
-      if (result.type === "chat") {
-        const chatData = result.data as ChatSearchResult;
-        this.logger.info("Opening chat:", chatData.absolutePath);
-
-        // Use chat service to open the chat file
-        await chatService.openChatFile(chatData.absolutePath);
+      if (result.type === "promptScript") {
+        const script = result.data as PromptScriptSearchResult;
+        this.logger.info("Opening prompt script:", script.absolutePath);
+        expandParentDirectories(script.absolutePath);
+        await documentService.openDocument(script.absolutePath, { focus: true });
       } else {
         const fileData = result.data as ProjectFileSearchResult;
         this.logger.info("Opening file:", fileData.absolutePath);

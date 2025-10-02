@@ -8,11 +8,11 @@ import type { UserModelMessage } from "ai";
 import type { IEventBus } from "../../event-bus.js";
 import type { ProjectFolderService } from "../project-folder-service.js";
 import type { TaskService } from "../task-service.js";
-import type { ChatSessionRepository } from "../chat-engine/chat-session-repository.js";
+import type { ChatSessionRepository } from "../chat/chat-session-repository.js";
 import type {
   ChatMode,
   ChatSessionData,
-} from "../chat-engine/chat-session-repository.js";
+} from "../chat/chat-session-repository.js";
 import type { ExternalTurnResult } from "./external-chat-session.js";
 
 export interface CreateExternalChatSessionConfig {

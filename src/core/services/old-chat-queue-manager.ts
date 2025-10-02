@@ -1,6 +1,6 @@
 // src/core/services/chat-queue-manager.ts
 import { ILogObj, Logger } from "tslog";
-import type { ChatSessionRepository } from "./chat-engine/chat-session-repository.js";
+import type { ChatSessionRepository } from "./chat/chat-session-repository.js";
 import type { IEventBus } from "../event-bus.js";
 import type { ChatUpdatedEvent } from "./chat-engine/events.js";
 import type { UserModelMessage } from "ai";

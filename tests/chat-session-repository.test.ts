@@ -12,7 +12,7 @@ import {
   type ChatSessionType,
   type ChatSessionStatus,
   type ChatMetadata,
-} from "../src/core/services/chat-engine/chat-session-repository.js";
+} from "../src/core/services/chat/chat-session-repository.js";
 
 // Test data factory functions
 function createMockUserMessage(content: string): UserModelMessage {

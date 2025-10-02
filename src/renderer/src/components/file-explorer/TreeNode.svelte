@@ -3,7 +3,6 @@
   import {
     ThreeDotsVertical,
     ChatDots,
-    StopFill,
     ArrowClockwise,
   } from "svelte-bootstrap-icons";
   import {
@@ -15,8 +14,7 @@
   } from "../../stores/tree-store.svelte.js";
   import { tasksByPath } from "../../stores/task-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
-  import { chatService } from "../../services/chat-service.js";
-  import { chatState } from "../../stores/chat-store.svelte.js";
+  import { getActiveEditorContext } from "../../stores/ui.svelte.js";
   import { uiState, showToast } from "../../stores/ui-store.svelte.js";
   import {
     fileExplorerState,
@@ -36,15 +34,17 @@
 
   let { node, level }: TreeNodeProps = $props();
 
+  const activeContext = $derived.by(getActiveEditorContext);
+
   const isCreatingChat = $derived(uiState.loadingStates["createChat"] || false);
   const isExpanded = $derived(treeState.expandedNodePaths.includes(node.path));
   const isSelected = $derived(treeState.selectedNode === node.path);
   const task = $derived(tasksByPath.get(node.path));
   const isTaskDir = $derived(isTaskFolder(node.name));
   const isProjectFolder = $derived(level === 0);
-  const isChatFile = $derived(node.name.endsWith(".chat.json"));
-  const isCurrentChatFile = $derived(
-    isChatFile && chatState.currentChat?.absoluteFilePath === node.path,
+  const isPromptScript = $derived(node.name.endsWith(".prompt.md"));
+  const isCurrentPromptScript = $derived(
+    isPromptScript && activeContext?.filePath === node.path,
   );
   const isLoadingRerunChat = $derived(
     uiState.loadingStates["rerunChat"] || false,
@@ -85,9 +85,12 @@
     projectService.handleTreeNodeClick(node);
   }
 
-  function handleNewChat(e: MouseEvent): void {
+  function handleNewPromptScript(e: MouseEvent): void {
     e.stopPropagation();
-    chatService.createChatDraft(node.path);
+    showToast(
+      "Prompt script creation from the explorer is coming soon. Create a .prompt.md file manually for now.",
+      "info",
+    );
   }
 
   function handleContextMenu(e: MouseEvent): void {
@@ -101,29 +104,16 @@
     );
   }
 
-  function handleStopTask(e: MouseEvent): void {
+  async function handleReplayPromptScript(e: MouseEvent): Promise<void> {
     e.stopPropagation();
-    showToast("Stop task functionality coming soon", "info");
-  }
-
-  async function handleRerunChat(e: MouseEvent): Promise<void> {
-    e.stopPropagation();
-    if (!isChatFile) return;
-
-    try {
-      if (!isCurrentChatFile) {
-        await chatService.openChatFile(node.path);
-      }
-      const currentChat = chatState.currentChat;
-      if (currentChat) {
-        await chatService.rerunChat(
-          currentChat.absoluteFilePath,
-          currentChat.id,
-        );
-      }
-    } catch (error) {
-      console.error("Failed to rerun chat:", error);
+    if (!isPromptScript) {
+      return;
     }
+
+    showToast(
+      "Prompt script replay is not yet available. Use the chat panel to refresh the session.",
+      "info",
+    );
   }
 
   function handleKeydown(e: KeyboardEvent): void {
@@ -308,63 +298,34 @@
         {statusConfig.label}
       </span>
     {/if}
-    {#if isChatFile && isCurrentChatFile}
-      {@const sessionStatus = chatState.currentChat?.sessionStatus || "idle"}
-      {#if sessionStatus === "processing"}
-        <span
-          class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
-        >
-          running
-        </span>
-        <button
-          onclick={handleStopTask}
-          class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-          title="Stop Chat"
-        >
-          <StopFill width={12} height={12} />
-        </button>
-      {:else if sessionStatus === "external_active"}
-        <span
-          class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
-        >
-          active
-        </span>
-        <button
-          onclick={handleStopTask}
-          class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 opacity-0 group-hover:opacity-100"
-          title="Stop Chat"
-        >
-          <StopFill width={12} height={12} />
-        </button>
-      {:else if sessionStatus === "waiting_confirmation"}
-        <span
-          class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
-        >
-          waiting
-        </span>
-      {/if}
+    {#if isPromptScript && isCurrentPromptScript}
+      <span
+        class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
+      >
+        active
+      </span>
     {/if}
 
     <!-- Actions -->
     <div
       class="ml-auto flex items-center pl-1 opacity-0 group-hover:opacity-100"
     >
-      {#if isChatFile}
+      {#if isPromptScript}
         <button
-          onclick={handleRerunChat}
+          onclick={handleReplayPromptScript}
           disabled={isLoadingRerunChat}
           class="text-muted hover:text-accent cursor-pointer p-0.5 disabled:opacity-50"
-          title="Rerun Chat"
+          title="Replay Prompt Script"
         >
           <ArrowClockwise width={12} height={12} />
         </button>
       {/if}
       {#if node.isDirectory}
         <button
-          onclick={handleNewChat}
+          onclick={handleNewPromptScript}
           disabled={isCreatingChat}
           class="text-muted hover:text-accent cursor-pointer p-0.5 disabled:opacity-30"
-          title="New Chat"
+          title="New Prompt Script"
         >
           <ChatDots width={12} height={12} />
         </button>

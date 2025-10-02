@@ -4,7 +4,7 @@ import type {
   ChatMetadata,
   ChatSessionData,
   ChatSessionRepository,
-} from "../../services/chat-engine/chat-session-repository.js";
+} from "../../services/chat/chat-session-repository.js";
 import { PtyChatClient } from "../../services/pty/pty-chat-client.js";
 import { router, publicProcedure } from "../trpc-init.js";
 

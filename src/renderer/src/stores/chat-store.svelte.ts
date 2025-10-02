@@ -4,7 +4,11 @@ import type {
   ChatMessage,
   ChatMode,
 } from "../../../core/services/chat-engine/chat-session-repository.js";
-import { getPreference } from "./local-preferences-store.svelte.js";
+import {
+  getPreference,
+  setPreference,
+} from "./local-preferences-store.svelte.js";
+import { getActiveEditorContext } from "./ui.svelte.js";
 
 export interface ModelOption {
   modelId: `${string}/${string}`;
@@ -23,13 +27,21 @@ interface ChatState {
   hasUnsavedDraftChanges: boolean;
 }
 
-// Core chat state
+function resolveInitialModel(): `${string}/${string}` {
+  const saved = getPreference("selectedModel") as `${string}/${string}` | null;
+  return saved ?? "openai/gpt-4o-mini";
+}
+
+function resolveInitialMode(): ChatMode {
+  const saved = getPreference("chatMode") as ChatMode | null;
+  return saved ?? "agent";
+}
+
 export const chatState = $state<ChatState>({
   currentChat: null,
   availableModels: [],
-  selectedModel:
-    (getPreference("selectedModel") as `${string}/${string}`) || "cli/codex",
-  chatMode: (getPreference("chatMode") as ChatMode) || "agent",
+  selectedModel: resolveInitialModel(),
+  chatMode: resolveInitialMode(),
   messageInput: "",
   isSubmittingMessage: false,
   promptCursorPosition: null,
@@ -37,40 +49,63 @@ export const chatState = $state<ChatState>({
   hasUnsavedDraftChanges: false,
 });
 
-// Helper functions
+let lastSessionId: string | null = null;
+
+// $effect(() => {
+//   const activeChatSession = getActiveEditorContext()?.chatSessionState;
+
+//   const runtime = activeChatSession;
+//   const session = runtime?.data ?? null;
+//   const sessionId = session?.id ?? null;
+
+//   if (sessionId !== lastSessionId) {
+//     chatState.messageInput = session?.metadata?.promptDraft ?? "";
+//     chatState.isSubmittingMessage = false;
+//     chatState.isDraftSaving = false;
+//     chatState.hasUnsavedDraftChanges = false;
+//     chatState.promptCursorPosition = null;
+
+//     if (session?.metadata?.mode) {
+//       chatState.chatMode = session.metadata.mode;
+//     }
+
+//     lastSessionId = sessionId;
+//   }
+
+//   chatState.currentChat = session;
+// });
+
+// $effect(() => {
+//   setPreference("selectedModel", chatState.selectedModel);
+//   setPreference("chatMode", chatState.chatMode);
+// });
+
 export function setCurrentChat(chat: ChatSessionData | null) {
   chatState.currentChat = chat;
-
-  if (chat?.metadata?.promptDraft) {
-    chatState.messageInput = chat.metadata.promptDraft;
-  } else {
-    chatState.messageInput = "";
-  }
-
-  chatState.isDraftSaving = false;
-  chatState.hasUnsavedDraftChanges = false;
-
-  if (chat?.metadata?.mode) {
-    chatState.chatMode = chat.metadata.mode;
-  }
-}
-
-export function clearCurrentChat() {
-  chatState.currentChat = null;
-  chatState.messageInput = "";
+  chatState.messageInput = chat?.metadata?.promptDraft ?? "";
   chatState.isSubmittingMessage = false;
   chatState.isDraftSaving = false;
   chatState.hasUnsavedDraftChanges = false;
+  chatState.promptCursorPosition = null;
+  if (chat?.metadata?.mode) {
+    chatState.chatMode = chat.metadata.mode;
+  }
+  lastSessionId = chat?.id ?? null;
+}
+
+export function clearCurrentChat() {
+  setCurrentChat(null);
 }
 
 export function updateMessageInput(value: string) {
   chatState.messageInput = value;
 
-  if (chatState.currentChat) {
-    const savedDraft = chatState.currentChat.metadata?.promptDraft || "";
-    const hasChanges = value !== savedDraft;
-    chatState.hasUnsavedDraftChanges = hasChanges;
-  }
+  const draft = chatState.currentChat?.metadata?.promptDraft ?? "";
+  chatState.hasUnsavedDraftChanges = value !== draft;
+}
+
+export function clearMessageInput() {
+  updateMessageInput("");
 }
 
 export function savePromptCursorPosition(start: number, end: number) {
@@ -81,6 +116,22 @@ export function clearPromptCursorPosition() {
   chatState.promptCursorPosition = null;
 }
 
+export function setDraftSaving(saving: boolean) {
+  chatState.isDraftSaving = saving;
+}
+
+export function setHasUnsavedDraftChanges(hasChanges: boolean) {
+  chatState.hasUnsavedDraftChanges = hasChanges;
+}
+
+export function setSubmitting(isSubmitting: boolean) {
+  chatState.isSubmittingMessage = isSubmitting;
+}
+
+export function setAvailableModels(models: ModelOption[]) {
+  chatState.availableModels = models;
+}
+
 export function addMessageToCurrentChat(message: ChatMessage) {
   if (!chatState.currentChat) return;
 
@@ -88,7 +139,6 @@ export function addMessageToCurrentChat(message: ChatMessage) {
   chatState.currentChat.updatedAt = new Date();
 }
 
-// Extract file references from message content
 export function extractFileReferences(
   content: string,
 ): Array<{ path: string; type: "file" | "image"; syntax: "#" | "@" }> {
@@ -98,38 +148,33 @@ export function extractFileReferences(
     syntax: "#" | "@";
   }> = [];
 
-  // Pattern for both # and @ syntax
   const hashRegex =
     /#([^\s]+\.(png|jpg|jpeg|md|html|ts|js|tsx|jsx|json|css|svg|gif|pdf))/gi;
   const atRegex =
     /@([^\s]+\.(png|jpg|jpeg|md|html|ts|js|tsx|jsx|json|css|svg|gif|pdf))/gi;
 
-  let match;
+  let match: RegExpExecArray | null;
 
-  // Extract # references
   while ((match = hashRegex.exec(content)) !== null) {
-    if (match[1]) {
-      const filePath = match[1];
-      const isImage = /\.(png|jpg|jpeg|gif|svg|webp|bmp)$/i.test(filePath);
-      references.push({
-        path: filePath,
-        type: isImage ? "image" : "file",
-        syntax: "#",
-      });
-    }
+    if (!match[1]) continue;
+    const filePath = match[1];
+    const isImage = /\.(png|jpg|jpeg|gif|svg|webp|bmp)$/i.test(filePath);
+    references.push({
+      path: filePath,
+      type: isImage ? "image" : "file",
+      syntax: "#",
+    });
   }
 
-  // Extract @ references
   while ((match = atRegex.exec(content)) !== null) {
-    if (match[1]) {
-      const filePath = match[1];
-      const isImage = /\.(png|jpg|jpeg|gif|svg|webp|bmp)$/i.test(filePath);
-      references.push({
-        path: filePath,
-        type: isImage ? "image" : "file",
-        syntax: "@",
-      });
-    }
+    if (!match[1]) continue;
+    const filePath = match[1];
+    const isImage = /\.(png|jpg|jpeg|gif|svg|webp|bmp)$/i.test(filePath);
+    references.push({
+      path: filePath,
+      type: isImage ? "image" : "file",
+      syntax: "@",
+    });
   }
 
   return references;

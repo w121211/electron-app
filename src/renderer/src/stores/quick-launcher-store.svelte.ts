@@ -1,7 +1,7 @@
 // src/renderer/src/stores/quick-launcher-store.svelte.ts
 import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
 
-export interface ChatSearchResult {
+export interface PromptScriptSearchResult {
   id: string;
   title: string;
   relativePath: string;
@@ -14,15 +14,15 @@ export interface ChatSearchResult {
 }
 
 export interface QuickLauncherResult {
-  type: "chat" | "file";
-  data: ChatSearchResult | ProjectFileSearchResult;
+  type: "promptScript" | "file";
+  data: PromptScriptSearchResult | ProjectFileSearchResult;
 }
 
 interface QuickLauncherState {
   searchQuery: string;
   selectedIndex: number;
   results: QuickLauncherResult[];
-  recentChats: ChatSearchResult[];
+  recentPromptScripts: PromptScriptSearchResult[];
   isLoading: boolean;
 }
 
@@ -31,7 +31,7 @@ export const quickLauncherState = $state<QuickLauncherState>({
   searchQuery: "",
   selectedIndex: 0,
   results: [],
-  recentChats: [],
+  recentPromptScripts: [],
   isLoading: false,
 });
 
@@ -39,9 +39,9 @@ export const quickLauncherState = $state<QuickLauncherState>({
 export function getFilteredResults() {
   if (quickLauncherState.searchQuery.trim() === "") {
     // Show recent chats when no search query
-    return quickLauncherState.recentChats.map((chat) => ({
-      type: "chat" as const,
-      data: chat,
+    return quickLauncherState.recentPromptScripts.map((script) => ({
+      type: "promptScript" as const,
+      data: script,
     }));
   }
   return quickLauncherState.results;
@@ -68,8 +68,8 @@ export function setResults(results: QuickLauncherResult[]) {
   quickLauncherState.selectedIndex = 0;
 }
 
-export function setRecentChats(chats: ChatSearchResult[]) {
-  quickLauncherState.recentChats = chats;
+export function setRecentPromptScripts(scripts: PromptScriptSearchResult[]) {
+  quickLauncherState.recentPromptScripts = scripts;
 }
 
 export function setLoading(loading: boolean) {

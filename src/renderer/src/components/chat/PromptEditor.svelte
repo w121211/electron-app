@@ -8,15 +8,13 @@
     savePromptCursorPosition,
   } from "../../stores/chat-store.svelte.js";
   import { uiState } from "../../stores/ui-store.svelte.js";
-  import { chatService } from "../../services/chat-service.js";
   import { ptyChatService } from "../../services/pty-chat-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import FileSearchDropdown from "./FileSearchDropdown.svelte";
-  import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
+  import { showToast } from "../../stores/ui-store.svelte.js";
 
   let promptEditorTextarea = $state<HTMLTextAreaElement>();
-  let draftTimeout: ReturnType<typeof setTimeout>;
 
   // Auto-focus textarea when opened and restore cursor position
   $effect(() => {
@@ -52,35 +50,27 @@
 
     // Handle @ file reference detection
     fileSearchService.detectFileReference(value, promptEditorTextarea ?? null);
-
-    // Save draft when user actively types (including clearing content)
-    if (chatState.currentChat) {
-      clearTimeout(draftTimeout);
-      const currentChatPath = chatState.currentChat.absoluteFilePath;
-      draftTimeout = setTimeout(async () => {
-        await chatService.savePromptDraft(currentChatPath, value);
-      }, 1500);
-    }
   }
 
   async function handleSendMessage(): Promise<void> {
-    if (!chatState.messageInput.trim() || !chatState.currentChat) return;
-
-    // Check if this is a PTY chat and use appropriate service
-    if (chatState.currentChat._type === "pty_chat") {
-      await ptyChatService.createPtyChatFromDraft(
-        chatState.messageInput.trim(),
-      );
-    } else {
-      await chatService.sendMesage(
-        chatState.currentChat,
-        chatState.messageInput.trim(),
-        chatState.currentChat.messages.length === 0
-          ? chatState.selectedModel
-          : undefined,
-        undefined,
-      );
+    if (!chatState.messageInput.trim()) {
+      return;
     }
+
+    if (!chatState.currentChat) {
+      showToast("Open a PTY session to send commands", "info");
+      return;
+    }
+
+    if (chatState.currentChat.sessionType !== "pty_chat") {
+      showToast(
+        "Prompt editor is only available for PTY sessions now.",
+        "info",
+      );
+      return;
+    }
+
+    await ptyChatService.createPtyChatFromDraft(chatState.messageInput.trim());
   }
 
   function handleKeyPress(event: KeyboardEvent): void {
@@ -127,7 +117,6 @@
   // Cleanup on component destroy
   $effect(() => {
     return () => {
-      clearTimeout(draftTimeout);
       fileSearchService.cleanup();
     };
   });
@@ -144,8 +133,7 @@
       >
         <Paperclip width="14" height="14" />
       </button>
-      <!-- Model selector dropdown -->
-      <ModelSelectorDropdown position="below" />
+      <span class="text-muted text-xs uppercase">PTY Command</span>
     </div>
     <!-- Right Controls -->
     <div class="flex items-center gap-2">
