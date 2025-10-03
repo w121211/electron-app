@@ -9,13 +9,17 @@ import {
   type PromptScriptFile,
 } from "./prompt-script-repository.js";
 import type { PromptScriptMetadata } from "./prompt-script-parser.js";
+import {
+  generateUniqueFileName,
+  writeTextFile,
+} from "../../utils/file-utils.js";
 
 export type PromptScriptLinkType =
   | "chatSessionId"
   | "scriptHash"
   | "scriptPath";
 
-export interface PromptScriptAttachmentResult {
+export interface PromptScriptLinkResult {
   script: PromptScriptFile;
   session: ChatSessionData | null;
   linkType?: PromptScriptLinkType;
@@ -25,12 +29,37 @@ export interface PromptScriptAttachmentResult {
 
 export class PromptScriptService {
   constructor(
-    private readonly repository: PromptScriptRepository,
-    private readonly chatSessions: ChatSessionRepository,
+    private readonly promptScriptRepo: PromptScriptRepository,
+    private readonly chatSessionRepo: ChatSessionRepository,
   ) {}
 
-  async attachScript(filePath: string): Promise<PromptScriptAttachmentResult> {
-    let script = await this.repository.read(filePath);
+  async createPromptScript(
+    directory: string,
+    name?: string,
+  ): Promise<PromptScriptFile> {
+    let baseName: string;
+    if (name) {
+      baseName = `${name}.prompt.md`;
+    } else {
+      // Format: 20251003-143045
+      const timestamp = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[-:T]/g, "")
+        .replace(/(\d{8})(\d{6})/, "$1-$2");
+      baseName = `${timestamp}.prompt.md`;
+    }
+    const filePath = await generateUniqueFileName(directory, baseName);
+
+    await writeTextFile(filePath, "");
+
+    return this.promptScriptRepo.read(filePath);
+  }
+
+  async findLinkedChatSession(
+    filePath: string,
+  ): Promise<PromptScriptLinkResult> {
+    let script = await this.promptScriptRepo.read(filePath);
     const warnings = [...script.warnings];
     const alternateMatches: ChatSessionData[] = [];
 
@@ -39,13 +68,13 @@ export class PromptScriptService {
 
     // Step 1: Attempt to link by front matter chatSessionId
     if (script.metadata.chatSessionId) {
-      const sessionById = await this.chatSessions.getById(
+      const sessionById = await this.chatSessionRepo.getById(
         script.metadata.chatSessionId,
       );
 
       if (sessionById) {
         if (!sessionById.scriptHash || sessionById.scriptHash === script.hash) {
-          session = await this.ensureSessionMetadata(sessionById, script);
+          session = await this.updateSessionMetadata(sessionById, script);
           linkType = "chatSessionId";
         } else {
           warnings.push(
@@ -53,34 +82,38 @@ export class PromptScriptService {
           );
           const metadata = this.cloneMetadata(script.metadata);
           delete metadata.chatSessionId;
-          script = await this.repository.save(script, { metadata });
+          script = await this.promptScriptRepo.save(script, { metadata });
           this.mergeWarnings(warnings, script.warnings);
         }
       } else {
-        warnings.push("Linked chat session no longer exists. Cleared chatSessionId.");
+        warnings.push(
+          "Linked chat session no longer exists. Cleared chatSessionId.",
+        );
         const metadata = this.cloneMetadata(script.metadata);
         delete metadata.chatSessionId;
-        script = await this.repository.save(script, { metadata });
+        script = await this.promptScriptRepo.save(script, { metadata });
         this.mergeWarnings(warnings, script.warnings);
       }
     }
 
     // Step 2: Attempt to link by script hash if still not linked
     if (!session) {
-      const sessionsByHash = await this.chatSessions.findByScriptHash(script.hash);
+      const sessionsByHash = await this.chatSessionRepo.findByScriptHash(
+        script.hash,
+      );
       if (sessionsByHash.length === 1) {
-        session = await this.ensureSessionMetadata(sessionsByHash[0], script);
+        session = await this.updateSessionMetadata(sessionsByHash[0], script);
         linkType = "scriptHash";
         if (script.metadata.chatSessionId !== session.id) {
           const metadata = this.cloneMetadata(script.metadata);
           metadata.chatSessionId = session.id;
-          script = await this.repository.save(script, { metadata });
+          script = await this.promptScriptRepo.save(script, { metadata });
           this.mergeWarnings(warnings, script.warnings);
         }
       } else if (sessionsByHash.length > 1) {
         alternateMatches.push(...sessionsByHash);
         const [latest] = sessionsByHash;
-        session = await this.ensureSessionMetadata(latest, script);
+        session = await this.updateSessionMetadata(latest, script);
         linkType = "scriptHash";
         warnings.push(
           "Multiple sessions share this prompt script hash. Linked to the most recent session.",
@@ -88,7 +121,7 @@ export class PromptScriptService {
         if (script.metadata.chatSessionId !== latest.id) {
           const metadata = this.cloneMetadata(script.metadata);
           metadata.chatSessionId = latest.id;
-          script = await this.repository.save(script, { metadata });
+          script = await this.promptScriptRepo.save(script, { metadata });
           this.mergeWarnings(warnings, script.warnings);
         }
       }
@@ -96,18 +129,21 @@ export class PromptScriptService {
 
     // Step 3: Attempt to link by resolved script path if still not linked
     if (!session) {
-      const sessionByPath = await this.chatSessions.findByScriptPath(
+      const sessionByPath = await this.chatSessionRepo.findByScriptPath(
         script.absolutePath,
       );
 
       if (sessionByPath) {
-        if (!sessionByPath.scriptHash || sessionByPath.scriptHash === script.hash) {
-          session = await this.ensureSessionMetadata(sessionByPath, script);
+        if (
+          !sessionByPath.scriptHash ||
+          sessionByPath.scriptHash === script.hash
+        ) {
+          session = await this.updateSessionMetadata(sessionByPath, script);
           linkType = "scriptPath";
           if (script.metadata.chatSessionId !== session.id) {
             const metadata = this.cloneMetadata(script.metadata);
             metadata.chatSessionId = session.id;
-            script = await this.repository.save(script, { metadata });
+            script = await this.promptScriptRepo.save(script, { metadata });
             this.mergeWarnings(warnings, script.warnings);
           }
         } else {
@@ -117,7 +153,7 @@ export class PromptScriptService {
           if (script.metadata.chatSessionId) {
             const metadata = this.cloneMetadata(script.metadata);
             delete metadata.chatSessionId;
-            script = await this.repository.save(script, { metadata });
+            script = await this.promptScriptRepo.save(script, { metadata });
             this.mergeWarnings(warnings, script.warnings);
           }
         }
@@ -133,32 +169,32 @@ export class PromptScriptService {
     };
   }
 
-  async linkScriptToSession(options: {
+  async linkChatSession(options: {
     scriptPath: string;
     sessionId: string;
-  }): Promise<{ script: PromptScriptFile; session: ChatSessionData }>
-  async linkScriptToSession(options: {
+  }): Promise<{ script: PromptScriptFile; session: ChatSessionData }>;
+  async linkChatSession(options: {
     scriptPath: string;
     session: ChatSessionData;
-  }): Promise<{ script: PromptScriptFile; session: ChatSessionData }>
-  async linkScriptToSession(options: {
+  }): Promise<{ script: PromptScriptFile; session: ChatSessionData }>;
+  async linkChatSession(options: {
     scriptPath: string;
     sessionId?: string;
     session?: ChatSessionData;
   }): Promise<{ script: PromptScriptFile; session: ChatSessionData }> {
-    let script = await this.repository.read(options.scriptPath);
+    let script = await this.promptScriptRepo.read(options.scriptPath);
     const warnings = [...script.warnings];
 
     const session = options.session
       ? options.session
       : await this.requireSession(options.sessionId);
 
-    const resolvedSession = await this.ensureSessionMetadata(session, script);
+    const resolvedSession = await this.updateSessionMetadata(session, script);
 
     if (script.metadata.chatSessionId !== resolvedSession.id) {
       const metadata = this.cloneMetadata(script.metadata);
       metadata.chatSessionId = resolvedSession.id;
-      script = await this.repository.save(script, { metadata });
+      script = await this.promptScriptRepo.save(script, { metadata });
       this.mergeWarnings(warnings, script.warnings);
     }
 
@@ -176,22 +212,22 @@ export class PromptScriptService {
     };
   }
 
-  async detachScript(options: {
+  async unlinkChatSession(options: {
     scriptPath: string;
     sessionId?: string;
   }): Promise<PromptScriptFile> {
-    let script = await this.repository.read(options.scriptPath);
+    let script = await this.promptScriptRepo.read(options.scriptPath);
     const warnings = [...script.warnings];
 
     if (script.metadata.chatSessionId) {
       const metadata = this.cloneMetadata(script.metadata);
       delete metadata.chatSessionId;
-      script = await this.repository.save(script, { metadata });
+      script = await this.promptScriptRepo.save(script, { metadata });
       this.mergeWarnings(warnings, script.warnings);
     }
 
     if (options.sessionId) {
-      const session = await this.chatSessions.getById(options.sessionId);
+      const session = await this.chatSessionRepo.getById(options.sessionId);
       if (session) {
         const updated: ChatSessionData = {
           ...session,
@@ -201,7 +237,7 @@ export class PromptScriptService {
           scriptModifiedAt: null,
           updatedAt: new Date(),
         };
-        await this.chatSessions.update(updated);
+        await this.chatSessionRepo.update(updated);
       }
     }
 
@@ -211,51 +247,31 @@ export class PromptScriptService {
     };
   }
 
-  private async ensureSessionMetadata(
+  private async updateSessionMetadata(
     session: ChatSessionData,
     script: PromptScriptFile,
   ): Promise<ChatSessionData> {
-    const resolvedPath = path.resolve(script.absolutePath);
-    let requiresUpdate = false;
-
-    const nextSession: ChatSessionData = {
+    const updatedSession: ChatSessionData = {
       ...session,
+      scriptPath: path.resolve(script.absolutePath),
+      scriptHash: script.hash,
+      scriptModifiedAt: script.modifiedAt,
+      scriptSnapshot: script.content,
+      updatedAt: new Date(),
     };
 
-    if (session.scriptPath !== resolvedPath) {
-      nextSession.scriptPath = resolvedPath;
-      requiresUpdate = true;
-    }
-
-    if (session.scriptHash !== script.hash) {
-      nextSession.scriptHash = script.hash;
-      requiresUpdate = true;
-    }
-
-    if (!session.scriptModifiedAt || session.scriptModifiedAt.getTime() !== script.modifiedAt.getTime()) {
-      nextSession.scriptModifiedAt = script.modifiedAt;
-      requiresUpdate = true;
-    }
-
-    if (session.scriptSnapshot !== script.content) {
-      nextSession.scriptSnapshot = script.content;
-      requiresUpdate = true;
-    }
-
-    if (requiresUpdate) {
-      nextSession.updatedAt = new Date();
-      await this.chatSessions.update(nextSession);
-    }
-
-    return requiresUpdate ? nextSession : session;
+    await this.chatSessionRepo.update(updatedSession);
+    return updatedSession;
   }
 
-  private async requireSession(sessionId: string | undefined): Promise<ChatSessionData> {
+  private async requireSession(
+    sessionId: string | undefined,
+  ): Promise<ChatSessionData> {
     if (!sessionId) {
       throw new Error("sessionId is required when session is not provided");
     }
 
-    const session = await this.chatSessions.getById(sessionId);
+    const session = await this.chatSessionRepo.getById(sessionId);
     if (!session) {
       throw new Error(`Chat session ${sessionId} not found`);
     }

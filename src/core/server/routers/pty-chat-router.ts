@@ -9,34 +9,34 @@ import { PtyChatClient } from "../../services/pty/pty-chat-client.js";
 import { router, publicProcedure } from "../trpc-init.js";
 
 const metadataSchema: z.ZodType<Partial<ChatMetadata>> = z.object({
-    title: z.string().optional(),
-    tags: z.array(z.string()).optional(),
-    mode: z.enum(["chat", "agent"]).optional(),
-    knowledge: z.array(z.string()).optional(),
-    promptDraft: z.string().optional(),
-    external: z
-      .object({
-        mode: z.enum(["terminal", "pty"]).optional(),
-        pid: z.number().optional(),
-        workingDirectory: z.string().optional(),
-        pty: z
-          .object({
-            initialCommand: z.string().optional(),
-            ptyInstanceId: z.string().optional(),
-            snapshot: z.string().optional(),
-            snapshotHtml: z.string().optional(),
-          })
-          .optional(),
-      })
-      .optional(),
-    modelId: z
-      .string()
-      .regex(/^.+\/.+$/)
-      .transform((value) => value as `${string}/${string}`)
-      .optional(),
-    currentTurn: z.number().optional(),
-    maxTurns: z.number().optional(),
-  });
+  title: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  mode: z.enum(["chat", "agent"]).optional(),
+  knowledge: z.array(z.string()).optional(),
+  promptDraft: z.string().optional(),
+  external: z
+    .object({
+      mode: z.enum(["terminal", "pty"]).optional(),
+      pid: z.number().optional(),
+      workingDirectory: z.string().optional(),
+      pty: z
+        .object({
+          initialCommand: z.string().optional(),
+          ptyInstanceId: z.string().optional(),
+          snapshot: z.string().optional(),
+          snapshotHtml: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  modelId: z
+    .string()
+    .regex(/^.+\/.+$/)
+    .transform((value) => value as `${string}/${string}`)
+    .optional(),
+  currentTurn: z.number().optional(),
+  maxTurns: z.number().optional(),
+});
 
 const modelIdSchema = z
   .string()

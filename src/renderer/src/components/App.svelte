@@ -19,7 +19,7 @@
     // Open specified tree node on app initialization (development only)
     setTimeout(async () => {
       await projectService.selectFile(
-        "/Users/cw/Documents/GitHub/electron-app/chats/chat1.chat.json",
+        "/Users/cw/Documents/GitHub/electron-app/chats/1.prompt.md",
       );
     }, 1000); // 1 second delay to ensure full app initialization
   });

@@ -1,7 +1,7 @@
 // src/core/server/root-router.ts
 import path from "path";
 import { ILogObj, Logger } from "tslog";
-import { ChatSessionRepositoryImpl } from "../services/chat-engine/chat-session-repository.js";
+import { ChatSessionRepositoryImpl } from "../services/chat/chat-session-repository.js";
 import { FileWatcherService } from "../services/file-watcher-service.js";
 import { createProjectFolderService } from "../services/project-folder-service.js";
 import { TaskRepository } from "../services/task-repository.js";
@@ -16,6 +16,7 @@ import { createProjectFolderRouter } from "./routers/project-folder-router.js";
 import { createFileRouter } from "./routers/file-router.js";
 import { createUserSettingsRouter } from "./routers/user-settings-router.js";
 import { createModelRouter } from "./routers/model-router.js";
+import { createPromptScriptRouter } from "./routers/prompt-script-router.js";
 import { router } from "./trpc-init.js";
 import { PtyChatClient } from "../services/pty/pty-chat-client.js";
 import { createPtyChatRouter } from "./routers/pty-chat-router.js";
@@ -24,6 +25,8 @@ import type { PtyInstanceManager } from "../services/pty/pty-instance-manager.js
 import type { IEventBus } from "../event-bus.js";
 import { ApiChatClient } from "../services/chat-engine/api-chat-client.js";
 import { createApiChatRouter } from "./routers/api-chat-router.js";
+import { PromptScriptRepository } from "../services/prompt-script/prompt-script-repository.js";
+import { PromptScriptService } from "../services/prompt-script/prompt-script-service.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
@@ -95,7 +98,7 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   });
 
   const chatCacheMiddleware = createChatCacheMiddleware(
-    path.join(userDataDir, "chat-cache")
+    path.join(userDataDir, "chat-cache"),
   );
 
   const apiChatClient = new ApiChatClient({
@@ -109,6 +112,12 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     eventBus,
     chatSessionRepository,
     ptyInstanceManager,
+  );
+
+  const promptScriptRepository = new PromptScriptRepository();
+  const promptScriptService = new PromptScriptService(
+    promptScriptRepository,
+    chatSessionRepository,
   );
 
   // Start watching all project folders
@@ -128,6 +137,7 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     event: createEventRouter(eventBus),
     userSettings: createUserSettingsRouter(userSettingsService),
     model: createModelRouter(modelService),
+    promptScript: createPromptScriptRouter(promptScriptService),
     // toolCall: createToolCallRouter(toolCallScheduler, toolRegistry),
   });
 }

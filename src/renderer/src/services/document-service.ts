@@ -18,6 +18,9 @@ import {
 } from "../stores/editor-views.svelte.js";
 import { ui } from "../stores/ui.svelte.js";
 import { chatService } from "./chat-service.js";
+import { trpcClient } from "../lib/trpc-client.js";
+import { showToast } from "../stores/ui-store.svelte.js";
+import type { PromptScriptFile } from "../../../core/services/prompt-script/prompt-script-repository.js";
 
 interface OpenDocumentOptions {
   focus?: boolean;
@@ -40,7 +43,11 @@ function getExtension(fileName: string): string {
   return fileName.slice(lastDotIndex + 1);
 }
 
-function resolveDocumentKind(filePath: string, fileType: string, isBase64: boolean): DocumentKind {
+function resolveDocumentKind(
+  filePath: string,
+  fileType: string,
+  isBase64: boolean,
+): DocumentKind {
   if (filePath.endsWith(".prompt.md")) {
     return "promptScript";
   }
@@ -134,7 +141,11 @@ export class DocumentService {
     this.logger.info("Opening document", { filePath, options });
 
     const file = await fileService.openFile(filePath);
-    const kind = resolveDocumentKind(filePath, file.fileType, file.isBase64 ?? false);
+    const kind = resolveDocumentKind(
+      filePath,
+      file.fileType,
+      file.isBase64 ?? false,
+    );
     const savedHash = await hashContent(file.content);
     const fileName = basename(filePath);
     const metadata: DocumentMetadata = {
@@ -186,37 +197,24 @@ export class DocumentService {
     }
 
     if (promptScriptState) {
-      try {
-        const link = await chatService.attachPromptScript({
-          filePath,
-          metadata: promptScriptState.metadata,
-          contentHash: savedHash,
-        });
+      const result = await trpcClient.promptScript.findLinkedSession.query({
+        filePath,
+      });
 
-        const target = documents.get(filePath)?.promptScript;
-        if (target) {
-          target.link = {
-            sessionId: link.sessionId,
-            scriptHash: link.scriptHash,
-            status: link.status,
-            warnings: link.warnings.map((warning) => warning.message),
-            resolvedAt: link.lastAttachedAt ?? now,
-          };
-          target.lastReconciledAt = link.lastAttachedAt ?? now;
-          mergeUniqueWarnings(
-            target.warnings,
-            link.warnings.map((warning) => warning.message),
-          );
-        }
-      } catch (error) {
-        this.logger.error("Failed to attach prompt script", error);
-        const target = documents.get(filePath)?.promptScript;
-        if (target) {
-          mergeUniqueWarnings(target.warnings, [
-            error instanceof Error
-              ? `Failed to attach prompt script: ${error.message}`
-              : "Failed to attach prompt script",
-          ]);
+      const target = documents.get(filePath)?.promptScript;
+      if (target) {
+        target.link = {
+          sessionId: result.session?.id ?? null,
+          scriptHash: result.script.hash,
+          status: result.linkType ? "none" : "session_missing",
+          warnings: result.warnings,
+          resolvedAt: now,
+        };
+        target.lastReconciledAt = now;
+        mergeUniqueWarnings(target.warnings, result.warnings);
+
+        if (result.session) {
+          await chatService.hydrateSession(result.session);
         }
       }
     }
@@ -268,7 +266,11 @@ export class DocumentService {
     view.lastInteractionAt = new Date().toISOString();
   }
 
-  updateScrollPosition(filePath: string, scrollTop: number, scrollLeft: number): void {
+  updateScrollPosition(
+    filePath: string,
+    scrollTop: number,
+    scrollLeft: number,
+  ): void {
     const view = editorViews.get(filePath);
     if (!view) {
       return;
@@ -322,25 +324,24 @@ export class DocumentService {
       };
 
       try {
-        const link = await chatService.attachPromptScript({
+        const result = await trpcClient.promptScript.findLinkedSession.query({
           filePath,
-          metadata: parsed.metadata,
-          contentHash: savedHash,
         });
 
         if (document.promptScript) {
           document.promptScript.link = {
-            sessionId: link.sessionId,
-            scriptHash: link.scriptHash,
-            status: link.status,
-            warnings: link.warnings.map((warning) => warning.message),
-            resolvedAt: link.lastAttachedAt ?? now,
+            sessionId: result.session?.id ?? null,
+            scriptHash: result.script.hash,
+            status: result.linkType ? "none" : "session_missing",
+            warnings: result.warnings,
+            resolvedAt: now,
           };
-          document.promptScript.lastReconciledAt = link.lastAttachedAt ?? now;
-          mergeUniqueWarnings(
-            document.promptScript.warnings,
-            link.warnings.map((warning) => warning.message),
-          );
+          document.promptScript.lastReconciledAt = now;
+          mergeUniqueWarnings(document.promptScript.warnings, result.warnings);
+
+          if (result.session) {
+            await chatService.hydrateSession(result.session);
+          }
         }
       } catch (error) {
         this.logger.error("Failed to reattach prompt script after save", error);
@@ -359,6 +360,30 @@ export class DocumentService {
     }
 
     return document;
+  }
+
+  async createPromptScript(
+    directory: string,
+    name?: string,
+  ): Promise<PromptScriptFile> {
+    try {
+      this.logger.info("Creating prompt script in:", directory);
+      const script = await trpcClient.promptScript.create.mutate({
+        directory,
+        name,
+      });
+
+      this.logger.info("Prompt script created:", script.absolutePath);
+      showToast(`Prompt script created: ${script.absolutePath}`, "success");
+      return script;
+    } catch (error) {
+      this.logger.error("Failed to create prompt script:", error);
+      showToast(
+        `Failed to create prompt script: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
+      throw error;
+    }
   }
 }
 

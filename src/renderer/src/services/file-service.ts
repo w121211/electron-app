@@ -88,7 +88,12 @@ export class FileService {
       return isExpanded ? "folder-open" : "folder";
     }
 
+    // TODO: Legacy, to be removed
     if (fileName.endsWith(".chat.json")) {
+      return "chat-dots";
+    }
+
+    if (fileName.endsWith(".prompt.md")) {
       return "chat-dots";
     }
 

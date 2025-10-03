@@ -80,7 +80,7 @@ First prompt
       metadata: { modelId: "openai/gpt-4o-mini" },
     });
 
-    const result = await service.attachScript(scriptPath);
+    const result = await service.findLinkedChatSession(scriptPath);
 
     expect(result.session?.id).toBe(sessionId);
     expect(result.linkType).toBe("chatSessionId");
@@ -107,7 +107,7 @@ Prompt content
       metadata: { modelId: "openai/gpt-4o-mini" },
     });
 
-    const result = await service.attachScript(scriptPath);
+    const result = await service.findLinkedChatSession(scriptPath);
 
     expect(result.session?.id).toBe(sessionId);
     expect(result.linkType).toBe("scriptHash");
@@ -141,7 +141,7 @@ Modified prompt
 `;
     await writeScript(modifiedContent);
 
-    const result = await service.attachScript(scriptPath);
+    const result = await service.findLinkedChatSession(scriptPath);
 
     expect(result.session).toBeNull();
     expect(result.linkType).toBeUndefined();
@@ -165,7 +165,7 @@ Prompt
     const script = await writeScript(scriptContent);
     await createSessionForScript(script, { id: sessionId });
 
-    const detached = await service.detachScript({
+    const detached = await service.unlinkChatSession({
       scriptPath,
       sessionId,
     });

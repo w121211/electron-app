@@ -23,6 +23,7 @@
     showContextMenu,
   } from "../../stores/file-explorer-store.svelte.js";
   import { fileExplorerService } from "../../services/file-explorer-service.js";
+  import { documentService } from "../../services/document-service.js";
   import TreeNode from "./TreeNode.svelte";
   import FileIcon from "./FileIcon.svelte";
   import type { FolderTreeNode } from "../../stores/project-store.svelte.js";
@@ -36,7 +37,6 @@
 
   const activeContext = $derived.by(getActiveEditorContext);
 
-  const isCreatingChat = $derived(uiState.loadingStates["createChat"] || false);
   const isExpanded = $derived(treeState.expandedNodePaths.includes(node.path));
   const isSelected = $derived(treeState.selectedNode === node.path);
   const task = $derived(tasksByPath.get(node.path));
@@ -61,6 +61,7 @@
     fileExplorerState.inlineFolderCreation.placeholderName,
   );
   let isCreatingFolder = $state(false);
+  let isCreatingPromptScript = $state(false);
 
   const isDragged = $derived(treeState.draggedNode === node.path);
 
@@ -85,12 +86,23 @@
     projectService.handleTreeNodeClick(node);
   }
 
-  function handleNewPromptScript(e: MouseEvent): void {
+  async function handleCreatePromptScript(e: MouseEvent): Promise<void> {
     e.stopPropagation();
-    showToast(
-      "Prompt script creation from the explorer is coming soon. Create a .prompt.md file manually for now.",
-      "info",
-    );
+
+    if (isCreatingPromptScript) {
+      return;
+    }
+    isCreatingPromptScript = true;
+
+    try {
+      const script = await documentService.createPromptScript(node.path);
+      await projectService.refreshProjectTreeForFile(script.absolutePath);
+      await projectService.selectFile(script.absolutePath);
+    } catch (error) {
+      console.error("Failed to create prompt script:", error);
+    } finally {
+      isCreatingPromptScript = false;
+    }
   }
 
   function handleContextMenu(e: MouseEvent): void {
@@ -322,8 +334,8 @@
       {/if}
       {#if node.isDirectory}
         <button
-          onclick={handleNewPromptScript}
-          disabled={isCreatingChat}
+          onclick={handleCreatePromptScript}
+          disabled={isCreatingPromptScript}
           class="text-muted hover:text-accent cursor-pointer p-0.5 disabled:opacity-30"
           title="New Prompt Script"
         >

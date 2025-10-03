@@ -2,7 +2,7 @@
 import { Logger } from "tslog";
 import { isTerminalModel } from "../../../core/utils/model-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
-import type { ChatMetadata } from "../../../core/services/chat-engine/chat-session-repository.js";
+import type { ChatMetadata } from "../../../core/services/chat/chat-session-repository.js";
 import { chatState, setCurrentChat } from "../stores/chat-store.svelte.js";
 import { showToast } from "../stores/ui-store.svelte.js";
 import { projectService } from "./project-service.js";

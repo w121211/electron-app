@@ -72,22 +72,36 @@ export class PtyChatClient {
     await this.repository.update(session.toChatSessionData());
 
     if (input.initialPrompt) {
-      this.writeToInstance(ptyInstance, input.initialPrompt.endsWith("\n")
-        ? input.initialPrompt
-        : `${input.initialPrompt}\n`);
+      this.writeToInstance(
+        ptyInstance,
+        input.initialPrompt.endsWith("\n")
+          ? input.initialPrompt
+          : `${input.initialPrompt}\n`,
+      );
     }
 
     return session.toChatSessionData();
   }
 
-  async sendInput(sessionId: string, data: string): Promise<void> {
+  // async sendInput(sessionId: string, data: string): Promise<void> {
+  //   const session = await this.ensureSessionLoaded(sessionId);
+  //   const ptyInstance = this.getPtyInstance(session);
+  //   if (!ptyInstance) {
+  //     throw new Error(`PTY instance missing for session ${sessionId}`);
+  //   }
+  //   const text = data.endsWith("\n") ? data : `${data}\n`;
+  //   this.writeToInstance(ptyInstance, text);
+  // }
+
+  async updateSession(
+    sessionId: string,
+    updates: Partial<ChatSessionData>,
+  ): Promise<ChatSessionData> {
     const session = await this.ensureSessionLoaded(sessionId);
-    const ptyInstance = this.getPtyInstance(session);
-    if (!ptyInstance) {
-      throw new Error(`PTY instance missing for session ${sessionId}`);
-    }
-    const text = data.endsWith("\n") ? data : `${data}\n`;
-    this.writeToInstance(ptyInstance, text);
+    const currentData = session.toChatSessionData();
+    const updatedData = { ...currentData, ...updates, updatedAt: new Date() };
+    await this.repository.update(updatedData);
+    return updatedData;
   }
 
   async closeSession(sessionId: string): Promise<void> {
@@ -98,7 +112,7 @@ export class PtyChatClient {
       this.sessionIdByPtyInstance.delete(ptyInstance.id);
     }
     this.sessions.delete(sessionId);
-    await this.repository.delete(sessionId);
+    // await this.repository.delete(sessionId);
   }
 
   private subscribeToPtyEvents(): void {
@@ -131,7 +145,9 @@ export class PtyChatClient {
     });
   }
 
-  private async ensureSessionLoaded(sessionId: string): Promise<PtyChatSession> {
+  private async ensureSessionLoaded(
+    sessionId: string,
+  ): Promise<PtyChatSession> {
     const existing = this.sessions.get(sessionId);
     if (existing) {
       return existing;

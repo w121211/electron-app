@@ -8,12 +8,12 @@ import {
   type ToolSet,
   type TypedToolCall,
 } from "ai";
-import type { ToolCallConfirmation } from "../tool-call/tool-call-confirmation.js";
-import type { ToolAlwaysAllowRule } from "../tool-call/tool-call-runner.js";
 import {
   openAppDatabase,
   type AppDatabase,
 } from "../../database/sqlite-client.js";
+import type { ToolCallConfirmation } from "../tool-call/tool-call-confirmation.js";
+import type { ToolAlwaysAllowRule } from "../tool-call/tool-call-runner.js";
 
 export type ChatSessionType =
   | "chat_engine"

@@ -11,6 +11,7 @@
   import RightPanel from "./RightPanel.svelte";
   import QuickLauncher from "./QuickLauncher.svelte";
   import FilePanel from "./FilePanel.svelte";
+  import PromptEditor from "./chat/PromptEditor.svelte";
   import PtyChatPanel from "./pty-chat/PtyChatPanel.svelte";
 
   const logger = new Logger({ name: "NewMainLayout" });
@@ -19,7 +20,8 @@
     | "welcome"
     | "apiChatPanel"
     | "filePanel"
-    | "ptyChatPanel";
+    | "ptyChatPanel"
+    | "promptEditor";
 
   const editorContext = $derived.by(getActiveEditorContext);
 
@@ -39,10 +41,10 @@
       }
     }
 
-    // Prompt script has no attached chat session
-    // if (editorContext?.documentState?.kind === "promptScript") {
-    //   return "filePanel";
-    // }
+    // Prompt script has no lnked chat session
+    if (editorContext?.documentState?.kind === "promptScript") {
+      return "promptEditor";
+    }
 
     if (editorContext?.documentState) {
       return "filePanel";
@@ -64,6 +66,7 @@
     initializeData();
   });
 
+  $inspect(editorContext);
   $inspect(centerPanelView);
 </script>
 
@@ -80,6 +83,8 @@
     <main class="flex min-w-0 flex-1">
       {#if centerPanelView === "apiChatPanel"}
         <ChatPanel />
+      {:else if centerPanelView === "promptEditor"}
+        <PromptEditor />
       {:else if centerPanelView === "filePanel"}
         <FilePanel />
       {:else if centerPanelView === "welcome"}
