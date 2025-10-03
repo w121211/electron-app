@@ -1,7 +1,12 @@
 <!-- // src/renderer/src/components/chat/ModelSelectorDropdown.svelte -->
 <script lang="ts">
   import { ChevronDown } from "svelte-bootstrap-icons";
-  import { chatState } from "../../stores/chat-store.svelte.js";
+  import { getFocusedEditorView } from "../../stores/editor-views.svelte.js";
+  import {
+    getLinkedChatSession,
+    chatSettings,
+    getAvailableModelsAsList,
+  } from "../../stores/chat.svelte.js";
   import { chatService } from "../../services/chat-service.js";
 
   interface Props {
@@ -13,28 +18,35 @@
   let showDropdown = $state(false);
   let dropdownContainer = $state<HTMLDivElement>();
 
-  // Derive disabled state from chat state
-  const disabled = $derived(
-    !!(chatState.currentChat && chatState.currentChat.messages.length > 0),
+  const focusedView = $derived(getFocusedEditorView());
+  const currentChat = $derived(
+    focusedView ? getLinkedChatSession(focusedView.filePath) : null,
   );
 
-  // Load models when component mounts
+  // Derive disabled state from chat state
+  const disabled = $derived(
+    !!(currentChat && currentChat.data.messages.length > 0),
+  );
+
+  const allModels = $derived.by(getAvailableModelsAsList);
+
+  // Hydrate models when component mounts
   $effect(() => {
-    if (chatState.availableModels.length === 0) {
-      chatService.getAvailableModels();
+    if (allModels.length === 0) {
+      chatService.hydrateAvailableModels();
     }
   });
 
-  function toggleDropdown(): void {
+  const toggleDropdown = (): void => {
     if (!disabled) {
       showDropdown = !showDropdown;
     }
-  }
+  };
 
-  function selectModel(modelValue: `${string}/${string}`): void {
-    chatState.selectedModel = modelValue;
+  const selectModel = (modelValue: `${string}/${string}`): void => {
+    chatService.selectModel(modelValue);
     showDropdown = false;
-  }
+  };
 
   // Close dropdown when clicking outside
   $effect(() => {
@@ -67,7 +79,7 @@
     title="Select Model"
     {disabled}
   >
-    <span class="text-sm">{chatState.selectedModel}</span>
+    <span class="text-sm">{chatSettings.selectedModel}</span>
     {#if !disabled}
       <ChevronDown />
     {/if}
@@ -82,11 +94,11 @@
       class:bottom-full={position === "above"}
     >
       <div class="py-1">
-        {#each chatState.availableModels as option (option.modelId)}
+        {#each allModels as option (option.modelId)}
           <button
             onclick={() => selectModel(option.modelId)}
             class="text-foreground hover:bg-hover block w-full cursor-pointer px-3 py-1 text-left text-sm"
-            class:bg-hover={option.modelId === chatState.selectedModel}
+            class:bg-hover={option.modelId === chatSettings.selectedModel}
           >
             {option.modelId}
           </button>

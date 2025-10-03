@@ -2,78 +2,194 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { Paperclip, XLg, Send } from "svelte-bootstrap-icons";
-  import {
-    chatState,
-    updateMessageInput,
-    savePromptCursorPosition,
-  } from "../../stores/chat-store.svelte.js";
-  import { uiState } from "../../stores/ui-store.svelte.js";
-  import { ptyChatService } from "../../services/pty-chat-service.js";
+  import { chatService } from "../../services/chat-service.js";
+  import { documentService } from "../../services/document-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
+  import { projectService } from "../../services/project-service.js";
+  import {
+    getLinkedChatSession,
+    chatSettings,
+    chatSessions,
+    chatSessionLinks,
+  } from "../../stores/chat.svelte.js";
+  import { editorViews } from "../../stores/editor-views.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
-  import FileSearchDropdown from "./FileSearchDropdown.svelte";
   import { showToast } from "../../stores/ui-store.svelte.js";
+  import {
+    lineColumnToOffset,
+    offsetToLineColumn,
+  } from "../../utils/editor-utils.js";
+  import FileSearchDropdown from "./FileSearchDropdown.svelte";
+  import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
 
-  let promptEditorTextarea = $state<HTMLTextAreaElement>();
+  let {
+    filePath,
+    headerText,
+    onClose,
+  }: {
+    filePath: string;
+    headerText?: string;
+    onClose?: () => void;
+  } = $props();
 
-  // Auto-focus textarea when opened and restore cursor position
+  const chatSession = $derived(getLinkedChatSession(filePath));
+  const editorView = $derived(editorViews.get(filePath));
+
+  $inspect(chatSessions);
+  $inspect(chatSessionLinks);
+
+  // By creating a local state `inputValue` and using effects to sync with the store,
+  // we can leverage Svelte 5's `bind:value` for more robust two-way data binding on the textarea.
+  // This avoids potential issues with the manual `value` and `oninput` pattern when dealing with derived state.
+  let inputValue = $state(editorView?.unsavedContent ?? "");
+
+  // Sync from store to local state. This handles external updates to the content.
+  // $effect(() => {
+  //   if (sourceValue !== inputValue) {
+  //     inputValue = sourceValue;
+  //   }
+  // });
+
+  // Sync from local state to the document service when user input changes `inputValue`.
   $effect(() => {
-    if (uiState.promptEditorOpen && promptEditorTextarea) {
-      tick().then(() => {
-        if (promptEditorTextarea) {
-          promptEditorTextarea.focus();
-          // Restore cursor position if available
-          if (chatState.promptCursorPosition) {
-            promptEditorTextarea.setSelectionRange(
-              chatState.promptCursorPosition.start,
-              chatState.promptCursorPosition.end,
-            );
-          }
-        }
-      });
+    // console.log(inputValue, editorView?.unsavedContent);
+    if (inputValue !== editorView?.unsavedContent) {
+      documentService.updateUnsavedContent(filePath, inputValue);
+      fileSearchService.detectFileReference(
+        inputValue,
+        promptEditorTextarea ?? null,
+      );
     }
   });
 
-  // Save cursor position when prompt editor is about to close
-  function handleClose(): void {
-    if (promptEditorTextarea) {
-      savePromptCursorPosition(
-        promptEditorTextarea.selectionStart,
-        promptEditorTextarea.selectionEnd,
+  let promptEditorTextarea = $state<HTMLTextAreaElement>();
+
+  // Validate that this editor is only used for prompt scripts
+  $effect(() => {
+    if (filePath && !filePath.endsWith(".prompt.md")) {
+      throw new Error(
+        `PromptEditor component can only be used for '.prompt.md' files, but was passed: ${filePath}`,
       );
     }
-    uiState.promptEditorOpen = false;
-  }
+  });
 
-  function handleInputChange(value: string): void {
-    updateMessageInput(value);
+  // Auto-save effect for prompt scripts
+  $effect(() => {
+    if (filePath?.endsWith(".prompt.md")) {
+      // This effect re-runs whenever filePath or unsavedContent changes.
+      // By clearing and resetting the timeout on each change, we create a debounce.
+      const timer = setTimeout(() => {
+        documentService.saveDocument(filePath).catch((err) => {
+          console.error("Auto-save failed", err);
+          showToast("Auto-save failed", "error");
+        });
+      }, 1000); // 1-second debounce
 
-    // Handle @ file reference detection
-    fileSearchService.detectFileReference(value, promptEditorTextarea ?? null);
-  }
+      // The cleanup function clears the timer if the effect re-runs before it fires.
+      return () => {
+        clearTimeout(timer);
+      };
+    }
 
-  async function handleSendMessage(): Promise<void> {
-    if (!chatState.messageInput.trim()) {
+    return undefined;
+  });
+
+  $effect(() => {
+    if (promptEditorTextarea) {
+      tick().then(handleFocus);
+    }
+  });
+
+  // Auto-focus textarea when opened and restore cursor position
+  const handleFocus = (): void => {
+    if (!promptEditorTextarea) return;
+    promptEditorTextarea.focus();
+
+    const selection = editorView?.selections?.[0];
+    if (selection) {
+      try {
+        const startOffset = lineColumnToOffset(inputValue, selection.anchor);
+        const endOffset = lineColumnToOffset(inputValue, selection.head);
+        promptEditorTextarea.setSelectionRange(startOffset, endOffset);
+        return; // Exit after restoring selection
+      } catch (e) {
+        console.error("Failed to restore selection:", e);
+      }
+    }
+
+    // Fallback to cursor if no selection
+    const cursor = editorView?.cursor;
+    if (cursor) {
+      try {
+        const offset = lineColumnToOffset(inputValue, cursor);
+        promptEditorTextarea.setSelectionRange(offset, offset);
+      } catch (e) {
+        console.error("Failed to restore cursor position:", e);
+      }
+    }
+  };
+  // Save cursor position when prompt editor is about to close
+  const handleClose = (): void => {
+    if (promptEditorTextarea) {
+      const { selectionStart, selectionEnd } = promptEditorTextarea;
+      const anchor = offsetToLineColumn(inputValue, selectionStart);
+      const head = offsetToLineColumn(inputValue, selectionEnd);
+
+      documentService.updateSelections(filePath, [{ anchor, head }]);
+      // Also update the primary cursor position
+      documentService.updateCursor(filePath, head);
+    }
+
+    if (onClose) {
+      onClose();
+      return;
+    }
+  };
+
+  const handleSendMessage = async (): Promise<void> => {
+    const trimmedContent = inputValue.trim();
+    if (!trimmedContent) {
       return;
     }
 
-    if (!chatState.currentChat) {
-      showToast("Open a PTY session to send commands", "info");
+    // If no chat session exists, create a new PTY chat session
+    if (!chatSession) {
+      const projectFolder = projectService.getProjectFolderForFile(filePath);
+
+      if (!projectFolder) {
+        throw new Error(`No project folder found for file: ${filePath}`);
+      }
+
+      const workingDirectory = projectFolder.path;
+      const modelId = chatSettings.selectedModel;
+
+      await documentService.saveDocument(filePath, { keepFocus: true });
+
+      await chatService.createLinkedPtyChatSession({
+        scriptPath: filePath,
+        workingDirectory,
+        modelId,
+        initialPrompt: trimmedContent,
+      });
       return;
     }
 
-    if (chatState.currentChat.sessionType !== "pty_chat") {
+    if (chatSession.data.sessionType !== "pty_chat") {
       showToast(
-        "Prompt editor is only available for PTY sessions now.",
+        "Sending commands is only available for PTY sessions now.",
         "info",
       );
       return;
     }
 
-    await ptyChatService.createPtyChatFromDraft(chatState.messageInput.trim());
-  }
+    // Send prompt to existing session
+    await chatService.sendPrompt({
+      sessionId: chatSession.data.id,
+      prompt: trimmedContent,
+    });
+  };
 
-  function handleKeyPress(event: KeyboardEvent): void {
+  const handleKeyPress = (event: KeyboardEvent): void => {
     // Skip if IME is composing to fix Chinese input issues
     if (event.isComposing) return;
 
@@ -81,7 +197,7 @@
     const handled = fileSearchService.handleSearchKeydown(
       event,
       promptEditorTextarea ?? null,
-      chatState.messageInput,
+      inputValue,
     );
 
     if (handled) return;
@@ -96,7 +212,7 @@
         if (event.shiftKey) {
           // Shift+Tab: Remove 2 spaces if they exist before cursor
           const cursorPos = promptEditorTextarea.selectionStart;
-          const value = chatState.messageInput;
+          const value = inputValue;
 
           if (
             cursorPos >= 2 &&
@@ -112,7 +228,7 @@
         break;
       }
     }
-  }
+  };
 
   // Cleanup on component destroy
   $effect(() => {
@@ -120,6 +236,9 @@
       fileSearchService.cleanup();
     };
   });
+
+  $inspect(editorView?.unsavedContent);
+  $inspect(chatSession);
 </script>
 
 <div class="bg-surface mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-3">
@@ -133,13 +252,16 @@
       >
         <Paperclip width="14" height="14" />
       </button>
-      <span class="text-muted text-xs uppercase">PTY Command</span>
+      <ModelSelectorDropdown position="below" />
+      <!-- <span class="text-muted text-xs uppercase"
+        >{headerText ?? "PTY Command"}</span
+      > -->
     </div>
     <!-- Right Controls -->
     <div class="flex items-center gap-2">
       <button
         onclick={handleSendMessage}
-        disabled={!chatState.messageInput.trim() || !chatState.currentChat}
+        disabled={!inputValue.trim()}
         class="text-muted hover:text-accent cursor-pointer rounded p-1.5 disabled:cursor-not-allowed"
         title="Send Message"
       >
@@ -148,7 +270,7 @@
       <button
         onclick={handleClose}
         class="text-muted hover:text-accent cursor-pointer rounded"
-        title="Close Prompt Editor"
+        title="Close"
       >
         <XLg />
       </button>
@@ -158,8 +280,7 @@
   <div class="relative flex flex-1 flex-col">
     <textarea
       bind:this={promptEditorTextarea}
-      bind:value={chatState.messageInput}
-      oninput={(e) => handleInputChange(e.currentTarget.value)}
+      bind:value={inputValue}
       onkeydown={handleKeyPress}
       placeholder="Prompt editor, use '/' for commands, or @path/to/file"
       class="placeholder-muted h-full w-full flex-1 resize-none border-none bg-transparent p-4 text-[13px] leading-6 outline-none placeholder:text-sm"
@@ -174,7 +295,7 @@
           fileSearchService.handleFileSelect(
             file,
             promptEditorTextarea ?? null,
-            chatState.messageInput,
+            inputValue,
           )}
         oncancel={() =>
           fileSearchService.handleSearchCancel(promptEditorTextarea ?? null)}
@@ -184,16 +305,3 @@
     {/if}
   </div>
 </div>
-
-<!-- <style>
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #2c2c2e;
-    border-radius: 3px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-</style> -->

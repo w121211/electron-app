@@ -4,10 +4,7 @@ import type {
   ChatMessage,
   ChatMode,
 } from "../../../core/services/chat-engine/chat-session-repository.js";
-import {
-  getPreference,
-  setPreference,
-} from "./local-preferences-store.svelte.js";
+import { getPreference, setPreference } from "../lib/local-storage.js";
 import { getActiveEditorContext } from "./ui.svelte.js";
 
 export interface ModelOption {

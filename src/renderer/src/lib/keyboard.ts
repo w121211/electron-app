@@ -5,8 +5,22 @@ import {
   uiState,
   closeAllModals,
 } from "../stores/ui-store.svelte.js";
+import { documentService } from "../services/document-service.js";
+import { ui } from "../stores/ui.svelte.js";
 
 // --- 1. Standalone Handlers ---
+
+function handleSaveDocument() {
+  if (ui.activeFilePath) {
+    documentService.saveDocument(ui.activeFilePath).catch((err) => {
+      console.error("Failed to save document via hotkey", err);
+      showToast(
+        `Failed to save: ${err instanceof Error ? err.message : String(err)}`,
+        "error",
+      );
+    });
+  }
+}
 
 function handleNewPromptScript() {
   const selected = treeState.selectedNode;
@@ -104,6 +118,30 @@ const shortcutDefinitions: ShortcutDefinition[] = [
     os: "all",
     handler: handleEscape,
     description: "Close preview/modal",
+    preventDefault: true,
+  },
+  {
+    key: "s",
+    meta: true,
+    os: "mac",
+    handler: handleSaveDocument,
+    description: "Save current file",
+    preventDefault: true,
+  },
+  {
+    key: "s",
+    ctrl: true,
+    os: "windows",
+    handler: handleSaveDocument,
+    description: "Save current file",
+    preventDefault: true,
+  },
+  {
+    key: "s",
+    ctrl: true,
+    os: "linux",
+    handler: handleSaveDocument,
+    description: "Save current file",
     preventDefault: true,
   },
 ];

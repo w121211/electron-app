@@ -13,6 +13,7 @@
   import FilePanel from "./FilePanel.svelte";
   import PromptEditor from "./chat/PromptEditor.svelte";
   import PtyChatPanel from "./pty-chat/PtyChatPanel.svelte";
+  import { documentService } from "../services/document-service.js";
 
   const logger = new Logger({ name: "NewMainLayout" });
 
@@ -24,6 +25,9 @@
     | "promptEditor";
 
   const editorContext = $derived.by(getActiveEditorContext);
+
+  // const chatSession = $derived(getLinkedChatSession(filePath));
+  // const editorView = $derived(editorViews.get(filePath));
 
   const centerPanelView: CenterPanelView = $derived.by(() => {
     if (editorContext?.chatSessionState) {
@@ -83,8 +87,11 @@
     <main class="flex min-w-0 flex-1">
       {#if centerPanelView === "apiChatPanel"}
         <ChatPanel />
-      {:else if centerPanelView === "promptEditor"}
-        <PromptEditor />
+      {:else if centerPanelView === "promptEditor" && editorContext?.filePath}
+        <PromptEditor
+          filePath={editorContext.filePath}
+          onClose={() => documentService.closeDocument(editorContext.filePath)}
+        />
       {:else if centerPanelView === "filePanel"}
         <FilePanel />
       {:else if centerPanelView === "welcome"}

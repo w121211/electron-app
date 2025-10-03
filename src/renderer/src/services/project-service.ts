@@ -112,6 +112,12 @@ class ProjectService {
     return projectState.projectFolders.find((folder) => folder.path === path);
   }
 
+  getProjectFolderForFile(filePath: string): ProjectFolder | undefined {
+    return projectState.projectFolders.find((folder) =>
+      filePath.startsWith(folder.path),
+    );
+  }
+
   async removeProjectFolder(projectFolderPath: string) {
     setLoading("removeProjectFolder", true);
 
@@ -470,7 +476,12 @@ class ProjectService {
           // Remove file/folder
           if (existingIndex !== -1) {
             node.children.splice(existingIndex, 1);
-            this.logger.debug("Removed child:", currentSegment, "from parent:", node.name);
+            this.logger.debug(
+              "Removed child:",
+              currentSegment,
+              "from parent:",
+              node.name,
+            );
           } else {
             this.logger.warn(
               "Child not found for removal - segment:",
@@ -478,7 +489,7 @@ class ProjectService {
               "in parent:",
               node.name,
               "available children:",
-              node.children?.map(c => c.name)
+              node.children?.map((c) => c.name),
             );
           }
         }
@@ -516,7 +527,7 @@ class ProjectService {
         "File path does not start with tree path - filePath:",
         filePath,
         "treePath:",
-        treePath
+        treePath,
       );
       return newTree;
     }

@@ -50,7 +50,15 @@ vi.mock("../src/core/services/pty/pty-chat-session.js", () => ({
     }
 
     markTerminated(): void {
-      // Mock implementation
+      this.sessionData = {
+        ...this.sessionData,
+        sessionStatus: "external_terminated",
+        updatedAt: new Date(),
+      };
+    }
+
+    recordPtyExit(): void {
+      this.ptyInstanceId = null;
     }
 
     toChatSessionData(): ChatSessionData {
@@ -299,7 +307,7 @@ describe("PtyChatClient", () => {
     });
   });
 
-  describe("Session Closure", () => {
+  describe("Session Termination", () => {
     let sessionId: string;
     let mockInstance: PtyInstance;
 
@@ -323,23 +331,29 @@ describe("PtyChatClient", () => {
       sessionId = session.id;
     });
 
-    it("should close session and kill PTY instance", async () => {
-      await client.closeSession(sessionId);
+    it("should terminate session and kill PTY instance", async () => {
+      const result = await client.terminateChatSession(sessionId);
 
       expect(mockInstance.kill).toHaveBeenCalled();
 
-      // Verify session is deleted from repository
-      const deletedSession = await repository.getById(sessionId);
-      expect(deletedSession).toBeNull();
+      expect(result.sessionStatus).toBe("external_terminated");
+      expect(result.metadata?.external?.pty?.ptyInstanceId).toBeUndefined();
+
+      const terminatedSession = await repository.getById(sessionId);
+      expect(terminatedSession?.sessionStatus).toBe("external_terminated");
+      expect(
+        terminatedSession?.metadata?.external?.pty?.ptyInstanceId,
+      ).toBeUndefined();
     });
 
-    it("should handle closing session without PTY instance", async () => {
+    it("should handle terminating session without PTY instance", async () => {
       // Create a session data directly in repository without PTY instance
       const sessionData = createMockChatSession();
       await repository.create(sessionData);
 
       // Should not throw error
-      await expect(client.closeSession(sessionData.id)).resolves.not.toThrow();
+      const terminated = await client.terminateChatSession(sessionData.id);
+      expect(terminated.id).toBe(sessionData.id);
     });
   });
 

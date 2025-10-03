@@ -3,32 +3,43 @@
 import { Logger } from "tslog";
 import type {
   ChatSessionData,
-  ChatSessionStatus,
-} from "../../../core/services/chat-engine/chat-session-repository.js";
+  ChatMetadata,
+} from "../../../core/services/chat/chat-session-repository.js";
+import type { PromptScriptFile } from "../../../core/services/prompt-script/prompt-script-repository.js";
 import type { PromptScriptMetadata } from "../../../core/services/prompt-script/prompt-script-parser.js";
-import type { ChatUpdatedEvent } from "../../../core/services/chat-engine/events.js";
 import {
   chatSessions,
-  sessionLinks,
-  type ChatHydrationStatus,
+  chatSessionLinks,
+  setAvailableModels,
+  setSelectedModel,
   type ChatSessionState,
   type PromptScriptDriftWarning,
-  type SessionLinkState,
+  type ChatSessionLinkState,
 } from "../stores/chat.svelte.js";
+import {
+  documents,
+  type DocumentState,
+  type PromptScriptState,
+} from "../stores/documents.svelte.js";
+import {
+  editorViews,
+  type EditorViewState,
+} from "../stores/editor-views.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import type { UserModelMessage } from "ai";
+import { setPreference } from "../lib/local-storage.js";
 
-interface AttachPromptScriptOptions {
-  filePath: string;
-  metadata: PromptScriptMetadata;
-  contentHash: string;
-}
+// interface HydratePromptScriptLinkOptions {
+//   filePath: string;
+//   metadata: PromptScriptMetadata;
+//   contentHash: string;
+// }
 
-interface SendPromptOptions {
-  sessionId: string;
-  prompt: string;
-  toolNames?: string[];
-}
+// interface SendPromptOptions {
+//   sessionId: string;
+//   prompt: string;
+//   toolNames?: string[];
+// }
 
 function toIsoTimestamp(date: Date = new Date()): string {
   return date.toISOString();
@@ -62,43 +73,45 @@ export class ChatService {
   async hydrateSession(
     session: ChatSessionData,
     options: {
-      hydration?: ChatHydrationStatus;
       driftWarnings?: PromptScriptDriftWarning[];
       isReplayQueued?: boolean;
     } = {},
   ): Promise<ChatSessionState> {
+    console.log("Hydrating session", session.id);
     const existing = chatSessions.get(session.id);
     const now = toIsoTimestamp();
 
-    if (existing) {
-      existing.data = session;
-      existing.hydration = options.hydration ?? existing.hydration;
-      existing.driftWarnings = options.driftWarnings ?? existing.driftWarnings;
-      existing.lastSyncedAt = now;
-      existing.isReplayQueued =
-        options.isReplayQueued ?? existing.isReplayQueued;
-      return existing;
-    }
+    const state: ChatSessionState = existing
+      ? {
+          ...existing,
+          data: session,
+          driftWarnings: options.driftWarnings ?? existing.driftWarnings,
+          lastSyncedAt: now,
+          isReplayQueued: options.isReplayQueued ?? existing.isReplayQueued,
+        }
+      : {
+          data: session,
+          driftWarnings: options.driftWarnings ?? [],
+          lastSyncedAt: now,
+          isReplayQueued: options.isReplayQueued ?? false,
+        };
 
-    const runtime: ChatSessionState = {
-      data: session,
-      hydration: options.hydration ?? "idle",
-      driftWarnings: options.driftWarnings ?? [],
-      lastSyncedAt: now,
-      isReplayQueued: options.isReplayQueued ?? false,
-    };
+    chatSessions.set(session.id, state);
 
-    chatSessions.set(session.id, runtime);
-    return runtime;
+    this.updateLinkMetadata(session);
+
+    return state;
   }
 
-  async attachPromptScript(
-    options: AttachPromptScriptOptions,
-  ): Promise<SessionLinkState> {
+  async hydratePromptScriptLink(options: {
+    filePath: string;
+    metadata: PromptScriptMetadata;
+    contentHash: string;
+  }): Promise<ChatSessionLinkState> {
     const { filePath, metadata, contentHash } = options;
 
     const warnings: PromptScriptDriftWarning[] = [];
-    let status: SessionLinkState["status"] = "session_missing";
+    let status: ChatSessionLinkState["status"] = "session_missing";
     let resolved: ChatSessionData | null = null;
 
     if (metadata.chatSessionId) {
@@ -187,7 +200,7 @@ export class ChatService {
       await this.hydrateSession(resolved, { driftWarnings: warnings });
     }
 
-    const link: SessionLinkState = {
+    const link: ChatSessionLinkState = {
       sessionId: resolved?.id ?? null,
       scriptHash: resolved?.scriptHash ?? null,
       status,
@@ -195,16 +208,14 @@ export class ChatService {
       lastAttachedAt: toIsoTimestamp(),
     };
 
-    sessionLinks.set(filePath, link);
+    chatSessionLinks.set(filePath, link);
 
     return link;
   }
 
-  detachSessionLink(filePath: string): void {
-    sessionLinks.delete(filePath);
-  }
-
-  async refreshSession(sessionId: string): Promise<ChatSessionData | null> {
+  async rehydrateChatSession(
+    sessionId: string,
+  ): Promise<ChatSessionData | null> {
     const session = await this.safeGetSessionById(sessionId);
     if (session) {
       await this.hydrateSession(session);
@@ -212,12 +223,14 @@ export class ChatService {
     return session;
   }
 
-  async sendPrompt(options: SendPromptOptions) {
+  async sendPrompt(options: {
+    sessionId: string;
+    prompt: string;
+    toolNames?: string[];
+  }) {
     const { sessionId, prompt, toolNames } = options;
 
     this.logger.info("Sending prompt", { sessionId });
-
-    this.setHydration(sessionId, "streaming");
 
     try {
       const input: UserModelMessage = { role: "user", content: prompt };
@@ -227,45 +240,92 @@ export class ChatService {
         toolNames,
       });
 
-      await this.hydrateSession(result.session, { hydration: "idle" });
-      this.updateLinkMetadata(result.session);
+      await this.hydrateSession(result.session);
 
       return result;
     } catch (error) {
       this.logger.error("Failed to send prompt", error);
-      this.setHydration(sessionId, "error");
       throw error;
     } finally {
       const runtime = chatSessions.get(sessionId);
-      if (runtime && runtime.hydration === "streaming") {
-        runtime.hydration = "idle";
+      if (runtime) {
+        chatSessions.set(sessionId, {
+          ...runtime,
+          lastSyncedAt: toIsoTimestamp(),
+        });
       }
     }
   }
 
-  async setSessionStatus(sessionId: string, status: ChatSessionStatus) {
-    const runtime = chatSessions.get(sessionId);
-    if (runtime) {
-      runtime.data = {
-        ...runtime.data,
-        sessionStatus: status,
-      };
-      runtime.lastSyncedAt = toIsoTimestamp();
-    }
+  async createPtyChatSession(
+    workingDirectory: string,
+    modelId: `${string}/${string}`,
+    initialPrompt?: string,
+    metadata?: Partial<ChatMetadata>,
+  ): Promise<ChatSessionData> {
+    const session = await trpcClient.ptyChat.createSession.mutate({
+      workingDirectory,
+      modelId,
+      initialPrompt,
+      metadata,
+    });
+
+    await this.hydrateSession(session);
+
+    return session;
   }
 
-  private setHydration(
-    sessionId: string,
-    hydration: ChatHydrationStatus,
-  ): ChatSessionState | null {
-    const runtime = chatSessions.get(sessionId);
-    if (!runtime) {
-      return null;
-    }
+  async createLinkedPtyChatSession(options: {
+    scriptPath: string;
+    workingDirectory: string;
+    modelId: `${string}/${string}`;
+    initialPrompt: string;
+    metadata?: Partial<ChatMetadata>;
+  }): Promise<{
+    session: ChatSessionData;
+    script: PromptScriptFile;
+    link: ChatSessionLinkState;
+  }> {
+    const session = await this.createPtyChatSession(
+      options.workingDirectory,
+      options.modelId,
+      options.initialPrompt,
+      options.metadata,
+    );
 
-    runtime.hydration = hydration;
-    runtime.lastSyncedAt = toIsoTimestamp();
-    return runtime;
+    const linked = await trpcClient.promptScript.linkSession.mutate({
+      scriptPath: options.scriptPath,
+      sessionId: session.id,
+    });
+
+    await this.hydrateSession(linked.session);
+
+    const link = await this.hydratePromptScriptLink({
+      filePath: options.scriptPath,
+      metadata: linked.script.metadata,
+      contentHash: linked.script.hash,
+    });
+
+    this.updatePromptScriptDocumentState(
+      options.scriptPath,
+      linked.script,
+      link,
+    );
+
+    return {
+      session: linked.session,
+      script: linked.script,
+      link,
+    };
+  }
+
+  async terminatePtyChatSession(sessionId: string): Promise<void> {
+    this.logger.info("Terminating PTY chat session", { sessionId });
+
+    const session = await trpcClient.ptyChat.terminateSession.mutate({
+      chatSessionId: sessionId,
+    });
+    await this.hydrateSession(session);
   }
 
   private async safeGetSessionById(
@@ -295,12 +355,81 @@ export class ChatService {
 
   private updateLinkMetadata(session: ChatSessionData): void {
     const updatedAt = toIsoTimestamp();
-    for (const link of sessionLinks.values()) {
+    for (const [filePath, link] of chatSessionLinks.entries()) {
       if (link.sessionId === session.id) {
-        link.scriptHash = session.scriptHash ?? null;
-        link.lastAttachedAt = updatedAt;
+        chatSessionLinks.set(filePath, {
+          ...link,
+          scriptHash: session.scriptHash ?? null,
+          lastAttachedAt: updatedAt,
+        });
       }
     }
+  }
+
+  private updatePromptScriptDocumentState(
+    scriptPath: string,
+    script: PromptScriptFile,
+    link: ChatSessionLinkState,
+  ): void {
+    const document = documents.get(scriptPath);
+    const now = toIsoTimestamp();
+    const linkWarnings = link.warnings.map((warning) => warning.message);
+
+    if (document?.promptScript) {
+      const promptScript = document.promptScript;
+      const mergedWarnings = this.mergeWarnings([
+        ...promptScript.warnings,
+        ...script.warnings,
+        ...linkWarnings,
+      ]);
+
+      const updatedPromptScript: PromptScriptState = {
+        ...promptScript,
+        metadata: script.metadata,
+        prompts: script.prompts,
+        body: script.body,
+        warnings: mergedWarnings,
+        link: {
+          sessionId: link.sessionId,
+          scriptHash: link.scriptHash,
+          status: link.status,
+          warnings: linkWarnings,
+          resolvedAt: now,
+        },
+        lastReconciledAt: now,
+      };
+
+      const updatedDocument: DocumentState = {
+        ...document,
+        savedContent: script.content,
+        savedHash: script.hash,
+        lastOpenedAt: now,
+        promptScript: updatedPromptScript,
+      };
+
+      documents.set(scriptPath, updatedDocument);
+    }
+
+    const view = editorViews.get(scriptPath);
+    if (view) {
+      const updatedView: EditorViewState = {
+        ...view,
+        unsavedContent: script.content,
+        lastInteractionAt: now,
+      } satisfies EditorViewState;
+
+      editorViews.set(scriptPath, updatedView);
+    }
+  }
+
+  private mergeWarnings(warnings: string[]): string[] {
+    const result = new Set<string>();
+    for (const warning of warnings) {
+      if (warning) {
+        result.add(warning);
+      }
+    }
+    return [...result];
   }
 
   // Legacy methods retained temporarily to aid the ongoing refactor.
@@ -340,41 +469,48 @@ export class ChatService {
   //   );
   // }
 
-  async getAllChats(): Promise<[]> {
-    this.logger.warn("getAllChats is deprecated in the prompt-script workflow");
-    return [];
+  // async getAllChats(): Promise<[]> {
+  //   this.logger.warn("getAllChats is deprecated in the prompt-script workflow");
+  //   return [];
+  // }
+
+  // async confirmToolCall(
+  //   _absoluteFilePath: string,
+  //   _chatSessionId: string,
+  //   _toolCallId: string,
+  //   _outcome: "yes" | "no" | "yes_always",
+  // ): Promise<never> {
+  //   throw new Error(
+  //     "Tool call confirmation must be handled through the new chat session APIs.",
+  //   );
+  // }
+
+  // async abortChat(
+  //   _absoluteFilePath: string,
+  //   _chatSessionId: string,
+  // ): Promise<never> {
+  //   throw new Error("Chat abort via file path is no longer supported.");
+  // }
+
+  selectModel(modelId: `${string}/${string}`): void {
+    setSelectedModel(modelId);
+    setPreference("selectedModel", modelId);
   }
 
-  async confirmToolCall(
-    _absoluteFilePath: string,
-    _chatSessionId: string,
-    _toolCallId: string,
-    _outcome: "yes" | "no" | "yes_always",
-  ): Promise<never> {
-    throw new Error(
-      "Tool call confirmation must be handled through the new chat session APIs.",
-    );
+  async hydrateAvailableModels(): Promise<void> {
+    const response = await trpcClient.model.getAvailableModels.query();
+    setAvailableModels(response);
+    const totalModels =
+      Object.keys(response.external).length +
+      Object.keys(response.internal).length;
+    this.logger.info(`Loaded ${totalModels} available models.`);
   }
 
-  async abortChat(
-    _absoluteFilePath: string,
-    _chatSessionId: string,
-  ): Promise<never> {
-    throw new Error("Chat abort via file path is no longer supported.");
-  }
-
-  async getAvailableModels(): Promise<[]> {
-    this.logger.warn(
-      "Model discovery is not yet wired to the new chat service",
-    );
-    return [];
-  }
-
-  async deleteChat(_absoluteFilePath: string): Promise<never> {
-    throw new Error(
-      "Deleting chat files is not supported. Manage sessions through the database.",
-    );
-  }
+  // async deleteChat(_absoluteFilePath: string): Promise<never> {
+  //   throw new Error(
+  //     "Deleting chat files is not supported. Manage sessions through the database.",
+  //   );
+  // }
 
   async rerunChat(
     _absoluteFilePath: string,
@@ -385,14 +521,14 @@ export class ChatService {
     );
   }
 
-  async savePromptDraft(
-    _absoluteFilePath: string,
-    _draft: string,
-  ): Promise<never> {
-    throw new Error(
-      "Prompt drafts are now stored inside prompt scripts. Update the document directly.",
-    );
-  }
+  // async savePromptDraft(
+  //   _absoluteFilePath: string,
+  //   _draft: string,
+  // ): Promise<never> {
+  //   throw new Error(
+  //     "Prompt drafts are now stored inside prompt scripts. Update the document directly.",
+  //   );
+  // }
 
   handleFileEvent(_event: unknown): void {
     this.logger.warn(
@@ -400,25 +536,20 @@ export class ChatService {
     );
   }
 
-  handleChatEvent(event: ChatUpdatedEvent): void {
-    const hydration: ChatHydrationStatus =
-      event.updateType === "AI_RESPONSE_STARTED" ||
-      event.updateType === "AI_RESPONSE_STREAMING"
-        ? "streaming"
-        : "idle";
-
-    void this.hydrateSession(event.chat, { hydration })
-      .then(() => {
-        this.updateLinkMetadata(event.chat);
-      })
-      .catch((error) => {
-        this.logger.error("Failed to hydrate chat session from event", {
-          chatId: event.chatId,
-          updateType: event.updateType,
-          error,
-        });
-      });
-  }
+  // handleChatEvent(event: ChatUpdatedEvent): void {
+  //   const hydration: ChatHydrationStatus =
+  //     event.updateType === "AI_RESPONSE_STARTED" ||
+  //     event.updateType === "AI_RESPONSE_STREAMING"
+  //       ? "streaming"
+  //       : "idle";
+  //   void this.hydrateSession(event.chat, { hydration }).catch((error) => {
+  //     this.logger.error("Failed to hydrate chat session from event", {
+  //       chatId: event.chatId,
+  //       updateType: event.updateType,
+  //       error,
+  //     });
+  //   });
+  // }
 
   togglePromptEditor = (): void => {
     throw new Error(

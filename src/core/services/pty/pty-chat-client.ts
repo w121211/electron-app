@@ -71,14 +71,14 @@ export class PtyChatClient {
     this.sessionIdByPtyInstance.set(ptyInstance.id, session.id);
     await this.repository.update(session.toChatSessionData());
 
-    if (input.initialPrompt) {
-      this.writeToInstance(
-        ptyInstance,
-        input.initialPrompt.endsWith("\n")
-          ? input.initialPrompt
-          : `${input.initialPrompt}\n`,
-      );
-    }
+    // if (input.initialPrompt) {
+    //   this.writeToInstance(
+    //     ptyInstance,
+    //     input.initialPrompt.endsWith("\n")
+    //       ? input.initialPrompt
+    //       : `${input.initialPrompt}\n`,
+    //   );
+    // }
 
     return session.toChatSessionData();
   }
@@ -104,15 +104,26 @@ export class PtyChatClient {
     return updatedData;
   }
 
-  async closeSession(sessionId: string): Promise<void> {
+  async terminateChatSession(sessionId: string): Promise<ChatSessionData> {
     const session = await this.ensureSessionLoaded(sessionId);
     const ptyInstance = this.getPtyInstance(session);
+    const ptyInstanceId = session.ptyInstanceId;
+
+    session.markTerminated();
+    session.ptyInstanceId = undefined;
+
     if (ptyInstance) {
       ptyInstance.kill();
-      this.sessionIdByPtyInstance.delete(ptyInstance.id);
     }
+
+    if (ptyInstanceId) {
+      this.sessionIdByPtyInstance.delete(ptyInstanceId);
+    }
+
+    const updatedSession = session.toChatSessionData();
+    await this.repository.update(updatedSession);
     this.sessions.delete(sessionId);
-    // await this.repository.delete(sessionId);
+    return updatedSession;
   }
 
   private subscribeToPtyEvents(): void {
@@ -139,7 +150,7 @@ export class PtyChatClient {
       if (!session) {
         return;
       }
-      session.markTerminated();
+      session.recordPtyExit();
       await this.repository.update(session.toChatSessionData());
       this.sessionIdByPtyInstance.delete(event.sessionId);
     });
@@ -196,9 +207,5 @@ export class PtyChatClient {
       return undefined;
     }
     return this.ptyInstanceManager.getSession(instanceId);
-  }
-
-  private writeToInstance(instance: PtyInstance, data: string): void {
-    instance.write(data);
   }
 }

@@ -17,6 +17,7 @@ import {
   type SelectionRange,
 } from "../stores/editor-views.svelte.js";
 import { ui } from "../stores/ui.svelte.js";
+import { chatSessionLinks } from "../stores/chat.svelte.js";
 import { chatService } from "./chat-service.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import { showToast } from "../stores/ui-store.svelte.js";
@@ -90,16 +91,10 @@ function detectPromptDelimiter(content: string): string {
 async function hashContent(content: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(content);
-
-  if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.subtle) {
-    const digest = await globalThis.crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
-  }
-
-  const cryptoModule = await import("node:crypto");
-  return cryptoModule.createHash("sha256").update(content).digest("hex");
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function ensureOpenFilePath(filePath: string): void {
@@ -121,12 +116,17 @@ function normalizePromptScriptState(content: string): PromptScriptState {
   } satisfies PromptScriptState;
 }
 
-function mergeUniqueWarnings(target: string[], additions: string[]): void {
+function mergeUniqueWarnings(
+  base: string[],
+  additions: string[],
+): string[] {
+  const unique = new Set<string>(base);
   for (const warning of additions) {
-    if (!target.includes(warning)) {
-      target.push(warning);
+    if (warning) {
+      unique.add(warning);
     }
   }
+  return [...unique];
 }
 
 export class DocumentService {
@@ -173,20 +173,22 @@ export class DocumentService {
 
     if (!file.isBase64) {
       const existingView = editorViews.get(filePath);
-      const editorView: EditorViewState = existingView ?? {
-        filePath,
+      const editorView: EditorViewState = {
+        ...(existingView ?? {
+          filePath,
+          unsavedContent: file.content,
+          cursor: null,
+          selections: [],
+          scrollTop: 0,
+          scrollLeft: 0,
+          isFocused: false,
+          languageId: file.fileType,
+          lastInteractionAt: null,
+        }),
         unsavedContent: file.content,
-        cursor: null,
-        selections: [],
-        scrollTop: 0,
-        scrollLeft: 0,
-        isFocused: false,
-        languageId: file.fileType,
-        lastInteractionAt: null,
+        lastInteractionAt: now,
+        isFocused: options.focus !== false, // Also ensure focus is set
       };
-
-      editorView.unsavedContent = file.content;
-      editorView.lastInteractionAt = now;
 
       editorViews.set(filePath, editorView);
     }
@@ -201,17 +203,32 @@ export class DocumentService {
         filePath,
       });
 
-      const target = documents.get(filePath)?.promptScript;
-      if (target) {
-        target.link = {
-          sessionId: result.session?.id ?? null,
-          scriptHash: result.script.hash,
-          status: result.linkType ? "none" : "session_missing",
-          warnings: result.warnings,
-          resolvedAt: now,
+      const currentDocument = documents.get(filePath);
+      const currentPromptScript = currentDocument?.promptScript;
+
+      if (currentDocument && currentPromptScript) {
+        const updatedPromptScript: PromptScriptState = {
+          ...currentPromptScript,
+          link: {
+            sessionId: result.session?.id ?? null,
+            scriptHash: result.script.hash,
+            status: result.linkType ? "none" : "session_missing",
+            warnings: result.warnings,
+            resolvedAt: now,
+          },
+          lastReconciledAt: now,
+          warnings: mergeUniqueWarnings(
+            currentPromptScript.warnings,
+            result.warnings,
+          ),
         };
-        target.lastReconciledAt = now;
-        mergeUniqueWarnings(target.warnings, result.warnings);
+
+        const updatedDocument: DocumentState = {
+          ...currentDocument,
+          promptScript: updatedPromptScript,
+        };
+
+        documents.set(filePath, updatedDocument);
 
         if (result.session) {
           await chatService.hydrateSession(result.session);
@@ -219,7 +236,7 @@ export class DocumentService {
       }
     }
 
-    return document;
+    return documents.get(filePath) ?? document;
   }
 
   closeDocument(filePath: string): void {
@@ -227,7 +244,7 @@ export class DocumentService {
 
     documents.delete(filePath);
     editorViews.delete(filePath);
-    chatService.detachSessionLink(filePath);
+    chatSessionLinks.delete(filePath);
 
     ui.openFilePaths = ui.openFilePaths.filter((path) => path !== filePath);
 
@@ -239,11 +256,14 @@ export class DocumentService {
   updateUnsavedContent(filePath: string, content: string): void {
     const view = editorViews.get(filePath);
     if (!view) {
-      return;
+      throw new Error(`Document ${filePath} is not found`);
     }
 
-    view.unsavedContent = content;
-    view.lastInteractionAt = new Date().toISOString();
+    editorViews.set(filePath, {
+      ...view,
+      unsavedContent: content,
+      lastInteractionAt: new Date().toISOString(),
+    });
   }
 
   updateCursor(filePath: string, cursor: CursorPosition | null): void {
@@ -252,8 +272,11 @@ export class DocumentService {
       return;
     }
 
-    view.cursor = cursor;
-    view.lastInteractionAt = new Date().toISOString();
+    editorViews.set(filePath, {
+      ...view,
+      cursor,
+      lastInteractionAt: new Date().toISOString(),
+    });
   }
 
   updateSelections(filePath: string, selections: SelectionRange[]): void {
@@ -262,8 +285,11 @@ export class DocumentService {
       return;
     }
 
-    view.selections = selections;
-    view.lastInteractionAt = new Date().toISOString();
+    editorViews.set(filePath, {
+      ...view,
+      selections,
+      lastInteractionAt: new Date().toISOString(),
+    });
   }
 
   updateScrollPosition(
@@ -276,8 +302,7 @@ export class DocumentService {
       return;
     }
 
-    view.scrollTop = scrollTop;
-    view.scrollLeft = scrollLeft;
+    editorViews.set(filePath, { ...view, scrollTop, scrollLeft });
   }
 
   markFocused(filePath: string, isFocused: boolean): void {
@@ -286,8 +311,11 @@ export class DocumentService {
       return;
     }
 
-    view.isFocused = isFocused;
-    view.lastInteractionAt = new Date().toISOString();
+    editorViews.set(filePath, {
+      ...view,
+      isFocused,
+      lastInteractionAt: new Date().toISOString(),
+    });
   }
 
   async saveDocument(
@@ -306,14 +334,17 @@ export class DocumentService {
 
     const savedHash = await hashContent(content);
     const now = new Date().toISOString();
-
-    document.savedContent = content;
-    document.savedHash = savedHash;
-    document.lastOpenedAt = now;
+    let updatedDocument: DocumentState = {
+      ...document,
+      savedContent: content,
+      savedHash,
+      lastOpenedAt: now,
+    };
 
     if (document.kind === "promptScript") {
       const parsed = parsePromptScriptContent(content);
-      document.promptScript = {
+
+      let promptScript: PromptScriptState = {
         metadata: parsed.metadata,
         prompts: parsed.prompts,
         delimiter: detectPromptDelimiter(content),
@@ -328,38 +359,53 @@ export class DocumentService {
           filePath,
         });
 
-        if (document.promptScript) {
-          document.promptScript.link = {
+        promptScript = {
+          ...promptScript,
+          link: {
             sessionId: result.session?.id ?? null,
             scriptHash: result.script.hash,
             status: result.linkType ? "none" : "session_missing",
             warnings: result.warnings,
             resolvedAt: now,
-          };
-          document.promptScript.lastReconciledAt = now;
-          mergeUniqueWarnings(document.promptScript.warnings, result.warnings);
+          },
+          lastReconciledAt: now,
+          warnings: mergeUniqueWarnings(promptScript.warnings, result.warnings),
+        };
 
-          if (result.session) {
-            await chatService.hydrateSession(result.session);
-          }
+        if (result.session) {
+          await chatService.hydrateSession(result.session);
         }
       } catch (error) {
         this.logger.error("Failed to reattach prompt script after save", error);
-        if (document.promptScript) {
-          mergeUniqueWarnings(document.promptScript.warnings, [
-            error instanceof Error
-              ? `Failed to attach prompt script: ${error.message}`
-              : "Failed to attach prompt script",
-          ]);
-        }
+
+        const fallbackWarnings = [
+          error instanceof Error
+            ? `Failed to attach prompt script: ${error.message}`
+            : "Failed to attach prompt script",
+        ];
+
+        promptScript = {
+          ...promptScript,
+          warnings: mergeUniqueWarnings(
+            promptScript.warnings,
+            fallbackWarnings,
+          ),
+        };
       }
+
+      updatedDocument = {
+        ...updatedDocument,
+        promptScript,
+      };
     }
+
+    documents.set(filePath, updatedDocument);
 
     if (options.keepFocus !== true) {
       ui.activeFilePath = filePath;
     }
 
-    return document;
+    return updatedDocument;
   }
 
   async createPromptScript(

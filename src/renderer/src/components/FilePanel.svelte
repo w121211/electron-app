@@ -1,15 +1,54 @@
 <!-- src/renderer/src/components/FilePanel.svelte -->
 <script lang="ts">
   import { Pencil } from "svelte-bootstrap-icons";
-  import { filePanelState } from "../stores/file-panel-store.svelte.js";
+  import { ui, getActiveEditorContext } from "../stores/ui.svelte.js";
   import { uiState, showToast } from "../stores/ui-store.svelte.js";
+  import { documentService } from "../services/document-service.js";
+  // import {
+  //   chatState,
+  //   updateMessageInput,
+  // } from "../stores/chat-store.svelte.js";
   import MarkdownTodoRenderer from "./MarkdownTodoRenderer.svelte";
   import Breadcrumb from "./Breadcrumb.svelte";
   import NavigationButtons from "./NavigationButtons.svelte";
+  import PromptEditor from "./chat/PromptEditor.svelte";
+  import DocumentEditor from "./DocumentEditor.svelte";
 
-  function handleEdit(): void {
-    showToast("Edit functionality is not yet implemented.", "info");
-  }
+  let isEditing = $state(false);
+  let editorContent = $state("");
+
+  const activeContext = $derived(getActiveEditorContext());
+  const activeDocument = $derived(activeContext?.documentState ?? null);
+
+  const isPromptScript = $derived(
+    ui.activeFilePath?.endsWith(".prompt.md") ?? false,
+  );
+
+  const openEditor = (): void => {
+    const content =
+      activeContext?.editorViewState?.unsavedContent ??
+      activeDocument?.savedContent ??
+      "";
+
+    if (isPromptScript) {
+      // PromptEditor is still coupled to chatState
+      // updateMessageInput(content);
+    } else {
+      editorContent = content;
+    }
+    isEditing = true;
+  };
+
+  const closeEditor = (): void => {
+    isEditing = false;
+  };
+
+  const onDocumentEditorInput = (newValue: string): void => {
+    editorContent = newValue;
+    if (ui.activeFilePath) {
+      documentService.updateUnsavedContent(ui.activeFilePath, newValue);
+    }
+  };
 </script>
 
 <section class="relative flex min-w-0 flex-1 flex-col">
@@ -18,53 +57,62 @@
     <div class="flex items-center gap-1">
       <NavigationButtons />
 
-      {#if filePanelState.filePath}
+      {#if ui.activeFilePath}
         <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
-          <Breadcrumb filePath={filePanelState.filePath} />
+          <Breadcrumb filePath={ui.activeFilePath} />
         </div>
       {/if}
     </div>
   </header>
 
-  <!-- File Viewer -->
+  <!-- File Viewer / Editor -->
   <div class="flex-1 overflow-y-auto">
-    <div class="mx-auto w-full max-w-3xl px-6 py-3">
-      <!-- File Toolbar -->
-      <div class="flex h-12 flex-shrink-0 items-center justify-end px-4">
-        <div class="flex items-center gap-2">
-          <button
-            onclick={handleEdit}
-            class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
-            title="Edit File"
-          >
-            <Pencil />
-          </button>
+    {#if isEditing}
+      {#if isPromptScript && ui.activeFilePath}
+        <PromptEditor
+          headerText="Edit Prompt Script"
+          filePath={ui.activeFilePath}
+          onClose={closeEditor}
+        />
+      {:else}
+        <DocumentEditor value={editorContent} onInput={onDocumentEditorInput} />
+      {/if}
+    {:else}
+      <div class="mx-auto w-full max-w-3xl px-6 py-3">
+        <!-- File Toolbar -->
+        <div class="flex h-12 flex-shrink-0 items-center justify-end px-4">
+          <div class="flex items-center gap-2">
+            <button
+              onclick={openEditor}
+              class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+              title="Edit File"
+            >
+              <Pencil />
+            </button>
+          </div>
+        </div>
+
+        <!-- File Content -->
+        <div class="text-foreground w-full p-4 font-sans text-[13px] leading-6">
+          {#if !activeDocument}
+            <div class="flex h-full items-center justify-center">
+              <p class="text-muted">No file open.</p>
+            </div>
+          {:else if activeDocument.savedContent}
+            <MarkdownTodoRenderer
+              content={activeDocument.savedContent}
+              projectPath={activeDocument.filePath.substring(
+                0,
+                activeDocument.filePath.lastIndexOf("/"),
+              )}
+            />
+          {:else}
+            <div class="flex h-full items-center justify-center">
+              <p class="text-muted">No file content available.</p>
+            </div>
+          {/if}
         </div>
       </div>
-
-      <!-- File Content -->
-      <div class="text-foreground w-full p-4 font-sans text-[13px] leading-6">
-        {#if filePanelState.isLoading}
-          <div class="flex h-full items-center justify-center">
-            <p class="text-muted">Loading file...</p>
-          </div>
-        {:else if filePanelState.error}
-          <div class="flex h-full items-center justify-center">
-            <p class="text-red-400">
-              Error loading file: {filePanelState.error}
-            </p>
-          </div>
-        {:else if filePanelState.content && filePanelState.projectPath}
-          <MarkdownTodoRenderer
-            content={filePanelState.content}
-            projectPath={filePanelState.projectPath}
-          />
-        {:else}
-          <div class="flex h-full items-center justify-center">
-            <p class="text-muted">No file content or project path missing.</p>
-          </div>
-        {/if}
-      </div>
-    </div>
+    {/if}
   </div>
 </section>

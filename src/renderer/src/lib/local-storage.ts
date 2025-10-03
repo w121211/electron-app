@@ -1,6 +1,6 @@
-// src/renderer/src/stores/local-preferences-store.svelte.ts
+// src/renderer/src/lib/local-storage.ts
 
-import type { ChatMode } from "../../../core/services/chat-engine/chat-session-repository.js";
+import type { ChatMode } from "../../../core/services/chat/chat-session-repository.js";
 
 interface PreferenceSchema {
   chatMode: ChatMode;

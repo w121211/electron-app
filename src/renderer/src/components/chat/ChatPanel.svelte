@@ -10,7 +10,6 @@
   } from "svelte-bootstrap-icons";
   import { isTerminalModel } from "../../../../core/utils/model-utils.js";
   import { chatService } from "../../services/chat-service.js";
-  import { ptyChatService } from "../../services/pty-chat-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import {
     chatState,
@@ -20,7 +19,7 @@
   } from "../../stores/chat-store.svelte.js";
   import { uiState, showToast } from "../../stores/ui-store.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
-  import { setPreference } from "../../stores/local-preferences-store.svelte.js";
+  import { setPreference } from "../../lib/local-storage.js";
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
   import ChatMessage from "./ChatMessage.svelte";
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
@@ -125,8 +124,9 @@
 
   async function handleSendMessage(): Promise<void> {
     if (isTerminalModelSelected) {
-      ptyChatService.createPtyChatFromDraft(chatState.messageInput);
-      return;
+      throw new Error("Terminal models handled in PtyChatPanel");
+      // chatService.createPtyChatFromDraft(chatState.messageInput);
+      // return;
     }
 
     if (!chatState.messageInput.trim() || !chatState.currentChat) return;
@@ -140,12 +140,12 @@
         ? chatState.selectedModel
         : undefined;
 
-    await chatService.sendMesage(
-      chatState.currentChat,
-      message,
-      modelId,
-      undefined, // attachments
-    );
+    await chatService.sendPrompt({
+      sessionId: chatState.currentChat,
+      prompt: message,
+      // modelId,
+      // undefined, // attachments
+    });
   }
 
   function handleInputChange(value: string): void {
@@ -162,15 +162,15 @@
     fileSearchService.detectFileReference(value, messageInputElement ?? null);
 
     // Save draft when user actively types (including clearing content)
-    if (chatState.currentChat) {
-      clearTimeout(draftTimeout);
-      draftTimeout = setTimeout(() => {
-        chatService.savePromptDraft(
-          chatState.currentChat!.absoluteFilePath,
-          value,
-        );
-      }, 1500);
-    }
+    // if (chatState.currentChat) {
+    //   clearTimeout(draftTimeout);
+    //   draftTimeout = setTimeout(() => {
+    //     chatService.savePromptDraft(
+    //       chatState.currentChat!.absoluteFilePath,
+    //       value,
+    //     );
+    //   }, 1500);
+    // }
   }
 
   // Handle search menu cancel
@@ -267,12 +267,12 @@
   });
 
   // Cleanup timeouts on component destroy using $effect
-  $effect(() => {
-    return () => {
-      clearTimeout(draftTimeout);
-      fileSearchService.cleanup();
-    };
-  });
+  // $effect(() => {
+  //   return () => {
+  //     clearTimeout(draftTimeout);
+  //     fileSearchService.cleanup();
+  //   };
+  // });
 </script>
 
 <section
@@ -335,7 +335,10 @@
 
     <!-- Prompt Editor / Messages -->
     {#if uiState.promptEditorOpen}
-      <PromptEditor />
+      <PromptEditor
+        filePath={""}
+        onClose={() => (uiState.promptEditorOpen = false)}
+      />
     {:else}
       <!-- Messages -->
       <div

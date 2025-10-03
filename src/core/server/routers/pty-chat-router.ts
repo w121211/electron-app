@@ -67,23 +67,23 @@ export function createPtyChatRouter(
         return session;
       }),
 
-    sendInput: publicProcedure
-      .input(
-        z.object({
-          chatSessionId: z.string(),
-          data: z.string(),
-        }),
-      )
-      .mutation(async ({ input }) => {
-        await client.sendInput(input.chatSessionId, input.data);
-        return { success: true };
-      }),
+    // sendInput: publicProcedure
+    //   .input(
+    //     z.object({
+    //       chatSessionId: z.string(),
+    //       data: z.string(),
+    //     }),
+    //   )
+    //   .mutation(async ({ input }) => {
+    //     await client.sendInput(input.chatSessionId, input.data);
+    //     return { success: true };
+    //   }),
 
-    closeSession: publicProcedure
+    terminateSession: publicProcedure
       .input(z.object({ chatSessionId: z.string() }))
-      .mutation(async ({ input }) => {
-        await client.closeSession(input.chatSessionId);
-        return { success: true };
+      .mutation(async ({ input }): Promise<ChatSessionData> => {
+        const session = await client.terminateChatSession(input.chatSessionId);
+        return session;
       }),
 
     getSession: publicProcedure

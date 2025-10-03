@@ -167,6 +167,18 @@ export class PtyChatSession {
     void this.emitUpdate("STATUS_CHANGED", { status: this.sessionStatus });
   }
 
+  recordPtyExit(): void {
+    if (!this.ptyInstanceId) {
+      return;
+    }
+
+    this.ptyInstanceId = undefined;
+    this.updatedAt = new Date();
+    void this.emitUpdate("METADATA_UPDATED", {
+      metadata: structuredClone(this.metadata),
+    });
+  }
+
   toChatSessionData(): ChatSessionData {
     return {
       id: this.id,

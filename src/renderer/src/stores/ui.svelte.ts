@@ -3,7 +3,7 @@
 import type { DocumentState } from "./documents.svelte.js";
 import { documents } from "./documents.svelte.js";
 import { editorViews } from "./editor-views.svelte.js";
-import { chatSessions, sessionLinks } from "./chat.svelte.js";
+import { chatSessions, chatSessionLinks } from "./chat.svelte.js";
 
 export interface UiState {
   openFilePaths: string[];
@@ -42,7 +42,7 @@ export const getActiveEditorContext = () => {
 
   const documentState = documents.get(ui.activeFilePath) ?? null;
   const editorViewState = editorViews.get(ui.activeFilePath) ?? null;
-  const sessionLink = sessionLinks.get(ui.activeFilePath) ?? null;
+  const sessionLink = chatSessionLinks.get(ui.activeFilePath) ?? null;
   const chatSessionState = sessionLink?.sessionId
     ? (chatSessions.get(sessionLink.sessionId) ?? null)
     : null;
