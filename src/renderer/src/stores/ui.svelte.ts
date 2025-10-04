@@ -35,7 +35,7 @@ const isDocument = (
 //     .filter(isDocument),
 // );
 
-export const getActiveEditorContext = () => {
+export const getSelectedDocContext = () => {
   if (!ui.activeFilePath) {
     return null;
   }

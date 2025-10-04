@@ -1,9 +1,9 @@
 <!-- src/renderer/src/components/PromptEditor.svelte -->
 <script lang="ts">
-  import { tick } from "svelte";
+  import { onDestroy, tick } from "svelte";
   import { Paperclip, XLg, Send } from "svelte-bootstrap-icons";
   import { chatService } from "../../services/chat-service.js";
-  import { documentService } from "../../services/document-service.js";
+  import { documentClientService } from "../../services/document-client-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import { projectService } from "../../services/project-service.js";
   import {
@@ -21,40 +21,44 @@
   } from "../../utils/editor-utils.js";
   import FileSearchDropdown from "./FileSearchDropdown.svelte";
   import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
+  import { getSelectedDocContext } from "../../stores/ui.svelte.js";
 
   let {
-    filePath,
     headerText,
-    onClose,
   }: {
-    filePath: string;
     headerText?: string;
-    onClose?: () => void;
   } = $props();
 
-  const chatSession = $derived(getLinkedChatSession(filePath));
-  const editorView = $derived(editorViews.get(filePath));
+  // const chatSession = $derived(getLinkedChatSession(filePath));
+  // const editorView = $derived(editorViews.get(filePath));
+  const docContext = $derived.by(getSelectedDocContext);
+  const editorView = $derived(docContext?.editorViewState);
+  const chatSession = $derived(docContext?.chatSessionState);
+
+  // IMPORTANT: This state is initialized only once and does not react to prop changes.
+  // The component relies on its parent using a `{#key filePath}` block to force a
+  // re-mount on file changes, which is the pattern that ensures this state is reset.
+  let inputValue = $state(editorView?.unsavedContent ?? "");
+  let promptEditorTextarea = $state<HTMLTextAreaElement>();
 
   $inspect(chatSessions);
   $inspect(chatSessionLinks);
+  $inspect(editorView?.unsavedContent);
+  $inspect(chatSession);
 
-  // By creating a local state `inputValue` and using effects to sync with the store,
-  // we can leverage Svelte 5's `bind:value` for more robust two-way data binding on the textarea.
-  // This avoids potential issues with the manual `value` and `oninput` pattern when dealing with derived state.
-  let inputValue = $state(editorView?.unsavedContent ?? "");
+  onDestroy(() => {
+    handleClose();
 
-  // Sync from store to local state. This handles external updates to the content.
-  // $effect(() => {
-  //   if (sourceValue !== inputValue) {
-  //     inputValue = sourceValue;
-  //   }
-  // });
+    fileSearchService.cleanup();
+  });
 
   // Sync from local state to the document service when user input changes `inputValue`.
   $effect(() => {
     // console.log(inputValue, editorView?.unsavedContent);
-    if (inputValue !== editorView?.unsavedContent) {
-      documentService.updateUnsavedContent(filePath, inputValue);
+    if (docContext?.filePath && inputValue !== editorView?.unsavedContent) {
+      documentClientService.updateEditorViewState(docContext.filePath, {
+        unsavedContent: inputValue,
+      });
       fileSearchService.detectFileReference(
         inputValue,
         promptEditorTextarea ?? null,
@@ -62,36 +66,23 @@
     }
   });
 
-  let promptEditorTextarea = $state<HTMLTextAreaElement>();
-
-  // Validate that this editor is only used for prompt scripts
+  // Auto-save effect for prompt scripts with 1-second debounce.
   $effect(() => {
-    if (filePath && !filePath.endsWith(".prompt.md")) {
-      throw new Error(
-        `PromptEditor component can only be used for '.prompt.md' files, but was passed: ${filePath}`,
-      );
-    }
-  });
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    inputValue; // Re-run when inputValue changes to create a debounce
 
-  // Auto-save effect for prompt scripts
-  $effect(() => {
-    if (filePath?.endsWith(".prompt.md")) {
-      // This effect re-runs whenever filePath or unsavedContent changes.
-      // By clearing and resetting the timeout on each change, we create a debounce.
-      const timer = setTimeout(() => {
-        documentService.saveDocument(filePath).catch((err) => {
+    const timer = setTimeout(() => {
+      if (docContext?.filePath && docContext.isDirty) {
+        documentClientService.saveDocument(docContext.filePath).catch((err) => {
           console.error("Auto-save failed", err);
           showToast("Auto-save failed", "error");
         });
-      }, 1000); // 1-second debounce
+      }
+    }, 1000);
 
-      // The cleanup function clears the timer if the effect re-runs before it fires.
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-
-    return undefined;
+    return () => {
+      clearTimeout(timer);
+    };
   });
 
   $effect(() => {
@@ -128,21 +119,26 @@
       }
     }
   };
+
   // Save cursor position when prompt editor is about to close
   const handleClose = (): void => {
-    if (promptEditorTextarea) {
+    if (promptEditorTextarea && docContext?.filePath) {
       const { selectionStart, selectionEnd } = promptEditorTextarea;
       const anchor = offsetToLineColumn(inputValue, selectionStart);
       const head = offsetToLineColumn(inputValue, selectionEnd);
 
-      documentService.updateSelections(filePath, [{ anchor, head }]);
-      // Also update the primary cursor position
-      documentService.updateCursor(filePath, head);
+      documentClientService.updateEditorViewState(docContext.filePath, {
+        selections: [{ anchor, head }],
+        cursor: head,
+      });
     }
 
-    if (onClose) {
-      onClose();
-      return;
+    // Save any unsaved changes when the component unmounts.
+    if (docContext?.filePath) {
+      documentClientService.saveDocument(docContext.filePath).catch((err) => {
+        console.error("Save on unmount failed", err);
+        showToast("Save on unmount failed", "error");
+      });
     }
   };
 
@@ -163,7 +159,7 @@
       const workingDirectory = projectFolder.path;
       const modelId = chatSettings.selectedModel;
 
-      await documentService.saveDocument(filePath, { keepFocus: true });
+      await documentClientService.saveDocument(filePath, { keepFocus: true });
 
       await chatService.createLinkedPtyChatSession({
         scriptPath: filePath,
@@ -229,16 +225,6 @@
       }
     }
   };
-
-  // Cleanup on component destroy
-  $effect(() => {
-    return () => {
-      fileSearchService.cleanup();
-    };
-  });
-
-  $inspect(editorView?.unsavedContent);
-  $inspect(chatSession);
 </script>
 
 <div class="bg-surface mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-3">

@@ -5,52 +5,52 @@
   // import { taskService } from "../services/task-service.js";
   import { uiState } from "../stores/ui-store.svelte.js";
   import { treeState } from "../stores/tree-store.svelte.js";
-  import { getActiveEditorContext } from "../stores/ui.svelte.js";
+  import { getSelectedDocContext } from "../stores/ui.svelte.js";
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
-  import ChatPanel from "./chat/ChatPanel.svelte";
+  import ApiChatPanel from "./chat/ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
   import QuickLauncher from "./QuickLauncher.svelte";
-  import FilePanel from "./FilePanel.svelte";
-  import PromptEditor from "./chat/PromptEditor.svelte";
+  import FilePanel from "./document/FilePanel.svelte";
+  import PromptEditorPanel from "./document/PromptEditorPanel.svelte";
   import PtyChatPanel from "./pty-chat/PtyChatPanel.svelte";
-  import { documentService } from "../services/document-service.js";
+  import { documentClientService } from "../services/document-client-service.js";
 
   const logger = new Logger({ name: "NewMainLayout" });
 
   type CenterPanelView =
     | "welcome"
     | "apiChatPanel"
-    | "filePanel"
     | "ptyChatPanel"
-    | "promptEditor";
+    | "filePanel"
+    | "promptEditorPanel";
 
-  const editorContext = $derived.by(getActiveEditorContext);
+  const selectedDocContext = $derived.by(getSelectedDocContext);
 
   // const chatSession = $derived(getLinkedChatSession(filePath));
   // const editorView = $derived(editorViews.get(filePath));
 
   const centerPanelView: CenterPanelView = $derived.by(() => {
-    if (editorContext?.chatSessionState) {
-      if (editorContext.chatSessionState.data.sessionType === "pty_chat") {
+    if (selectedDocContext?.chatSessionState) {
+      if (selectedDocContext.chatSessionState.data.sessionType === "pty_chat") {
         return "ptyChatPanel";
       } else if (
-        editorContext.chatSessionState.data.sessionType === "chat_engine"
+        selectedDocContext.chatSessionState.data.sessionType === "chat_engine"
       ) {
         return "apiChatPanel";
       } else {
         throw new Error(
           "Unhandled chat session type" +
-            editorContext.chatSessionState.data.sessionType,
+            selectedDocContext.chatSessionState.data.sessionType,
         );
       }
     }
 
     // Prompt script has no lnked chat session
-    if (editorContext?.documentState?.kind === "promptScript") {
-      return "promptEditor";
+    if (selectedDocContext?.documentState?.kind === "promptScript") {
+      return "promptEditorPanel";
     }
 
-    if (editorContext?.documentState) {
+    if (selectedDocContext?.documentState) {
       return "filePanel";
     }
     return "welcome";
@@ -70,7 +70,7 @@
     initializeData();
   });
 
-  $inspect(editorContext);
+  $inspect(selectedDocContext);
   $inspect(centerPanelView);
 </script>
 
@@ -85,13 +85,10 @@
 
     <!-- Main Workspace -->
     <main class="flex min-w-0 flex-1">
-      {#if centerPanelView === "apiChatPanel"}
-        <ChatPanel />
-      {:else if centerPanelView === "promptEditor" && editorContext?.filePath}
-        <PromptEditor
-          filePath={editorContext.filePath}
-          onClose={() => documentService.closeDocument(editorContext.filePath)}
-        />
+      {#if centerPanelView === "promptEditorPanel"}
+        <PromptEditorPanel />
+      {:else if centerPanelView === "apiChatPanel"}
+        <ApiChatPanel />
       {:else if centerPanelView === "filePanel"}
         <FilePanel />
       {:else if centerPanelView === "welcome"}

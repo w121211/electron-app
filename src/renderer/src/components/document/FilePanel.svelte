@@ -1,28 +1,24 @@
 <!-- src/renderer/src/components/FilePanel.svelte -->
 <script lang="ts">
   import { Pencil } from "svelte-bootstrap-icons";
-  import { ui, getActiveEditorContext } from "../stores/ui.svelte.js";
-  import { uiState, showToast } from "../stores/ui-store.svelte.js";
-  import { documentService } from "../services/document-service.js";
+  import { ui, getSelectedDocContext } from "../../stores/ui.svelte.js";
+  import { uiState, showToast } from "../../stores/ui-store.svelte.js";
+  import { documentClientService } from "../../services/document-client-service.js";
   // import {
   //   chatState,
   //   updateMessageInput,
   // } from "../stores/chat-store.svelte.js";
-  import MarkdownTodoRenderer from "./MarkdownTodoRenderer.svelte";
-  import Breadcrumb from "./Breadcrumb.svelte";
-  import NavigationButtons from "./NavigationButtons.svelte";
-  import PromptEditor from "./chat/PromptEditor.svelte";
+  import MarkdownTodoRenderer from "../MarkdownTodoRenderer.svelte";
+  import Breadcrumb from "../Breadcrumb.svelte";
+  import NavigationButtons from "../NavigationButtons.svelte";
+  import PromptEditor from "./PromptEditor.svelte";
   import DocumentEditor from "./DocumentEditor.svelte";
 
   let isEditing = $state(false);
   let editorContent = $state("");
 
-  const activeContext = $derived(getActiveEditorContext());
+  const activeContext = $derived(getSelectedDocContext());
   const activeDocument = $derived(activeContext?.documentState ?? null);
-
-  const isPromptScript = $derived(
-    ui.activeFilePath?.endsWith(".prompt.md") ?? false,
-  );
 
   const openEditor = (): void => {
     const content =
@@ -30,7 +26,7 @@
       activeDocument?.savedContent ??
       "";
 
-    if (isPromptScript) {
+    if (activeContext?.documentState?.promptScript !== null) {
       // PromptEditor is still coupled to chatState
       // updateMessageInput(content);
     } else {
@@ -46,10 +42,18 @@
   const onDocumentEditorInput = (newValue: string): void => {
     editorContent = newValue;
     if (ui.activeFilePath) {
-      documentService.updateUnsavedContent(ui.activeFilePath, newValue);
+      documentClientService.updateEditorViewState(ui.activeFilePath, {
+        unsavedContent: newValue,
+      });
     }
   };
+
+  $effect(() => {
+    console.log(ui.activeFilePath);
+  });
 </script>
+
+{@debug ui}
 
 <section class="relative flex min-w-0 flex-1 flex-col">
   <!-- Header with Breadcrumb -->
@@ -58,7 +62,7 @@
       <NavigationButtons />
 
       {#if ui.activeFilePath}
-        <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
+        <div class:ml-3={!uiState.leftPanelOpen}>
           <Breadcrumb filePath={ui.activeFilePath} />
         </div>
       {/if}

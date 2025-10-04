@@ -5,14 +5,14 @@ import {
   uiState,
   closeAllModals,
 } from "../stores/ui-store.svelte.js";
-import { documentService } from "../services/document-service.js";
+import { documentClientService } from "../services/document-client-service.js";
 import { ui } from "../stores/ui.svelte.js";
 
 // --- 1. Standalone Handlers ---
 
 function handleSaveDocument() {
   if (ui.activeFilePath) {
-    documentService.saveDocument(ui.activeFilePath).catch((err) => {
+    documentClientService.saveDocument(ui.activeFilePath).catch((err) => {
       console.error("Failed to save document via hotkey", err);
       showToast(
         `Failed to save: ${err instanceof Error ? err.message : String(err)}`,

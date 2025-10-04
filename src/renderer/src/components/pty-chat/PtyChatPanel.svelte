@@ -3,7 +3,7 @@
   // import { chatState } from "../../stores/chat-store.svelte.js";
   import { uiState } from "../../stores/ui-store.svelte.js";
   import Breadcrumb from "../Breadcrumb.svelte";
-  import PromptEditor from "../chat/PromptEditor.svelte";
+  import PromptEditor from "../document/PromptEditor.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
   import PtyStreamPool from "../PtyStreamPool.svelte";
   import {
@@ -13,7 +13,7 @@
   import XtermSnapshot from "../XtermSnapshot.svelte";
 
   import { Logger } from "tslog"; // Import Logger
-  import { getActiveEditorContext } from "../../stores/ui.svelte.js";
+  import { getSelectedDocContext } from "../../stores/ui.svelte.js";
 
   const logger = new Logger({ name: "PtyChatPanel" }); // Initialize logger
 
@@ -25,7 +25,7 @@
 
   let selectedPtyStream: PtyStream | null = $state(null);
 
-  const activeContext = $derived.by(getActiveEditorContext);
+  const activeContext = $derived.by(getSelectedDocContext);
   const chatSession = $derived(activeContext?.chatSessionState?.data);
 
   $inspect(chatSession);

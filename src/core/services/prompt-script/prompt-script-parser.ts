@@ -25,6 +25,7 @@ export interface ParsePromptScriptResult {
   prompts: PromptScriptPrompt[];
   body: string;
   warnings: string[];
+  delimiter: string;
 }
 
 const USER_DELIMITER_REGEX = /<!--\s*user(?<attributes>[^>]*)-->/gi;
@@ -155,6 +156,11 @@ function parseDelimiterAttributes(raw: string | undefined): Record<string, strin
   return Object.keys(attributes).length > 0 ? attributes : undefined;
 }
 
+function detectPromptDelimiter(content: string): string {
+  const match = content.match(/<!--\s*user[^>]*-->/i);
+  return match ? match[0] : "<!-- user -->";
+}
+
 function extractPrompts(body: string): PromptScriptPrompt[] {
   const normalizedBody = normalizeNewlines(body);
   const prompts: PromptScriptPrompt[] = [];
@@ -199,11 +205,13 @@ export function parsePromptScriptContent(content: string): ParsePromptScriptResu
   const parsed = matter(content);
   const frontMatterResult = parseFrontMatter(parsed.data as RawFrontMatter);
   const prompts = extractPrompts(parsed.content ?? "");
+  const delimiter = detectPromptDelimiter(content);
 
   return {
     metadata: frontMatterResult.metadata,
     prompts,
     body: normalizeNewlines(parsed.content ?? ""),
     warnings: frontMatterResult.warnings,
+    delimiter,
   };
 }

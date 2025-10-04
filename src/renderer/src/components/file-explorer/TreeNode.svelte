@@ -14,7 +14,7 @@
   } from "../../stores/tree-store.svelte.js";
   import { tasksByPath } from "../../stores/task-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
-  import { getActiveEditorContext } from "../../stores/ui.svelte.js";
+  import { getSelectedDocContext } from "../../stores/ui.svelte.js";
   import { uiState, showToast } from "../../stores/ui-store.svelte.js";
   import {
     fileExplorerState,
@@ -23,7 +23,7 @@
     showContextMenu,
   } from "../../stores/file-explorer-store.svelte.js";
   import { fileExplorerService } from "../../services/file-explorer-service.js";
-  import { documentService } from "../../services/document-service.js";
+  import { documentClientService } from "../../services/document-client-service.js";
   import TreeNode from "./TreeNode.svelte";
   import FileIcon from "./FileIcon.svelte";
   import type { FolderTreeNode } from "../../stores/project-store.svelte.js";
@@ -35,7 +35,7 @@
 
   let { node, level }: TreeNodeProps = $props();
 
-  const activeContext = $derived.by(getActiveEditorContext);
+  const activeContext = $derived.by(getSelectedDocContext);
 
   const isExpanded = $derived(treeState.expandedNodePaths.includes(node.path));
   const isSelected = $derived(treeState.selectedNode === node.path);
@@ -95,7 +95,7 @@
     isCreatingPromptScript = true;
 
     try {
-      const script = await documentService.createPromptScript(node.path);
+      const script = await documentClientService.createPromptScript(node.path);
       await projectService.refreshProjectTreeForFile(script.absolutePath);
       await projectService.selectFile(script.absolutePath);
     } catch (error) {

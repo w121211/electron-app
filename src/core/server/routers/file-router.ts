@@ -1,7 +1,8 @@
 // src/core/server/routers/file-router.ts
 import { z } from "zod";
-import { openFile, getFileType, writeTextFile } from "../../utils/file-utils.js";
+import { getFileType, writeTextFile } from "../../utils/file-utils.js";
 import { router, publicProcedure } from "../trpc-init.js";
+import { DocumentService } from "../../services/document/document-service.js";
 
 // File schemas
 export const openFileSchema = z.object({
@@ -16,10 +17,11 @@ export const writeFileSchema = z.object({
 });
 
 export function createFileRouter() {
+  const documentService = new DocumentService();
+
   return router({
     openFile: publicProcedure.input(openFileSchema).query(async ({ input }) => {
-      // filePath is now expected to be an absolute path
-      return openFile(input.filePath);
+      return documentService.getDocument(input.filePath);
     }),
 
     getFileType: publicProcedure
@@ -32,7 +34,8 @@ export function createFileRouter() {
       .input(writeFileSchema)
       .mutation(async ({ input }) => {
         await writeTextFile(input.filePath, input.content);
-        return { success: true };
+        // After writing, return the full, updated document state
+        return documentService.getDocument(input.filePath);
       }),
   });
 }

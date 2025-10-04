@@ -17,7 +17,7 @@ import {
   cancelInlineFolderCreation,
   setWorkspaceSetupNeeded,
 } from "../stores/file-explorer-store.svelte.js";
-import { documentService } from "./document-service.js";
+import { documentClientService } from "./document-client-service.js";
 
 import {
   loadFileForPanel,
@@ -201,7 +201,7 @@ class ProjectService {
 
     try {
       if (isPromptScript) {
-        await documentService.openDocument(filePath, { focus: true });
+        await documentClientService.openDocument(filePath, { focus: true });
         closeFilePanel();
       } else {
         // Non prompt-script files continue using the lightweight preview panel

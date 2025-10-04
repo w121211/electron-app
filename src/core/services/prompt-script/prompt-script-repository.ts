@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
+import { fileExists, writeTextFile } from "../../utils/file-utils.js";
 import {
   parsePromptScriptContent,
   type ParsePromptScriptResult,
@@ -19,11 +20,17 @@ export interface PromptScriptFile {
   hash: string;
   modifiedAt: Date;
   warnings: string[];
+  delimiter: string;
 }
 
 export class PromptScriptRepository {
   async read(filePath: string): Promise<PromptScriptFile> {
     const absolutePath = path.resolve(filePath);
+
+    if (!(await fileExists(absolutePath))) {
+      throw new Error(`File does not exist: ${absolutePath}`);
+    }
+
     const content = await fs.readFile(absolutePath, "utf8");
     const stats = await fs.stat(absolutePath);
 
@@ -38,6 +45,7 @@ export class PromptScriptRepository {
       hash: this.createContentHash(content),
       modifiedAt: stats.mtime,
       warnings: parsed.warnings,
+      delimiter: parsed.delimiter,
     };
   }
 
@@ -52,7 +60,7 @@ export class PromptScriptRepository {
     const body = options.body ?? script.body;
 
     const serialized = matter.stringify(body, this.serializeMetadata(metadata));
-    await fs.writeFile(script.absolutePath, serialized, "utf8");
+    await writeTextFile(script.absolutePath, serialized);
 
     return this.read(script.absolutePath);
   }

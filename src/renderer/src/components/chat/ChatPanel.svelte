@@ -23,9 +23,9 @@
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
   import ChatMessage from "./ChatMessage.svelte";
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
-  import FileSearchDropdown from "./FileSearchDropdown.svelte";
-  import PromptEditor from "./PromptEditor.svelte";
-  import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
+  import FileSearchDropdown from "../document/FileSearchDropdown.svelte";
+  import PromptEditor from "../document/PromptEditor.svelte";
+  import ModelSelectorDropdown from "../document/ModelSelectorDropdown.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
 

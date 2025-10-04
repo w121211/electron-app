@@ -16,7 +16,7 @@ import {
 } from "../stores/tree-store.svelte.js";
 import { fileSearchService } from "./file-search-service.js";
 import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
-import { documentService } from "./document-service.js";
+import { documentClientService } from "./document-client-service.js";
 
 class QuickLauncherService {
   private logger = new Logger({ name: "QuickLauncherService" });
@@ -188,7 +188,7 @@ class QuickLauncherService {
         const script = result.data as PromptScriptSearchResult;
         this.logger.info("Opening prompt script:", script.absolutePath);
         expandParentDirectories(script.absolutePath);
-        await documentService.openDocument(script.absolutePath, { focus: true });
+        await documentClientService.openDocument(script.absolutePath, { focus: true });
       } else {
         const fileData = result.data as ProjectFileSearchResult;
         this.logger.info("Opening file:", fileData.absolutePath);

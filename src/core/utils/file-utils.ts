@@ -181,6 +181,45 @@ export function getFileType(filePath: string): string {
   return fileTypeMap[extension] || "unknown";
 }
 
+export type DocumentKind =
+  | "promptScript"
+  | "markdown"
+  | "code"
+  | "json"
+  | "text"
+  | "binary";
+
+export function resolveDocumentKind(filePath: string, fileType: string): DocumentKind {
+  if (filePath.endsWith(".prompt.md")) {
+    return "promptScript";
+  }
+
+  switch (fileType) {
+    case "markdown":
+      return "markdown";
+    case "json":
+      return "json";
+    case "text":
+    case "html":
+    case "typescript":
+    case "javascript":
+    case "python":
+    case "java":
+    case "c":
+    case "cpp":
+    case "go":
+    case "rust":
+    case "ruby":
+    case "php":
+    case "csharp":
+    case "swift":
+    case "kotlin":
+      return "code";
+    default:
+      return fileType === "unknown" ? "binary" : "text";
+  }
+}
+
 function isBinaryFile(fileType: string): boolean {
   const binaryTypes = ["image", "pdf", "archive"];
   return binaryTypes.includes(fileType);
