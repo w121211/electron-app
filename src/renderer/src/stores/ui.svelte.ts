@@ -35,21 +35,25 @@ const isDocument = (
 //     .filter(isDocument),
 // );
 
+export const isDirty = (filePath: string, inputValue: string) => {
+  const doc = documents[filePath] ?? null;
+  if (doc) {
+    return doc.data.content !== inputValue;
+  }
+  return false;
+};
+
 export const getSelectedDocContext = () => {
   if (!ui.activeFilePath) {
     return null;
   }
 
-  const documentState = documents.get(ui.activeFilePath) ?? null;
-  const editorViewState = editorViews.get(ui.activeFilePath) ?? null;
+  const documentState = documents[ui.activeFilePath] ?? null;
+  const editorViewState = editorViews[ui.activeFilePath] ?? null;
   const sessionLink = chatSessionLinks.get(ui.activeFilePath) ?? null;
   const chatSessionState = sessionLink?.sessionId
     ? (chatSessions.get(sessionLink.sessionId) ?? null)
     : null;
-  const isDirty =
-    documentState && editorViewState
-      ? documentState.savedContent !== editorViewState.unsavedContent
-      : false;
 
   return {
     filePath: ui.activeFilePath,
@@ -57,7 +61,7 @@ export const getSelectedDocContext = () => {
     editorViewState,
     // sessionLink,
     chatSessionState,
-    isDirty,
+    isDirty: isDirty(ui.activeFilePath, editorViewState?.unsavedContent ?? ""),
   };
 };
 

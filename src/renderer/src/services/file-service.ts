@@ -2,18 +2,12 @@
 
 import { Logger } from "tslog";
 import { trpcClient } from "../lib/trpc-client.js";
-
-interface FileContent {
-  content: string;
-  fileType: string;
-  absoluteFilePath: string;
-  isBase64?: boolean;
-}
+import type { CoreDocument } from "../../../core/services/document/document-service.js";
 
 export class FileService {
   private logger = new Logger({ name: "FileService" });
 
-  async openFile(filePath: string): Promise<FileContent> {
+  async openFile(filePath: string): Promise<CoreDocument> {
     const fileContent = await trpcClient.file.openFile.query({
       filePath,
     });
@@ -30,7 +24,7 @@ export class FileService {
   async writeFile(
     filePath: string,
     content: string,
-  ): Promise<{ success: boolean }> {
+  ): Promise<CoreDocument> {
     const result = await trpcClient.file.writeFile.mutate({
       filePath,
       content,

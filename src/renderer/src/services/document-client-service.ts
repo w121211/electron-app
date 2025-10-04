@@ -22,10 +22,6 @@ interface OpenDocumentOptions {
   focus?: boolean;
 }
 
-interface SaveDocumentOptions {
-  keepFocus?: boolean;
-}
-
 function ensureOpenFilePath(filePath: string): void {
   if (!ui.openFilePaths.includes(filePath)) {
     ui.openFilePaths.push(filePath);
@@ -46,9 +42,10 @@ export class DocumentService {
     const coreDoc = await fileService.openFile(filePath);
 
     // 2. Construct the frontend DocumentState, separating backend data from local state.
-    const promptScriptState: PromptScriptState | null = coreDoc.parsedPromptScript
-      ? { link: null, lastReconciledAt: null }
-      : null;
+    const promptScriptState: PromptScriptState | null =
+      coreDoc.parsedPromptScript
+        ? { link: null, lastReconciledAt: null }
+        : null;
 
     const document: DocumentState = {
       data: coreDoc,
@@ -56,11 +53,11 @@ export class DocumentService {
       promptScript: promptScriptState,
     };
 
-    documents.set(filePath, document);
+    documents[filePath] = document;
 
     // 3. Update editor views and UI state based on the new data structure.
     if (!coreDoc.isBase64) {
-      const existingView = editorViews.get(filePath);
+      const existingView = editorViews[filePath];
       const editorView: EditorViewState = {
         ...(existingView ?? {
           filePath,
@@ -74,7 +71,7 @@ export class DocumentService {
         languageId: coreDoc.fileType,
         lastInteractionAt: now,
       };
-      editorViews.set(filePath, editorView);
+      editorViews[filePath] = editorView;
     }
 
     ensureOpenFilePath(filePath);
@@ -88,15 +85,9 @@ export class DocumentService {
         filePath,
       });
 
-      const currentDocument = documents.get(filePath);
+      const currentDocument = documents[filePath];
       if (currentDocument?.promptScript) {
-        currentDocument.promptScript.link = {
-          sessionId: result.session?.id ?? null,
-          scriptHash: result.script.hash,
-          status: result.linkType ? "none" : "session_missing",
-          warnings: result.warnings,
-          resolvedAt: now,
-        };
+        currentDocument.promptScript.link = result;
         currentDocument.promptScript.lastReconciledAt = now;
 
         if (result.session) {
@@ -105,14 +96,14 @@ export class DocumentService {
       }
     }
 
-    return documents.get(filePath)!;
+    return documents[filePath]!;
   }
 
   closeDocument(filePath: string): void {
     this.logger.info("Closing document", { filePath });
 
-    documents.delete(filePath);
-    editorViews.delete(filePath);
+    delete documents[filePath];
+    delete editorViews[filePath];
     chatSessionLinks.delete(filePath);
 
     ui.openFilePaths = ui.openFilePaths.filter((path) => path !== filePath);
@@ -127,28 +118,25 @@ export class DocumentService {
     updates: Partial<Omit<EditorViewState, "filePath">>,
     options?: { updateInteraction?: boolean },
   ): void {
-    const view = editorViews.get(filePath);
+    const view = editorViews[filePath];
     if (!view) {
       return;
     }
 
     const shouldUpdateInteraction = options?.updateInteraction ?? true;
 
-    editorViews.set(filePath, {
+    editorViews[filePath] = {
       ...view,
       ...updates,
       ...(shouldUpdateInteraction && {
         lastInteractionAt: new Date().toISOString(),
       }),
-    });
+    };
   }
 
-  async saveDocument(
-    filePath: string,
-    options: SaveDocumentOptions = {},
-  ): Promise<DocumentState> {
-    const document = documents.get(filePath);
-    const editorView = editorViews.get(filePath);
+  async saveDocument(filePath: string): Promise<DocumentState> {
+    const document = documents[filePath];
+    const editorView = editorViews[filePath];
 
     if (!document || !editorView) {
       throw new Error(`Document ${filePath} is not open`);
@@ -156,42 +144,28 @@ export class DocumentService {
 
     const content = editorView.unsavedContent;
 
-    // 1. Write file and get the updated CoreDocument directly from the backend.
+    // Write file and get the updated CoreDocument directly from the backend.
     const updatedCoreDoc = await fileService.writeFile(filePath, content);
 
-    // 2. Update the document's data and local state.
+    // Update the document's data and local state.
     const now = new Date().toISOString();
     document.data = updatedCoreDoc;
     document.lastOpenedAt = now;
 
-    // 3. Re-run prompt script linking logic.
-    if (document.promptScript) {
-      document.promptScript.link = null; // Reset link state
+    // Reconcile prompt script linking if not exists yet
+    if (document.promptScript && !document.promptScript.link) {
       const result = await trpcClient.promptScript.findLinkedSession.query({
         filePath,
       });
 
-      // Ensure document wasn't closed during async operation
-      const currentDocument = documents.get(filePath);
+      const currentDocument = documents[filePath];
       if (currentDocument?.promptScript) {
-        currentDocument.promptScript.link = {
-          sessionId: result.session?.id ?? null,
-          scriptHash: result.script.hash,
-          status: result.linkType ? "none" : "session_missing",
-          warnings: result.warnings,
-          resolvedAt: now,
-        };
+        currentDocument.promptScript.link = result;
         currentDocument.promptScript.lastReconciledAt = now;
         if (result.session) {
           await chatService.hydrateSession(result.session);
         }
       }
-    }
-
-    documents.set(filePath, document);
-
-    if (options.keepFocus !== true) {
-      ui.activeFilePath = filePath;
     }
 
     return document;

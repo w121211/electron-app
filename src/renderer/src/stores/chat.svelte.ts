@@ -8,7 +8,8 @@ import type {
   ChatMessage,
 } from "../../../core/services/chat/chat-session-repository.js";
 import type { AvailableModels } from "../../../core/utils/model-utils.js";
-import type { PromptScriptDriftStatus } from "./documents.svelte.js";
+import type { PromptScriptLinkResult } from "../../../core/services/prompt-script/prompt-script-service.js";
+// import type { PromptScriptDriftStatus } from "./documents.svelte.js";
 
 export interface PromptScriptDriftWarning {
   kind:
@@ -30,53 +31,58 @@ export interface ChatSessionState {
 
 export interface ChatSessionLinkState {
   sessionId: string | null;
-  scriptHash: string | null;
-  status: PromptScriptDriftStatus;
-  warnings: PromptScriptDriftWarning[];
-  lastAttachedAt: string | null;
+  linkResult: PromptScriptLinkResult | null;
+  // scriptHash: string | null;
+  // status: PromptScriptDriftStatus;
+  // warnings: PromptScriptDriftWarning[];
+  // lastAttachedAt: string | null;
 }
 
-export const chatSessions = new SvelteMap<string, ChatSessionState>();
+// export const chatSessions = new SvelteMap<string, ChatSessionState>();
+export const chatSessions: Record<string, ChatSessionState> = $state({});
 
-export const chatSessionLinks = new SvelteMap<string, ChatSessionLinkState>();
+// export const chatSessionLinks = new SvelteMap<string, ChatSessionLinkState>();
+export const chatSessionLinks: Record<string, ChatSessionLinkState> = $state(
+  {},
+);
 
-export const getLinkedChatSession = (
-  filePath: string,
-): ChatSessionState | null => {
-  const sessionLink = chatSessionLinks.get(filePath);
-  if (sessionLink?.sessionId) {
-    return chatSessions.get(sessionLink.sessionId) ?? null;
-  }
-  return null;
-};
+// export const getLinkedChatSession = (
+//   filePath: string,
+// ): ChatSessionState | null => {
+//   const sessionLink = chatSessionLinks[filePath];
+//   if (sessionLink?.sessionId) {
+//     return chatSessions[sessionLink.sessionId] ?? null;
+//   }
+//   return null;
+// };
 
-export const getChatSessionList = () => [...chatSessions.values()];
+// export const getChatSessionList = () => [...chatSessions.values()];
 
-export const getOrphanedChatSessions = () =>
-  getChatSessionList().filter((session) => {
-    for (const link of chatSessionLinks.values()) {
-      if (link.sessionId === session.data.id) {
-        return false;
-      }
-    }
-    return true;
-  });
+// export const getOrphanedChatSessions = () =>
+//   getChatSessionList().filter((session) => {
+//     for (const link of chatSessionLinks.values()) {
+//       if (link.sessionId === session.data.id) {
+//         return false;
+//       }
+//     }
+//     return true;
+//   });
 
-export const getChatSessionMessages = () =>
-  new Map<string, ChatMessage[]>(
-    getChatSessionList().map((session) => [
-      session.data.id,
-      session.data.messages,
-    ]),
-  );
+// export const getChatSessionMessages = () =>
+//   new Map<string, ChatMessage[]>(
+//     getChatSessionList().map((session) => [
+//       session.data.id,
+//       session.data.messages,
+//     ]),
+//   );
 
-export const getChatSessionStatuses = () =>
-  new Map<string, ChatSessionStatus>(
-    getChatSessionList().map((session) => [
-      session.data.id,
-      session.data.sessionStatus,
-    ]),
-  );
+// export const getChatSessionStatuses = () =>
+//   new Map<string, ChatSessionStatus>(
+//     getChatSessionList().map((session) => [
+//       session.data.id,
+//       session.data.sessionStatus,
+//     ]),
+//   );
 
 // --- Global chat settings ---
 

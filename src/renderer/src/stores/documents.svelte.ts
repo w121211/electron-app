@@ -1,22 +1,9 @@
 // src/renderer/src/stores/documents.svelte.ts
 import type { CoreDocument } from "../../../core/services/document/document-service.js";
-
-export type PromptScriptDriftStatus =
-  | "none"
-  | "content_changed"
-  | "session_missing"
-  | "hash_mismatch";
-
-export interface PromptScriptLink {
-  sessionId: string | null;
-  scriptHash: string | null;
-  status: PromptScriptDriftStatus;
-  warnings: string[];
-  resolvedAt: string;
-}
+import type { PromptScriptLinkResult } from "../../../core/services/prompt-script/prompt-script-service.js";
 
 export interface PromptScriptState {
-  link: PromptScriptLink | null;
+  link: PromptScriptLinkResult | null;
   lastReconciledAt: string | null;
 }
 
@@ -26,9 +13,9 @@ export interface DocumentState {
   promptScript: PromptScriptState | null;
 }
 
-export const documents = $state(new Map<string, DocumentState>());
+export const documents: Record<string, DocumentState> = $state({});
 
-export const getDocumentList = () => [...documents.values()];
+export const getDocumentList = () => Object.values(documents);
 
 export const getPromptScriptDocuments = () =>
   getDocumentList().filter((document) => document.data.kind === "promptScript");

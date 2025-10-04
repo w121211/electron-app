@@ -371,14 +371,14 @@ export class ChatService {
     script: PromptScriptFile,
     link: ChatSessionLinkState,
   ): void {
-    const document = documents.get(scriptPath);
+    const document = documents[scriptPath];
     const now = toIsoTimestamp();
     const linkWarnings = link.warnings.map((warning) => warning.message);
 
     if (document?.promptScript) {
       const promptScript = document.promptScript;
       const mergedWarnings = this.mergeWarnings([
-        ...promptScript.warnings,
+        // ...promptScript.warnings,
         ...script.warnings,
         ...linkWarnings,
       ]);
@@ -407,10 +407,10 @@ export class ChatService {
         promptScript: updatedPromptScript,
       };
 
-      documents.set(scriptPath, updatedDocument);
+      documents[scriptPath] = updatedDocument;
     }
 
-    const view = editorViews.get(scriptPath);
+    const view = editorViews[scriptPath];
     if (view) {
       const updatedView: EditorViewState = {
         ...view,
@@ -418,7 +418,7 @@ export class ChatService {
         lastInteractionAt: now,
       } satisfies EditorViewState;
 
-      editorViews.set(scriptPath, updatedView);
+      editorViews[scriptPath] = updatedView;
     }
   }
 

@@ -53,7 +53,7 @@
   });
 </script>
 
-{@debug ui}
+<!-- {@debug ui} -->
 
 <section class="relative flex min-w-0 flex-1 flex-col">
   <!-- Header with Breadcrumb -->

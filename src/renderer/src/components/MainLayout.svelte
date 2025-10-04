@@ -46,7 +46,7 @@
     }
 
     // Prompt script has no lnked chat session
-    if (selectedDocContext?.documentState?.kind === "promptScript") {
+    if (selectedDocContext?.documentState?.data.kind === "promptScript") {
       return "promptEditorPanel";
     }
 

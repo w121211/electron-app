@@ -16,7 +16,7 @@
   };
 </script>
 
-{#if docContext && docContext.documentState?.kind === "promptScript"}
+{#if docContext && docContext.documentState?.data.kind === "promptScript"}
   <section class="bg-surface relative flex min-w-0 flex-1 flex-col">
     <!-- Header with Breadcrumb -->
     <header class="flex h-12 items-center justify-between px-4">
@@ -34,7 +34,7 @@
 
     <!-- Use #key to force component re-render when filePath changes to reset input-value state -->
     {#key docContext.filePath}
-      <PromptEditor filePath={docContext.filePath} onClose={handleClose} />
+      <PromptEditor />
     {/key}
   </section>
 {/if}

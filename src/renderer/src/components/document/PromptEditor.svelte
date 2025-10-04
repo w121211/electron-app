@@ -21,7 +21,8 @@
   } from "../../utils/editor-utils.js";
   import FileSearchDropdown from "./FileSearchDropdown.svelte";
   import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
-  import { getSelectedDocContext } from "../../stores/ui.svelte.js";
+  import { getSelectedDocContext, isDirty } from "../../stores/ui.svelte.js";
+  import { documents } from "../../stores/documents.svelte.js";
 
   let {
     headerText,
@@ -29,8 +30,6 @@
     headerText?: string;
   } = $props();
 
-  // const chatSession = $derived(getLinkedChatSession(filePath));
-  // const editorView = $derived(editorViews.get(filePath));
   const docContext = $derived.by(getSelectedDocContext);
   const editorView = $derived(docContext?.editorViewState);
   const chatSession = $derived(docContext?.chatSessionState);
@@ -72,7 +71,8 @@
     inputValue; // Re-run when inputValue changes to create a debounce
 
     const timer = setTimeout(() => {
-      if (docContext?.filePath && docContext.isDirty) {
+      if (docContext?.filePath && isDirty(docContext.filePath, inputValue)) {
+        console.log("Auto-saving...");
         documentClientService.saveDocument(docContext.filePath).catch((err) => {
           console.error("Auto-save failed", err);
           showToast("Auto-save failed", "error");
@@ -148,10 +148,16 @@
       return;
     }
 
+    const filePath = docContext?.filePath;
+    if (!filePath) {
+      throw new Error("No file path found");
+    }
+
     // If no chat session exists, create a new PTY chat session
     if (!chatSession) {
-      const projectFolder = projectService.getProjectFolderForFile(filePath);
-
+      const projectFolder = projectService.getProjectFolderForFile(
+        docContext.filePath,
+      );
       if (!projectFolder) {
         throw new Error(`No project folder found for file: ${filePath}`);
       }
@@ -159,7 +165,7 @@
       const workingDirectory = projectFolder.path;
       const modelId = chatSettings.selectedModel;
 
-      await documentClientService.saveDocument(filePath, { keepFocus: true });
+      await documentClientService.saveDocument(filePath);
 
       await chatService.createLinkedPtyChatSession({
         scriptPath: filePath,
