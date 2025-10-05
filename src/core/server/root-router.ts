@@ -17,6 +17,7 @@ import { createFileRouter } from "./routers/file-router.js";
 import { createUserSettingsRouter } from "./routers/user-settings-router.js";
 import { createModelRouter } from "./routers/model-router.js";
 import { createPromptScriptRouter } from "./routers/prompt-script-router.js";
+import { createDocumentRouter } from "./routers/document-router.js";
 import { router } from "./trpc-init.js";
 import { PtyChatClient } from "../services/pty/pty-chat-client.js";
 import { createPtyChatRouter } from "./routers/pty-chat-router.js";
@@ -134,14 +135,15 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   return router({
     task: createTaskRouter(taskService),
     apiChat: createApiChatRouter(apiChatClient),
+    // toolCall: createToolCallRouter(toolCallScheduler, toolRegistry),
     ptyChat: createPtyChatRouter(ptyChatClient, chatSessionRepository),
     projectFolder: createProjectFolderRouter(projectFolderService),
     file: createFileRouter(documentService),
     event: createEventRouter(eventBus),
     userSettings: createUserSettingsRouter(userSettingsService),
     model: createModelRouter(modelService),
+    document: createDocumentRouter(documentService),
     promptScript: createPromptScriptRouter(promptScriptService),
-    // toolCall: createToolCallRouter(toolCallScheduler, toolRegistry),
   });
 }
 

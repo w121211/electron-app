@@ -26,8 +26,8 @@ export class DocumentService {
     const now = new Date().toISOString();
     this.logger.info("Opening document", { filePath });
 
-    // Get the full DocumentFile from the backend.
-    const documentFile = await trpcClient.file.openFile.query({
+    // Get the full Document from the backend.
+    const documentFile = await trpcClient.document.getDocument.query({
       filePath,
     });
 
@@ -92,10 +92,9 @@ export class DocumentService {
       throw new Error(`Document ${filePath} is not open`);
     }
 
-    // Write file and get the updated DocumentFile directly from the backend.
-    const updatedDocumentFile = await trpcClient.file.writeFile.mutate({
+    // Save document and get the updated Document from the backend.
+    const updatedDocumentFile = await trpcClient.document.saveDocument.mutate({
       filePath,
-      // content,
       content: inputValue ?? editorView.unsavedContent,
     });
 

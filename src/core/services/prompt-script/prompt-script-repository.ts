@@ -97,6 +97,13 @@ export class PromptScriptRepository {
       data.engine = metadata.engine;
     }
 
+    // Remove undefined values to prevent YAML serialization errors
+    for (const [key, value] of Object.entries(data)) {
+      if (value === undefined) {
+        delete data[key];
+      }
+    }
+
     return data;
   }
 }

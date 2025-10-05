@@ -19,9 +19,6 @@ export default defineConfig({
       nodePolyfills({
         include: ["path", "buffer"],
         exclude: ["fs"],
-        // globals: {
-        //   Buffer: true,
-        // },
       }),
     ],
   },

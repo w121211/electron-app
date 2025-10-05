@@ -1,11 +1,10 @@
 // src/renderer/src/stores/chat.svelte.ts
-
+import { Logger } from "tslog";
 import { getPreference } from "../lib/local-storage.js";
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
 import type { AvailableModels } from "../../../core/utils/model-utils.js";
-import { Logger } from "tslog";
 
-const logger = new Logger({ name: "chat.svelte" });
+const logger = new Logger({ name: "chatStore" });
 
 function toIsoTimestamp(date: Date = new Date()): string {
   return date.toISOString();

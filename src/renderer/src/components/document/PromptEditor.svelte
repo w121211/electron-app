@@ -44,8 +44,12 @@
 
   // Sync from local state to the document service when user input changes `inputValue`.
   $effect(() => {
-    // console.log(inputValue, editorView?.unsavedContent);
     if (docContext?.filePath && inputValue !== editorView?.unsavedContent) {
+      logger.debug("inputValue changed", {
+        inputValue,
+        unsavedContent: editorView?.unsavedContent,
+      });
+
       documentClientService.updateEditorViewState(docContext.filePath, {
         unsavedContent: inputValue,
       });
@@ -58,12 +62,15 @@
 
   // Auto-save effect for prompt scripts with 1-second debounce.
   $effect(() => {
-    logger.debug("Auto-save effect triggered", { inputValue });
+    const filePath = docContext?.filePath;
+    const content = editorView?.unsavedContent;
+
+    if (!filePath || !content) return;
 
     const timer = setTimeout(() => {
-      if (docContext?.filePath && isDirty(docContext.filePath, inputValue)) {
-        logger.debug("Auto-saving...");
-        documentClientService.saveDocument(docContext.filePath, inputValue);
+      if (isDirty(filePath, content)) {
+        // logger.debug("Auto-saving...", { filePath, content });
+        documentClientService.saveDocument(filePath, content);
       }
     }, 1000);
 
@@ -172,8 +179,8 @@
         initialPrompt: trimmedContent,
       });
 
-      // Sync inputValue to the updated promptScript content
-      // inputValue = promptScript.content;
+      // Sync inputValue to pass isDirty() check
+      inputValue = promptScript.content;
 
       return;
     }

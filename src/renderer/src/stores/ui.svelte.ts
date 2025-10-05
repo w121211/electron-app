@@ -37,8 +37,8 @@ export const getSelectedDocContext = () => {
 
   const documentState = documents[ui.activeFilePath] ?? null;
   const editorViewState = editorViews[ui.activeFilePath] ?? null;
-  const chatSessionState = documentState.data.promptScriptLink?.session?.id
-    ? chatSessions[documentState.data.promptScriptLink.session.id]
+  const chatSessionState = documentState.data.promptScriptLink?.chatSession?.id
+    ? chatSessions[documentState.data.promptScriptLink.chatSession.id]
     : null;
 
   return {

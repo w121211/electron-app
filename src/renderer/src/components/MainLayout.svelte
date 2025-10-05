@@ -13,7 +13,6 @@
   import FilePanel from "./document/FilePanel.svelte";
   import PromptEditorPanel from "./document/PromptEditorPanel.svelte";
   import PtyChatPanel from "./pty-chat/PtyChatPanel.svelte";
-  import { documentClientService } from "../services/document-client-service.js";
 
   const logger = new Logger({ name: "NewMainLayout" });
 

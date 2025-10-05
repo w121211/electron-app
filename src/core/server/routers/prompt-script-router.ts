@@ -24,12 +24,15 @@ export function createPromptScriptRouter(
     linkChatSession: publicProcedure
       .input(
         z.object({
-          scriptPath: z.string(),
-          sessionId: z.string(),
+          promptScriptPath: z.string(),
+          chatSessionId: z.string(),
         }),
       )
       .mutation(async ({ input }) => {
-        return promptScriptService.linkChatSession(input);
+        return promptScriptService.linkChatSession(
+          input.promptScriptPath,
+          input.chatSessionId,
+        );
       }),
 
     findLinkedChatSession: publicProcedure

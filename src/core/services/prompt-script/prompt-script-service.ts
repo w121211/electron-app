@@ -111,7 +111,7 @@ export class PromptScriptService {
   async linkChatSession(
     scriptPath: string,
     sessionId: string,
-  ): Promise<PromptScriptLinkResult> {
+  ): Promise<PromptScriptLinkResult & { chatSession: ChatSessionData }> {
     let promptScript = await this.promptScriptRepo.read(scriptPath);
     const warnings: PromptScriptWarning[] = [
       ...promptScript.promptScriptParsed.warnings,

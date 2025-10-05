@@ -6,7 +6,7 @@ import type {
   ChatSessionData,
   ChatMetadata,
 } from "../../../core/services/chat/chat-session-repository.js";
-import type { PromptScriptFile } from "../../../core/services/prompt-script/prompt-script-repository.js";
+import type { PromptScriptLinkResult } from "../../../core/services/prompt-script/prompt-script-repository.js";
 import {
   setChatSession,
   setAvailableModels,
@@ -14,7 +14,8 @@ import {
 } from "../stores/chat.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import { setPreference } from "../lib/local-storage.js";
-import { documentClientService } from "./document-client-service.js";
+import { documents } from "../stores/documents.svelte.js";
+import type { DocumentFileWithPromptScript } from "../../../core/services/document/document-service.js";
 import { editorViews } from "../stores/editor-views.svelte.js";
 
 const logger = new Logger({ name: "ChatService" });
@@ -50,10 +51,7 @@ export class ChatService {
     modelId: `${string}/${string}`;
     initialPrompt: string;
     metadata?: Partial<ChatMetadata>;
-  }): Promise<{
-    chatSession: ChatSessionData;
-    promptScript: PromptScriptFile;
-  }> {
+  }): Promise<PromptScriptLinkResult> {
     const session = await this.createPtyChatSession(
       workingDirectory,
       modelId,
@@ -61,27 +59,30 @@ export class ChatService {
       metadata,
     );
     const linked = await trpcClient.promptScript.linkChatSession.mutate({
-      scriptPath: scriptPath,
-      sessionId: session.id,
+      promptScriptPath: scriptPath,
+      chatSessionId: session.id,
     });
 
-    setChatSession(linked.session);
+    setChatSession(linked.chatSession);
 
-    // Sync editorView unsavedContent to pass the isDirty check
+    // Hydrate document and editorView to pass isDirty check
     const editorView = editorViews[scriptPath];
-    if (!editorView) {
-      throw new Error(`Editor view not found for ${scriptPath}`);
+    const document = documents[scriptPath];
+    if (editorView && document) {
+      const docFile: DocumentFileWithPromptScript = {
+        ...linked.promptScript,
+        promptScriptLink: linked,
+      };
+      documents[scriptPath].data = docFile;
+      editorView.unsavedContent = docFile.content;
+    } else {
+      throw new Error(`Editor view or document not found for ${scriptPath}`);
     }
-
-    editorView.unsavedContent = linked.document.content;
 
     // Hack: Update store through open the prompt script (without focus)
     // await documentClientService.openDocument(scriptPath, { focus: false });
 
-    return {
-      chatSession: linked.session,
-      promptScript: linked.document.promptScriptLink!.script,
-    };
+    return linked;
   }
 
   async sendPrompt({

@@ -3,18 +3,22 @@ import * as path from "node:path";
 import { Logger } from "tslog";
 import { getFileType, resolveDocumentKind } from "../../utils/file-utils.js";
 import type { PromptScriptService } from "../prompt-script/prompt-script-service.js";
-import { mapPromptScriptLinkToDocumentFile } from "./document-repository.js";
+import type { PromptScriptLinkResult } from "../prompt-script/prompt-script-repository.js";
 import {
-  DocumentRepository,
-  type DocumentFileWithPromptScript,
+  readDocument,
+  saveDocument as saveDocumentHelper,
 } from "./document-repository.js";
+import type { DocumentFile } from "./document-repository.js";
 
 const logger = new Logger({ name: "DocumentService" });
 
-export class DocumentService {
-  private readonly repository = new DocumentRepository();
+export interface DocumentFileWithPromptScript extends DocumentFile {
+  // Already includes PromptScriptFile via PromptScriptLinkResult
+  promptScriptLink: PromptScriptLinkResult | null;
+}
 
-  constructor(private readonly psService: PromptScriptService) {}
+export class DocumentService {
+  constructor(private readonly promptScriptService: PromptScriptService) {}
 
   async getDocument(filePath: string): Promise<DocumentFileWithPromptScript> {
     const absolutePath = path.resolve(filePath);
@@ -23,18 +27,49 @@ export class DocumentService {
 
     if (kind === "promptScript") {
       const linkResult =
-        await this.psService.findLinkedChatSession(absolutePath);
+        await this.promptScriptService.findLinkedChatSession(absolutePath);
 
-      logger.debug(linkResult);
+      // logger.debug(linkResult);
 
-      return mapPromptScriptLinkToDocumentFile(linkResult);
+      return {
+        ...linkResult.promptScript,
+        promptScriptLink: linkResult,
+      };
     }
 
-    const document = await this.repository.read(absolutePath);
+    const document = await readDocument(absolutePath);
 
     return {
       ...document,
-      parsedPromptScript: null,
+      promptScriptLink: null,
+    };
+  }
+
+  async saveDocument(
+    document: DocumentFile,
+    options: {
+      content?: string;
+    } = {},
+  ): Promise<DocumentFileWithPromptScript> {
+    const savedDocument = await saveDocumentHelper(document, options);
+
+    const fileType = getFileType(savedDocument.absolutePath);
+    const kind = resolveDocumentKind(savedDocument.absolutePath, fileType);
+
+    if (kind === "promptScript") {
+      const linkResult = await this.promptScriptService.findLinkedChatSession(
+        savedDocument.absolutePath,
+      );
+
+      return {
+        ...savedDocument,
+        promptScriptLink: linkResult,
+      };
+    }
+
+    return {
+      ...savedDocument,
+      promptScriptLink: null,
     };
   }
 }
