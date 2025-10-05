@@ -17,6 +17,8 @@ import { setPreference } from "../lib/local-storage.js";
 import { documents } from "../stores/documents.svelte.js";
 import type { DocumentFileWithPromptScript } from "../../../core/services/document/document-service.js";
 import { editorViews } from "../stores/editor-views.svelte.js";
+import { ptyStreamManager } from "./pty-stream-manager.js";
+import { getSelectedDocContext, ui } from "../stores/ui.svelte.js";
 
 const logger = new Logger({ name: "ChatService" });
 
@@ -156,6 +158,49 @@ export class ChatService {
   //     });
   //   });
   // }
+
+  async savePtySnapshotToFixtures(): Promise<void> {
+    const docContext = getSelectedDocContext();
+    const session = docContext?.chatSessionState;
+
+    if (!session) {
+      throw new Error("No active chat session");
+    }
+
+    if (session.data.sessionType !== "pty_chat") {
+      throw new Error("Current session is not a PTY chat session");
+    }
+
+    const ptyInstanceId = session.data.metadata?.external?.pty?.ptyInstanceId;
+    if (!ptyInstanceId) {
+      throw new Error("No PTY instance found for current session");
+    }
+
+    const ptyStream = ptyStreamManager.getStream(ptyInstanceId);
+    if (!ptyStream) {
+      throw new Error("PTY stream not found");
+    }
+
+    const snapshot = ptyStream.getTerminalSnapshot();
+    if (!snapshot) {
+      throw new Error("No terminal snapshot available");
+    }
+
+    const modelName =
+      session.data.metadata?.modelId?.split("/").pop() || "unknown";
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10);
+    const timeStr = date.toTimeString().slice(0, 8).replace(/:/g, "-");
+    const filename = `pty-snapshot-${modelName}-${dateStr}-${timeStr}.txt`;
+    const filepath = `tests/fixtures/${filename}`;
+
+    await trpcClient.file.writeFile.mutate({
+      filePath: filepath,
+      content: snapshot,
+    });
+
+    logger.info(`PTY snapshot saved to ${filepath}`);
+  }
 
   // Chat global settings
 

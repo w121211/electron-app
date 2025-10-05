@@ -1,9 +1,8 @@
 <!-- src/renderer/src/components/pty-chat/PtyChatPanel.svelte -->
 <script lang="ts">
-  // import { chatState } from "../../stores/chat-store.svelte.js";
-  import { uiState } from "../../stores/ui-store.svelte.js";
+  import { Logger } from "tslog";
+  import { ui, getSelectedDocContext } from "../../stores/ui.svelte.js";
   import Breadcrumb from "../Breadcrumb.svelte";
-  import PromptEditor from "../document/PromptEditor.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
   import PtyStreamPool from "../PtyStreamPool.svelte";
   import {
@@ -12,10 +11,7 @@
   } from "../../services/pty-stream-manager.js";
   import XtermSnapshot from "../XtermSnapshot.svelte";
 
-  import { Logger } from "tslog"; // Import Logger
-  import { getSelectedDocContext } from "../../stores/ui.svelte.js";
-
-  const logger = new Logger({ name: "PtyChatPanel" }); // Initialize logger
+  const logger = new Logger({ name: "PtyChatPanel" });
 
   let {
     hidden = false,
@@ -26,15 +22,19 @@
   let selectedPtyStream: PtyStream | null = $state(null);
 
   const activeContext = $derived.by(getSelectedDocContext);
-  const chatSession = $derived(activeContext?.chatSessionState?.data);
+  const chatSession = $derived(
+    activeContext?.documentState.data.promptScriptLink?.chatSession,
+  );
 
-  $inspect(chatSession);
+  // $inspect(chatSession);
   $inspect(selectedPtyStream);
 
   $effect(() => {
     const ptyInstanceId = chatSession?.metadata?.external?.pty?.ptyInstanceId;
+    logger.debug("ptyInstanceId", ptyInstanceId);
     if (ptyInstanceId) {
       selectedPtyStream = ptyStreamManager.getOrAttachStream(ptyInstanceId);
+      console.debug(selectedPtyStream);
     } else {
       selectedPtyStream = null;
     }
@@ -48,11 +48,6 @@
       );
     }
   });
-
-  // Show prompt editor only for chat draft
-  // $effect(() => {
-  //   uiState.promptEditorOpen = session?.sessionType === "chat_draft";
-  // });
 
   // Event handlers
   const handleXtermReady = (readyStream: PtyStream): void => {
@@ -83,25 +78,16 @@
       );
     }
   };
-
-  // $effect(() => {
-  //   console.debug(chatState.currentChat);
-  //   console.debug(selectedPtyStream);
-  // });
 </script>
 
-<section
-  class="relative flex min-w-0 flex-1 flex-col"
-  class:bg-surface={uiState.promptEditorOpen}
-  class:hidden
->
+<section class="relative flex min-w-0 flex-1 flex-col" class:hidden>
   <!-- Header with Breadcrumb -->
   <header class="flex h-12 items-center justify-between px-4">
     <div class="flex items-center gap-1">
       <NavigationButtons />
 
       {#if activeContext}
-        <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
+        <div class={!ui.leftPanelOpen ? "ml-3" : ""}>
           <Breadcrumb
             filePath={activeContext.filePath}
             hasUnsavedChanges={activeContext.isDirty}
@@ -112,23 +98,18 @@
   </header>
 
   {#if !hidden && chatSession}
-    {#if chatSession.sessionStatus === "external_terminated"}
+    {#if chatSession.sessionStatus === "external_terminated" || !selectedPtyStream}
       <div class="flex-1 overflow-hidden p-5">
         {#if chatSession.metadata?.external?.pty?.snapshot}
           <XtermSnapshot
             snapshot={chatSession.metadata.external.pty.snapshot}
           />
         {:else}
-          <div
-            class="text-muted border-border mt-4 rounded-md border border-dashed px-4 py-2 text-xs"
-          >
-            Session ended. Run a new command from another chat or draft to start
-            a fresh PTY session.
+          <div class="text-muted mt-4 px-4 py-2 text-sm">
+            Session ended. Create a new chat to start a fresh PTY session.
           </div>
         {/if}
       </div>
-    {:else if uiState.promptEditorOpen}
-      <PromptEditor />
     {/if}
   {/if}
 

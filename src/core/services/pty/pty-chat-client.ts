@@ -8,11 +8,7 @@ import type {
 } from "../chat/chat-session-repository.js";
 import type { PtyInstance } from "./pty-instance-manager.js";
 import { PtyInstanceManager } from "./pty-instance-manager.js";
-import type {
-  PtyOnDataEvent,
-  PtyOnExitEvent,
-  PtyWriteEvent,
-} from "./events.js";
+import type { PtyOnExitEvent } from "./events.js";
 import { PtyChatSession } from "./pty-chat-session.js";
 
 interface CreatePtyChatInput {
@@ -104,6 +100,17 @@ export class PtyChatClient {
     return updatedData;
   }
 
+  async updateMessagesFromSnapshot(
+    sessionId: string,
+    snapshot: string,
+  ): Promise<ChatSessionData> {
+    const session = await this.ensureSessionLoaded(sessionId);
+    session.updateMessagesFromSnapshot(snapshot);
+    const updatedData = session.toChatSessionData();
+    await this.repository.update(updatedData);
+    return updatedData;
+  }
+
   async terminateChatSession(sessionId: string): Promise<ChatSessionData> {
     const session = await this.ensureSessionLoaded(sessionId);
     const ptyInstance = this.getPtyInstance(session);
@@ -127,24 +134,6 @@ export class PtyChatClient {
   }
 
   private subscribeToPtyEvents(): void {
-    this.eventBus.subscribe("PtyWrite", async (event: PtyWriteEvent) => {
-      const session = await this.getSessionByPtyInstance(event.sessionId);
-      if (!session) {
-        return;
-      }
-      session.recordUserInput(event.data);
-      await this.repository.update(session.toChatSessionData());
-    });
-
-    this.eventBus.subscribe("PtyOnData", async (event: PtyOnDataEvent) => {
-      const session = await this.getSessionByPtyInstance(event.sessionId);
-      if (!session) {
-        return;
-      }
-      session.recordAssistantOutput(event.data);
-      await this.repository.update(session.toChatSessionData());
-    });
-
     this.eventBus.subscribe("PtyOnExit", async (event: PtyOnExitEvent) => {
       const session = await this.getSessionByPtyInstance(event.sessionId);
       if (!session) {

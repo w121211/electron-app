@@ -7,6 +7,7 @@ import {
 } from "../stores/ui-store.svelte.js";
 import { documentClientService } from "../services/document-client-service.js";
 import { ui } from "../stores/ui.svelte.js";
+import { chatService } from "../services/chat-service.js";
 
 // --- 1. Standalone Handlers ---
 
@@ -46,6 +47,19 @@ function handleEscape() {
 
 function handleQuickLauncher() {
   uiState.quickLauncherOpen = true;
+}
+
+async function handleSavePtySnapshot() {
+  try {
+    await chatService.savePtySnapshotToFixtures();
+    showToast("PTY snapshot saved to tests/fixtures/", "success");
+  } catch (err) {
+    console.error("Failed to save PTY snapshot", err);
+    showToast(
+      `Failed to save snapshot: ${err instanceof Error ? err.message : String(err)}`,
+      "error",
+    );
+  }
 }
 
 // --- 2. Shortcut Definitions ---
@@ -142,6 +156,35 @@ const shortcutDefinitions: ShortcutDefinition[] = [
     os: "linux",
     handler: handleSaveDocument,
     description: "Save current file",
+    preventDefault: true,
+  },
+
+  // Dev/Testing shortcuts
+  {
+    key: "d",
+    meta: true,
+    shift: true,
+    os: "mac",
+    handler: handleSavePtySnapshot,
+    description: "Save PTY snapshot to test fixtures",
+    preventDefault: true,
+  },
+  {
+    key: "d",
+    ctrl: true,
+    shift: true,
+    os: "windows",
+    handler: handleSavePtySnapshot,
+    description: "Save PTY snapshot to test fixtures",
+    preventDefault: true,
+  },
+  {
+    key: "d",
+    ctrl: true,
+    shift: true,
+    os: "linux",
+    handler: handleSavePtySnapshot,
+    description: "Save PTY snapshot to test fixtures",
     preventDefault: true,
   },
 ];

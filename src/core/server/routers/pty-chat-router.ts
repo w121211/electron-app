@@ -79,6 +79,21 @@ export function createPtyChatRouter(
     //     return { success: true };
     //   }),
 
+    updateMessagesFromSnapshot: publicProcedure
+      .input(
+        z.object({
+          chatSessionId: z.string(),
+          snapshot: z.string(),
+        }),
+      )
+      .mutation(async ({ input }): Promise<ChatSessionData> => {
+        const session = await client.updateMessagesFromSnapshot(
+          input.chatSessionId,
+          input.snapshot,
+        );
+        return session;
+      }),
+
     terminateSession: publicProcedure
       .input(z.object({ chatSessionId: z.string() }))
       .mutation(async ({ input }): Promise<ChatSessionData> => {

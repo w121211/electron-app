@@ -34,8 +34,8 @@ export class PtyStream {
   public readonly onPressEnter = new EventEmitter<string>();
 
   public isCursorVisible: boolean = true;
-  private terminalSnapshot: string = "";
   private lastActivity: Date | null = null;
+  private serializeFn?: () => string;
 
   constructor(public readonly ptySessionId: string) {}
 
@@ -64,13 +64,21 @@ export class PtyStream {
     return window.api.pty.destroy(this.ptySessionId);
   }
 
-  saveTerminalSnapshot(serializedContent: string): void {
-    this.terminalSnapshot = serializedContent;
-    this.lastActivity = new Date();
+  registerSerializer(fn: () => string): () => void {
+    this.serializeFn = fn;
+
+    return () => {
+      this.serializeFn = undefined;
+    };
   }
 
   getTerminalSnapshot(): string {
-    return this.terminalSnapshot;
+    if (!this.serializeFn) {
+      throw new Error(
+        "No terminal serializer registered. Terminal may not be mounted.",
+      );
+    }
+    return this.serializeFn();
   }
 
   getLastActivity(): Date | null {
@@ -81,6 +89,7 @@ export class PtyStream {
     this.onData.dispose();
     this.onExit.dispose();
     this.onPressEnter.dispose();
+    this.serializeFn = undefined;
   }
 }
 
@@ -150,7 +159,8 @@ class PtyStreamManager {
     if (!stream) {
       stream = new PtyStream(ptySessionId);
       this.streams.set(ptySessionId, stream);
-      window.api.pty.attach(ptySessionId);
+      const result = window.api.pty.attach(ptySessionId);
+      this.logger.debug("getOrAttachStream result", { result });
       this.logger.info(
         `New PtyStream created and attached to session: ${ptySessionId}`,
       );

@@ -2,7 +2,7 @@
 import type { SerializeAddon } from "@xterm/addon-serialize";
 import { Logger } from "tslog";
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository";
-import type { FileService } from "../services/file-service.js";
+// import type { FileService } from "../services/file-service.js";
 import { getModelMessageContentString } from "./message-helper.js";
 
 const logger = new Logger({ name: "XtermUtils" });
@@ -39,7 +39,7 @@ export const saveTerminalSnapshotToFile = async (
   chatDir: string,
   chatId: string,
   serializeAddon: SerializeAddon,
-  fileService: FileService,
+  // fileService: FileService,
 ): Promise<void> => {
   const serializedContent = serializeAddon.serialize();
   const htmlContent = serializeAddon.serializeAsHTML();
@@ -55,8 +55,8 @@ export const saveTerminalSnapshotToFile = async (
 
   try {
     await Promise.all([
-      fileService.writeFile(textFilePath, serializedContent),
-      fileService.writeFile(htmlFilePath, htmlContent),
+      // fileService.writeFile(textFilePath, serializedContent),
+      // fileService.writeFile(htmlFilePath, htmlContent),
     ]);
     logger.info(
       `Terminal snapshots saved to: ${textFilePath} and ${htmlFilePath}`,

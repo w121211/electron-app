@@ -14,42 +14,30 @@
   import {
     chatState,
     updateMessageInput,
-    savePromptCursorPosition,
-    clearPromptCursorPosition,
   } from "../../stores/chat-store.svelte.js";
-  import { uiState, showToast } from "../../stores/ui-store.svelte.js";
+  import { ui } from "../../stores/ui.svelte.ts";
+  import { showToast } from "../../stores/ui-store.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import { setPreference } from "../../lib/local-storage.js";
   import AiGenerationDisplay from "./AiGenerationDisplay.svelte";
   import ChatMessage from "./ChatMessage.svelte";
   import ToolCallConfirmation from "./ToolCallConfirmation.svelte";
   import FileSearchDropdown from "../document/FileSearchDropdown.svelte";
-  import PromptEditor from "../document/PromptEditor.svelte";
   import ModelSelectorDropdown from "../document/ModelSelectorDropdown.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
 
   // Derived loading states
   const isLoadingSubmitMessage = $derived(
-    uiState.loadingStates["submitMessage"] || false,
-  );
-  const isStartingPtySession = $derived(
-    uiState.loadingStates["startPtySession"] || false,
+    chatState.currentChat?.sessionStatus === "processing",
   );
 
   // Derived chat states
   const hasCurrentChat = $derived(chatState.currentChat !== null);
   const currentChatMessages = $derived(chatState.currentChat?.messages || []);
-  const isTerminalModelSelected = $derived(
-    isTerminalModel(chatState.selectedModel),
-  );
-  const canStartPtySession = $derived(
-    isTerminalModelSelected && chatState.messageInput.trim().length > 0,
-  );
 
   let messageInputElement = $state<HTMLTextAreaElement>();
   let messagesContainer = $state<HTMLDivElement>();
-  let draftTimeout: ReturnType<typeof setTimeout>;
 
   // Auto-scroll to bottom when new messages arrive using $effect
   $effect(() => {
@@ -101,50 +89,16 @@
     setPreference("selectedModel", chatState.selectedModel);
   });
 
-  // Smart prompt editor logic - suggest editor for empty chats
-  const shouldShowPromptEditorByDefault = $derived.by(() => {
-    if (!chatState.currentChat) {
-      return false;
-    }
-    return currentChatMessages.length === 0; // Empty chat = suggest editor
-  });
-
-  // Auto-reset prompt editor to smart default when switching chats
-  let previousChatIdForPromptEditor: string | null = null;
-  $effect(() => {
-    const currentChatId = chatState.currentChat?.id || null;
-
-    // When switching to a different chat, reset to smart default
-    if (currentChatId !== previousChatIdForPromptEditor) {
-      uiState.promptEditorOpen = shouldShowPromptEditorByDefault;
-    }
-
-    previousChatIdForPromptEditor = currentChatId;
-  });
-
   async function handleSendMessage(): Promise<void> {
-    if (isTerminalModelSelected) {
+    if (isTerminalModel(chatState.selectedModel)) {
       throw new Error("Terminal models handled in PtyChatPanel");
-      // chatService.createPtyChatFromDraft(chatState.messageInput);
-      // return;
     }
 
     if (!chatState.messageInput.trim() || !chatState.currentChat) return;
 
-    const message = chatState.messageInput.trim();
-    const chatId = chatState.currentChat.id;
-
-    // Only pass modelId for the first message (when no messages exist)
-    const modelId =
-      chatState.currentChat.messages.length === 0
-        ? chatState.selectedModel
-        : undefined;
-
     await chatService.sendPrompt({
-      sessionId: chatState.currentChat,
-      prompt: message,
-      // modelId,
-      // undefined, // attachments
+      sessionId: chatState.currentChat.id,
+      prompt: chatState.messageInput.trim(),
     });
   }
 
@@ -160,17 +114,6 @@
 
     // Handle @ file reference detection
     fileSearchService.detectFileReference(value, messageInputElement ?? null);
-
-    // Save draft when user actively types (including clearing content)
-    // if (chatState.currentChat) {
-    //   clearTimeout(draftTimeout);
-    //   draftTimeout = setTimeout(() => {
-    //     chatService.savePromptDraft(
-    //       chatState.currentChat!.absoluteFilePath,
-    //       value,
-    //     );
-    //   }, 1500);
-    // }
   }
 
   // Handle search menu cancel
@@ -216,42 +159,7 @@
     return chatState.selectedModel;
   });
 
-  // Auto-resize textarea when messageInput changes (e.g., from prompt editor)
-  let previousPromptEditorOpen = uiState.promptEditorOpen;
   $effect(() => {
-    // If prompt editor is opening, save current cursor position
-    if (
-      !previousPromptEditorOpen &&
-      uiState.promptEditorOpen &&
-      messageInputElement
-    ) {
-      savePromptCursorPosition(
-        messageInputElement.selectionStart,
-        messageInputElement.selectionEnd,
-      );
-    }
-
-    // If prompt editor was just closed, focus the textarea and restore cursor position
-    if (
-      previousPromptEditorOpen &&
-      !uiState.promptEditorOpen &&
-      messageInputElement
-    ) {
-      tick().then(() => {
-        if (messageInputElement) {
-          messageInputElement.focus();
-          // Restore cursor position if we have one saved
-          if (chatState.promptCursorPosition) {
-            messageInputElement.setSelectionRange(
-              chatState.promptCursorPosition.start,
-              chatState.promptCursorPosition.end,
-            );
-            clearPromptCursorPosition(); // Clear after use
-          }
-        }
-      });
-    }
-
     // Auto-resize when messageInput changes
     if (messageInputElement && chatState.messageInput) {
       tick().then(() => {
@@ -262,23 +170,10 @@
         }
       });
     }
-
-    previousPromptEditorOpen = uiState.promptEditorOpen;
   });
-
-  // Cleanup timeouts on component destroy using $effect
-  // $effect(() => {
-  //   return () => {
-  //     clearTimeout(draftTimeout);
-  //     fileSearchService.cleanup();
-  //   };
-  // });
 </script>
 
-<section
-  class="relative flex min-w-0 flex-1 flex-col"
-  class:bg-surface={uiState.promptEditorOpen}
->
+<section class="relative flex min-w-0 flex-1 flex-col">
   {#if hasCurrentChat}
     <!-- Breadcrumb Header -->
     <header class="flex h-12 items-center justify-between px-4">
@@ -286,7 +181,7 @@
         <NavigationButtons />
 
         {#if chatState.currentChat}
-          <div class={!uiState.leftPanelOpen ? "ml-3" : ""}>
+          <div class={!ui.leftPanelOpen ? "ml-3" : ""}>
             <Breadcrumb
               filePath={chatState.currentChat.absoluteFilePath}
               modelInfo={currentChatMessages.length > 0
@@ -298,17 +193,6 @@
         {/if}
       </div>
       <div class="flex items-center gap-2">
-        <!-- {#if isTerminalModelSelected}
-          <button
-            onclick={() =>
-              ptyChatService.startPtySessionFromDraft(chatState.messageInput)}
-            class="text-muted hover:text-accent cursor-pointer rounded p-1.5 disabled:opacity-50"
-            title="Run in PTY"
-            disabled={!canStartPtySession || isStartingPtySession}
-          >
-            Run in PTY
-          </button>
-        {/if} -->
         <button
           onclick={handleShare}
           class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
@@ -333,104 +217,96 @@
       </div>
     </header>
 
-    <!-- Prompt Editor / Messages -->
-    {#if uiState.promptEditorOpen}
-      <PromptEditor
-        filePath={""}
-        onClose={() => (uiState.promptEditorOpen = false)}
-      />
-    {:else}
-      <!-- Messages -->
-      <div
-        bind:this={messagesContainer}
-        class="flex-1 overflow-y-auto px-8 py-6"
-      >
-        <div class="mx-auto max-w-3xl space-y-12">
-          {#each currentChatMessages as chatMessage (chatMessage.id)}
-            <ChatMessage {chatMessage} />
-          {/each}
+    <!-- Messages -->
+    <div
+      bind:this={messagesContainer}
+      class="flex-1 overflow-y-auto px-8 py-6"
+    >
+      <div class="mx-auto max-w-3xl space-y-12">
+        {#each currentChatMessages as chatMessage (chatMessage.id)}
+          <ChatMessage {chatMessage} />
+        {/each}
 
-          <!-- AI Generation Display -->
-          {#if chatState.currentChat?.sessionStatus === "processing"}
-            <AiGenerationDisplay chatSession={chatState.currentChat} />
-          {/if}
+        <!-- AI Generation Display -->
+        {#if chatState.currentChat?.sessionStatus === "processing"}
+          <AiGenerationDisplay chatSession={chatState.currentChat} />
+        {/if}
 
-          <!-- Tool Call Confirmation Block -->
-          {#if chatState.currentChat?.sessionStatus === "waiting_confirmation"}
-            {@const lastMessage =
-              currentChatMessages[currentChatMessages.length - 1]?.message}
-            <ToolCallConfirmation
-              chatId={chatState.currentChat.id}
-              absoluteFilePath={chatState.currentChat.absoluteFilePath}
-              lastAssistantMessage={lastMessage}
+        <!-- Tool Call Confirmation Block -->
+        {#if chatState.currentChat?.sessionStatus === "waiting_confirmation"}
+          {@const lastMessage =
+            currentChatMessages[currentChatMessages.length - 1]?.message}
+          <ToolCallConfirmation
+            chatId={chatState.currentChat.id}
+            absoluteFilePath={chatState.currentChat.absoluteFilePath}
+            lastAssistantMessage={lastMessage}
+          />
+        {/if}
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="bg-background px-6 py-4">
+      <div class="mx-auto max-w-3xl">
+        <div
+          class="bg-surface border-border relative flex items-center gap-2 rounded-2xl border p-2"
+        >
+          <textarea
+            bind:this={messageInputElement}
+            bind:value={chatState.messageInput}
+            oninput={(e) => handleInputChange(e.currentTarget.value)}
+            onkeypress={handleKeyPress}
+            onkeydown={handleKeyPress}
+            placeholder="How can I help?"
+            class="text-foreground placeholder-muted min-h-[72px] w-full resize-none border-none bg-transparent px-2 text-[15px] leading-6 outline-none"
+            style="height: auto;"
+            disabled={isLoadingSubmitMessage ||
+              chatState.currentChat?.sessionStatus !== "idle"}
+          ></textarea>
+
+          <!-- File Search Dropdown -->
+          {#if fileSearchState.showMenu}
+            <FileSearchDropdown
+              results={fileSearchState.results}
+              selectedIndex={fileSearchState.selectedIndex}
+              onselect={(file) => {
+                fileSearchService.handleFileSelect(
+                  file,
+                  messageInputElement ?? null,
+                  chatState.messageInput,
+                );
+              }}
+              oncancel={handleSearchCancel}
+              onhover={handleSearchHover}
+              class="absolute top-full right-0 left-0 mt-1"
             />
           {/if}
         </div>
-      </div>
 
-      <!-- Input Area -->
-      <footer class="bg-background px-6 py-4">
-        <div class="mx-auto max-w-3xl">
-          <div
-            class="bg-surface border-border relative flex items-center gap-2 rounded-2xl border p-2"
-          >
-            <textarea
-              bind:this={messageInputElement}
-              bind:value={chatState.messageInput}
-              oninput={(e) => handleInputChange(e.currentTarget.value)}
-              onkeypress={handleKeyPress}
-              onkeydown={handleKeyPress}
-              placeholder="How can I help?"
-              class="text-foreground placeholder-muted min-h-[72px] w-full resize-none border-none bg-transparent px-2 text-[15px] leading-6 outline-none"
-              style="height: auto;"
-              disabled={isLoadingSubmitMessage ||
-                chatState.currentChat?.sessionStatus !== "idle"}
-            ></textarea>
-
-            <!-- File Search Dropdown -->
-            {#if !uiState.promptEditorOpen && fileSearchState.showMenu}
-              <FileSearchDropdown
-                results={fileSearchState.results}
-                selectedIndex={fileSearchState.selectedIndex}
-                onselect={(file) => {
-                  fileSearchService.handleFileSelect(
-                    file,
-                    messageInputElement ?? null,
-                    chatState.messageInput,
-                  );
-                }}
-                oncancel={handleSearchCancel}
-                onhover={handleSearchHover}
-                class="absolute top-full right-0 left-0 mt-1"
-              />
-            {/if}
+        <!-- Controls under input -->
+        <div class="mt-2 flex items-center justify-between px-4">
+          <div class="flex items-center gap-3">
+            <button
+              title="Attach"
+              class="text-muted hover:text-accent cursor-pointer"
+            >
+              <Paperclip />
+            </button>
+            <!-- Model selector dropdown -->
+            <ModelSelectorDropdown position="above" />
           </div>
-
-          <!-- Controls under input -->
-          <div class="mt-2 flex items-center justify-between px-4">
-            <div class="flex items-center gap-3">
-              <button
-                title="Attach"
-                class="text-muted hover:text-accent cursor-pointer"
-              >
-                <Paperclip />
-              </button>
-              <!-- Model selector dropdown -->
-              <ModelSelectorDropdown position="above" />
-            </div>
-            <div class="flex items-center">
-              <button
-                onclick={chatService.togglePromptEditor}
-                title="Prompt Editor"
-                class="text-muted hover:text-accent cursor-pointer"
-              >
-                <PencilSquare />
-              </button>
-            </div>
+          <div class="flex items-center">
+            <button
+              onclick={() => (ui.promptEditorOpen = !ui.promptEditorOpen)}
+              title="Prompt Editor"
+              class="text-muted hover:text-accent cursor-pointer"
+            >
+              <PencilSquare />
+            </button>
           </div>
         </div>
-      </footer>
-    {/if}
+      </div>
+    </footer>
   {:else}
     <!-- No Chat Selected -->
     <div class="bg-background flex flex-1 items-center justify-center">
@@ -444,16 +320,3 @@
     </div>
   {/if}
 </section>
-
-<!-- <style>
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #2c2c2e;
-    border-radius: 3px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-</style> -->

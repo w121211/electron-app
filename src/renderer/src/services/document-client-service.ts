@@ -9,6 +9,7 @@ import {
 import { ui } from "../stores/ui.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import type { PromptScriptFile } from "../../../core/services/prompt-script/prompt-script-repository.js";
+import { setChatSession } from "../stores/chat.svelte.js";
 
 function ensureOpenFilePath(filePath: string): void {
   if (!ui.openFilePaths.includes(filePath)) {
@@ -36,7 +37,6 @@ export class DocumentService {
       lastOpenedAt: now,
       // promptScript: promptScriptState,
     };
-
     documents[filePath] = document;
 
     // Update editor views and UI state based on the new data structure.
@@ -54,6 +54,11 @@ export class DocumentService {
         };
         editorViews[filePath] = editorView;
       }
+    }
+
+    // If document has a linked chat session, add it to chat sessions store
+    if (documentFile.promptScriptLink?.chatSession) {
+      setChatSession(documentFile.promptScriptLink.chatSession);
     }
 
     ensureOpenFilePath(filePath);

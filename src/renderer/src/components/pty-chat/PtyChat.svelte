@@ -11,7 +11,7 @@
   import { getModelMessageContentString } from "../../utils/message-helper.js";
   import { isCliModelReady } from "../../utils/xterm-utils.js";
   import type { ChatSessionData } from "../../../../core/services/chat/chat-session-repository";
-  import { ptyChatService } from "../../services/pty-chat-service.js";
+  // import { ptyChatService } from "../../services/pty-chat-service.js";
 
   const logger = new Logger({ name: "PtyChat" });
 
@@ -33,20 +33,6 @@
 
   type TerminalState = "initializing" | "ready" | "prompt_written";
   let terminalState: TerminalState = "initializing";
-
-  // Screenshot functionality
-  const takeScreenshot = (): void => {
-    if (serializeAddon && ptyStream) {
-      const serializedContent = serializeAddon.serialize();
-
-      // Save the snapshot to the PtyStream
-      ptyStream.saveTerminalSnapshot(serializedContent);
-
-      logger.info(`Screenshot taken for chat ${chat.absoluteFilePath}`);
-      // logger.debug("Terminal content (text):", serializedContent.length);
-      // logger.debug("Terminal content (HTML):", htmlContent.length);
-    }
-  };
 
   // Restore terminal buffer from saved snapshot
   const restoreTerminalBuffer = (): void => {
@@ -81,7 +67,6 @@
     idleTimeout = setTimeout(() => {
       if (!isIdle) {
         logger.info(`PTY stream idle for chat ${chat.id}, taking screenshot`);
-        takeScreenshot();
         isIdle = true; // Mark as idle to prevent repeated screenshots
       }
     }, 2000); // 2 seconds of idle time
@@ -198,11 +183,16 @@
 
   $effect(() => {
     logger.debug(
-      `PTY effect running for chat: ${chat.id}, session: ${ptyStream?.sessionId}`,
+      `PTY effect running for chat: ${chat.id}, session: ${ptyStream?.ptySessionId}`,
     );
 
     if (ptyStream) {
-      logger.info(`Subscribing to PTY session: ${ptyStream.sessionId}`);
+      logger.info(`Subscribing to PTY session: ${ptyStream.ptySessionId}`);
+
+      // Register the serializer function
+      const unregisterSerializer = ptyStream.registerSerializer(() =>
+        serializeAddon.serialize(),
+      );
 
       const unsubscribeData = ptyStream.onData.on((data) => {
         terminal.write(data);
@@ -241,14 +231,14 @@
           ptyStream.saveTerminalSnapshot(serializedContent);
 
           // Update chat metadata with latest snapshot including HTML
-          await ptyChatService.updateMetadata(chat.absoluteFilePath, {
-            external: {
-              pty: {
-                screenshot: serializedContent,
-                // screenshotHtml: screenshotHtml,
-              },
-            },
-          });
+          // await ptyChatService.updateMetadata(chat.absoluteFilePath, {
+          //   external: {
+          //     pty: {
+          //       screenshot: serializedContent,
+          //       // screenshotHtml: screenshotHtml,
+          //     },
+          //   },
+          // });
         }
       });
 
@@ -263,7 +253,10 @@
       }
 
       return () => {
-        logger.info(`Unsubscribing from PTY session: ${ptyStream.sessionId}`);
+        logger.info(
+          `Unsubscribing from PTY session: ${ptyStream.ptySessionId}`,
+        );
+        unregisterSerializer();
         unsubscribeData();
         unsubscribeExit();
         unsubscribeEnter();

@@ -5,6 +5,7 @@
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
   import { FitAddon } from "@xterm/addon-fit";
+  import { SerializeAddon } from "@xterm/addon-serialize";
   import { Logger } from "tslog";
   import { type PtyStream } from "../services/pty-stream-manager.js";
 
@@ -28,12 +29,14 @@
   let terminal: Terminal;
   let fitAddon: FitAddon;
   let webglAddon: WebglAddon;
+  let serializeAddon: SerializeAddon;
   let resizeObserver: ResizeObserver;
   let resizeTimeout: ReturnType<typeof setTimeout>;
   let lastWidth = 0;
   let lastHeight = 0;
   let unsubscribeData: (() => void) | undefined;
   let unsubscribeExit: (() => void) | undefined;
+  let unregisterSerializer: (() => void) | undefined;
 
   onMount(async () => {
     if (isTerminalInitialized || !terminalElement) return;
@@ -97,10 +100,17 @@
 
     fitAddon = new FitAddon();
     webglAddon = new WebglAddon();
+    serializeAddon = new SerializeAddon();
 
     terminal.loadAddon(webglAddon);
     terminal.loadAddon(fitAddon);
+    terminal.loadAddon(serializeAddon);
     terminal.open(terminalElement);
+
+    // Register the serializer function
+    unregisterSerializer = stream.registerSerializer(() =>
+      serializeAddon.serialize(),
+    );
 
     const dims = fitAddon.proposeDimensions();
     const cols = dims?.cols;
@@ -144,9 +154,11 @@
   };
 
   const cleanup = (): void => {
+    unregisterSerializer?.();
     terminal?.dispose(); // Use optional chaining for safety
     fitAddon?.dispose();
     webglAddon?.dispose();
+    serializeAddon?.dispose();
     unsubscribeData?.();
     unsubscribeExit?.();
     isTerminalInitialized = false;

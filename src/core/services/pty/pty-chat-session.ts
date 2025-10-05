@@ -9,6 +9,7 @@ import type {
   ChatSessionStatus,
 } from "../chat/chat-session-repository.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
+import { extractMessages } from "./pty-chat-snapshot-extractor.js";
 
 export type PtyChatUpdateType =
   | "MESSAGE_ADDED"
@@ -177,6 +178,22 @@ export class PtyChatSession {
     void this.emitUpdate("METADATA_UPDATED", {
       metadata: structuredClone(this.metadata),
     });
+  }
+
+  updateMessagesFromSnapshot(snapshot: string): void {
+    this.messages = extractMessages(snapshot);
+    this.metadata = {
+      ...this.metadata,
+      external: {
+        ...this.metadata.external,
+        pty: {
+          ...this.metadata.external?.pty,
+          snapshot: snapshot,
+        },
+      },
+    };
+    this.updatedAt = new Date();
+    void this.emitUpdate("MESSAGE_ADDED", {});
   }
 
   toChatSessionData(): ChatSessionData {
