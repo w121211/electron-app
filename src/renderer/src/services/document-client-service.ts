@@ -1,26 +1,14 @@
 // src/renderer/src/services/document-service.ts
 
 import { Logger } from "tslog";
-import { fileService } from "./file-service.js";
-import {
-  documents,
-  type DocumentState,
-  type PromptScriptState,
-} from "../stores/documents.svelte.js";
+import { documents, type DocumentState } from "../stores/documents.svelte.js";
 import {
   editorViews,
   type EditorViewState,
 } from "../stores/editor-views.svelte.js";
 import { ui } from "../stores/ui.svelte.js";
-import { chatSessionLinks } from "../stores/chat.svelte.js";
-import { chatService } from "./chat-service.js";
 import { trpcClient } from "../lib/trpc-client.js";
-import { showToast } from "../stores/ui-store.svelte.js";
 import type { PromptScriptFile } from "../../../core/services/prompt-script/prompt-script-repository.js";
-
-interface OpenDocumentOptions {
-  focus?: boolean;
-}
 
 function ensureOpenFilePath(filePath: string): void {
   if (!ui.openFilePaths.includes(filePath)) {
@@ -33,67 +21,45 @@ export class DocumentService {
 
   async openDocument(
     filePath: string,
-    options: OpenDocumentOptions = {},
+    { focus }: { focus: boolean },
   ): Promise<DocumentState> {
     const now = new Date().toISOString();
-    this.logger.info("Opening document", { filePath, options });
+    this.logger.info("Opening document", { filePath });
 
-    // 1. Get the full CoreDocument from the backend.
-    const coreDoc = await fileService.openFile(filePath);
-
-    // 2. Construct the frontend DocumentState, separating backend data from local state.
-    const promptScriptState: PromptScriptState | null =
-      coreDoc.parsedPromptScript
-        ? { link: null, lastReconciledAt: null }
-        : null;
+    // Get the full DocumentFile from the backend.
+    const documentFile = await trpcClient.file.openFile.query({
+      filePath,
+    });
 
     const document: DocumentState = {
-      data: coreDoc,
+      data: documentFile,
       lastOpenedAt: now,
-      promptScript: promptScriptState,
+      // promptScript: promptScriptState,
     };
 
     documents[filePath] = document;
 
-    // 3. Update editor views and UI state based on the new data structure.
-    if (!coreDoc.isBase64) {
-      const existingView = editorViews[filePath];
-      const editorView: EditorViewState = {
-        ...(existingView ?? {
+    // Update editor views and UI state based on the new data structure.
+    if (!documentFile.isBase64) {
+      if (!Object.hasOwn(editorViews, filePath)) {
+        const editorView: EditorViewState = {
           filePath,
           cursor: null,
           selections: [],
           scrollTop: 0,
           scrollLeft: 0,
-        }),
-        unsavedContent: coreDoc.content,
-        isFocused: options.focus !== false,
-        languageId: coreDoc.fileType,
-        lastInteractionAt: now,
-      };
-      editorViews[filePath] = editorView;
+          unsavedContent: documentFile.content,
+          languageId: documentFile.fileType,
+          lastInteractionAt: now,
+        };
+        editorViews[filePath] = editorView;
+      }
     }
 
     ensureOpenFilePath(filePath);
-    if (options.focus !== false) {
+
+    if (focus) {
       ui.activeFilePath = filePath;
-    }
-
-    // 4. Handle prompt script linking (frontend-specific runtime logic).
-    if (document.promptScript) {
-      const result = await trpcClient.promptScript.findLinkedSession.query({
-        filePath,
-      });
-
-      const currentDocument = documents[filePath];
-      if (currentDocument?.promptScript) {
-        currentDocument.promptScript.link = result;
-        currentDocument.promptScript.lastReconciledAt = now;
-
-        if (result.session) {
-          await chatService.hydrateSession(result.session);
-        }
-      }
     }
 
     return documents[filePath]!;
@@ -104,7 +70,6 @@ export class DocumentService {
 
     delete documents[filePath];
     delete editorViews[filePath];
-    chatSessionLinks.delete(filePath);
 
     ui.openFilePaths = ui.openFilePaths.filter((path) => path !== filePath);
 
@@ -113,28 +78,13 @@ export class DocumentService {
     }
   }
 
-  updateEditorViewState(
+  async saveDocument(
     filePath: string,
-    updates: Partial<Omit<EditorViewState, "filePath">>,
-    options?: { updateInteraction?: boolean },
-  ): void {
-    const view = editorViews[filePath];
-    if (!view) {
-      return;
-    }
+    inputValue?: string,
+  ): Promise<DocumentState> {
+    this.logger.info("Saving document", { filePath, inputValue });
+    // this.logger.info("Saving document", { filePath });
 
-    const shouldUpdateInteraction = options?.updateInteraction ?? true;
-
-    editorViews[filePath] = {
-      ...view,
-      ...updates,
-      ...(shouldUpdateInteraction && {
-        lastInteractionAt: new Date().toISOString(),
-      }),
-    };
-  }
-
-  async saveDocument(filePath: string): Promise<DocumentState> {
     const document = documents[filePath];
     const editorView = editorViews[filePath];
 
@@ -142,47 +92,50 @@ export class DocumentService {
       throw new Error(`Document ${filePath} is not open`);
     }
 
-    const content = editorView.unsavedContent;
-
-    // Write file and get the updated CoreDocument directly from the backend.
-    const updatedCoreDoc = await fileService.writeFile(filePath, content);
+    // Write file and get the updated DocumentFile directly from the backend.
+    const updatedDocumentFile = await trpcClient.file.writeFile.mutate({
+      filePath,
+      // content,
+      content: inputValue ?? editorView.unsavedContent,
+    });
 
     // Update the document's data and local state.
     const now = new Date().toISOString();
-    document.data = updatedCoreDoc;
+    document.data = updatedDocumentFile;
     document.lastOpenedAt = now;
 
-    // Reconcile prompt script linking if not exists yet
-    if (document.promptScript && !document.promptScript.link) {
-      const result = await trpcClient.promptScript.findLinkedSession.query({
-        filePath,
-      });
+    return document;
+  }
 
-      const currentDocument = documents[filePath];
-      if (currentDocument?.promptScript) {
-        currentDocument.promptScript.link = result;
-        currentDocument.promptScript.lastReconciledAt = now;
-        if (result.session) {
-          await chatService.hydrateSession(result.session);
-        }
-      }
+  updateEditorViewState(
+    filePath: string,
+    updates: Partial<Omit<EditorViewState, "filePath">>,
+    options?: { updateInteraction?: boolean },
+  ): void {
+    const editorView = editorViews[filePath];
+    if (!editorView) {
+      throw new Error("Editor view not found");
     }
 
-    return document;
+    const shouldUpdateInteraction = options?.updateInteraction ?? true;
+
+    editorViews[filePath] = {
+      ...editorView,
+      ...updates,
+      ...(shouldUpdateInteraction && {
+        lastInteractionAt: new Date().toISOString(),
+      }),
+    };
   }
 
   async createPromptScript(
     directory: string,
     name?: string,
   ): Promise<PromptScriptFile> {
-    this.logger.info("Creating prompt script in:", directory);
     const script = await trpcClient.promptScript.create.mutate({
       directory,
       name,
     });
-
-    this.logger.info("Prompt script created:", script.absolutePath);
-    showToast(`Prompt script created: ${script.absolutePath}`, "success");
     return script;
   }
 }

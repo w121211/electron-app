@@ -14,12 +14,14 @@ export default defineConfig({
     plugins: [
       tailwindcss(),
       svelte(),
+
       // Fix for gray-matter buffer polyfill issue: https://github.com/jonschlinkert/gray-matter/issues/143
       nodePolyfills({
+        include: ["path", "buffer"],
         exclude: ["fs"],
-        globals: {
-          Buffer: true,
-        },
+        // globals: {
+        //   Buffer: true,
+        // },
       }),
     ],
   },

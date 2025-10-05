@@ -27,6 +27,7 @@ import { ApiChatClient } from "../services/chat-engine/api-chat-client.js";
 import { createApiChatRouter } from "./routers/api-chat-router.js";
 import { PromptScriptRepository } from "../services/prompt-script/prompt-script-repository.js";
 import { PromptScriptService } from "../services/prompt-script/prompt-script-service.js";
+import { DocumentService } from "../services/document/document-service.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
@@ -120,6 +121,8 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     chatSessionRepository,
   );
 
+  const documentService = new DocumentService(promptScriptService);
+
   // Start watching all project folders
   projectFolderService
     .startWatchingAllProjectFolders()
@@ -133,7 +136,7 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     apiChat: createApiChatRouter(apiChatClient),
     ptyChat: createPtyChatRouter(ptyChatClient, chatSessionRepository),
     projectFolder: createProjectFolderRouter(projectFolderService),
-    file: createFileRouter(),
+    file: createFileRouter(documentService),
     event: createEventRouter(eventBus),
     userSettings: createUserSettingsRouter(userSettingsService),
     model: createModelRouter(modelService),

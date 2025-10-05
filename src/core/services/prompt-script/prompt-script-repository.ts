@@ -1,52 +1,68 @@
 // src/core/services/prompt-script/prompt-script-repository.ts
-import crypto from "node:crypto";
-import fs from "node:fs/promises";
-import path from "node:path";
 import matter from "gray-matter";
-import { fileExists, writeTextFile } from "../../utils/file-utils.js";
+import { writeTextFile } from "../../utils/file-utils.js";
 import {
-  parsePromptScriptContent,
-  type ParsePromptScriptResult,
-  type PromptScriptMetadata,
-  type PromptScriptPrompt,
-} from "./prompt-script-parser.js";
+  readDocument,
+  type DocumentFile,
+} from "../document/document-repository.js";
+import { parsePromptScriptContent } from "./prompt-script-parser.js";
+import type { ChatSessionData } from "../chat/chat-session-repository.js";
 
-export interface PromptScriptFile {
-  absolutePath: string;
+export type PromptScriptEngine = "api" | "pty";
+
+export type PromptScriptWarning =
+  | { code: "CHAT_SESSION_NOT_FOUND"; message: string; chatSessionId: string }
+  | { code: "PARSE_ERROR"; message: string };
+
+export interface PromptScriptMetadata {
+  title?: string;
+  description?: string;
+  tags?: string[];
+  engine: PromptScriptEngine;
+  engineDefinedInSource: boolean;
+  model?: string;
+  chatSessionId?: string;
+  extras: Record<string, unknown>;
+}
+
+export interface PromptScriptPrompt {
+  index: number;
   content: string;
-  body: string;
+  attributes?: Record<string, string>;
+}
+
+export interface ParsePromptScriptResult {
   metadata: PromptScriptMetadata;
   prompts: PromptScriptPrompt[];
-  hash: string;
-  modifiedAt: Date;
-  warnings: string[];
+  body: string;
+  warnings: PromptScriptWarning[];
   delimiter: string;
+}
+
+export interface PromptScriptFile extends DocumentFile {
+  promptScriptParsed: ParsePromptScriptResult;
+}
+
+export interface PromptScriptLinkResult {
+  promptScript: PromptScriptFile;
+  chatSession: ChatSessionData | null;
+  warnings: PromptScriptWarning[];
 }
 
 export class PromptScriptRepository {
   async read(filePath: string): Promise<PromptScriptFile> {
-    const absolutePath = path.resolve(filePath);
+    const document = await readDocument(filePath);
+    const parsed: ParsePromptScriptResult = parsePromptScriptContent(
+      document.content,
+    );
 
-    if (!(await fileExists(absolutePath))) {
-      throw new Error(`File does not exist: ${absolutePath}`);
-    }
-
-    const content = await fs.readFile(absolutePath, "utf8");
-    const stats = await fs.stat(absolutePath);
-
-    const parsed: ParsePromptScriptResult = parsePromptScriptContent(content);
-
-    return {
-      absolutePath,
-      content,
-      body: parsed.body,
-      metadata: parsed.metadata,
-      prompts: parsed.prompts,
-      hash: this.createContentHash(content),
-      modifiedAt: stats.mtime,
-      warnings: parsed.warnings,
-      delimiter: parsed.delimiter,
+    const promptScript: PromptScriptFile = {
+      ...document,
+      kind: "promptScript",
+      promptScriptParsed: parsed,
     };
+
+    return promptScript;
   }
 
   async save(
@@ -56,8 +72,8 @@ export class PromptScriptRepository {
       body?: string;
     } = {},
   ): Promise<PromptScriptFile> {
-    const metadata = options.metadata ?? script.metadata;
-    const body = options.body ?? script.body;
+    const metadata = options.metadata ?? script.promptScriptParsed.metadata;
+    const body = options.body ?? script.promptScriptParsed.body;
 
     const serialized = matter.stringify(body, this.serializeMetadata(metadata));
     await writeTextFile(script.absolutePath, serialized);
@@ -65,35 +81,20 @@ export class PromptScriptRepository {
     return this.read(script.absolutePath);
   }
 
-  private createContentHash(content: string): string {
-    return crypto.createHash("sha256").update(content).digest("hex");
-  }
-
-  private serializeMetadata(metadata: PromptScriptMetadata): Record<string, unknown> {
-    const data: Record<string, unknown> = { ...metadata.extras };
-
-    if (metadata.title !== undefined) {
-      data.title = metadata.title;
-    }
-
-    if (metadata.description !== undefined) {
-      data.description = metadata.description;
-    }
-
-    if (metadata.tags !== undefined) {
-      data.tags = metadata.tags;
-    }
+  private serializeMetadata(
+    metadata: PromptScriptMetadata,
+  ): Record<string, unknown> {
+    const data: Record<string, unknown> = {
+      ...metadata.extras,
+      title: metadata.title,
+      description: metadata.description,
+      tags: metadata.tags,
+      model: metadata.model,
+      chatSessionId: metadata.chatSessionId,
+    };
 
     if (metadata.engineDefinedInSource || metadata.engine !== "pty") {
       data.engine = metadata.engine;
-    }
-
-    if (metadata.model !== undefined) {
-      data.model = metadata.model;
-    }
-
-    if (metadata.chatSessionId !== undefined) {
-      data.chatSessionId = metadata.chatSessionId;
     }
 
     return data;

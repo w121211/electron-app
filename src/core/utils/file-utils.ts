@@ -189,7 +189,10 @@ export type DocumentKind =
   | "text"
   | "binary";
 
-export function resolveDocumentKind(filePath: string, fileType: string): DocumentKind {
+export function resolveDocumentKind(
+  filePath: string,
+  fileType: string,
+): DocumentKind {
   if (filePath.endsWith(".prompt.md")) {
     return "promptScript";
   }

@@ -1,88 +1,42 @@
 // src/renderer/src/stores/chat.svelte.ts
 
-import { SvelteMap } from "svelte/reactivity";
 import { getPreference } from "../lib/local-storage.js";
-import type {
-  ChatSessionData,
-  ChatSessionStatus,
-  ChatMessage,
-} from "../../../core/services/chat/chat-session-repository.js";
+import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
 import type { AvailableModels } from "../../../core/utils/model-utils.js";
-import type { PromptScriptLinkResult } from "../../../core/services/prompt-script/prompt-script-service.js";
-// import type { PromptScriptDriftStatus } from "./documents.svelte.js";
+import { Logger } from "tslog";
 
-export interface PromptScriptDriftWarning {
-  kind:
-    | "script_changed"
-    | "session_missing"
-    | "hash_mismatch"
-    | "metadata_conflict";
-  severity: "info" | "warning" | "error";
-  message: string;
-  acknowledged: boolean;
+const logger = new Logger({ name: "chat.svelte" });
+
+function toIsoTimestamp(date: Date = new Date()): string {
+  return date.toISOString();
 }
 
 export interface ChatSessionState {
   data: ChatSessionData;
-  driftWarnings: PromptScriptDriftWarning[];
   lastSyncedAt: string | null;
-  isReplayQueued: boolean;
-}
-
-export interface ChatSessionLinkState {
-  sessionId: string | null;
-  linkResult: PromptScriptLinkResult | null;
-  // scriptHash: string | null;
-  // status: PromptScriptDriftStatus;
-  // warnings: PromptScriptDriftWarning[];
-  // lastAttachedAt: string | null;
+  // driftWarnings: PromptScriptDriftWarning[];
+  // isReplayQueued: boolean;
 }
 
 // export const chatSessions = new SvelteMap<string, ChatSessionState>();
 export const chatSessions: Record<string, ChatSessionState> = $state({});
 
-// export const chatSessionLinks = new SvelteMap<string, ChatSessionLinkState>();
-export const chatSessionLinks: Record<string, ChatSessionLinkState> = $state(
-  {},
-);
+export const setChatSession = (session: ChatSessionData): ChatSessionState => {
+  const existing = chatSessions[session.id];
+  const now = toIsoTimestamp();
 
-// export const getLinkedChatSession = (
-//   filePath: string,
-// ): ChatSessionState | null => {
-//   const sessionLink = chatSessionLinks[filePath];
-//   if (sessionLink?.sessionId) {
-//     return chatSessions[sessionLink.sessionId] ?? null;
-//   }
-//   return null;
-// };
+  if (existing) {
+    existing.data = session;
+    existing.lastSyncedAt = now;
+  } else {
+    chatSessions[session.id] = {
+      data: session,
+      lastSyncedAt: now,
+    };
+  }
 
-// export const getChatSessionList = () => [...chatSessions.values()];
-
-// export const getOrphanedChatSessions = () =>
-//   getChatSessionList().filter((session) => {
-//     for (const link of chatSessionLinks.values()) {
-//       if (link.sessionId === session.data.id) {
-//         return false;
-//       }
-//     }
-//     return true;
-//   });
-
-// export const getChatSessionMessages = () =>
-//   new Map<string, ChatMessage[]>(
-//     getChatSessionList().map((session) => [
-//       session.data.id,
-//       session.data.messages,
-//     ]),
-//   );
-
-// export const getChatSessionStatuses = () =>
-//   new Map<string, ChatSessionStatus>(
-//     getChatSessionList().map((session) => [
-//       session.data.id,
-//       session.data.sessionStatus,
-//     ]),
-//   );
+  return chatSessions[session.id];
+};
 
 // --- Global chat settings ---
 

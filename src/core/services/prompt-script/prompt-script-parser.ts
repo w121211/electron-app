@@ -1,35 +1,15 @@
 // src/core/services/prompt-script/prompt-script-parser.ts
 import matter from "gray-matter";
-
-export type PromptScriptEngine = "api" | "pty";
-
-export interface PromptScriptMetadata {
-  title?: string;
-  description?: string;
-  tags?: string[];
-  engine: PromptScriptEngine;
-  engineDefinedInSource: boolean;
-  model?: string;
-  chatSessionId?: string;
-  extras: Record<string, unknown>;
-}
-
-export interface PromptScriptPrompt {
-  index: number;
-  content: string;
-  attributes?: Record<string, string>;
-}
-
-export interface ParsePromptScriptResult {
-  metadata: PromptScriptMetadata;
-  prompts: PromptScriptPrompt[];
-  body: string;
-  warnings: string[];
-  delimiter: string;
-}
+import type {
+  ParsePromptScriptResult,
+  PromptScriptMetadata,
+  PromptScriptPrompt,
+  PromptScriptWarning,
+} from "./prompt-script-repository.js";
 
 const USER_DELIMITER_REGEX = /<!--\s*user(?<attributes>[^>]*)-->/gi;
-const ATTRIBUTE_REGEX = /([a-zA-Z0-9_-]+)\s*=\s*"([^"]*)"|([a-zA-Z0-9_-]+)\s*=\s*'([^']*)'/g;
+const ATTRIBUTE_REGEX =
+  /([a-zA-Z0-9_-]+)\s*=\s*"([^"]*)"|([a-zA-Z0-9_-]+)\s*=\s*'([^']*)'/g;
 
 type RawFrontMatter = Record<string, unknown> | undefined;
 
@@ -39,9 +19,9 @@ function normalizeNewlines(value: string): string {
 
 function parseFrontMatter(raw: RawFrontMatter): {
   metadata: PromptScriptMetadata;
-  warnings: string[];
+  warnings: PromptScriptWarning[];
 } {
-  const warnings: string[] = [];
+  const warnings: PromptScriptWarning[] = [];
   const extras: Record<string, unknown> = {};
 
   const metadata: PromptScriptMetadata = {
@@ -61,7 +41,10 @@ function parseFrontMatter(raw: RawFrontMatter): {
         if (typeof value === "string") {
           metadata.title = value;
         } else if (value !== undefined) {
-          warnings.push("Ignoring non-string title in prompt script front matter");
+          warnings.push({
+            code: "PARSE_ERROR",
+            message: "Ignoring non-string title in prompt script front matter",
+          });
           extras[key] = value;
         }
         break;
@@ -70,9 +53,10 @@ function parseFrontMatter(raw: RawFrontMatter): {
         if (typeof value === "string") {
           metadata.description = value;
         } else if (value !== undefined) {
-          warnings.push(
-            "Ignoring non-string description in prompt script front matter",
-          );
+          warnings.push({
+            code: "PARSE_ERROR",
+            message: "Ignoring non-string description in prompt script front matter",
+          });
           extras[key] = value;
         }
         break;
@@ -81,15 +65,19 @@ function parseFrontMatter(raw: RawFrontMatter): {
         if (Array.isArray(value)) {
           const tags = value.filter((item) => typeof item === "string");
           if (tags.length !== value.length) {
-            warnings.push(
-              "Some prompt script tags are not strings and were ignored",
-            );
+            warnings.push({
+              code: "PARSE_ERROR",
+              message: "Some prompt script tags are not strings and were ignored",
+            });
           }
           if (tags.length > 0) {
             metadata.tags = tags;
           }
         } else if (value !== undefined) {
-          warnings.push("Ignoring non-array tags in prompt script front matter");
+          warnings.push({
+            code: "PARSE_ERROR",
+            message: "Ignoring non-array tags in prompt script front matter",
+          });
           extras[key] = value;
         }
         break;
@@ -101,9 +89,10 @@ function parseFrontMatter(raw: RawFrontMatter): {
         } else if (value === undefined || value === null) {
           // Use default
         } else {
-          warnings.push(
-            "Invalid engine in prompt script front matter. Defaulting to 'pty'",
-          );
+          warnings.push({
+            code: "PARSE_ERROR",
+            message: "Invalid engine in prompt script front matter. Defaulting to 'pty'",
+          });
         }
         break;
       }
@@ -111,9 +100,10 @@ function parseFrontMatter(raw: RawFrontMatter): {
         if (typeof value === "string") {
           metadata.model = value;
         } else if (value !== undefined) {
-          warnings.push(
-            "Ignoring non-string model in prompt script front matter",
-          );
+          warnings.push({
+            code: "PARSE_ERROR",
+            message: "Ignoring non-string model in prompt script front matter",
+          });
           extras[key] = value;
         }
         break;
@@ -122,9 +112,10 @@ function parseFrontMatter(raw: RawFrontMatter): {
         if (typeof value === "string" && value.trim().length > 0) {
           metadata.chatSessionId = value.trim();
         } else if (value !== undefined) {
-          warnings.push(
-            "Ignoring non-string chatSessionId in prompt script front matter",
-          );
+          warnings.push({
+            code: "PARSE_ERROR",
+            message: "Ignoring non-string chatSessionId in prompt script front matter",
+          });
         }
         break;
       }
@@ -137,7 +128,9 @@ function parseFrontMatter(raw: RawFrontMatter): {
   return { metadata, warnings };
 }
 
-function parseDelimiterAttributes(raw: string | undefined): Record<string, string> | undefined {
+function parseDelimiterAttributes(
+  raw: string | undefined,
+): Record<string, string> | undefined {
   if (!raw) {
     return undefined;
   }
@@ -201,7 +194,9 @@ function extractPrompts(body: string): PromptScriptPrompt[] {
   return prompts;
 }
 
-export function parsePromptScriptContent(content: string): ParsePromptScriptResult {
+export function parsePromptScriptContent(
+  content: string,
+): ParsePromptScriptResult {
   const parsed = matter(content);
   const frontMatterResult = parseFrontMatter(parsed.data as RawFrontMatter);
   const prompts = extractPrompts(parsed.content ?? "");

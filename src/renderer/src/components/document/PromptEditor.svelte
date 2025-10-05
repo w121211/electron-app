@@ -6,13 +6,7 @@
   import { documentClientService } from "../../services/document-client-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import { projectService } from "../../services/project-service.js";
-  import {
-    getLinkedChatSession,
-    chatSettings,
-    chatSessions,
-    chatSessionLinks,
-  } from "../../stores/chat.svelte.js";
-  import { editorViews } from "../../stores/editor-views.svelte.js";
+  import { chatSettings } from "../../stores/chat.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import { showToast } from "../../stores/ui-store.svelte.js";
   import {
@@ -22,7 +16,9 @@
   import FileSearchDropdown from "./FileSearchDropdown.svelte";
   import ModelSelectorDropdown from "./ModelSelectorDropdown.svelte";
   import { getSelectedDocContext, isDirty } from "../../stores/ui.svelte.js";
-  import { documents } from "../../stores/documents.svelte.js";
+  import { Logger } from "tslog";
+
+  const logger = new Logger({ name: "PromptEditor" });
 
   let {
     headerText,
@@ -40,13 +36,8 @@
   let inputValue = $state(editorView?.unsavedContent ?? "");
   let promptEditorTextarea = $state<HTMLTextAreaElement>();
 
-  $inspect(chatSessions);
-  $inspect(chatSessionLinks);
-  $inspect(editorView?.unsavedContent);
-  $inspect(chatSession);
-
   onDestroy(() => {
-    handleClose();
+    tick().then(() => handleClose());
 
     fileSearchService.cleanup();
   });
@@ -67,16 +58,12 @@
 
   // Auto-save effect for prompt scripts with 1-second debounce.
   $effect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    inputValue; // Re-run when inputValue changes to create a debounce
+    logger.debug("Auto-save effect triggered", { inputValue });
 
     const timer = setTimeout(() => {
       if (docContext?.filePath && isDirty(docContext.filePath, inputValue)) {
-        console.log("Auto-saving...");
-        documentClientService.saveDocument(docContext.filePath).catch((err) => {
-          console.error("Auto-save failed", err);
-          showToast("Auto-save failed", "error");
-        });
+        logger.debug("Auto-saving...");
+        documentClientService.saveDocument(docContext.filePath, inputValue);
       }
     }, 1000);
 
@@ -120,8 +107,10 @@
     }
   };
 
-  // Save cursor position when prompt editor is about to close
   const handleClose = (): void => {
+    logger.debug("Closing prompt editor...");
+
+    // Save cursor position when prompt editor is about to close
     if (promptEditorTextarea && docContext?.filePath) {
       const { selectionStart, selectionEnd } = promptEditorTextarea;
       const anchor = offsetToLineColumn(inputValue, selectionStart);
@@ -134,11 +123,19 @@
     }
 
     // Save any unsaved changes when the component unmounts.
-    if (docContext?.filePath) {
-      documentClientService.saveDocument(docContext.filePath).catch((err) => {
-        console.error("Save on unmount failed", err);
-        showToast("Save on unmount failed", "error");
+    logger.debug("Saving on unmount...", {
+      unsavedContent: editorView?.unsavedContent,
+      docContent: docContext?.documentState.data.content,
+    });
+    if (
+      docContext?.filePath &&
+      editorView?.unsavedContent !== docContext.documentState.data.content
+    ) {
+      logger.debug("Saving on unmount...", {
+        unsavedContent: editorView?.unsavedContent,
+        docContent: docContext.documentState.data.content,
       });
+      // documentClientService.saveDocument(docContext.filePath, inputValue);
     }
   };
 
@@ -165,14 +162,19 @@
       const workingDirectory = projectFolder.path;
       const modelId = chatSettings.selectedModel;
 
-      await documentClientService.saveDocument(filePath);
+      await documentClientService.saveDocument(filePath, inputValue);
 
-      await chatService.createLinkedPtyChatSession({
+      // TODO: Create api/pyt chat session based on the selected model
+      const { promptScript } = await chatService.createLinkedPtyChatSession({
         scriptPath: filePath,
         workingDirectory,
         modelId,
         initialPrompt: trimmedContent,
       });
+
+      // Sync inputValue to the updated promptScript content
+      // inputValue = promptScript.content;
+
       return;
     }
 

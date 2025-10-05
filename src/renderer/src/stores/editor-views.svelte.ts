@@ -17,14 +17,13 @@ export interface EditorViewState {
   selections: SelectionRange[];
   scrollTop: number;
   scrollLeft: number;
-  isFocused: boolean;
   languageId: string | null;
   lastInteractionAt: string | null;
 }
 
 export const editorViews = $state({} as Record<string, EditorViewState>);
 
-export const getOpenEditorViews = () => Object.values(editorViews);
+// export const getOpenEditorViews = () => Object.values(editorViews);
 
-export const getFocusedEditorView = () =>
-  getOpenEditorViews().find((view) => view.isFocused) ?? null;
+// export const getFocusedEditorView = () =>
+//   getOpenEditorViews().find((view) => view.isFocused) ?? null;

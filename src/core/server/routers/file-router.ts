@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { getFileType, writeTextFile } from "../../utils/file-utils.js";
 import { router, publicProcedure } from "../trpc-init.js";
-import { DocumentService } from "../../services/document/document-service.js";
+import type { DocumentService } from "../../services/document/document-service.js";
 
 // File schemas
 export const openFileSchema = z.object({
@@ -16,9 +16,7 @@ export const writeFileSchema = z.object({
   correlationId: z.string().optional(),
 });
 
-export function createFileRouter() {
-  const documentService = new DocumentService();
-
+export function createFileRouter(documentService: DocumentService) {
   return router({
     openFile: publicProcedure.input(openFileSchema).query(async ({ input }) => {
       return documentService.getDocument(input.filePath);

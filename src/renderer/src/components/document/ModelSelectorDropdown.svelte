@@ -1,13 +1,14 @@
 <!-- // src/renderer/src/components/chat/ModelSelectorDropdown.svelte -->
 <script lang="ts">
   import { ChevronDown } from "svelte-bootstrap-icons";
-  import { getFocusedEditorView } from "../../stores/editor-views.svelte.js";
+  // import { getFocusedEditorView } from "../../stores/editor-views.svelte.js";
   import {
-    getLinkedChatSession,
     chatSettings,
     getAvailableModelsAsList,
   } from "../../stores/chat.svelte.js";
   import { chatService } from "../../services/chat-service.js";
+  import { getSelectedDocContext } from "../../stores/ui.svelte.js";
+  import { onMount } from "svelte";
 
   interface Props {
     position?: "below" | "above";
@@ -18,20 +19,17 @@
   let showDropdown = $state(false);
   let dropdownContainer = $state<HTMLDivElement>();
 
-  const focusedView = $derived(getFocusedEditorView());
-  const currentChat = $derived(
-    focusedView ? getLinkedChatSession(focusedView.filePath) : null,
-  );
-
-  // Derive disabled state from chat state
-  const disabled = $derived(
-    !!(currentChat && currentChat.data.messages.length > 0),
-  );
-
+  const docContext = $derived.by(getSelectedDocContext);
   const allModels = $derived.by(getAvailableModelsAsList);
+  const disabled = $derived(
+    !!(
+      docContext?.chatSessionState?.data.messages &&
+      docContext.chatSessionState.data.messages.length > 0
+    ),
+  );
 
   // Hydrate models when component mounts
-  $effect(() => {
+  onMount(() => {
     if (allModels.length === 0) {
       chatService.hydrateAvailableModels();
     }

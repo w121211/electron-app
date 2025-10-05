@@ -19,10 +19,6 @@ import {
 } from "../stores/file-explorer-store.svelte.js";
 import { documentClientService } from "./document-client-service.js";
 
-import {
-  loadFileForPanel,
-  closeFilePanel,
-} from "../stores/file-panel-store.svelte.js";
 import type {
   ProjectFolder,
   FolderTreeNode,
@@ -175,10 +171,6 @@ class ProjectService {
     }
   }
 
-  /**
-   * Enhanced file selection with business logic
-   * Handles different file types appropriately
-   */
   async selectFile(filePath: string) {
     this.logger.info("Selecting file:", filePath);
 
@@ -190,23 +182,24 @@ class ProjectService {
 
     setTreeSelectionState(filePath, null, filePath);
 
-    if (isLegacyChatFile) {
-      showToast(
-        "Legacy chat files are no longer supported. Open the associated prompt script instead.",
-        "warning",
-      );
-      setTreeSelectionState(null, null, null);
-      return;
-    }
+    // if (isLegacyChatFile) {
+    //   showToast(
+    //     "Legacy chat files are no longer supported. Open the associated prompt script instead.",
+    //     "warning",
+    //   );
+    //   setTreeSelectionState(null, null, null);
+    //   return;
+    // }
 
     try {
-      if (isPromptScript) {
-        await documentClientService.openDocument(filePath, { focus: true });
-        closeFilePanel();
-      } else {
-        // Non prompt-script files continue using the lightweight preview panel
-        await loadFileForPanel(filePath);
-      }
+      await documentClientService.openDocument(filePath, { focus: true });
+      // if (isPromptScript) {
+      //   await documentClientService.openDocument(filePath, { focus: true });
+      //   closeFilePanel();
+      // } else {
+      //   // Non prompt-script files continue using the lightweight preview panel
+      //   // await loadFileForPanel(filePath);
+      // }
     } catch (error) {
       this.logger.error("Failed to open file", { filePath, error });
       showToast(
@@ -217,9 +210,6 @@ class ProjectService {
     }
   }
 
-  /**
-   * Handle directory/file clicks from tree components
-   */
   async handleTreeNodeClick(node: FolderTreeNode) {
     if (node.isDirectory) {
       toggleNodeExpansion(node.path);
@@ -228,9 +218,6 @@ class ProjectService {
     }
   }
 
-  /**
-   * Clear all file selections
-   */
   clearSelection() {
     this.logger.info("Clearing file selection");
     setTreeSelectionState(null, null, null);

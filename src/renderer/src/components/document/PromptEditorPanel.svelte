@@ -1,6 +1,5 @@
 <!-- src/renderer/src/components/document/PromptEditorPanel.svelte -->
 <script lang="ts">
-  import { documentClientService } from "../../services/document-client-service.js";
   import { uiState } from "../../stores/ui-store.svelte.js";
   import { getSelectedDocContext } from "../../stores/ui.svelte.js";
   import Breadcrumb from "../Breadcrumb.svelte";
@@ -8,12 +7,6 @@
   import PromptEditor from "./PromptEditor.svelte";
 
   const docContext = $derived.by(getSelectedDocContext);
-
-  const handleClose = (): void => {
-    if (docContext?.filePath) {
-      documentClientService.closeDocument(docContext.filePath);
-    }
-  };
 </script>
 
 {#if docContext && docContext.documentState?.data.kind === "promptScript"}

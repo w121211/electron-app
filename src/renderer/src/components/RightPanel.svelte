@@ -4,7 +4,7 @@
   import { Logger } from "tslog";
   import { showToast, uiState } from "../stores/ui-store.svelte.js";
   import { treeState } from "../stores/tree-store.svelte.js";
-  import { fileService } from "../services/file-service.js";
+  // import { fileService } from "../services/file-service.js";
   import { projectService } from "../services/project-service.js";
 
   const logger = new Logger({ name: "NewRightPanel" });
@@ -48,7 +48,7 @@ Text is also allowed`);
 
     try {
       logger.info("Loading file content:", filePath);
-      fileContent = await fileService.openFile(filePath);
+      // fileContent = await fileService.openFile(filePath);
     } catch (error) {
       logger.error("Failed to load file content:", error);
       fileLoadError = error instanceof Error ? error.message : "Unknown error";
