@@ -343,6 +343,31 @@ export async function generateUniqueFileName(
   }
 }
 
+/**
+ * Generates the next available sequentially numbered filename in a directory.
+ * E.g., 001.ext, 002.ext, etc.
+ */
+export async function generateSequentiallyNumberedFilename(
+  directory: string,
+  extension: string,
+  padding: number,
+): Promise<string> {
+  const files = await fs.readdir(directory);
+  const regex = new RegExp(`^(\d+)${extension.replace(/\./g, "\\.")}$`);
+  let maxNumber = 0;
+  for (const file of files) {
+    const match = file.match(regex);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+  const nextNumber = maxNumber + 1;
+  return `${String(nextNumber).padStart(padding, "0")}${extension}`;
+}
+
 export async function validateProjectFolderPath(
   absoluteProjectFolderPath: string,
 ): Promise<boolean> {

@@ -2,6 +2,7 @@
 import path from "node:path";
 import { Logger } from "tslog";
 import {
+  generateSequentiallyNumberedFilename,
   generateUniqueFileName,
   writeTextFile,
 } from "../../utils/file-utils.js";
@@ -35,6 +36,7 @@ export class PromptScriptService {
     if (name) {
       baseName = `${name}.prompt.md`;
     } else {
+      /*
       // Format: 20251003-143045
       const timestamp = new Date()
         .toISOString()
@@ -42,6 +44,12 @@ export class PromptScriptService {
         .replace(/[-:T]/g, "")
         .replace(/(\d{8})(\d{6})/, "$1-$2");
       baseName = `${timestamp}.prompt.md`;
+      */
+      baseName = await generateSequentiallyNumberedFilename(
+        directory,
+        ".prompt.md",
+        3,
+      );
     }
     const filePath = await generateUniqueFileName(directory, baseName);
 

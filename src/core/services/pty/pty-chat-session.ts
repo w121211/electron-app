@@ -9,7 +9,7 @@ import type {
   ChatSessionStatus,
 } from "../chat/chat-session-repository.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
-import { extractMessages } from "./pty-chat-snapshot-extractor.js";
+import { extractMessages } from "./pty-snapshot-extractor.js";
 
 export type PtyChatUpdateType =
   | "MESSAGE_ADDED"
@@ -46,8 +46,6 @@ export class PtyChatSession {
   private sessionStatus: ChatSessionStatus;
   private readonly createdAt: Date;
   private updatedAt: Date;
-  private activeAssistantMessageId: string | null = null;
-
   constructor(data: ChatSessionData, eventBus: IEventBus) {
     if (data.sessionType !== "pty_chat") {
       throw new Error("PtyChatSession requires a sessionType of 'pty_chat'");
@@ -104,84 +102,42 @@ export class PtyChatSession {
     };
   }
 
-  recordUserInput(data: string): void {
-    const message: ChatMessage = {
-      id: uuidv4(),
-      message: {
-        role: "user",
-        content: data,
-      },
-      metadata: {
-        timestamp: new Date(),
-      },
-    };
-
-    this.messages.push(message);
-    this.activeAssistantMessageId = null;
-    this.updatedAt = new Date();
-    void this.emitUpdate("MESSAGE_ADDED", { message });
-  }
-
-  recordAssistantOutput(data: string): void {
-    if (!data) {
+  updateFromSnapshot(snapshot: string): void {
+    const newMessages = extractMessages(snapshot);
+    if (newMessages.length === 0) {
       return;
     }
 
-    if (this.activeAssistantMessageId) {
-      const activeMessage = this.messages.find(
-        (message) => message.id === this.activeAssistantMessageId,
+    // Find anchor point for merging
+    let anchorIndex = -1;
+    for (let i = this.messages.length - 1; i >= 0; i--) {
+      const currentMessage = this.messages[i];
+      const foundIndex = newMessages.findIndex(
+        (newMessage) =>
+          newMessage.message.role === currentMessage.message.role &&
+          newMessage.message.content === currentMessage.message.content,
       );
-      if (activeMessage && activeMessage.message.role === "assistant") {
-        const previousContent = typeof activeMessage.message.content === "string"
-          ? activeMessage.message.content
-          : "";
-        activeMessage.message = {
-          role: "assistant",
-          content: previousContent + data,
-        };
-        this.updatedAt = new Date();
-        void this.emitUpdate("MESSAGE_ADDED", { message: activeMessage });
-        return;
+      if (foundIndex !== -1) {
+        anchorIndex = i;
+        break;
       }
     }
 
-    const message: ChatMessage = {
-      id: uuidv4(),
-      message: {
-        role: "assistant",
-        content: data,
-      },
-      metadata: {
-        timestamp: new Date(),
-      },
-    };
-
-    this.messages.push(message);
-    this.activeAssistantMessageId = message.id;
-    this.updatedAt = new Date();
-    void this.emitUpdate("MESSAGE_ADDED", { message });
-  }
-
-  markTerminated(): void {
-    this.sessionStatus = "external_terminated";
-    this.updatedAt = new Date();
-    void this.emitUpdate("STATUS_CHANGED", { status: this.sessionStatus });
-  }
-
-  recordPtyExit(): void {
-    if (!this.ptyInstanceId) {
-      return;
+    if (anchorIndex !== -1) {
+      // Anchor found, merge the lists
+      const newSlice = newMessages.slice(
+        newMessages.findIndex(
+          (msg) =>
+            msg.message.content === this.messages[anchorIndex].message.content,
+        ) + 1,
+      );
+      this.messages.splice(anchorIndex + 1);
+      this.messages.push(...newSlice);
+    } else {
+      // No anchor, likely a screen clear. Append all new messages.
+      this.messages.push(...newMessages);
     }
 
-    this.ptyInstanceId = undefined;
-    this.updatedAt = new Date();
-    void this.emitUpdate("METADATA_UPDATED", {
-      metadata: structuredClone(this.metadata),
-    });
-  }
-
-  updateMessagesFromSnapshot(snapshot: string): void {
-    this.messages = extractMessages(snapshot);
     this.metadata = {
       ...this.metadata,
       external: {
@@ -194,6 +150,47 @@ export class PtyChatSession {
     };
     this.updatedAt = new Date();
     void this.emitUpdate("MESSAGE_ADDED", {});
+  }
+
+  markTerminated(): void {
+    this.sessionStatus = "external_terminated";
+    this.updatedAt = new Date();
+    void this.emitUpdate("STATUS_CHANGED", { status: this.sessionStatus });
+  }
+
+  recordCliEvent(
+    type: "screenRefresh" | "newSession",
+    details: Record<string, unknown>,
+  ): void {
+    const message: ChatMessage = {
+      id: uuidv4(),
+      message: {
+        role: "system",
+        content: `cli:${type}`,
+      },
+      metadata: {
+        timestamp: new Date(),
+        custom: {
+          type,
+          ...details,
+        },
+      },
+    };
+    this.messages.push(message);
+    this.updatedAt = new Date();
+    void this.emitUpdate("MESSAGE_ADDED", { message });
+  }
+
+  recordPtyExit(): void {
+    if (!this.ptyInstanceId) {
+      return;
+    }
+
+    this.ptyInstanceId = undefined;
+    this.updatedAt = new Date();
+    void this.emitUpdate("METADATA_UPDATED", {
+      metadata: structuredClone(this.metadata),
+    });
   }
 
   toChatSessionData(): ChatSessionData {

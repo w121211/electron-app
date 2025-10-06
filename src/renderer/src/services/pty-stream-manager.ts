@@ -114,6 +114,12 @@ class PtyStreamManager {
           stream.processStateFromData(data);
 
           // Step 2: Explicitly pass the data to UI listeners
+          if (data.includes("\x1b[?5h") || data.includes("\x1b[?5l")) {
+            this.logger.info("Visible bell sequence detected in PTY stream", {
+              ptySessionId,
+              data,
+            });
+          }
           stream.onData.emit(data);
         }
       },

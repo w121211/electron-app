@@ -9,7 +9,7 @@
     Paperclip,
   } from "svelte-bootstrap-icons";
   import { isTerminalModel } from "../../../../core/utils/model-utils.js";
-  import { chatService } from "../../services/chat-service.js";
+  import { apiChatService } from "../../services/api-chat-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import {
     chatState,
@@ -96,7 +96,7 @@
 
     if (!chatState.messageInput.trim() || !chatState.currentChat) return;
 
-    await chatService.sendPrompt({
+    await apiChatService.sendMessage({
       sessionId: chatState.currentChat.id,
       prompt: chatState.messageInput.trim(),
     });

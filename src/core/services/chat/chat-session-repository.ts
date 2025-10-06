@@ -32,6 +32,16 @@ export type ChatSessionStatus =
   | "external_active"
   | "external_terminated";
 
+export const chatSessionStatusSchema = z.enum([
+  "idle",
+  "processing",
+  "scheduled",
+  "waiting_confirmation",
+  "max_turns_reached",
+  "external_active",
+  "external_terminated",
+]);
+
 export interface ChatMessageMetadata {
   timestamp: Date;
   subtaskId?: string;
@@ -48,6 +58,13 @@ export interface ChatMessage {
   metadata: ChatMessageMetadata;
 }
 
+export interface PtyChatSnapshot {
+  modelId: `${string}/${string}`;
+  snapshot: string;
+  snapshotHtml?: string;
+  timestamp: Date;
+}
+
 export interface ExternalChatMetadata {
   mode?: "terminal" | "pty";
   pid?: number;
@@ -55,8 +72,7 @@ export interface ExternalChatMetadata {
   pty?: {
     initialCommand?: string;
     ptyInstanceId?: string;
-    snapshot?: string;
-    snapshotHtml?: string;
+    snapshots?: PtyChatSnapshot[];
   };
 }
 
@@ -90,6 +106,18 @@ export interface ChatSessionData {
   updatedAt: Date;
 }
 
+const ModelIdSchema = z
+  .string()
+  .regex(/^.+\/.+$/)
+  .transform((value) => value as `${string}/${string}`);
+
+const PtyChatSnapshotSchema: z.ZodType<PtyChatSnapshot> = z.object({
+  modelId: ModelIdSchema,
+  snapshot: z.string(),
+  snapshotHtml: z.string().optional(),
+  timestamp: z.coerce.date(),
+});
+
 const ExternalChatMetadataSchema: z.ZodType<ExternalChatMetadata> = z.object({
   mode: z.enum(["terminal", "pty"]).optional(),
   pid: z.number().optional(),
@@ -98,16 +126,10 @@ const ExternalChatMetadataSchema: z.ZodType<ExternalChatMetadata> = z.object({
     .object({
       initialCommand: z.string().optional(),
       ptyInstanceId: z.string().optional(),
-      snapshot: z.string().optional(),
-      snapshotHtml: z.string().optional(),
+      snapshots: z.array(PtyChatSnapshotSchema).optional(),
     })
     .optional(),
 });
-
-const ModelIdSchema = z
-  .string()
-  .regex(/^.+\/.+$/)
-  .transform((value) => value as `${string}/${string}`);
 
 const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   title: z.string().optional(),

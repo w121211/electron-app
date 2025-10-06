@@ -14,7 +14,10 @@
   } from "../../stores/tree-store.svelte.js";
   import { tasksByPath } from "../../stores/task-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
-  import { getSelectedDocContext } from "../../stores/ui.svelte.js";
+  import {
+    getSelectedDocContext,
+    getChatSessionByPromptScriptPath,
+  } from "../../stores/ui.svelte.js";
   import { uiState, showToast } from "../../stores/ui-store.svelte.js";
   import {
     fileExplorerState,
@@ -45,6 +48,9 @@
   const isPromptScript = $derived(node.name.endsWith(".prompt.md"));
   const isCurrentPromptScript = $derived(
     isPromptScript && activeContext?.filePath === node.path,
+  );
+  const linkedChatSession = $derived(
+    isPromptScript ? getChatSessionByPromptScriptPath(node.path) : null,
   );
   const isLoadingRerunChat = $derived(
     uiState.loadingStates["rerunChat"] || false,
@@ -152,6 +158,32 @@
     };
     return {
       label: statusMap[status] || status.toLowerCase().replace("_", "-"),
+      className: "border-border text-foreground",
+    };
+  }
+
+  function shouldShowSessionStatus(status: string): boolean {
+    return [
+      "processing",
+      "scheduled",
+      "waiting_confirmation",
+      "external_active",
+    ].includes(status);
+  }
+
+  function getSessionStatusConfig(status: string): {
+    label: string;
+    className: string;
+  } {
+    const statusMap: { [key: string]: string } = {
+      processing: "running",
+      scheduled: "queued",
+      waiting_confirmation: "waiting",
+      external_active: "running",
+      max_turns_reached: "max-turns",
+    };
+    return {
+      label: statusMap[status] || status.replace("_", "-"),
       className: "border-border text-foreground",
     };
   }
@@ -315,6 +347,18 @@
         class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
       >
         active
+      </span>
+    {/if}
+    {#if isPromptScript && linkedChatSession?.data.sessionStatus && shouldShowSessionStatus(
+        linkedChatSession.data.sessionStatus,
+      )}
+      {@const statusConfig = getSessionStatusConfig(
+        linkedChatSession.data.sessionStatus,
+      )}
+      <span
+        class="ml-1 rounded border px-1 py-0.5 font-mono text-[10px] {statusConfig.className}"
+      >
+        {statusConfig.label}
       </span>
     {/if}
 

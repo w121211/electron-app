@@ -1,15 +1,16 @@
 <!-- src/renderer/src/components/pty-chat/PtyChatPanel.svelte -->
 <script lang="ts">
+  import { CodeSlash } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
-  import { ui, getSelectedDocContext } from "../../stores/ui.svelte.js";
-  import Breadcrumb from "../Breadcrumb.svelte";
-  import NavigationButtons from "../NavigationButtons.svelte";
-  import PtyStreamPool from "../PtyStreamPool.svelte";
   import {
     type PtyStream,
     ptyStreamManager,
   } from "../../services/pty-stream-manager.js";
-  import XtermSnapshot from "../XtermSnapshot.svelte";
+  import { ui, getSelectedDocContext } from "../../stores/ui.svelte.js";
+  import Breadcrumb from "../Breadcrumb.svelte";
+  import NavigationButtons from "../NavigationButtons.svelte";
+  import PtyStreamPool from "./PtyStreamPool.svelte";
+  import XtermSnapshots from "../xterm/XtermSnapshots.svelte";
 
   const logger = new Logger({ name: "PtyChatPanel" });
 
@@ -95,14 +96,23 @@
         </div>
       {/if}
     </div>
+    <div class="flex items-center gap-2">
+      <button
+        class="text-muted hover:text-foreground focus:outline-none"
+        onclick={() => (ui.promptEditorOpen = !ui.promptEditorOpen)}
+        title="Toggle Prompt Editor"
+      >
+        <CodeSlash width={16} height={16} />
+      </button>
+    </div>
   </header>
 
   {#if !hidden && chatSession}
     {#if chatSession.sessionStatus === "external_terminated" || !selectedPtyStream}
       <div class="flex-1 overflow-hidden p-5">
-        {#if chatSession.metadata?.external?.pty?.snapshot}
-          <XtermSnapshot
-            snapshot={chatSession.metadata.external.pty.snapshot}
+        {#if chatSession.metadata?.external?.pty?.snapshots}
+          <XtermSnapshots
+            snapshots={chatSession.metadata.external.pty.snapshots}
           />
         {:else}
           <div class="text-muted mt-4 px-4 py-2 text-sm">

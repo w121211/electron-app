@@ -51,3 +51,11 @@ export const getSelectedDocContext = () => {
     isDirty: isDirty(ui.activeFilePath, editorViewState?.unsavedContent ?? ""),
   };
 };
+
+export const getChatSessionByPromptScriptPath = (filePath: string) => {
+  const documentState = documents[filePath] ?? null;
+  if (!documentState?.data.promptScriptLink?.chatSession?.id) {
+    return null;
+  }
+  return chatSessions[documentState.data.promptScriptLink.chatSession.id] ?? null;
+};

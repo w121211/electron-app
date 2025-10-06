@@ -5,6 +5,7 @@ import type {
   ChatSessionData,
   ChatSessionRepository,
 } from "../../services/chat/chat-session-repository.js";
+import { chatSessionStatusSchema } from "../../services/chat/chat-session-repository.js";
 import { PtyChatClient } from "../../services/pty/pty-chat-client.js";
 import { router, publicProcedure } from "../trpc-init.js";
 
@@ -90,6 +91,24 @@ export function createPtyChatRouter(
         const session = await client.updateMessagesFromSnapshot(
           input.chatSessionId,
           input.snapshot,
+        );
+        return session;
+      }),
+
+    updateChatSession: publicProcedure
+      .input(
+        z.object({
+          chatSessionId: z.string(),
+          updates: z.object({
+            metadata: metadataSchema.optional(),
+            sessionStatus: chatSessionStatusSchema.optional(),
+          }),
+        }),
+      )
+      .mutation(async ({ input }): Promise<ChatSessionData> => {
+        const session = await client.updateChatSession(
+          input.chatSessionId,
+          input.updates,
         );
         return session;
       }),

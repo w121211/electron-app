@@ -2,7 +2,8 @@
 <script lang="ts">
   import { onDestroy, tick } from "svelte";
   import { Paperclip, XLg, Send } from "svelte-bootstrap-icons";
-  import { chatService } from "../../services/chat-service.js";
+  import { ptyChatService } from "../../services/pty-chat-service.js";
+  import { apiChatService } from "../../services/api-chat-service.js";
   import { documentClientService } from "../../services/document-client-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import { projectService } from "../../services/project-service.js";
@@ -172,7 +173,7 @@
       await documentClientService.saveDocument(filePath, inputValue);
 
       // TODO: Create api/pyt chat session based on the selected model
-      const { promptScript } = await chatService.createLinkedPtyChatSession({
+      const { promptScript } = await ptyChatService.createLinkedSession({
         scriptPath: filePath,
         workingDirectory,
         modelId,
@@ -194,7 +195,7 @@
     }
 
     // Send prompt to existing session
-    await chatService.sendPrompt({
+    await apiChatService.sendMessage({
       sessionId: chatSession.data.id,
       prompt: trimmedContent,
     });

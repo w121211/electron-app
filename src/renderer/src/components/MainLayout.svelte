@@ -100,11 +100,11 @@
       </main>
 
       <!-- Prompt Editor Overlay -->
-      <!-- {#if ui.promptEditorOpen && centerPanelView !== "promptEditorPanel"}
+      {#if ui.promptEditorOpen && centerPanelView !== "promptEditorPanel"}
         <div class="absolute inset-0 z-30">
           <PromptEditorPanel />
         </div>
-      {/if} -->
+      {/if}
     </div>
   </div>
 

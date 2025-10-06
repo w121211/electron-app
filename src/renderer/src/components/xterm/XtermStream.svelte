@@ -129,6 +129,16 @@
       terminal?.write(`\r\n    [Process completed]`);
     });
 
+    terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      // Shift+Enter to insert newline
+      if (event.key === "Enter" && event.shiftKey) {
+        stream.write("\n");
+        return false;
+      }
+
+      return true;
+    });
+
     terminal.onData((data: string) => {
       stream.write(data);
     });

@@ -7,7 +7,7 @@ import {
 } from "../stores/ui-store.svelte.js";
 import { documentClientService } from "../services/document-client-service.js";
 import { ui } from "../stores/ui.svelte.js";
-import { chatService } from "../services/chat-service.js";
+import { ptyChatService } from "../services/pty-chat-service.js";
 
 // --- 1. Standalone Handlers ---
 
@@ -51,7 +51,7 @@ function handleQuickLauncher() {
 
 async function handleSavePtySnapshot() {
   try {
-    await chatService.savePtySnapshotToFixtures();
+    await ptyChatService.saveSnapshotToFixtures();
     showToast("PTY snapshot saved to tests/fixtures/", "success");
   } catch (err) {
     console.error("Failed to save PTY snapshot", err);

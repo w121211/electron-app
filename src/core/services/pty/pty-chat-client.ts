@@ -11,6 +11,8 @@ import { PtyInstanceManager } from "./pty-instance-manager.js";
 import type { PtyOnExitEvent } from "./events.js";
 import { PtyChatSession } from "./pty-chat-session.js";
 
+import { PtyDataProcessor } from "./pty-data-processor.js";
+
 interface CreatePtyChatInput {
   workingDirectory: string;
   modelId: `${string}/${string}`;
@@ -21,6 +23,7 @@ interface CreatePtyChatInput {
 export class PtyChatClient {
   private readonly sessions = new Map<string, PtyChatSession>();
   private readonly sessionIdByPtyInstance = new Map<string, string>();
+  private readonly processors = new Map<string, PtyDataProcessor>();
 
   constructor(
     private readonly eventBus: IEventBus,
@@ -30,7 +33,7 @@ export class PtyChatClient {
     this.subscribeToPtyEvents();
   }
 
-  async createSession(input: CreatePtyChatInput): Promise<ChatSessionData> {
+  async createPtyChat(input: CreatePtyChatInput): Promise<ChatSessionData> {
     const timestamp = new Date();
     const sessionData: ChatSessionData = {
       id: uuidv4(),
@@ -65,48 +68,22 @@ export class PtyChatClient {
     session.ptyInstanceId = ptyInstance.id;
     this.sessions.set(session.id, session);
     this.sessionIdByPtyInstance.set(ptyInstance.id, session.id);
-    await this.repository.update(session.toChatSessionData());
 
-    // if (input.initialPrompt) {
-    //   this.writeToInstance(
-    //     ptyInstance,
-    //     input.initialPrompt.endsWith("\n")
-    //       ? input.initialPrompt
-    //       : `${input.initialPrompt}\n`,
-    //   );
-    // }
+    const processor = new PtyDataProcessor(ptyInstance, session);
+    this.processors.set(ptyInstance.id, processor);
+
+    await this.repository.update(session.toChatSessionData());
 
     return session.toChatSessionData();
   }
 
-  // async sendInput(sessionId: string, data: string): Promise<void> {
-  //   const session = await this.ensureSessionLoaded(sessionId);
-  //   const ptyInstance = this.getPtyInstance(session);
-  //   if (!ptyInstance) {
-  //     throw new Error(`PTY instance missing for session ${sessionId}`);
-  //   }
-  //   const text = data.endsWith("\n") ? data : `${data}\n`;
-  //   this.writeToInstance(ptyInstance, text);
-  // }
-
-  async updateSession(
+  async updateChatSession(
     sessionId: string,
     updates: Partial<ChatSessionData>,
   ): Promise<ChatSessionData> {
     const session = await this.ensureSessionLoaded(sessionId);
     const currentData = session.toChatSessionData();
     const updatedData = { ...currentData, ...updates, updatedAt: new Date() };
-    await this.repository.update(updatedData);
-    return updatedData;
-  }
-
-  async updateMessagesFromSnapshot(
-    sessionId: string,
-    snapshot: string,
-  ): Promise<ChatSessionData> {
-    const session = await this.ensureSessionLoaded(sessionId);
-    session.updateMessagesFromSnapshot(snapshot);
-    const updatedData = session.toChatSessionData();
     await this.repository.update(updatedData);
     return updatedData;
   }
@@ -124,6 +101,11 @@ export class PtyChatClient {
     }
 
     if (ptyInstanceId) {
+      const processor = this.processors.get(ptyInstanceId);
+      if (processor) {
+        processor.destroy();
+        this.processors.delete(ptyInstanceId);
+      }
       this.sessionIdByPtyInstance.delete(ptyInstanceId);
     }
 

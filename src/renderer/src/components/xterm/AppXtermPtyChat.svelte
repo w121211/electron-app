@@ -50,7 +50,7 @@
     const targetDirectory = "/Users/cw/Documents/GitHub/electron-app/tmp";
     const modelId: `${string}/${string}` = "cli/claude";
 
-    const ptyChat = await ptyChatService.createPtyChat(
+    const ptyChat = await ptyChatService.createSession(
       targetDirectory,
       modelId,
       "Starting new PTY chat session",

@@ -4,7 +4,7 @@
   import { onMount, onDestroy } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
-  import { ptyClient, type PtySession } from "../services/pty-client";
+  import { ptyClient, type PtySession } from "../../services/pty-client";
   import { Logger } from "tslog";
 
   const logger = new Logger({ name: "SimpleXterm" });

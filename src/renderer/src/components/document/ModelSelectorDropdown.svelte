@@ -6,7 +6,7 @@
     chatSettings,
     getAvailableModelsAsList,
   } from "../../stores/chat.svelte.js";
-  import { chatService } from "../../services/chat-service.js";
+  import { modelClientService } from "../../services/model-client-service.js";
   import { getSelectedDocContext } from "../../stores/ui.svelte.js";
   import { onMount } from "svelte";
 
@@ -31,7 +31,7 @@
   // Hydrate models when component mounts
   onMount(() => {
     if (allModels.length === 0) {
-      chatService.hydrateAvailableModels();
+      modelClientService.hydrateAvailableModels();
     }
   });
 
@@ -42,7 +42,7 @@
   };
 
   const selectModel = (modelValue: `${string}/${string}`): void => {
-    chatService.selectModel(modelValue);
+    modelClientService.selectModel(modelValue);
     showDropdown = false;
   };
 

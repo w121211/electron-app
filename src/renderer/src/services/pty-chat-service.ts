@@ -1,29 +1,23 @@
-// src/renderer/src/services/chat-service.ts
+// src/renderer/src/services/pty-chat-service.ts
 
 import { Logger } from "tslog";
-import type { UserModelMessage } from "ai";
 import type {
   ChatSessionData,
   ChatMetadata,
 } from "../../../core/services/chat/chat-session-repository.js";
 import type { PromptScriptLinkResult } from "../../../core/services/prompt-script/prompt-script-repository.js";
-import {
-  setChatSession,
-  setAvailableModels,
-  setSelectedModel,
-} from "../stores/chat.svelte.js";
+import { setChatSession } from "../stores/chat.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
-import { setPreference } from "../lib/local-storage.js";
 import { documents } from "../stores/documents.svelte.js";
 import type { DocumentFileWithPromptScript } from "../../../core/services/document/document-service.js";
 import { editorViews } from "../stores/editor-views.svelte.js";
 import { ptyStreamManager } from "./pty-stream-manager.js";
-import { getSelectedDocContext, ui } from "../stores/ui.svelte.js";
+import { getSelectedDocContext } from "../stores/ui.svelte.js";
 
-const logger = new Logger({ name: "ChatService" });
+const logger = new Logger({ name: "PtyChatService" });
 
-export class ChatService {
-  async createPtyChatSession(
+export class PtyChatService {
+  async createSession(
     workingDirectory: string,
     modelId: `${string}/${string}`,
     initialPrompt?: string,
@@ -41,7 +35,7 @@ export class ChatService {
     return session;
   }
 
-  async createLinkedPtyChatSession({
+  async createLinkedSession({
     scriptPath,
     workingDirectory,
     modelId,
@@ -54,7 +48,7 @@ export class ChatService {
     initialPrompt: string;
     metadata?: Partial<ChatMetadata>;
   }): Promise<PromptScriptLinkResult> {
-    const session = await this.createPtyChatSession(
+    const session = await this.createSession(
       workingDirectory,
       modelId,
       initialPrompt,
@@ -81,36 +75,28 @@ export class ChatService {
       throw new Error(`Editor view or document not found for ${scriptPath}`);
     }
 
-    // Hack: Update store through open the prompt script (without focus)
-    // await documentClientService.openDocument(scriptPath, { focus: false });
-
     return linked;
   }
 
-  async sendPrompt({
-    sessionId,
-    prompt,
-    toolNames,
-  }: {
-    sessionId: string;
-    prompt: string;
-    toolNames?: string[];
-  }) {
-    logger.info("Sending prompt", { sessionId });
+  async updateSession(
+    sessionId: string,
+    updates: {
+      metadata?: Partial<ChatMetadata>;
+      sessionStatus?: ChatSessionData["sessionStatus"];
+    },
+  ): Promise<ChatSessionData> {
+    logger.info("Updating PTY chat session", { sessionId, updates });
 
-    const input: UserModelMessage = { role: "user", content: prompt };
-    const result = await trpcClient.apiChat.sendMessage.mutate({
+    const session = await trpcClient.ptyChat.updateChatSession.mutate({
       chatSessionId: sessionId,
-      input,
-      toolNames,
+      updates,
     });
+    setChatSession(session);
 
-    setChatSession(result.session);
-
-    return result;
+    return session;
   }
 
-  async terminatePtyChatSession(sessionId: string): Promise<ChatSessionData> {
+  async terminateSession(sessionId: string): Promise<ChatSessionData> {
     logger.info("Terminating PTY chat session", { sessionId });
 
     const session = await trpcClient.ptyChat.terminateSession.mutate({
@@ -121,45 +107,7 @@ export class ChatService {
     return session;
   }
 
-  // private async safeGetSessionById(
-  //   sessionId: string,
-  // ): Promise<ChatSessionData | null> {
-  //   try {
-  //     const session = await trpcClient.apiChat.getSession.query({
-  //       chatSessionId: sessionId,
-  //     });
-  //     return session;
-  //   } catch (error) {
-  //     logger.warn("Failed to resolve session by id", { sessionId, error });
-  //     return null;
-  //   }
-  // }
-
-  async rerunChat(
-    _absoluteFilePath: string,
-    _chatSessionId: string,
-  ): Promise<never> {
-    throw new Error(
-      "rerunChat via chat files is not supported in the prompt-script workflow.",
-    );
-  }
-
-  // handleChatEvent(event: ChatUpdatedEvent): void {
-  //   const hydration: ChatHydrationStatus =
-  //     event.updateType === "AI_RESPONSE_STARTED" ||
-  //     event.updateType === "AI_RESPONSE_STREAMING"
-  //       ? "streaming"
-  //       : "idle";
-  //   void this.hydrateSession(event.chat, { hydration }).catch((error) => {
-  //     this.logger.error("Failed to hydrate chat session from event", {
-  //       chatId: event.chatId,
-  //       updateType: event.updateType,
-  //       error,
-  //     });
-  //   });
-  // }
-
-  async savePtySnapshotToFixtures(): Promise<void> {
+  async saveSnapshotToFixtures(): Promise<void> {
     const docContext = getSelectedDocContext();
     const session = docContext?.chatSessionState;
 
@@ -201,28 +149,6 @@ export class ChatService {
 
     logger.info(`PTY snapshot saved to ${filepath}`);
   }
-
-  // Chat global settings
-
-  selectModel(modelId: `${string}/${string}`): void {
-    setSelectedModel(modelId);
-    setPreference("selectedModel", modelId);
-  }
-
-  async hydrateAvailableModels(): Promise<void> {
-    const response = await trpcClient.model.getAvailableModels.query();
-    setAvailableModels(response);
-    const totalModels =
-      Object.keys(response.external).length +
-      Object.keys(response.internal).length;
-    logger.info(`Loaded ${totalModels} available models.`);
-  }
-
-  togglePromptEditor = (): void => {
-    throw new Error(
-      "Prompt editor toggling is owned by the document workflow now.",
-    );
-  };
 }
 
-export const chatService = new ChatService();
+export const ptyChatService = new PtyChatService();
