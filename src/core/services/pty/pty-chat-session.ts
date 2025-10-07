@@ -6,7 +6,7 @@ import type {
   ChatMessageMetadata,
   ChatMetadata,
   ChatSessionData,
-  ChatSessionStatus,
+  ChatState,
 } from "../chat/chat-session-repository.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
 import { extractMessages } from "./pty-snapshot-extractor.js";
@@ -19,7 +19,7 @@ export type PtyChatUpdateType =
 export interface PtyChatUpdate {
   message?: ChatMessage;
   metadata?: ChatMetadata;
-  status?: ChatSessionStatus;
+  state?: ChatState;
 }
 
 function cloneMetadata(metadata: ChatMetadata | undefined): ChatMetadata {
@@ -43,7 +43,7 @@ export class PtyChatSession {
   private readonly eventBus: IEventBus;
   private messages: ChatMessage[];
   private metadata: ChatMetadata;
-  private sessionStatus: ChatSessionStatus;
+  private state: ChatState;
   private readonly createdAt: Date;
   private updatedAt: Date;
   constructor(data: ChatSessionData, eventBus: IEventBus) {
@@ -58,17 +58,17 @@ export class PtyChatSession {
       metadata: normalizeMessageMetadata(message.metadata),
     }));
     this.metadata = cloneMetadata(data.metadata);
-    this.sessionStatus = data.sessionStatus;
+    this.state = data.state;
     this.createdAt = new Date(data.createdAt);
     this.updatedAt = new Date(data.updatedAt);
   }
 
-  get status(): ChatSessionStatus {
-    return this.sessionStatus;
+  get chatState(): ChatState {
+    return this.state;
   }
 
-  set status(newStatus: ChatSessionStatus) {
-    this.sessionStatus = newStatus;
+  set chatState(newState: ChatState) {
+    this.state = newState;
   }
 
   get ptyInstanceId(): string | undefined {
@@ -144,7 +144,6 @@ export class PtyChatSession {
         ...this.metadata.external,
         pty: {
           ...this.metadata.external?.pty,
-          snapshot: snapshot,
         },
       },
     };
@@ -153,9 +152,9 @@ export class PtyChatSession {
   }
 
   markTerminated(): void {
-    this.sessionStatus = "external_terminated";
+    this.state = "terminated";
     this.updatedAt = new Date();
-    void this.emitUpdate("STATUS_CHANGED", { status: this.sessionStatus });
+    void this.emitUpdate("STATUS_CHANGED", { state: this.state });
   }
 
   recordCliEvent(
@@ -166,14 +165,10 @@ export class PtyChatSession {
       id: uuidv4(),
       message: {
         role: "system",
-        content: `cli:${type}`,
+        content: JSON.stringify({ type, ...details }),
       },
       metadata: {
         timestamp: new Date(),
-        custom: {
-          type,
-          ...details,
-        },
       },
     };
     this.messages.push(message);
@@ -197,7 +192,7 @@ export class PtyChatSession {
     return {
       id: this.id,
       sessionType: "pty_chat",
-      sessionStatus: this.sessionStatus,
+      state: this.state,
       messages: this.messages.map((message) => ({
         ...message,
         metadata: {

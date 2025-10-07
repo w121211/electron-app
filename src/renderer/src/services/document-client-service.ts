@@ -87,8 +87,7 @@ export class DocumentService {
     filePath: string,
     inputValue?: string,
   ): Promise<DocumentState> {
-    this.logger.info("Saving document", { filePath, inputValue });
-    // this.logger.info("Saving document", { filePath });
+    // this.logger.info("Saving document", { filePath, inputValue });
 
     const document = documents[filePath];
     const editorView = editorViews[filePath];

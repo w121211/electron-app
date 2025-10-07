@@ -7,12 +7,14 @@ import { createTrpcRouter } from "./root-router.js";
 import type { IEventBus } from "../event-bus.js";
 import { createServerEventBus } from "../event-bus.js";
 import { createPtyInstanceManager, type PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
+import type { SnapshotProvider } from "../services/pty/pty-chat-client.js";
 
 const logger: Logger<ILogObj> = new Logger({ name: "HttpTrpcServer" });
 
 interface ServerConfig {
   port?: number;
   userDataDir: string;
+  snapshotProvider?: SnapshotProvider;
 }
 
 export class HttpTrpcServer {
@@ -21,11 +23,13 @@ export class HttpTrpcServer {
   private userDataDir: string;
   private eventBus: IEventBus;
   private ptyInstanceManager: PtyInstanceManager;
+  private snapshotProvider?: SnapshotProvider;
 
   constructor(config: ServerConfig) {
     this.userDataDir = config.userDataDir;
     this.eventBus = createServerEventBus({ logger });
     this.ptyInstanceManager = createPtyInstanceManager(this.eventBus);
+    this.snapshotProvider = config.snapshotProvider;
     logger.info(`Using user data directory: ${this.userDataDir}`);
   }
 
@@ -42,6 +46,7 @@ export class HttpTrpcServer {
       userDataDir: this.userDataDir,
       eventBus: this.eventBus,
       ptyInstanceManager: this.ptyInstanceManager,
+      snapshotProvider: this.snapshotProvider,
     });
 
     // Create HTTP server with tRPC handler (no CORS needed for Electron)

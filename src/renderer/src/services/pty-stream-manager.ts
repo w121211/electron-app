@@ -98,11 +98,13 @@ class PtyStreamManager {
   private streams = new Map<string, PtyStream>();
   private unsubscribeOnData: (() => void) | undefined;
   private unsubscribeOnExit: (() => void) | undefined;
+  private unsubscribeSnapshotRequest: (() => void) | undefined;
   public readonly onStreamsChanged = new EventEmitter<void>();
 
   constructor() {
     this.logger.info("PtyStreamManager initialized");
     this.setupGlobalListeners();
+    this.setupSnapshotRequestListener();
   }
 
   private setupGlobalListeners(): void {
@@ -138,6 +140,31 @@ class PtyStreamManager {
           });
           this.onStreamsChanged.emit();
         }
+      },
+    );
+  }
+
+  private setupSnapshotRequestListener(): void {
+    this.unsubscribeSnapshotRequest = window.api.pty.onSnapshotRequest(
+      (payload) => {
+        const stream = this.streams.get(payload.ptyInstanceId);
+        let snapshot: string | null = null;
+        if (stream) {
+          try {
+            snapshot = stream.getTerminalSnapshot();
+          } catch (error) {
+            this.logger.warn(
+              "Failed to serialize terminal snapshot",
+              error,
+            );
+            snapshot = null;
+          }
+        }
+
+        window.api.pty.sendSnapshotResponse({
+          requestId: payload.requestId,
+          snapshot,
+        });
       },
     );
   }

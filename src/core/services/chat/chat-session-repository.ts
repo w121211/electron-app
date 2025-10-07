@@ -23,24 +23,30 @@ export type ChatSessionType =
 
 export type ChatMode = "chat" | "agent";
 
-export type ChatSessionStatus =
-  | "idle"
-  | "processing"
-  | "scheduled"
-  | "waiting_confirmation"
-  | "max_turns_reached"
-  | "external_active"
-  | "external_terminated";
+export type ChatStatus = "queued" | "active" | "terminated";
+export type RunState = "generating" | "awaiting_input" | "disconnected";
 
-export const chatSessionStatusSchema = z.enum([
-  "idle",
-  "processing",
-  "scheduled",
-  "waiting_confirmation",
-  "max_turns_reached",
-  "external_active",
-  "external_terminated",
-]);
+export type ChatState =
+  | "queued"
+  | "active"
+  | "active:generating"
+  | "active:awaiting_input"
+  | "active:disconnected"
+  | "terminated";
+
+export const getChatStatus = (state: ChatState): ChatStatus => {
+  if (state.startsWith("active")) return "active";
+  return state as ChatStatus;
+};
+
+export const getRunState = (state: ChatState): RunState | null => {
+  if (!state.startsWith("active:")) return null;
+  return state.split(":")[1] as RunState;
+};
+
+export const isActiveState = (state: ChatState): boolean => {
+  return state === "active" || state.startsWith("active:");
+};
 
 export interface ChatMessageMetadata {
   timestamp: Date;
@@ -95,7 +101,7 @@ export interface ChatMetadata {
 export interface ChatSessionData {
   id: string;
   sessionType: ChatSessionType;
-  sessionStatus: ChatSessionStatus;
+  state: ChatState;
   messages: ChatMessage[];
   metadata?: ChatMetadata;
   scriptPath?: string | null;
@@ -186,6 +192,15 @@ const ChatMessageSchema: z.ZodType<ChatMessage> = z.object({
   metadata: ChatMessageMetadataSchema,
 });
 
+const ChatStateSchema = z.enum([
+  "queued",
+  "active",
+  "active:generating",
+  "active:awaiting_input",
+  "active:disconnected",
+  "terminated",
+]);
+
 const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
   id: z.string(),
   sessionType: z.enum([
@@ -194,15 +209,7 @@ const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
     "external_chat",
     "pty_chat",
   ]),
-  sessionStatus: z.enum([
-    "idle",
-    "processing",
-    "scheduled",
-    "waiting_confirmation",
-    "max_turns_reached",
-    "external_active",
-    "external_terminated",
-  ]),
+  state: ChatStateSchema,
   messages: z.array(ChatMessageSchema),
   metadata: ChatMetadataSchema.optional(),
   scriptPath: z.string().nullable().optional(),
@@ -434,7 +441,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
     return {
       id: session.id,
       sessionType: session.sessionType,
-      sessionStatus: session.sessionStatus,
+      sessionStatus: session.state,
       metadata,
       scriptPath: session.scriptPath ? path.resolve(session.scriptPath) : null,
       scriptModifiedAt: session.scriptModifiedAt?.toISOString() ?? null,
@@ -471,10 +478,19 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
       ? ((JSON.parse(sessionRow.metadata) as ChatMetadata) ?? undefined)
       : undefined;
 
+    const parsedState = ChatStateSchema.safeParse(sessionRow.sessionStatus);
+    const state: ChatState = parsedState.success ? parsedState.data : "terminated";
+
+    if (!parsedState.success) {
+      console.warn(
+        `Invalid chat session state \"${sessionRow.sessionStatus}\" for session ${sessionRow.id}. Defaulting to \"terminated\".`,
+      );
+    }
+
     const session: ChatSessionData = {
       id: sessionRow.id,
       sessionType: sessionRow.sessionType,
-      sessionStatus: sessionRow.sessionStatus as ChatSessionStatus,
+      state,
       messages: messageRows
         .sort((a, b) => a.messageIndex - b.messageIndex)
         .map((row) => this.deserializeMessage(row)),

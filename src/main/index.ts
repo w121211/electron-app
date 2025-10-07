@@ -9,11 +9,16 @@ import {
   dialog,
   type WebContents,
 } from "electron";
+import { randomUUID } from "node:crypto";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
 import { type PtyInstanceManager } from "../core/services/pty/pty-instance-manager.js";
+import type {
+  SnapshotProvider,
+  SnapshotTriggerKind,
+} from "../core/services/pty/pty-chat-client.js";
 
 // Global server instance
 let trpcServer: HttpTrpcServer;
@@ -24,6 +29,62 @@ const ptyAttachments = new Map<
   string,
   Map<number, { offData: () => void; offExit: () => void }>
 >();
+
+interface SnapshotRequestPayload {
+  requestId: string;
+  sessionId: string;
+  ptyInstanceId: string;
+  trigger: SnapshotTriggerKind;
+}
+
+interface SnapshotResponsePayload {
+  requestId: string;
+  snapshot?: string | null;
+}
+
+const pendingSnapshotRequests = new Map<
+  string,
+  { resolve: (value: string | null) => void; timer: NodeJS.Timeout }
+>();
+
+const requestRendererSnapshot: SnapshotProvider = async ({
+  session,
+  event,
+}) => {
+  const ptyInstanceId = session.ptyInstanceId;
+  if (!ptyInstanceId) {
+    return null;
+  }
+
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length === 0) {
+    return null;
+  }
+
+  const requestId = randomUUID();
+
+  return new Promise<string | null>((resolve) => {
+    const timer = setTimeout(() => {
+      pendingSnapshotRequests.delete(requestId);
+      resolve(null);
+    }, 250);
+
+    pendingSnapshotRequests.set(requestId, { resolve, timer });
+
+    const payload: SnapshotRequestPayload = {
+      requestId,
+      sessionId: session.id,
+      ptyInstanceId,
+      trigger: event.kind,
+    };
+
+    for (const window of windows) {
+      if (!window.isDestroyed()) {
+        window.webContents.send("pty:snapshot-request", payload);
+      }
+    }
+  });
+};
 
 function attachPtyToWebContents(ptyId: string, sender: WebContents): boolean {
   const ptyInstance = ptyInstanceManager.getSession(ptyId);
@@ -141,7 +202,10 @@ app.whenReady().then(async () => {
 
   // Start embedded tRPC server
   try {
-    trpcServer = new HttpTrpcServer({ userDataDir });
+    trpcServer = new HttpTrpcServer({
+      userDataDir,
+      snapshotProvider: requestRendererSnapshot,
+    });
     const port = await trpcServer.start(3333); // Prefer port 3333, fallback to any available
     console.log(`tRPC server started on port ${port}`);
 
@@ -172,6 +236,21 @@ app.whenReady().then(async () => {
       cwd: process.cwd(),
     };
   });
+
+  ipcMain.on(
+    "pty:snapshot-response",
+    (_event, payload: SnapshotResponsePayload) => {
+      const entry = pendingSnapshotRequests.get(payload.requestId);
+      if (!entry) {
+        return;
+      }
+      pendingSnapshotRequests.delete(payload.requestId);
+      clearTimeout(entry.timer);
+      const snapshot =
+        typeof payload.snapshot === "string" ? payload.snapshot : null;
+      entry.resolve(snapshot);
+    },
+  );
 
   ipcMain.handle("show-open-dialog", async () => {
     const result = await dialog.showOpenDialog({

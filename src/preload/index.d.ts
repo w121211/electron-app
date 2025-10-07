@@ -38,6 +38,18 @@ declare global {
             signal?: number,
           ) => void,
         ) => () => void;
+        onSnapshotRequest: (
+          callback: (payload: {
+            requestId: string;
+            sessionId: string;
+            ptyInstanceId: string;
+            trigger: string;
+          }) => void,
+        ) => () => void;
+        sendSnapshotResponse: (payload: {
+          requestId: string;
+          snapshot?: string | null;
+        }) => void;
       };
     };
   }

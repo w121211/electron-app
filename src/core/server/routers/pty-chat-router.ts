@@ -4,8 +4,8 @@ import type {
   ChatMetadata,
   ChatSessionData,
   ChatSessionRepository,
+  ChatState,
 } from "../../services/chat/chat-session-repository.js";
-import { chatSessionStatusSchema } from "../../services/chat/chat-session-repository.js";
 import { PtyChatClient } from "../../services/pty/pty-chat-client.js";
 import { router, publicProcedure } from "../trpc-init.js";
 
@@ -43,6 +43,15 @@ const modelIdSchema = z
   .string()
   .regex(/^.+\/.+$/)
   .transform((value) => value as `${string}/${string}`);
+
+const chatStateSchema: z.ZodType<ChatState> = z.enum([
+  "queued",
+  "active",
+  "active:generating",
+  "active:awaiting_input",
+  "active:disconnected",
+  "terminated",
+]);
 
 export function createPtyChatRouter(
   client: PtyChatClient,
@@ -101,7 +110,7 @@ export function createPtyChatRouter(
           chatSessionId: z.string(),
           updates: z.object({
             metadata: metadataSchema.optional(),
-            sessionStatus: chatSessionStatusSchema.optional(),
+            state: chatStateSchema.optional(),
           }),
         }),
       )

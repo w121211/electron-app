@@ -130,8 +130,12 @@
     });
 
     terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
-      // Shift+Enter to insert newline
+      if (event.type !== "keydown") {
+        return true;
+      }
+
       if (event.key === "Enter" && event.shiftKey) {
+        event.preventDefault();
         stream.write("\n");
         return false;
       }

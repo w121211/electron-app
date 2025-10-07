@@ -14,7 +14,7 @@ import type {
   ChatMessage,
   ChatMessageMetadata,
   ChatMetadata,
-  ChatSessionStatus,
+  ChatState,
   ChatSessionType,
 } from "../../services/chat/chat-session-repository.js";
 import {
@@ -31,14 +31,13 @@ const chatSessionTypeSchema: z.ZodType<ChatSessionType> = z.enum([
   "pty_chat",
 ]);
 
-const chatSessionStatusSchema: z.ZodType<ChatSessionStatus> = z.enum([
-  "idle",
-  "processing",
-  "scheduled",
-  "waiting_confirmation",
-  "max_turns_reached",
-  "external_active",
-  "external_terminated",
+const chatStateSchema: z.ZodType<ChatState> = z.enum([
+  "queued",
+  "active",
+  "active:generating",
+  "active:awaiting_input",
+  "active:disconnected",
+  "terminated",
 ]);
 
 const chatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> = z.object({
@@ -119,7 +118,7 @@ const createChatSessionInputSchema: z.ZodType<CreateChatSessionInput> = z
     sessionType: chatSessionTypeSchema,
     metadata: chatMetadataSchema.optional(),
     messages: z.array(chatMessageSchema).optional(),
-    status: chatSessionStatusSchema.optional(),
+    state: chatStateSchema.optional(),
     script: z
       .object({
         path: z.string().nullable().optional(),
@@ -148,7 +147,7 @@ export interface SerializedStreamResult {
 }
 
 export interface SerializedTurnResult {
-  sessionStatus: ChatSessionStatus;
+  sessionState: ChatState;
   currentTurn: number;
   toolCallsAwaitingConfirmation?: Array<TypedToolCall<ToolSet>>;
   stream?: SerializedStreamResult;
@@ -181,7 +180,7 @@ async function serializeTurnResult(
 ): Promise<SerializedTurnResult> {
   const stream = await serializeStreamResult(turnResult.streamResult);
   return {
-    sessionStatus: turnResult.sessionStatus,
+    sessionState: turnResult.state,
     currentTurn: turnResult.currentTurn,
     toolCallsAwaitingConfirmation:
       turnResult.toolCallsAwaitingConfirmation?.map((call) => ({ ...call })),

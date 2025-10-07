@@ -3,9 +3,9 @@ import type { BaseEvent } from "../../event-bus.js";
 import type {
   ChatMessage,
   ChatMetadata,
-  ChatSessionStatus,
+  ChatState,
   ChatSessionData,
-} from "./chat-session-repository.js";
+} from "../chat/chat-session-repository.js";
 
 // Chat update event types using AI SDK native types
 export type ChatUpdateType =
@@ -23,7 +23,7 @@ export interface ChatUpdatedEvent extends BaseEvent {
   update: {
     message?: ChatMessage; // UIMessage<ChatMessageMetadata>
     metadata?: Partial<ChatMetadata>;
-    status?: ChatSessionStatus;
+    state?: ChatState;
     chunk?: string;
     accumulatedContent?: string;
     finalContent?: string;

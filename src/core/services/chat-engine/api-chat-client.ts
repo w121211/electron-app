@@ -19,9 +19,9 @@ import type {
   ChatMetadata,
   ChatSessionData,
   ChatSessionRepository,
-  ChatSessionStatus,
+  ChatState,
   ChatSessionType,
-} from "./chat-session-repository.js";
+} from "../chat/chat-session-repository.js";
 import {
   extractChatFileReferences,
   getUserModelMessageContentString,
@@ -45,7 +45,7 @@ export interface CreateChatSessionInput {
   sessionType: ChatSessionType;
   metadata?: Partial<ChatMetadata>;
   messages?: ChatMessage[];
-  status?: ChatSessionStatus;
+  state?: ChatState;
   script?: {
     path?: string | null;
     modifiedAt?: Date | null;
@@ -61,7 +61,7 @@ export interface SendChatMessageInput {
 }
 
 export interface ApiTurnResult {
-  sessionStatus: ChatSessionStatus;
+  state: ChatState;
   currentTurn: number;
   streamResult?: StreamTextResult<ToolSet, never>;
   toolCallsAwaitingConfirmation?: Array<TypedToolCall<ToolSet>>;
@@ -93,7 +93,7 @@ class ApiChatSession {
   readonly sessionType: ChatSessionType;
   private messages: ChatMessage[];
   private metadata: ChatMetadata;
-  private sessionStatus: ChatSessionStatus;
+  private state: ChatState;
   private readonly createdAt: Date;
   private updatedAt: Date;
   private scriptPath: string | null;
@@ -127,7 +127,7 @@ class ApiChatSession {
       metadata: ensureTimestamp(message.metadata),
     }));
     this.metadata = cloneMetadata(data.metadata);
-    this.sessionStatus = data.sessionStatus;
+    this.state = data.state;
     this.createdAt = new Date(data.createdAt);
     this.updatedAt = new Date(data.updatedAt);
     this.scriptPath = data.scriptPath ?? null;
@@ -178,12 +178,12 @@ class ApiChatSession {
     return this.metadata.toolSet;
   }
 
-  get status(): ChatSessionStatus {
-    return this.sessionStatus;
+  get chatState(): ChatState {
+    return this.state;
   }
 
-  set status(newStatus: ChatSessionStatus) {
-    this.sessionStatus = newStatus;
+  set chatState(newState: ChatState) {
+    this.state = newState;
   }
 
   async runTurn(
@@ -195,9 +195,9 @@ class ApiChatSession {
     }
 
     if (this.currentTurn >= this.maxTurns) {
-      this.sessionStatus = "max_turns_reached";
+      this.state = "terminated";
       return {
-        sessionStatus: this.sessionStatus,
+        state: this.state,
         currentTurn: this.currentTurn,
       };
     }
@@ -210,7 +210,7 @@ class ApiChatSession {
       : abortController.signal;
 
     try {
-      this.sessionStatus = "processing";
+      this.state = "active:generating";
       this.updatedAt = new Date();
 
       if (
@@ -232,7 +232,7 @@ class ApiChatSession {
       if ("status" in input) {
         this.handleToolExecutionResult(input);
         return {
-          sessionStatus: this.sessionStatus,
+          state: this.state,
           currentTurn: this.currentTurn,
         };
       }
@@ -244,33 +244,33 @@ class ApiChatSession {
       this.metadata.currentTurn = this.currentTurn + 1;
 
       if (this.toolCallsAwaitingConfirmation.length > 0) {
-        this.sessionStatus = "waiting_confirmation";
+        this.state = "active:awaiting_input";
         this.metadata.toolCallsAwaitingConfirmation =
           this.toolCallsAwaitingConfirmation.map((toolCall) => ({
             ...toolCall,
           }));
         await this.emitStatusChange();
         return {
-          sessionStatus: this.sessionStatus,
+          state: this.state,
           currentTurn: this.currentTurn,
           streamResult,
           toolCallsAwaitingConfirmation: this.toolCallsAwaitingConfirmation,
         };
       }
 
-      this.sessionStatus = "idle";
+      this.state = "active";
       this.toolCallsAwaitingConfirmation = [];
       this.metadata.toolCallsAwaitingConfirmation = [];
       this.metadata.toolCallConfirmations = [];
       await this.emitStatusChange();
       return {
-        sessionStatus: this.sessionStatus,
+        state: this.state,
         currentTurn: this.currentTurn,
         streamResult,
       };
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        this.sessionStatus = "idle";
+        this.state = "active";
         await this.emitStatusChange();
         throw new Error("Operation cancelled by user");
       }
@@ -337,7 +337,7 @@ class ApiChatSession {
         }));
       this.metadata.toolCallsAwaitingConfirmation =
         this.toolCallsAwaitingConfirmation.map((toolCall) => ({ ...toolCall }));
-      this.sessionStatus = "waiting_confirmation";
+      this.state = "active:awaiting_input";
       await this.emitStatusChange();
       return result;
     }
@@ -359,7 +359,7 @@ class ApiChatSession {
     return {
       id: this.id,
       sessionType: this.sessionType,
-      sessionStatus: this.sessionStatus,
+      state: this.state,
       messages: this.messages.map((message) => ({
         ...message,
         metadata: {
@@ -480,7 +480,7 @@ class ApiChatSession {
     });
 
     await this.emitUpdateEvent("AI_RESPONSE_STARTED", {
-      status: "processing",
+      state: this.state,
     });
 
     const trackedToolCalls = new Map<string, TypedToolCall<ToolSet>>();
@@ -559,7 +559,7 @@ class ApiChatSession {
 
   private async emitStatusChange(): Promise<void> {
     await this.emitUpdateEvent("STATUS_CHANGED", {
-      status: this.sessionStatus,
+      state: this.state,
     });
   }
 }
@@ -588,7 +588,7 @@ export class ApiChatClient {
     const session: ChatSessionData = {
       id: uuidv4(),
       sessionType: input.sessionType,
-      sessionStatus: input.status ?? "idle",
+      state: input.state ?? "active",
       messages: (input.messages ?? []).map((message) => ({
         ...message,
         metadata: ensureTimestamp(message.metadata),
@@ -649,7 +649,7 @@ export class ApiChatClient {
       await this.repository.update(data);
       return {
         turnResult: {
-          sessionStatus: session.status,
+          state: session.chatState,
           currentTurn: session.currentTurn,
           toolCallsAwaitingConfirmation:
             toolExecutionResult.toolCallsAwaitingConfirmation,

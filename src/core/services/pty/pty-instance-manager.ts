@@ -29,6 +29,7 @@ export class PtyInstance {
   public readonly cwd: string;
   private ptyProcess: pty.IPty;
   private onDataListeners = new Set<(data: string) => void>();
+  private onWriteListeners = new Set<(data: string) => void>();
   private onExitListeners = new Set<
     (e: { exitCode: number; signal?: number }) => void
   >();
@@ -94,6 +95,7 @@ export class PtyInstance {
 
   write(data: string): void {
     this.ptyProcess.write(data);
+    this.onWriteListeners.forEach((listener) => listener(data));
     this.eventBus.emit({
       kind: "PtyWrite",
       sessionId: this.id,
@@ -127,6 +129,11 @@ export class PtyInstance {
   onData(listener: (data: string) => void): () => void {
     this.onDataListeners.add(listener);
     return () => this.onDataListeners.delete(listener);
+  }
+
+  onWrite(listener: (data: string) => void): () => void {
+    this.onWriteListeners.add(listener);
+    return () => this.onWriteListeners.delete(listener);
   }
 
   onExit(

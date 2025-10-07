@@ -52,6 +52,34 @@ const api = {
         ipcRenderer.removeListener("pty:exit", handler);
       };
     },
+    onSnapshotRequest: (
+      callback: (payload: {
+        requestId: string;
+        sessionId: string;
+        ptyInstanceId: string;
+        trigger: string;
+      }) => void,
+    ) => {
+      const handler = (
+        _: unknown,
+        payload: {
+          requestId: string;
+          sessionId: string;
+          ptyInstanceId: string;
+          trigger: string;
+        },
+      ) => callback(payload);
+      ipcRenderer.on("pty:snapshot-request", handler);
+      return () => {
+        ipcRenderer.removeListener("pty:snapshot-request", handler);
+      };
+    },
+    sendSnapshotResponse: (payload: {
+      requestId: string;
+      snapshot?: string | null;
+    }) => {
+      ipcRenderer.send("pty:snapshot-response", payload);
+    },
   },
 };
 

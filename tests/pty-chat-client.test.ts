@@ -120,15 +120,30 @@ function createMockChatSession(
 
 // Mock PTY Instance
 function createMockPtyInstance(id: string = uuidv4()): PtyInstance {
+  const dataListeners = new Set<(chunk: string) => void>();
+  const writeListeners = new Set<(chunk: string) => void>();
+
   return {
     id,
     shell: "bash",
     cwd: "/tmp",
-    write: vi.fn(),
+    write: vi.fn().mockImplementation((chunk: string) => {
+      writeListeners.forEach((listener) => listener(chunk));
+    }),
     kill: vi.fn(),
     resize: vi.fn(),
-    onData: vi.fn(),
+    onData: vi.fn().mockImplementation((listener: (chunk: string) => void) => {
+      dataListeners.add(listener);
+      return () => dataListeners.delete(listener);
+    }),
+    onWrite: vi.fn().mockImplementation((listener: (chunk: string) => void) => {
+      writeListeners.add(listener);
+      return () => writeListeners.delete(listener);
+    }),
     onExit: vi.fn(),
+    emitData(chunk: string) {
+      dataListeners.forEach((listener) => listener(chunk));
+    },
   } as any;
 }
 

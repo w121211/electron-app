@@ -36,3 +36,4 @@ yarn-error.log*
 /chats
 .chat
 /tests/fixtures
+/tmp

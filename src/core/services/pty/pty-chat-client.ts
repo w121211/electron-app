@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { PtyInstanceManager } from "./pty-instance-manager.js";
 import { PtyChatSession } from "./pty-chat-session.js";
 import { PtyDataProcessor } from "./pty-data-processor.js";
+import type { PtyStreamEventMap } from "./pty-data-processor.js";
 import type { IEventBus } from "../../event-bus.js";
 import type {
   ChatMetadata,
@@ -19,15 +20,33 @@ interface CreatePtyChatInput {
   metadata?: Partial<ChatMetadata>;
 }
 
+export type SnapshotTriggerKind =
+  | "enterPressed"
+  | "outputIdle"
+  | "sessionBanner"
+  | "screenCleared";
+
+export interface SnapshotProviderContext {
+  session: PtyChatSession;
+  processor: PtyDataProcessor;
+  event: PtyStreamEventMap[SnapshotTriggerKind];
+}
+
+export type SnapshotProvider = (
+  context: SnapshotProviderContext,
+) => Promise<string | null | undefined> | string | null | undefined;
+
 export class PtyChatClient {
   private readonly sessions = new Map<string, PtyChatSession>();
   private readonly sessionIdByPtyInstance = new Map<string, string>();
   private readonly processors = new Map<string, PtyDataProcessor>();
+  private readonly processorSubscriptions = new Map<string, Array<() => void>>();
 
   constructor(
     private readonly eventBus: IEventBus,
     private readonly repository: ChatSessionRepository,
     private readonly ptyInstanceManager: PtyInstanceManager,
+    private readonly snapshotProvider?: SnapshotProvider,
   ) {
     this.subscribeToPtyEvents();
   }
@@ -37,7 +56,7 @@ export class PtyChatClient {
     const sessionData: ChatSessionData = {
       id: uuidv4(),
       sessionType: "pty_chat",
-      sessionStatus: "external_active",
+      state: "active",
       messages: [],
       metadata: {
         modelId: input.modelId,
@@ -68,8 +87,11 @@ export class PtyChatClient {
     this.sessions.set(session.id, session);
     this.sessionIdByPtyInstance.set(ptyInstance.id, session.id);
 
-    const processor = new PtyDataProcessor(ptyInstance, session);
+    const processor = new PtyDataProcessor(ptyInstance, {
+      sessionId: session.id,
+    });
     this.processors.set(ptyInstance.id, processor);
+    this.attachProcessorListeners(session, processor, ptyInstance.id);
 
     await this.repository.update(session.toChatSessionData());
 
@@ -105,6 +127,11 @@ export class PtyChatClient {
         processor.destroy();
         this.processors.delete(ptyInstanceId);
       }
+      const subscriptions = this.processorSubscriptions.get(ptyInstanceId);
+      if (subscriptions) {
+        subscriptions.forEach((unsubscribe) => unsubscribe());
+        this.processorSubscriptions.delete(ptyInstanceId);
+      }
       this.sessionIdByPtyInstance.delete(ptyInstanceId);
     }
 
@@ -112,6 +139,78 @@ export class PtyChatClient {
     await this.repository.update(updatedSession);
     this.sessions.delete(sessionId);
     return updatedSession;
+  }
+
+  private attachProcessorListeners(
+    session: PtyChatSession,
+    processor: PtyDataProcessor,
+    ptyInstanceId: string,
+  ): void {
+    const subscriptions: Array<() => void> = [];
+
+    subscriptions.push(
+      processor.on("enterPressed", (event) => {
+        void this.flushSnapshot(session, processor, event);
+      }),
+    );
+
+    subscriptions.push(
+      processor.on("outputIdle", (event) => {
+        void this.flushSnapshot(session, processor, event);
+      }),
+    );
+
+    subscriptions.push(
+      processor.on("screenCleared", (event) => {
+        session.recordCliEvent("screenRefresh", {});
+        void this.flushSnapshot(session, processor, event);
+      }),
+    );
+
+    subscriptions.push(
+      processor.on("sessionBanner", (event) => {
+        session.recordCliEvent("newSession", {
+          source: event.provider,
+          raw: event.raw,
+        });
+        void this.flushSnapshot(session, processor, event);
+      }),
+    );
+
+    this.processorSubscriptions.set(ptyInstanceId, subscriptions);
+  }
+
+  private async flushSnapshot(
+    session: PtyChatSession,
+    processor: PtyDataProcessor,
+    event: PtyStreamEventMap[SnapshotTriggerKind],
+  ): Promise<void> {
+    let snapshot: string | null | undefined;
+    if (this.snapshotProvider) {
+      try {
+        snapshot = await this.snapshotProvider({
+          session,
+          processor,
+          event,
+        });
+      } catch (error) {
+        console.error("Snapshot provider failed", {
+          sessionId: session.id,
+          error,
+        });
+        snapshot = null;
+      }
+    }
+
+    if (!snapshot) {
+      snapshot = processor.getBufferedOutput();
+    }
+
+    if (!snapshot || snapshot.trim().length === 0) {
+      return;
+    }
+
+    session.updateFromSnapshot(snapshot);
   }
 
   private subscribeToPtyEvents(): void {
