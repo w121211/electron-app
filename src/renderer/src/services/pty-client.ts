@@ -1,9 +1,7 @@
 // src/renderer/src/services/pty-client.ts
 import { ptyStreamManager, PtyStream } from "./pty-stream-manager.js";
 
-export type PtySession = PtyStream;
-
-interface CreateSessionOptions {
+interface CreatePtyStreamOptions {
   cols?: number;
   rows?: number;
   cwd?: string;
@@ -11,7 +9,9 @@ interface CreateSessionOptions {
 }
 
 class PtyClient {
-  async createSession(options: CreateSessionOptions = {}): Promise<PtySession> {
+  async createPtyStream(
+    options: CreatePtyStreamOptions = {},
+  ): Promise<PtyStream> {
     // Prefer atomic create+attach to avoid missing initial output
     // @ts-ignore runtime existence check
     const sessionId: string =

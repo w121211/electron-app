@@ -5,7 +5,7 @@
   // import { taskService } from "../services/task-service.js";
   import { getSelectedDocContext, ui } from "../stores/ui.svelte.js";
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
-  import ApiChatPanel from "./chat/ChatPanel.svelte";
+  // import ApiChatPanel from "./chat/ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
   import QuickLauncher from "./QuickLauncher.svelte";
   import FilePanel from "./document/FilePanel.svelte";
@@ -74,8 +74,8 @@
       <main class="flex min-w-0 flex-1">
         {#if centerPanelView === "promptEditorPanel"}
           <PromptEditorPanel />
-        {:else if centerPanelView === "apiChatPanel"}
-          <ApiChatPanel />
+          <!-- {:else if centerPanelView === "apiChatPanel"}
+          <ApiChatPanel /> -->
         {:else if centerPanelView === "filePanel"}
           <FilePanel />
         {:else if centerPanelView === "welcome"}
@@ -101,7 +101,7 @@
 
       <!-- Prompt Editor Overlay -->
       {#if ui.promptEditorOpen && centerPanelView !== "promptEditorPanel"}
-        <div class="absolute inset-0 z-30">
+        <div class="absolute inset-0 z-30 flex">
           <PromptEditorPanel />
         </div>
       {/if}

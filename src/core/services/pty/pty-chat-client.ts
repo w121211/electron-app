@@ -1,5 +1,8 @@
 // src/core/services/pty/pty-chat-client.ts
 import { v4 as uuidv4 } from "uuid";
+import { PtyInstanceManager } from "./pty-instance-manager.js";
+import { PtyChatSession } from "./pty-chat-session.js";
+import { PtyDataProcessor } from "./pty-data-processor.js";
 import type { IEventBus } from "../../event-bus.js";
 import type {
   ChatMetadata,
@@ -7,11 +10,7 @@ import type {
   ChatSessionRepository,
 } from "../chat/chat-session-repository.js";
 import type { PtyInstance } from "./pty-instance-manager.js";
-import { PtyInstanceManager } from "./pty-instance-manager.js";
 import type { PtyOnExitEvent } from "./events.js";
-import { PtyChatSession } from "./pty-chat-session.js";
-
-import { PtyDataProcessor } from "./pty-data-processor.js";
 
 interface CreatePtyChatInput {
   workingDirectory: string;
@@ -33,7 +32,7 @@ export class PtyChatClient {
     this.subscribeToPtyEvents();
   }
 
-  async createPtyChat(input: CreatePtyChatInput): Promise<ChatSessionData> {
+  async createSession(input: CreatePtyChatInput): Promise<ChatSessionData> {
     const timestamp = new Date();
     const sessionData: ChatSessionData = {
       id: uuidv4(),
@@ -77,7 +76,7 @@ export class PtyChatClient {
     return session.toChatSessionData();
   }
 
-  async updateChatSession(
+  async updateSession(
     sessionId: string,
     updates: Partial<ChatSessionData>,
   ): Promise<ChatSessionData> {
@@ -88,7 +87,7 @@ export class PtyChatClient {
     return updatedData;
   }
 
-  async terminateChatSession(sessionId: string): Promise<ChatSessionData> {
+  async terminateSession(sessionId: string): Promise<ChatSessionData> {
     const session = await this.ensureSessionLoaded(sessionId);
     const ptyInstance = this.getPtyInstance(session);
     const ptyInstanceId = session.ptyInstanceId;

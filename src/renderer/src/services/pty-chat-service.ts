@@ -87,7 +87,7 @@ export class PtyChatService {
   ): Promise<ChatSessionData> {
     logger.info("Updating PTY chat session", { sessionId, updates });
 
-    const session = await trpcClient.ptyChat.updateChatSession.mutate({
+    const session = await trpcClient.ptyChat.updateSession.mutate({
       chatSessionId: sessionId,
       updates,
     });

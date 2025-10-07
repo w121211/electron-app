@@ -10,6 +10,7 @@
   import { chatSettings } from "../../stores/chat.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import { showToast } from "../../stores/ui-store.svelte.js";
+  import { ui } from "../../stores/ui.svelte.js";
   import {
     lineColumnToOffset,
     offsetToLineColumn,
@@ -145,6 +146,8 @@
       });
       // documentClientService.saveDocument(docContext.filePath, inputValue);
     }
+
+    ui.promptEditorOpen = false;
   };
 
   const handleSendMessage = async (): Promise<void> => {

@@ -1,6 +1,6 @@
 // src/core/services/pty/pty-data-processor.ts
-import type { IPty } from "node-pty";
 import type { PtyChatSession } from "./pty-chat-session.js";
+import type { PtyInstance } from "./pty-instance-manager.js";
 
 const SCREEN_REFRESH_SIGNAL = "\x1b[2J";
 const AGENT_START_REGEX = /\$ (gemini|claude|agent)/;
@@ -13,7 +13,7 @@ export class PtyDataProcessor {
   private isGenerating = false;
 
   constructor(
-    private readonly ptyInstance: IPty,
+    private readonly ptyInstance: PtyInstance,
     private readonly session: PtyChatSession,
   ) {
     this.ptyInstance.onData((data) => this.handleData(data));

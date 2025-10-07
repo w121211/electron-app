@@ -80,22 +80,22 @@ export function createPtyChatRouter(
     //     return { success: true };
     //   }),
 
-    updateMessagesFromSnapshot: publicProcedure
-      .input(
-        z.object({
-          chatSessionId: z.string(),
-          snapshot: z.string(),
-        }),
-      )
-      .mutation(async ({ input }): Promise<ChatSessionData> => {
-        const session = await client.updateMessagesFromSnapshot(
-          input.chatSessionId,
-          input.snapshot,
-        );
-        return session;
-      }),
+    // updateMessagesFromSnapshot: publicProcedure
+    //   .input(
+    //     z.object({
+    //       chatSessionId: z.string(),
+    //       snapshot: z.string(),
+    //     }),
+    //   )
+    //   .mutation(async ({ input }): Promise<ChatSessionData> => {
+    //     const session = await client.updateMessagesFromSnapshot(
+    //       input.chatSessionId,
+    //       input.snapshot,
+    //     );
+    //     return session;
+    //   }),
 
-    updateChatSession: publicProcedure
+    updateSession: publicProcedure
       .input(
         z.object({
           chatSessionId: z.string(),
@@ -106,7 +106,7 @@ export function createPtyChatRouter(
         }),
       )
       .mutation(async ({ input }): Promise<ChatSessionData> => {
-        const session = await client.updateChatSession(
+        const session = await client.updateSession(
           input.chatSessionId,
           input.updates,
         );
@@ -116,7 +116,7 @@ export function createPtyChatRouter(
     terminateSession: publicProcedure
       .input(z.object({ chatSessionId: z.string() }))
       .mutation(async ({ input }): Promise<ChatSessionData> => {
-        const session = await client.terminateChatSession(input.chatSessionId);
+        const session = await client.terminateSession(input.chatSessionId);
         return session;
       }),
 
