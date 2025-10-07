@@ -47,7 +47,7 @@
   };
 
   const createPtyChat = async (): Promise<void> => {
-    const targetDirectory = "/Users/cw/Documents/GitHub/electron-app/tmp";
+    const targetDirectory = "./electron-app/tmp";
     const modelId: `${string}/${string}` = "cli/claude";
 
     const ptyChat = await ptyChatService.createSession(

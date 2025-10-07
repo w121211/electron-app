@@ -6,24 +6,24 @@
     LayoutSidebar,
     Plus,
     ThreeDotsVertical,
-    ChevronDown,
+    // ChevronDown, // COMMENTED OUT: New project folder not needed
     Gear,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { projectState } from "../../stores/project-store.svelte.js";
   import {
     uiState,
-    showToast,
+    // showToast, // COMMENTED OUT: Workspace setup not needed
     toggleLeftPanel,
   } from "../../stores/ui-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
-  import { userSettingsService } from "../../services/user-settings-service.js";
+  // import { userSettingsService } from "../../services/user-settings-service.js"; // COMMENTED OUT: Workspace setup not needed
   import {
     showContextMenu,
-    startInlineNewProjectFolderCreation,
+    // startInlineNewProjectFolderCreation, // COMMENTED OUT: New project folder not needed
     fileExplorerState,
-    cancelInlineNewProjectFolderCreation,
-    setWorkspaceSetupNeeded,
+    // cancelInlineNewProjectFolderCreation, // COMMENTED OUT: New project folder not needed
+    // setWorkspaceSetupNeeded, // COMMENTED OUT: Workspace setup not needed
   } from "../../stores/file-explorer-store.svelte.js";
   import TreeNode from "./TreeNode.svelte";
   import FileIcon from "./FileIcon.svelte";
@@ -45,18 +45,18 @@
   );
 
   let showSettings = $state(false);
-  let newProjectFolderInput = $state<HTMLInputElement>();
+  // let newProjectFolderInput = $state<HTMLInputElement>(); // COMMENTED OUT: New project folder not needed
 
-  // Focus the input when inline creation becomes active
-  $effect(() => {
-    if (
-      fileExplorerState.inlineNewProjectFolder.isActive &&
-      newProjectFolderInput
-    ) {
-      newProjectFolderInput.focus();
-      newProjectFolderInput.select();
-    }
-  });
+  // COMMENTED OUT: New project folder feature not needed
+  // $effect(() => {
+  //   if (
+  //     fileExplorerState.inlineNewProjectFolder.isActive &&
+  //     newProjectFolderInput
+  //   ) {
+  //     newProjectFolderInput.focus();
+  //     newProjectFolderInput.select();
+  //   }
+  // });
 
   async function handleAddProjectFolder(): Promise<void> {
     const folderPath = await window.api.showOpenDialog();
@@ -65,40 +65,43 @@
     await projectService.addProjectFolder(folderPath);
   }
 
-  function handleNewProjectFolder(): void {
-    startInlineNewProjectFolderCreation();
-  }
+  // COMMENTED OUT: New project folder feature not needed
+  // function handleNewProjectFolder(): void {
+  //   startInlineNewProjectFolderCreation();
+  // }
 
   function handleOpenSettings(): void {
     showSettings = true;
   }
 
-  function handleCancelNewProjectFolder(): void {
-    cancelInlineNewProjectFolderCreation();
-  }
+  // COMMENTED OUT: New project folder feature not needed
+  // function handleCancelNewProjectFolder(): void {
+  //   cancelInlineNewProjectFolderCreation();
+  // }
 
-  async function handleKeydownNewProjectFolder(
-    event: KeyboardEvent,
-  ): Promise<void> {
-    if (event.key === "Escape") {
-      handleCancelNewProjectFolder();
-    } else if (event.key === "Enter") {
-      const folderName =
-        fileExplorerState.inlineNewProjectFolder.placeholderName.trim();
-      if (folderName) {
-        await projectService.createNewProjectFolder(folderName);
-        cancelInlineNewProjectFolderCreation();
-      }
-    }
-  }
+  // async function handleKeydownNewProjectFolder(
+  //   event: KeyboardEvent,
+  // ): Promise<void> {
+  //   if (event.key === "Escape") {
+  //     handleCancelNewProjectFolder();
+  //   } else if (event.key === "Enter") {
+  //     const folderName =
+  //       fileExplorerState.inlineNewProjectFolder.placeholderName.trim();
+  //     if (folderName) {
+  //       await projectService.createNewProjectFolder(folderName);
+  //       cancelInlineNewProjectFolderCreation();
+  //     }
+  //   }
+  // }
 
-  async function handleSetupWorkspace(): Promise<void> {
-    const result = await userSettingsService.setupWorkspaceDirectory();
-    if (result) {
-      setWorkspaceSetupNeeded(false);
-      showToast("Workspace directory set successfully", "success");
-    }
-  }
+  // COMMENTED OUT: Workspace setup not needed
+  // async function handleSetupWorkspace(): Promise<void> {
+  //   const result = await userSettingsService.setupWorkspaceDirectory();
+  //   if (result) {
+  //     setWorkspaceSetupNeeded(false);
+  //     showToast("Workspace directory set successfully", "success");
+  //   }
+  // }
 </script>
 
 <aside class="bg-background border-border flex w-64 flex-col border-r">
@@ -157,8 +160,8 @@
         {#if isLoadingProjectFolders}
           <div class="text-muted p-4 text-sm">Loading project folders...</div>
         {:else}
-          <!-- Workspace Setup Prompt -->
-          {#if fileExplorerState.workspaceSetup.needsSetup}
+          <!-- COMMENTED OUT: Workspace setup not needed - users can add existing folders -->
+          <!-- {#if fileExplorerState.workspaceSetup.needsSetup}
             <div
               class="bg-accent/10 border-accent/30 mx-1 mb-2 rounded border p-3"
             >
@@ -175,10 +178,10 @@
                 Select Workspace Folder
               </button>
             </div>
-          {/if}
+          {/if} -->
 
-          <!-- Inline New Project Folder Creation -->
-          {#if fileExplorerState.inlineNewProjectFolder.isActive}
+          <!-- COMMENTED OUT: New project folder feature not needed -->
+          <!-- {#if fileExplorerState.inlineNewProjectFolder.isActive}
             <div class="pb-1">
               <div
                 class="hover:bg-hover group relative flex min-h-[24px] cursor-pointer items-center rounded py-0.5 text-sm font-[400] transition-colors"
@@ -196,7 +199,7 @@
                 />
               </div>
             </div>
-          {/if}
+          {/if} -->
 
           {#if projectState.projectFolders.length === 0 && !fileExplorerState.inlineNewProjectFolder.isActive}
             <div class="text-muted p-4 text-center text-sm">

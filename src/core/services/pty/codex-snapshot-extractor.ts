@@ -1,98 +1,66 @@
-// src/core/services/pty/claude-snapshot-extractor.ts
+// src/core/services/pty/codex-snapshot-extractor.ts
 import { v4 as uuidv4 } from "uuid";
 import type { ChatMessage } from "../chat/chat-session-repository.js";
 
 /**
- * Extracts chat messages from Claude Code terminal snapshots.
+ * Extracts chat messages from OpenAI Codex terminal snapshots.
  *
- * Claude Code uses specific visual markers in the terminal:
- * - User prompts: Lines starting with "> " on gray background (ESC[48;2;55;55;55m)
- * - Assistant responses: Lines starting with "⏺" (colored circle)
- * - Tool calls: Format "⏺ Tool(args)" with various colors
- * - System events: cli:newSession, cli:screenRefresh
+ * Codex CLI uses specific visual markers:
+ * - Session start: Box with ">_ OpenAI Codex"
+ * - User prompts: Lines starting with cyan bar "▌ "
+ * - Assistant responses: Lines starting with "> "
+ * - Interruptions: Red square "■ Conversation interrupted"
+ * - Tool calls: Various colored indicators
  *
  * Handles:
- * - Multi-line user messages (with line continuations)
- * - Session boundaries (/clear command, new sessions)
- * - Tool call detection and parsing
- * - IDE selection blocks
+ * - Multi-line user messages
+ * - Session boundaries
+ * - Tool call detection
  * - Interruptions and errors
- * - Exit to shell and restart scenarios
+ * - Exit to shell scenarios
  */
 
 type Role = "user" | "assistant" | "system";
 
-interface ExtractorState {
-  messages: ChatMessage[];
-  currentMessage: {
-    role: Role;
-    content: string;
-    startIndex: number;
-  } | null;
-  inUserPrompt: boolean;
-  inAssistantResponse: boolean;
-}
+// Session header (Codex banner box)
+const SESSION_HEADER =
+  /^\[2m╭────────────────────────────────────────────╮\n│ >_ \[1;22mOpenAI Codex/;
 
-// User prompt marker: gray background with "> "
-// Matches: ESC[48;2;55;55;55m> ... ESC[0m or ESC[48;2;55;55;55;22m> ...
-const USER_PROMPT_START = /^\x1b\[(?:48;2;55;55;55(?:;22)?m)>\s*/;
+// User prompt marker: cyan bar
+const USER_PROMPT_START = /^\[36(?:;2)?m▌ \[39m/;
 
-// Assistant response marker: colored circle "⏺"
-// Matches various color codes followed by ⏺ and reset
-const ASSISTANT_START = /^\x1b\[38;2;(?:\d+);(?:\d+);(?:\d+)(?:;22)?m⏺\x1b\[0m/;
+// Assistant response marker: plain "> " prefix
+const ASSISTANT_START = /^>\s+/;
 
-// Tool call pattern: "⏺ **ToolName**(args)"
-const TOOL_CALL = /⏺\x1b\[0m\s+\x1b\[1m([A-Z][a-zA-Z]+)\x1b\[0m\(/;
+// Interruption marker
+const INTERRUPT_MARKER = /^\[31;22m■ Conversation interrupted/;
 
-// Clear command detection
-const CLEAR_COMMAND = /^\x1b\[48;2;55;55;55(?:;22)?m>\s*\/clear\s*\x1b\[0m/;
-
-// Session header (Claude Code banner)
-const SESSION_HEADER = /^\x1b\[38;2;215;119;87m\s+▐\x1b\[48;2;0;0;0m▛███▜\x1b\[49m▌\x1b\[0m\s+\x1b\[1mClaude Code\x1b\[0m/;
-
-// IDE selection block markers
-const IDE_SELECTION_START = /<ide_selection>/;
-const IDE_SELECTION_END = /<\/ide_selection>/;
-
-// Bottom status line / input prompt area (indicates end of content)
-const BOTTOM_PROMPT = /^\x1b\[38;2;136;136;136(?:;2)?m───+\x1b\[0m$/;
-
-// Interrupt/error markers
-const INTERRUPT_MARKER = /⎿\s+\x1b\[38;2;255;107;128m(?:Error:|Interrupted)/;
-
-// Shell prompt pattern (CLI exit detection)
+// Shell prompt pattern
 const SHELL_PROMPT =
   /^[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+\s+[~\/].*[%$#]\s*/;
 
-/**
- * Checks if a line is part of the user's prompt input area (gray background)
- */
-function isUserPromptContinuation(line: string): boolean {
-  // Lines with gray background indicate user prompt continuation
-  return /^\x1b\[48;2;55;55;55/.test(line);
-}
+// Working indicator (skip these lines)
+const WORKING_INDICATOR = /^\[2C\[38;2;102;102;102;1;22mWorking/;
+
+// Bottom input prompt
+const BOTTOM_PROMPT = /^\[36m⏎\[39m send.*context left$/;
 
 /**
- * Checks if a line is part of assistant response content
- */
-function isAssistantContent(line: string): boolean {
-  // Assistant content typically starts with color codes or is plain text
-  // Exclude lines that start new user prompts or are empty
-  if (!line.trim()) return false;
-  if (USER_PROMPT_START.test(line)) return false;
-  if (BOTTOM_PROMPT.test(line)) return false;
-  return true;
-}
-
-/**
- * Strips ANSI escape codes for clean text extraction (optional)
+ * Strips ANSI escape codes for clean text extraction
  */
 function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;:]*m/g, "");
 }
 
 /**
- * Extracts messages from a Claude Code terminal snapshot
+ * Checks if line is continuation of user input
+ */
+function isUserPromptContinuation(line: string): boolean {
+  return /^\[36(?:;2)?m▌ \[39m/.test(line);
+}
+
+/**
+ * Extracts messages from a Codex terminal snapshot
  */
 export function extractMessages(snapshot: string): ChatMessage[] {
   if (!snapshot || snapshot.trim().length === 0) {
@@ -107,8 +75,6 @@ export function extractMessages(snapshot: string): ChatMessage[] {
     startLineNum: number;
   } | null = null;
 
-  let inIdeSelection = false;
-  let sessionCount = 0;
   let inShellMode = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -116,6 +82,9 @@ export function extractMessages(snapshot: string): ChatMessage[] {
 
     // Skip empty lines at the start
     if (!line.trim() && !currentMessage) continue;
+
+    // Skip working indicators
+    if (WORKING_INDICATOR.test(line)) continue;
 
     // Detect shell prompt (CLI exit)
     if (SHELL_PROMPT.test(line)) {
@@ -147,7 +116,7 @@ export function extractMessages(snapshot: string): ChatMessage[] {
         inShellMode = true;
       }
 
-      // Capture shell command as system message
+      // Capture shell command
       const shellCommand = stripAnsi(line).trim();
       if (shellCommand) {
         messages.push({
@@ -164,9 +133,8 @@ export function extractMessages(snapshot: string): ChatMessage[] {
       continue;
     }
 
-    // Detect session header (new Claude Code session)
+    // Detect session header
     if (SESSION_HEADER.test(line)) {
-      // Flush current message if any
       if (currentMessage) {
         messages.push({
           id: uuidv4(),
@@ -181,7 +149,6 @@ export function extractMessages(snapshot: string): ChatMessage[] {
         currentMessage = null;
       }
 
-      // Add session start marker (always, including first session)
       messages.push({
         id: uuidv4(),
         message: {
@@ -193,37 +160,7 @@ export function extractMessages(snapshot: string): ChatMessage[] {
         },
       });
 
-      sessionCount++;
       inShellMode = false;
-      continue;
-    }
-
-    // Detect /clear command (screen refresh)
-    if (CLEAR_COMMAND.test(line)) {
-      if (currentMessage) {
-        messages.push({
-          id: uuidv4(),
-          message: {
-            role: currentMessage.role,
-            content: currentMessage.lines.join("\n"),
-          },
-          metadata: {
-            timestamp: new Date(),
-          },
-        });
-        currentMessage = null;
-      }
-
-      messages.push({
-        id: uuidv4(),
-        message: {
-          role: "system",
-          content: "cli:screenRefresh",
-        },
-        metadata: {
-          timestamp: new Date(),
-        },
-      });
       continue;
     }
 
@@ -256,18 +193,7 @@ export function extractMessages(snapshot: string): ChatMessage[] {
       continue;
     }
 
-    // Track IDE selection blocks (skip them)
-    if (IDE_SELECTION_START.test(line)) {
-      inIdeSelection = true;
-      continue;
-    }
-    if (IDE_SELECTION_END.test(line)) {
-      inIdeSelection = false;
-      continue;
-    }
-    if (inIdeSelection) continue;
-
-    // Stop at bottom prompt/status line
+    // Stop at bottom prompt
     if (BOTTOM_PROMPT.test(line)) {
       break;
     }
@@ -277,7 +203,6 @@ export function extractMessages(snapshot: string): ChatMessage[] {
 
     // Detect user prompt start
     if (USER_PROMPT_START.test(line)) {
-      // Flush previous message
       if (currentMessage) {
         messages.push({
           id: uuidv4(),
@@ -291,7 +216,6 @@ export function extractMessages(snapshot: string): ChatMessage[] {
         });
       }
 
-      // Start new user message
       currentMessage = {
         role: "user",
         lines: [line],
@@ -301,8 +225,7 @@ export function extractMessages(snapshot: string): ChatMessage[] {
     }
 
     // Detect assistant response start
-    if (ASSISTANT_START.test(line)) {
-      // Flush previous message
+    if (ASSISTANT_START.test(line) && !currentMessage) {
       if (currentMessage) {
         messages.push({
           id: uuidv4(),
@@ -316,7 +239,6 @@ export function extractMessages(snapshot: string): ChatMessage[] {
         });
       }
 
-      // Start new assistant message
       currentMessage = {
         role: "assistant",
         lines: [line],
@@ -325,10 +247,9 @@ export function extractMessages(snapshot: string): ChatMessage[] {
       continue;
     }
 
-    // Continue current message if applicable
+    // Continue current message
     if (currentMessage) {
       if (currentMessage.role === "user") {
-        // User messages continue on gray background lines
         if (isUserPromptContinuation(line)) {
           currentMessage.lines.push(line);
           continue;
@@ -351,12 +272,12 @@ export function extractMessages(snapshot: string): ChatMessage[] {
         if (
           !USER_PROMPT_START.test(line) &&
           !ASSISTANT_START.test(line) &&
-          !BOTTOM_PROMPT.test(line)
+          !BOTTOM_PROMPT.test(line) &&
+          !INTERRUPT_MARKER.test(line)
         ) {
           currentMessage.lines.push(line);
           continue;
         } else {
-          // End of assistant message, but don't consume this line
           messages.push({
             id: uuidv4(),
             message: {
@@ -368,7 +289,6 @@ export function extractMessages(snapshot: string): ChatMessage[] {
             },
           });
           currentMessage = null;
-          // Re-process this line
           i--;
           continue;
         }
@@ -376,7 +296,7 @@ export function extractMessages(snapshot: string): ChatMessage[] {
     }
   }
 
-  // Flush any remaining message
+  // Flush remaining message
   if (currentMessage) {
     messages.push({
       id: uuidv4(),

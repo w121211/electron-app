@@ -24,27 +24,26 @@ export function createUserSettingsRouter(
         return userSettingsService.updateUserSettings(input.settings);
       }),
 
-    // Set workspace directory
-    setWorkspaceDirectory: publicProcedure
-      .input(
-        z.object({
-          workspaceDirectory: z
-            .string()
-            .refine((value) => path.isAbsolute(value), {
-              message: "Workspace directory must be absolute",
-            }),
-        }),
-      )
-      .mutation(async ({ input }) => {
-        return userSettingsService.setWorkspaceDirectory(
-          input.workspaceDirectory,
-        );
-      }),
+    // COMMENTED OUT: Workspace directory feature not needed
+    // setWorkspaceDirectory: publicProcedure
+    //   .input(
+    //     z.object({
+    //       workspaceDirectory: z
+    //         .string()
+    //         .refine((value) => path.isAbsolute(value), {
+    //           message: "Workspace directory must be absolute",
+    //         }),
+    //     }),
+    //   )
+    //   .mutation(async ({ input }) => {
+    //     return userSettingsService.setWorkspaceDirectory(
+    //       input.workspaceDirectory,
+    //     );
+    //   }),
 
-    // Get workspace directory
-    getWorkspaceDirectory: publicProcedure.query(async () => {
-      return userSettingsService.getWorkspaceDirectory();
-    }),
+    // getWorkspaceDirectory: publicProcedure.query(async () => {
+    //   return userSettingsService.getWorkspaceDirectory();
+    // }),
 
     // Set provider API key
     setProviderApiKey: publicProcedure

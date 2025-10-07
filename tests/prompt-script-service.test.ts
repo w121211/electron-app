@@ -82,19 +82,17 @@ First prompt
 
     const result = await service.findLinkedChatSession(scriptPath);
 
-    expect(result.session?.id).toBe(sessionId);
-    expect(result.linkType).toBe("chatSessionId");
-    expect(result.script.metadata.chatSessionId).toBe(sessionId);
+    expect(result.chatSession?.id).toBe(sessionId);
+    expect(result.promptScript.promptScriptParsed.metadata.chatSessionId).toBe(
+      sessionId,
+    );
     expect(result.warnings).toHaveLength(0);
-
-    const updated = await chatSessionRepository.getById(sessionId);
-    expect(updated?.scriptPath).toBe(script.absolutePath);
-    expect(updated?.scriptHash).toBe(script.hash);
   });
 
-  it("falls back to script hash and updates chatSessionId in front matter", async () => {
+  it("finds session by chatSessionId", async () => {
     const sessionId = uuidv4();
     const scriptContent = `---
+chatSessionId: ${sessionId}
 model: openai/gpt-4o-mini
 ---
 
@@ -109,48 +107,26 @@ Prompt content
 
     const result = await service.findLinkedChatSession(scriptPath);
 
-    expect(result.session?.id).toBe(sessionId);
-    expect(result.linkType).toBe("scriptHash");
+    expect(result.chatSession?.id).toBe(sessionId);
     expect(result.warnings).toHaveLength(0);
-
-    // Script file should now include chatSessionId
-    const persisted = await scriptRepository.read(scriptPath);
-    expect(persisted.metadata.chatSessionId).toBe(sessionId);
   });
 
-  it("clears stale chatSessionId when content hash changes", async () => {
+  it("warns when session not found", async () => {
     const sessionId = uuidv4();
-    const originalContent = `---
+    const scriptContent = `---
 chatSessionId: ${sessionId}
 ---
 
 Original prompt
 `;
 
-    const script = await writeScript(originalContent);
-    await createSessionForScript(script, {
-      id: sessionId,
-      metadata: { modelId: "openai/gpt-4o-mini" },
-    });
-
-    const modifiedContent = `---
-chatSessionId: ${sessionId}
----
-
-Modified prompt
-`;
-    await writeScript(modifiedContent);
+    await writeScript(scriptContent);
 
     const result = await service.findLinkedChatSession(scriptPath);
 
-    expect(result.session).toBeNull();
-    expect(result.linkType).toBeUndefined();
-    expect(result.warnings).toContain(
-      "Prompt script content changed since the stored session was created. Cleared chatSessionId for safety.",
-    );
-
-    const updated = await scriptRepository.read(scriptPath);
-    expect(updated.metadata.chatSessionId).toBeUndefined();
+    expect(result.chatSession).toBeNull();
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0].code).toBe("CHAT_SESSION_NOT_FOUND");
   });
 
   it("detaches script and clears session linkage", async () => {
@@ -170,12 +146,96 @@ Prompt
       sessionId,
     });
 
-    expect(detached.metadata.chatSessionId).toBeUndefined();
+    expect(
+      detached.promptScriptParsed.metadata.chatSessionId,
+    ).toBeUndefined();
 
     const session = await chatSessionRepository.getById(sessionId);
     expect(session?.scriptPath).toBeNull();
     expect(session?.scriptHash).toBeNull();
     expect(session?.scriptSnapshot).toBeNull();
     expect(session?.scriptModifiedAt).toBeNull();
+  });
+
+  describe("createPromptScript", () => {
+    let createTempDir: string;
+
+    beforeEach(async () => {
+      createTempDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), "prompt-create-test-"),
+      );
+    });
+
+    afterEach(async () => {
+      await fs.rm(createTempDir, { recursive: true, force: true }).catch(() => {});
+    });
+
+    it("creates prompt script with sequential numbering when no name provided", async () => {
+      const script1 = await service.createPromptScript(createTempDir);
+      expect(script1.absolutePath).toBe(
+        path.join(createTempDir, "001.prompt.md"),
+      );
+      expect(script1.content).toBe("");
+
+      const script2 = await service.createPromptScript(createTempDir);
+      expect(script2.absolutePath).toBe(
+        path.join(createTempDir, "002.prompt.md"),
+      );
+
+      const script3 = await service.createPromptScript(createTempDir);
+      expect(script3.absolutePath).toBe(
+        path.join(createTempDir, "003.prompt.md"),
+      );
+    });
+
+    it("creates prompt script with custom name and unique suffix", async () => {
+      const script1 = await service.createPromptScript(createTempDir, "test");
+      expect(script1.absolutePath).toBe(
+        path.join(createTempDir, "test.prompt.md"),
+      );
+
+      const script2 = await service.createPromptScript(createTempDir, "test");
+      expect(path.basename(script2.absolutePath)).toMatch(
+        /^test\.prompt \(\d+\)\.md$/,
+      );
+
+      const script3 = await service.createPromptScript(createTempDir, "test");
+      expect(path.basename(script3.absolutePath)).toMatch(
+        /^test\.prompt \(\d+\)\.md$/,
+      );
+    });
+
+    it("fills gaps in sequential numbering", async () => {
+      await service.createPromptScript(createTempDir); // 001
+      await service.createPromptScript(createTempDir); // 002
+      await service.createPromptScript(createTempDir); // 003
+
+      // Delete 002
+      await fs.unlink(path.join(createTempDir, "002.prompt.md"));
+
+      // Next creation should be 004, not 002 (sequential continues from max)
+      const script = await service.createPromptScript(createTempDir);
+      expect(script.absolutePath).toBe(
+        path.join(createTempDir, "004.prompt.md"),
+      );
+    });
+
+    it("handles existing sequential files correctly", async () => {
+      // Create files manually
+      await fs.writeFile(
+        path.join(createTempDir, "001.prompt.md"),
+        "content1",
+      );
+      await fs.writeFile(
+        path.join(createTempDir, "005.prompt.md"),
+        "content5",
+      );
+
+      // Next creation should be 006 (max + 1)
+      const script = await service.createPromptScript(createTempDir);
+      expect(script.absolutePath).toBe(
+        path.join(createTempDir, "006.prompt.md"),
+      );
+    });
   });
 });

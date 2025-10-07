@@ -48,63 +48,64 @@ export class UserSettingsService {
     return this.updateSettings({ providers });
   }
 
-  async setWorkspaceDirectory(
-    workspaceDirectory: string,
-  ): Promise<UserSettings> {
-    try {
-      const updatedSettings =
-        await trpcClient.userSettings.setWorkspaceDirectory.mutate({
-          workspaceDirectory,
-        });
-      setUserSettings(updatedSettings);
-      return updatedSettings;
-    } catch (error) {
-      console.error("Failed to set workspace directory:", error);
-      setUserSettingsError(
-        error instanceof Error
-          ? error.message
-          : "Failed to set workspace directory",
-      );
-      throw error;
-    }
-  }
+  // COMMENTED OUT: Workspace directory feature not needed
+  // async setWorkspaceDirectory(
+  //   workspaceDirectory: string,
+  // ): Promise<UserSettings> {
+  //   try {
+  //     const updatedSettings =
+  //       await trpcClient.userSettings.setWorkspaceDirectory.mutate({
+  //         workspaceDirectory,
+  //       });
+  //     setUserSettings(updatedSettings);
+  //     return updatedSettings;
+  //   } catch (error) {
+  //     console.error("Failed to set workspace directory:", error);
+  //     setUserSettingsError(
+  //       error instanceof Error
+  //         ? error.message
+  //         : "Failed to set workspace directory",
+  //     );
+  //     throw error;
+  //   }
+  // }
 
-  async getWorkspaceDirectory(): Promise<string | null> {
-    try {
-      return await trpcClient.userSettings.getWorkspaceDirectory.query();
-    } catch (error) {
-      console.error("Failed to get workspace directory:", error);
-      throw error;
-    }
-  }
+  // async getWorkspaceDirectory(): Promise<string | null> {
+  //   try {
+  //     return await trpcClient.userSettings.getWorkspaceDirectory.query();
+  //   } catch (error) {
+  //     console.error("Failed to get workspace directory:", error);
+  //     throw error;
+  //   }
+  // }
 
-  async setupWorkspaceDirectory(): Promise<UserSettings | null> {
-    try {
-      console.log("Setting up workspace directory");
+  // async setupWorkspaceDirectory(): Promise<UserSettings | null> {
+  //   try {
+  //     console.log("Setting up workspace directory");
 
-      // Open folder selection dialog
-      const workspaceDirectory = await window.api.showOpenDialog();
-      if (!workspaceDirectory) {
-        console.log("Workspace directory selection cancelled");
-        return null;
-      }
+  //     // Open folder selection dialog
+  //     const workspaceDirectory = await window.api.showOpenDialog();
+  //     if (!workspaceDirectory) {
+  //       console.log("Workspace directory selection cancelled");
+  //       return null;
+  //     }
 
-      // Set the workspace directory
-      const updatedSettings =
-        await this.setWorkspaceDirectory(workspaceDirectory);
-      console.log("Workspace directory set:", workspaceDirectory);
+  //     // Set the workspace directory
+  //     const updatedSettings =
+  //       await this.setWorkspaceDirectory(workspaceDirectory);
+  //     console.log("Workspace directory set:", workspaceDirectory);
 
-      return updatedSettings;
-    } catch (error) {
-      console.error("Failed to setup workspace directory:", error);
-      setUserSettingsError(
-        error instanceof Error
-          ? error.message
-          : "Failed to setup workspace directory",
-      );
-      throw error;
-    }
-  }
+  //     return updatedSettings;
+  //   } catch (error) {
+  //     console.error("Failed to setup workspace directory:", error);
+  //     setUserSettingsError(
+  //       error instanceof Error
+  //         ? error.message
+  //         : "Failed to setup workspace directory",
+  //     );
+  //     throw error;
+  //   }
+  // }
 
   async setProviderApiKey(
     provider: string,

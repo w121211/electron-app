@@ -4,7 +4,6 @@ import { Logger } from "tslog";
 import {
   generateSequentiallyNumberedFilename,
   generateUniqueFileName,
-  writeTextFile,
 } from "../../utils/file-utils.js";
 import { PromptScriptRepository } from "./prompt-script-repository.js";
 import type {
@@ -32,9 +31,10 @@ export class PromptScriptService {
     directory: string,
     name?: string,
   ): Promise<PromptScriptFile> {
-    let baseName: string;
+    let filePath: string;
     if (name) {
-      baseName = `${name}.prompt.md`;
+      const baseName = `${name}.prompt.md`;
+      filePath = await generateUniqueFileName(directory, baseName);
     } else {
       /*
       // Format: 20251003-143045
@@ -45,17 +45,15 @@ export class PromptScriptService {
         .replace(/(\d{8})(\d{6})/, "$1-$2");
       baseName = `${timestamp}.prompt.md`;
       */
-      baseName = await generateSequentiallyNumberedFilename(
+      const fileName = await generateSequentiallyNumberedFilename(
         directory,
         ".prompt.md",
         3,
       );
+      filePath = path.join(directory, fileName);
     }
-    const filePath = await generateUniqueFileName(directory, baseName);
 
-    await writeTextFile(filePath, "");
-
-    return this.promptScriptRepo.read(filePath);
+    return this.promptScriptRepo.create(filePath);
   }
 
   /**

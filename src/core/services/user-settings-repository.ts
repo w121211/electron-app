@@ -15,7 +15,7 @@ export interface ProviderConfig {
 
 export interface UserSettings {
   projectFolders: ProjectFolder[];
-  workspaceDirectory?: string;
+  // workspaceDirectory?: string; // COMMENTED OUT: Not needed - users add existing folders
   providers: {
     openai?: ProviderConfig;
     anthropic?: ProviderConfig;
@@ -34,7 +34,7 @@ export interface UserSettings {
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   projectFolders: [],
-  workspaceDirectory: undefined,
+  // workspaceDirectory: undefined, // COMMENTED OUT: Not needed - users add existing folders
   providers: {},
   agent: {
     todoTemplatePath: ".chat/todo.md",

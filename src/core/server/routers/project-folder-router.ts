@@ -194,17 +194,18 @@ export function createProjectFolderRouter(
         );
       }),
 
-    createNewProjectFolder: publicProcedure
-      .input(createNewProjectFolderSchema)
-      .mutation(async ({ input }) => {
-        return projectFolderService.createNewProjectFolder(
-          input.folderName,
-          input.correlationId,
-        );
-      }),
+    // COMMENTED OUT: Workspace directory feature not needed
+    // createNewProjectFolder: publicProcedure
+    //   .input(createNewProjectFolderSchema)
+    //   .mutation(async ({ input }) => {
+    //     return projectFolderService.createNewProjectFolder(
+    //       input.folderName,
+    //       input.correlationId,
+    //     );
+    //   }),
 
-    isWorkspaceDirectoryValid: publicProcedure.query(async () => {
-      return projectFolderService.isWorkspaceDirectoryValid();
-    }),
+    // isWorkspaceDirectoryValid: publicProcedure.query(async () => {
+    //   return projectFolderService.isWorkspaceDirectoryValid();
+    // }),
   });
 }

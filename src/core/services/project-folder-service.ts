@@ -721,51 +721,52 @@ export class ProjectFolderService {
     this.logger.info(`Successfully created folder ${folderPath}`);
   }
 
-  /**
-   * Create a new project folder in the workspace directory and add it to project folders
-   */
-  public async createNewProjectFolder(
-    folderName: string,
-    _correlationId?: string,
-  ): Promise<ProjectFolder> {
-    this.logger.info(`Creating new project folder: ${folderName}`);
+  // COMMENTED OUT: Workspace directory feature not needed - users can add existing folders
+  // /**
+  //  * Create a new project folder in the workspace directory and add it to project folders
+  //  */
+  // public async createNewProjectFolder(
+  //   folderName: string,
+  //   _correlationId?: string,
+  // ): Promise<ProjectFolder> {
+  //   this.logger.info(`Creating new project folder: ${folderName}`);
 
-    // Get current settings to determine workspace directory
-    const settings = await this.userSettingsRepository.getSettings();
+  //   // Get current settings to determine workspace directory
+  //   const settings = await this.userSettingsRepository.getSettings();
 
-    // Check if workspace directory is configured
-    if (!settings.workspaceDirectory) {
-      throw new Error(
-        "No workspace directory configured. Please set a workspace directory first.",
-      );
-    }
-    const targetWorkspaceDirectory = settings.workspaceDirectory;
+  //   // Check if workspace directory is configured
+  //   if (!settings.workspaceDirectory) {
+  //     throw new Error(
+  //       "No workspace directory configured. Please set a workspace directory first.",
+  //     );
+  //   }
+  //   const targetWorkspaceDirectory = settings.workspaceDirectory;
 
-    // Create the folder using helper method
-    const newProjectFolderPath = await createFolderAtPath(
-      targetWorkspaceDirectory,
-      folderName,
-    );
-    const projectFolder = await this.addProjectFolder(
-      newProjectFolderPath,
-      _correlationId,
-    );
+  //   // Create the folder using helper method
+  //   const newProjectFolderPath = await createFolderAtPath(
+  //     targetWorkspaceDirectory,
+  //     folderName,
+  //   );
+  //   const projectFolder = await this.addProjectFolder(
+  //     newProjectFolderPath,
+  //     _correlationId,
+  //   );
 
-    return projectFolder;
-  }
+  //   return projectFolder;
+  // }
 
-  /**
-   * Check if workspace directory is configured and valid
-   */
-  public async isWorkspaceDirectoryValid(): Promise<boolean> {
-    const settings = await this.userSettingsRepository.getSettings();
+  // /**
+  //  * Check if workspace directory is configured and valid
+  //  */
+  // public async isWorkspaceDirectoryValid(): Promise<boolean> {
+  //   const settings = await this.userSettingsRepository.getSettings();
 
-    if (!settings.workspaceDirectory) {
-      return false;
-    }
+  //   if (!settings.workspaceDirectory) {
+  //     return false;
+  //   }
 
-    return validateProjectFolderPath(settings.workspaceDirectory);
-  }
+  //   return validateProjectFolderPath(settings.workspaceDirectory);
+  // }
 
   /**
    * Finds all files with a given suffix (e.g., '.chat.json') across all project folders.

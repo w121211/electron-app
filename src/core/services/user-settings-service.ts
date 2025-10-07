@@ -54,38 +54,39 @@ export class UserSettingsService {
     return updatedSettings;
   }
 
-  public async setWorkspaceDirectory(
-    workspaceDirectory: string,
-  ): Promise<UserSettings> {
-    this.logger.info(`Setting workspace directory: ${workspaceDirectory}`);
+  // COMMENTED OUT: Workspace directory feature not needed
+  // public async setWorkspaceDirectory(
+  //   workspaceDirectory: string,
+  // ): Promise<UserSettings> {
+  //   this.logger.info(`Setting workspace directory: ${workspaceDirectory}`);
 
-    // Validate workspace directory path
-    if (!workspaceDirectory.trim()) {
-      throw new Error("Workspace directory cannot be empty");
-    }
+  //   // Validate workspace directory path
+  //   if (!workspaceDirectory.trim()) {
+  //     throw new Error("Workspace directory cannot be empty");
+  //   }
 
-    // Validate that the path is absolute
-    if (!path.isAbsolute(workspaceDirectory)) {
-      throw new Error(
-        `Workspace directory must be absolute, received: ${workspaceDirectory}`,
-      );
-    }
+  //   // Validate that the path is absolute
+  //   if (!path.isAbsolute(workspaceDirectory)) {
+  //     throw new Error(
+  //       `Workspace directory must be absolute, received: ${workspaceDirectory}`,
+  //     );
+  //   }
 
-    // Validate that the directory exists and is actually a directory
-    const isValid = await this.validateWorkspaceDirectory(workspaceDirectory);
-    if (!isValid) {
-      throw new Error(
-        `Invalid workspace directory path: ${workspaceDirectory}`,
-      );
-    }
+  //   // Validate that the directory exists and is actually a directory
+  //   const isValid = await this.validateWorkspaceDirectory(workspaceDirectory);
+  //   if (!isValid) {
+  //     throw new Error(
+  //       `Invalid workspace directory path: ${workspaceDirectory}`,
+  //     );
+  //   }
 
-    return this.updateUserSettings({ workspaceDirectory });
-  }
+  //   return this.updateUserSettings({ workspaceDirectory });
+  // }
 
-  public async getWorkspaceDirectory(): Promise<string | null> {
-    const settings = await this.userSettingsRepository.getSettings();
-    return settings.workspaceDirectory || null;
-  }
+  // public async getWorkspaceDirectory(): Promise<string | null> {
+  //   const settings = await this.userSettingsRepository.getSettings();
+  //   return settings.workspaceDirectory || null;
+  // }
 
   public async setProviderApiKey(
     provider: string,

@@ -1,6 +1,6 @@
 // src/core/services/prompt-script/prompt-script-repository.ts
 import matter from "gray-matter";
-import { writeTextFile } from "../../utils/file-utils.js";
+import { fileExists, writeTextFile } from "../../utils/file-utils.js";
 import {
   readDocument,
   type DocumentFile,
@@ -50,6 +50,15 @@ export interface PromptScriptLinkResult {
 }
 
 export class PromptScriptRepository {
+  async create(filePath: string, content = ""): Promise<PromptScriptFile> {
+    if (await fileExists(filePath)) {
+      throw new Error(`File already exists: ${filePath}`);
+    }
+
+    await writeTextFile(filePath, content);
+    return this.read(filePath);
+  }
+
   async read(filePath: string): Promise<PromptScriptFile> {
     const document = await readDocument(filePath);
     const parsed: ParsePromptScriptResult = parsePromptScriptContent(
@@ -72,6 +81,11 @@ export class PromptScriptRepository {
       body?: string;
     } = {},
   ): Promise<PromptScriptFile> {
+    if (!(await fileExists(script.absolutePath))) {
+      throw new Error(
+        `File does not exist: ${script.absolutePath}. Use create() for new files, save() only updates existing files.`,
+      );
+    }
     const metadata = options.metadata ?? script.promptScriptParsed.metadata;
     const body = options.body ?? script.promptScriptParsed.body;
 

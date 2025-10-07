@@ -353,7 +353,7 @@ export async function generateSequentiallyNumberedFilename(
   padding: number,
 ): Promise<string> {
   const files = await fs.readdir(directory);
-  const regex = new RegExp(`^(\d+)${extension.replace(/\./g, "\\.")}$`);
+  const regex = new RegExp(`^(\\d+)${extension.replace(/\./g, "\\.")}$`);
   let maxNumber = 0;
   for (const file of files) {
     const match = file.match(regex);

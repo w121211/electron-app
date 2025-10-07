@@ -15,7 +15,7 @@ import { setLoading, showToast } from "../stores/ui-store.svelte.js";
 import {
   fileExplorerState,
   cancelInlineFolderCreation,
-  setWorkspaceSetupNeeded,
+  // setWorkspaceSetupNeeded, // COMMENTED OUT: Workspace feature not needed
 } from "../stores/file-explorer-store.svelte.js";
 import { documentClientService } from "./document-client-service.js";
 
@@ -47,15 +47,15 @@ class ProjectService {
     try {
       this.logger.info("Loading project folders...");
 
-      // Check workspace directory status (don't block loading)
-      try {
-        const isWorkspaceValid =
-          await trpcClient.projectFolder.isWorkspaceDirectoryValid.query();
-        setWorkspaceSetupNeeded(!isWorkspaceValid);
-      } catch (error) {
-        this.logger.warn("Failed to check workspace directory status:", error);
-        setWorkspaceSetupNeeded(false);
-      }
+      // COMMENTED OUT: Workspace validation not needed
+      // try {
+      //   const isWorkspaceValid =
+      //     await trpcClient.projectFolder.isWorkspaceDirectoryValid.query();
+      //   setWorkspaceSetupNeeded(!isWorkspaceValid);
+      // } catch (error) {
+      //   this.logger.warn("Failed to check workspace directory status:", error);
+      //   setWorkspaceSetupNeeded(false);
+      // }
 
       const folders =
         await trpcClient.projectFolder.getAllProjectFolders.query();
@@ -705,46 +705,47 @@ class ProjectService {
     }
   }
 
-  async createNewProjectFolder(folderName: string): Promise<ProjectFolder> {
-    setLoading("createNewProjectFolder", true);
+  // COMMENTED OUT: Workspace directory feature not needed
+  // async createNewProjectFolder(folderName: string): Promise<ProjectFolder> {
+  //   setLoading("createNewProjectFolder", true);
 
-    try {
-      this.logger.info(`Creating new project folder: ${folderName}`);
-      const newFolder =
-        await trpcClient.projectFolder.createNewProjectFolder.mutate({
-          folderName,
-        });
+  //   try {
+  //     this.logger.info(`Creating new project folder: ${folderName}`);
+  //     const newFolder =
+  //       await trpcClient.projectFolder.createNewProjectFolder.mutate({
+  //         folderName,
+  //       });
 
-      // Refresh complete project state (loads folders + trees)
-      await this.loadProjectFolders();
+  //     // Refresh complete project state (loads folders + trees)
+  //     await this.loadProjectFolders();
 
-      showToast("New project folder created successfully", "success");
-      this.logger.info("New project folder created:", newFolder.name);
+  //     showToast("New project folder created successfully", "success");
+  //     this.logger.info("New project folder created:", newFolder.name);
 
-      return newFolder;
-    } catch (error) {
-      this.logger.error("Failed to create new project folder:", error);
+  //     return newFolder;
+  //   } catch (error) {
+  //     this.logger.error("Failed to create new project folder:", error);
 
-      // Check if error is about workspace directory not being configured
-      if (
-        error instanceof Error &&
-        error.message.includes("No workspace directory configured")
-      ) {
-        showToast(
-          "Please set a workspace directory in Settings first",
-          "error",
-        );
-      } else {
-        showToast(
-          `Failed to create new project folder: ${error instanceof Error ? error.message : String(error)}`,
-          "error",
-        );
-      }
-      throw error;
-    } finally {
-      setLoading("createNewProjectFolder", false);
-    }
-  }
+  //     // Check if error is about workspace directory not being configured
+  //     if (
+  //       error instanceof Error &&
+  //       error.message.includes("No workspace directory configured")
+  //     ) {
+  //       showToast(
+  //         "Please set a workspace directory in Settings first",
+  //         "error",
+  //       );
+  //     } else {
+  //       showToast(
+  //         `Failed to create new project folder: ${error instanceof Error ? error.message : String(error)}`,
+  //         "error",
+  //       );
+  //     }
+  //     throw error;
+  //   } finally {
+  //     setLoading("createNewProjectFolder", false);
+  //   }
+  // }
 }
 
 export const projectService = new ProjectService();
