@@ -22,7 +22,7 @@ async function startServer() {
     const eventBus = createServerEventBus({ logger });
     const ptyInstanceManager = createPtyInstanceManager(eventBus);
 
-    const trpcRouter = await createTrpcRouter({
+    const { router: trpcRouter, fileWatcherService } = await createTrpcRouter({
       userDataDir,
       eventBus,
       ptyInstanceManager,
@@ -45,14 +45,27 @@ async function startServer() {
     });
 
     // Handle shutdown
-    const shutdown = () => {
+    const shutdown = async () => {
       logger.info("Shutting down server...");
-      server.close();
+      await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+      });
+      await fileWatcherService.stopAllWatchers();
       process.exit(0);
     };
 
-    process.on("SIGTERM", shutdown);
-    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", () => {
+      shutdown().catch((error) => {
+        logger.error("Error during shutdown:", error);
+        process.exit(1);
+      });
+    });
+    process.on("SIGINT", () => {
+      shutdown().catch((error) => {
+        logger.error("Error during shutdown:", error);
+        process.exit(1);
+      });
+    });
   } catch (error) {
     logger.error("Failed to start server:", error);
     process.exit(1);

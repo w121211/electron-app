@@ -38,7 +38,12 @@ interface TrpcRouterConfig {
 }
 
 export async function createTrpcRouter(config: TrpcRouterConfig) {
-  const { userDataDir, eventBus, ptyInstanceManager, snapshotProvider } = config;
+  const {
+    userDataDir,
+    eventBus,
+    ptyInstanceManager,
+    snapshotProvider,
+  } = config;
 
   // Setup logger
   const logger: Logger<ILogObj> = new Logger({ name: "AppServer" });
@@ -134,7 +139,7 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     );
 
   // Create the application router
-  return router({
+  const appRouter = router({
     task: createTaskRouter(taskService),
     apiChat: createApiChatRouter(apiChatClient),
     // toolCall: createToolCallRouter(toolCallScheduler, toolRegistry),
@@ -147,6 +152,15 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     document: createDocumentRouter(documentService),
     promptScript: createPromptScriptRouter(promptScriptService),
   });
+
+  return {
+    router: appRouter,
+    fileWatcherService,
+    projectFolderService,
+  };
 }
 
-export type TrpcRouter = Awaited<ReturnType<typeof createTrpcRouter>>;
+export type TrpcRouter = Awaited<ReturnType<typeof createTrpcRouter>>["router"];
+export type CreateTrpcRouterResult = Awaited<
+  ReturnType<typeof createTrpcRouter>
+>;

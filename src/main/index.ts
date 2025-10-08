@@ -324,7 +324,11 @@ app.on("before-quit", async (event) => {
   } catch (error) {
     console.error("Error during shutdown:", error);
   } finally {
-    app.quit(); // Now quit the app
+    // app.quit(); // Would retrigger before-quit and require a second Cmd+Q
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.destroy();
+    }
+    app.exit(0);
   }
 });
 
