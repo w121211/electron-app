@@ -50,6 +50,11 @@ declare global {
           requestId: string;
           snapshot?: string | null;
         }) => void;
+        requestSnapshotForTests: (context: {
+          session: { id: string; ptyInstanceId?: string | null };
+          processor: unknown;
+          event: { kind: string };
+        }) => Promise<string | null | undefined>;
       };
     };
   }

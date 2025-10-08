@@ -80,6 +80,19 @@ const api = {
     }) => {
       ipcRenderer.send("pty:snapshot-response", payload);
     },
+    requestSnapshotForTests: (context: {
+      session: { id: string; ptyInstanceId?: string | null };
+      processor: unknown;
+      event: { kind: string };
+    }): Promise<string | null | undefined> => {
+      if (process.env.PTY_EXPOSE_SNAPSHOT_PROVIDER !== "1") {
+        throw new Error("Test snapshot IPC is unavailable");
+      }
+      return ipcRenderer.invoke(
+        "test:pty:request-renderer-snapshot",
+        context,
+      );
+    },
   },
 };
 
