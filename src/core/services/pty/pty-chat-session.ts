@@ -10,6 +10,7 @@ import type {
 } from "../chat/chat-session-repository.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
 import { extractMessages } from "./pty-snapshot-extractor.js";
+import { findSimilarMessageIndex } from "./pty-message-matcher.js";
 
 export type PtyChatUpdateType =
   | "MESSAGE_ADDED"
@@ -110,27 +111,20 @@ export class PtyChatSession {
 
     // Find anchor point for merging
     let anchorIndex = -1;
+    let newMessagesAnchorIndex = -1;
     for (let i = this.messages.length - 1; i >= 0; i--) {
       const currentMessage = this.messages[i];
-      const foundIndex = newMessages.findIndex(
-        (newMessage) =>
-          newMessage.message.role === currentMessage.message.role &&
-          newMessage.message.content === currentMessage.message.content,
-      );
+      const foundIndex = findSimilarMessageIndex(currentMessage, newMessages);
       if (foundIndex !== -1) {
         anchorIndex = i;
+        newMessagesAnchorIndex = foundIndex;
         break;
       }
     }
 
-    if (anchorIndex !== -1) {
+    if (anchorIndex !== -1 && newMessagesAnchorIndex !== -1) {
       // Anchor found, merge the lists
-      const newSlice = newMessages.slice(
-        newMessages.findIndex(
-          (msg) =>
-            msg.message.content === this.messages[anchorIndex].message.content,
-        ) + 1,
-      );
+      const newSlice = newMessages.slice(newMessagesAnchorIndex + 1);
       this.messages.splice(anchorIndex + 1);
       this.messages.push(...newSlice);
     } else {

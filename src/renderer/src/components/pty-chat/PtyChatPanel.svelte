@@ -28,7 +28,7 @@
   );
 
   // $inspect(chatSession);
-  $inspect(selectedPtyStream);
+  // $inspect(selectedPtyStream);
 
   $effect(() => {
     const ptyInstanceId = chatSession?.metadata?.external?.pty?.ptyInstanceId;

@@ -2,6 +2,7 @@
 import { createWriteStream, type WriteStream } from "node:fs";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 
 interface PtyDataSource {
   readonly id: string;
@@ -55,12 +56,21 @@ interface PtyDataProcessorOptions {
 }
 
 const PTY_RECORDING_MAX_BYTES = 5 * 1024 * 1024;
-const PTY_RECORDING_BASE_DIR =
-  process.env.PTY_RECORDING_DIR || join(process.cwd(), "tmp", "pty-recordings");
-const shouldRecordPtyStream =
-  (process.env.NODE_ENV === "development" ||
-    Boolean(process.env.ELECTRON_VITE_DEV_SERVER_URL)) &&
-  process.env.PTY_RECORDING_DISABLED !== "1";
+
+function getRecordingBaseDir(): string {
+  return (
+    process.env.PTY_RECORDING_DIR ||
+    join(process.cwd(), "tmp", "pty-recordings")
+  );
+}
+
+function shouldRecordPtyStream(): boolean {
+  return (
+    (process.env.NODE_ENV === "development" ||
+      Boolean(process.env.ELECTRON_VITE_DEV_SERVER_URL)) &&
+    process.env.PTY_RECORDING_DISABLED !== "1"
+  );
+}
 
 class PtyStreamRecorder {
   private stream: WriteStream | null = null;
@@ -73,7 +83,7 @@ class PtyStreamRecorder {
     cwd: string;
   }) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const dirPath = join(PTY_RECORDING_BASE_DIR, metadata.sessionId);
+    const dirPath = join(getRecordingBaseDir(), metadata.sessionId);
     mkdirSync(dirPath, { recursive: true });
     const filePath = join(dirPath, `${timestamp}-${metadata.ptyInstanceId}.ndjson`);
     this.stream = createWriteStream(filePath, { flags: "a" });
@@ -86,7 +96,7 @@ class PtyStreamRecorder {
     shell: string;
     cwd: string;
   }): PtyStreamRecorder | null {
-    if (!shouldRecordPtyStream) {
+    if (!shouldRecordPtyStream()) {
       return null;
     }
     return new PtyStreamRecorder(metadata);
@@ -100,6 +110,26 @@ class PtyStreamRecorder {
       type: "chunk",
       timestamp: new Date().toISOString(),
       data: chunk,
+    });
+  }
+
+  writeSnapshot(kind: PtyStreamEventKind, snapshot: string): void {
+    if (!this.stream) {
+      return;
+    }
+
+    const originalBytes = Buffer.byteLength(snapshot, "utf8");
+    const compressed = gzipSync(Buffer.from(snapshot, "utf8"));
+    const payload = compressed.toString("base64");
+
+    this.writeEntry({
+      type: "snapshot",
+      timestamp: new Date().toISOString(),
+      trigger: kind,
+      encoding: "base64/gzip",
+      originalBytes,
+      compressedBytes: compressed.byteLength,
+      payload,
     });
   }
 
@@ -207,6 +237,13 @@ export class PtyDataProcessor {
 
   getBufferedOutput(): string {
     return this.buffer;
+  }
+
+  recordSnapshot(kind: PtyStreamEventKind, snapshot: string): void {
+    if (!snapshot || snapshot.trim().length === 0) {
+      return;
+    }
+    this.recorder?.writeSnapshot(kind, snapshot);
   }
 
   destroy(): void {

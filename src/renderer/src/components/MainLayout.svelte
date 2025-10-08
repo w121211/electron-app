@@ -56,8 +56,8 @@
     initializeData();
   });
 
-  $inspect(docContext);
-  $inspect(centerPanelView);
+  // $inspect(docContext);
+  // $inspect(centerPanelView);
 </script>
 
 <div

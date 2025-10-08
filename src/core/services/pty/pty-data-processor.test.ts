@@ -7,8 +7,15 @@
 //     PTY_RECORDING_FIXTURE=tmp/pty-recordings/<file>.ndjson npm run test -- --run src/core/services/pty/pty-data-processor.test.ts
 // - Set `PTY_RECORDING_DISABLED=1` to skip capturing or `PTY_RECORDING_DIR=/path` to change the output location.
 
-import { readFileSync } from "node:fs";
+import {
+  readFileSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PtyDataProcessor } from "./pty-data-processor.js";
 
@@ -136,5 +143,77 @@ describe("PtyDataProcessor", () => {
     expect(processor.getBufferedOutput().length).toBeGreaterThan(0);
 
     processor.destroy();
+  });
+
+  it("records compressed snapshots when recorder is enabled", async () => {
+    vi.useRealTimers();
+    const previousRecordingDir = process.env.PTY_RECORDING_DIR;
+    const previousDevServer = process.env.ELECTRON_VITE_DEV_SERVER_URL;
+    const previousDisabled = process.env.PTY_RECORDING_DISABLED;
+
+    const tempDir = mkdtempSync(join(tmpdir(), "pty-recording-"));
+    process.env.PTY_RECORDING_DIR = tempDir;
+    process.env.ELECTRON_VITE_DEV_SERVER_URL = "http://localhost";
+    delete process.env.PTY_RECORDING_DISABLED;
+
+    try {
+      const source = new TestPtyDataSource("pty-snapshot-test");
+      const processor = new PtyDataProcessor(source, {
+        sessionId: "session-snapshot-test",
+      });
+
+      const payload = "snapshot payload value";
+      processor.recordSnapshot("enterPressed", payload);
+      processor.destroy();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const sessionDir = join(tempDir, "session-snapshot-test");
+      const files = readdirSync(sessionDir);
+      expect(files.length).toBeGreaterThan(0);
+
+      const contents = readFileSync(join(sessionDir, files[0]), "utf8");
+      const entries = contents
+        .split(/\r?\n/)
+        .filter((line) => line.trim().length > 0)
+        .map((line) => JSON.parse(line) as Record<string, unknown>);
+
+      const entryTypes = entries.map((entry) => entry.type ?? null);
+      expect(entryTypes).toContain("snapshot");
+
+      const snapshotEntry = entries.find(
+        (entry) => entry.type === "snapshot",
+      ) as Record<string, unknown> | undefined;
+
+      expect(snapshotEntry).toBeDefined();
+      expect(snapshotEntry?.trigger).toBe("enterPressed");
+      expect(snapshotEntry?.encoding).toBe("base64/gzip");
+
+      const decoded = gunzipSync(
+        Buffer.from((snapshotEntry?.payload as string) ?? "", "base64"),
+      ).toString("utf8");
+
+      expect(decoded).toBe(payload);
+      expect(snapshotEntry?.originalBytes).toBe(
+        Buffer.byteLength(payload, "utf8"),
+      );
+    } finally {
+      vi.useFakeTimers();
+      if (previousRecordingDir === undefined) {
+        delete process.env.PTY_RECORDING_DIR;
+      } else {
+        process.env.PTY_RECORDING_DIR = previousRecordingDir;
+      }
+      if (previousDevServer === undefined) {
+        delete process.env.ELECTRON_VITE_DEV_SERVER_URL;
+      } else {
+        process.env.ELECTRON_VITE_DEV_SERVER_URL = previousDevServer;
+      }
+      if (previousDisabled === undefined) {
+        delete process.env.PTY_RECORDING_DISABLED;
+      } else {
+        process.env.PTY_RECORDING_DISABLED = previousDisabled;
+      }
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });

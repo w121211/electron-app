@@ -8,7 +8,10 @@ import { createContext } from "./trpc-init.js";
 import { createTrpcRouter } from "./root-router.js";
 import type { IEventBus } from "../event-bus.js";
 import { createServerEventBus } from "../event-bus.js";
-import { createPtyInstanceManager, type PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
+import {
+  createPtyInstanceManager,
+  type PtyInstanceManager,
+} from "../services/pty/pty-instance-manager.js";
 import type { SnapshotProvider } from "../services/pty/pty-chat-client.js";
 import type { FileWatcherService } from "../services/file-watcher-service.js";
 
@@ -17,7 +20,7 @@ const logger: Logger<ILogObj> = new Logger({ name: "HttpTrpcServer" });
 interface ServerConfig {
   port?: number;
   userDataDir: string;
-  snapshotProvider?: SnapshotProvider;
+  snapshotProvider: SnapshotProvider;
 }
 
 export class HttpTrpcServer {
@@ -27,7 +30,7 @@ export class HttpTrpcServer {
   private eventBus: IEventBus;
   private ptyInstanceManager: PtyInstanceManager;
   private fileWatcherService: FileWatcherService | null = null;
-  private snapshotProvider?: SnapshotProvider;
+  private snapshotProvider: SnapshotProvider;
   private readonly connections = new Set<Socket>();
 
   constructor(config: ServerConfig) {
@@ -118,10 +121,12 @@ export class HttpTrpcServer {
           resolve();
         });
 
-        const closeIdleConnections = (server as any)
-          .closeIdleConnections as ((this: Server) => void) | undefined;
-        const closeAllConnections = (server as any)
-          .closeAllConnections as ((this: Server) => void) | undefined;
+        const closeIdleConnections = (server as any).closeIdleConnections as
+          | ((this: Server) => void)
+          | undefined;
+        const closeAllConnections = (server as any).closeAllConnections as
+          | ((this: Server) => void)
+          | undefined;
 
         closeIdleConnections?.call(server);
         closeAllConnections?.call(server);

@@ -47,10 +47,10 @@
   // Sync from local state to the document service when user input changes `inputValue`.
   $effect(() => {
     if (docContext?.filePath && inputValue !== editorView?.unsavedContent) {
-      logger.debug("inputValue changed", {
-        inputValue,
-        unsavedContent: editorView?.unsavedContent,
-      });
+      // logger.debug("inputValue changed", {
+      //   inputValue,
+      //   unsavedContent: editorView?.unsavedContent,
+      // });
 
       documentClientService.updateEditorViewState(docContext.filePath, {
         unsavedContent: inputValue,

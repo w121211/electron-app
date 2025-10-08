@@ -23,9 +23,6 @@ export type ChatSessionType =
 
 export type ChatMode = "chat" | "agent";
 
-export type ChatStatus = "queued" | "active" | "terminated";
-export type RunState = "generating" | "awaiting_input" | "disconnected";
-
 export type ChatState =
   | "queued"
   | "active"
@@ -33,20 +30,6 @@ export type ChatState =
   | "active:awaiting_input"
   | "active:disconnected"
   | "terminated";
-
-export const getChatStatus = (state: ChatState): ChatStatus => {
-  if (state.startsWith("active")) return "active";
-  return state as ChatStatus;
-};
-
-export const getRunState = (state: ChatState): RunState | null => {
-  if (!state.startsWith("active:")) return null;
-  return state.split(":")[1] as RunState;
-};
-
-export const isActiveState = (state: ChatState): boolean => {
-  return state === "active" || state.startsWith("active:");
-};
 
 export interface ChatMessageMetadata {
   timestamp: Date;
@@ -479,7 +462,9 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
       : undefined;
 
     const parsedState = ChatStateSchema.safeParse(sessionRow.sessionStatus);
-    const state: ChatState = parsedState.success ? parsedState.data : "terminated";
+    const state: ChatState = parsedState.success
+      ? parsedState.data
+      : "terminated";
 
     if (!parsedState.success) {
       console.warn(

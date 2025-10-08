@@ -3,7 +3,8 @@
   import {
     ThreeDotsVertical,
     ChatDots,
-    ArrowClockwise,
+    PlayFill,
+    StopFill,
   } from "svelte-bootstrap-icons";
   import {
     treeState,
@@ -14,11 +15,8 @@
   } from "../../stores/tree-store.svelte.js";
   import { tasksByPath } from "../../stores/task-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
-  import {
-    getSelectedDocContext,
-    getChatSessionByPromptScriptPath,
-  } from "../../stores/ui.svelte.js";
-  import { uiState, showToast } from "../../stores/ui-store.svelte.js";
+  import { getChatSessionByPromptScriptPath } from "../../stores/ui.svelte.js";
+  import { uiState } from "../../stores/ui-store.svelte.js";
   import {
     fileExplorerState,
     cancelInlineFolderCreation,
@@ -27,6 +25,7 @@
   } from "../../stores/file-explorer-store.svelte.js";
   import { fileExplorerService } from "../../services/file-explorer-service.js";
   import { documentClientService } from "../../services/document-client-service.js";
+  import type { ChatState } from "../../../../core/services/chat/chat-session-repository.js";
   import TreeNode from "./TreeNode.svelte";
   import FileIcon from "./FileIcon.svelte";
   import type { FolderTreeNode } from "../../stores/project-store.svelte.js";
@@ -38,22 +37,25 @@
 
   let { node, level }: TreeNodeProps = $props();
 
-  const activeContext = $derived.by(getSelectedDocContext);
-
   const isExpanded = $derived(treeState.expandedNodePaths.includes(node.path));
   const isSelected = $derived(treeState.selectedNode === node.path);
   const task = $derived(tasksByPath.get(node.path));
   const isTaskDir = $derived(isTaskFolder(node.name));
   const isProjectFolder = $derived(level === 0);
+
   const isPromptScript = $derived(node.name.endsWith(".prompt.md"));
-  const isCurrentPromptScript = $derived(
-    isPromptScript && activeContext?.filePath === node.path,
-  );
   const linkedChatSession = $derived(
     isPromptScript ? getChatSessionByPromptScriptPath(node.path) : null,
   );
-  const isLoadingRerunChat = $derived(
-    uiState.loadingStates["rerunChat"] || false,
+  const chatState: ChatState | undefined = $derived(
+    linkedChatSession?.data.state,
+  );
+
+  const isLoadingStopChat = $derived(
+    uiState.loadingStates["stopChat"] || false,
+  );
+  const isLoadingRunChat = $derived(
+    uiState.loadingStates["runChat"] || false,
   );
 
   const showPlaceholderFolder = $derived(
@@ -122,16 +124,16 @@
     );
   }
 
-  async function handleReplayPromptScript(e: MouseEvent): Promise<void> {
+  async function handleRunChat(e: MouseEvent): Promise<void> {
     e.stopPropagation();
-    if (!isPromptScript) {
-      return;
-    }
+    if (!isPromptScript) return;
+    // TODO: Implement run chat functionality
+  }
 
-    showToast(
-      "Prompt script replay is not yet available. Use the chat panel to refresh the session.",
-      "info",
-    );
+  async function handleStopChat(e: MouseEvent): Promise<void> {
+    e.stopPropagation();
+    if (!isPromptScript) return;
+    // TODO: Implement stop chat functionality
   }
 
   function handleKeydown(e: KeyboardEvent): void {
@@ -162,30 +164,22 @@
     };
   }
 
-  function shouldShowSessionStatus(status: string): boolean {
-    return [
-      "processing",
-      "scheduled",
-      "waiting_confirmation",
-      "external_active",
-    ].includes(status);
-  }
-
-  function getSessionStatusConfig(status: string): {
-    label: string;
-    className: string;
-  } {
-    const statusMap: { [key: string]: string } = {
-      processing: "running",
-      scheduled: "queued",
-      waiting_confirmation: "waiting",
-      external_active: "running",
-      max_turns_reached: "max-turns",
-    };
-    return {
-      label: statusMap[status] || status.replace("_", "-"),
-      className: "border-border text-foreground",
-    };
+  function getChatStatusConfig(state: ChatState): { label: string | null } {
+    switch (state) {
+      case "active:generating":
+        return { label: "generating" };
+      case "active:awaiting_input":
+        return { label: "awaiting" };
+      case "queued":
+        return { label: "queued" };
+      case "active":
+        return { label: "active" };
+      case "active:disconnected":
+        return { label: "disconnected" };
+      case "terminated":
+      default:
+        return { label: null };
+    }
   }
 
   function handleDragStart(e: DragEvent): void {
@@ -298,12 +292,12 @@
     tabindex="0"
     draggable={!isProjectFolder}
     class:font-medium={isProjectFolder}
-    class="group relative flex min-h-[20px] w-full cursor-pointer items-center rounded py-1 text-xs transition-colors
+    class="group relative flex min-h-[24px] w-full cursor-pointer items-center rounded py-0.5 text-sm transition-colors font-[400]
       {isSelected ? 'bg-selected' : 'hover:bg-hover'}
       {isProjectFolder ? '' : 'text-foreground px-1'}
       {isDragged ? 'opacity-50' : ''}
       {shouldHighlightFolder || shouldHighlightAsFileLevel ? 'bg-hover' : ''}"
-    style="padding-left: {level * 10}px;"
+    style="padding-left: {level * 12}px;"
     onclick={handleNodeClick}
     onkeydown={handleKeydown}
     ondragstart={handleDragStart}
@@ -312,26 +306,27 @@
     ondrop={handleDrop}
     ondragend={handleDragEnd}
   >
+    {#if isPromptScript && chatState === "active:awaiting_input"}
+      <div class="absolute -left-1 top-1/2 -translate-y-1/2">
+        <div
+          class="h-1.5 w-1.5 rounded-full bg-accent"
+          title="Awaiting Input"
+        ></div>
+      </div>
+    {/if}
+
     <!-- Icon -->
-    <div class="mr-1 flex w-4 shrink-0 items-center justify-center">
-      <!-- {#if node.isDirectory}
-        {#if isExpanded}
-          <ChevronDown class="text-muted" width={12} height={12} />
-        {:else}
-          <ChevronRight class="text-muted" width={12} height={12} />
-        {/if}
-      {:else} -->
+    <div class="mr-1.5 flex w-4 shrink-0 items-center justify-center">
       <FileIcon
         fileName={node.name}
         isDirectory={node.isDirectory}
-        isExpanded={false}
-        size={10}
+        isExpanded={isExpanded}
+        size={12}
       />
-      <!-- {/if} -->
     </div>
 
     <!-- Name -->
-    <span class="flex-1 truncate" title={node.name}>{node.name}</span>
+    <span class="flex-1 truncate text-xs" title={node.name}>{node.name}</span>
 
     <!-- Statuses -->
     {#if isTaskDir && task}
@@ -342,48 +337,49 @@
         {statusConfig.label}
       </span>
     {/if}
-    {#if isPromptScript && isCurrentPromptScript}
-      <span
-        class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
-      >
-        active
-      </span>
-    {/if}
-    {#if isPromptScript && linkedChatSession?.data.sessionStatus && shouldShowSessionStatus(
-        linkedChatSession.data.sessionStatus,
-      )}
-      {@const statusConfig = getSessionStatusConfig(
-        linkedChatSession.data.sessionStatus,
-      )}
-      <span
-        class="ml-1 rounded border px-1 py-0.5 font-mono text-[10px] {statusConfig.className}"
-      >
-        {statusConfig.label}
-      </span>
+    {#if isPromptScript && chatState}
+      {@const statusConfig = getChatStatusConfig(chatState)}
+      {#if statusConfig.label}
+        <span
+          class="border-border text-foreground ml-1 rounded border px-1 py-0.5 font-mono text-[10px]"
+        >
+          {statusConfig.label}
+        </span>
+      {/if}
     {/if}
 
     <!-- Actions -->
     <div
       class="ml-auto flex items-center pl-1 opacity-0 group-hover:opacity-100"
     >
-      {#if isPromptScript}
+      {#if isPromptScript && chatState === "terminated"}
         <button
-          onclick={handleReplayPromptScript}
-          disabled={isLoadingRerunChat}
-          class="text-muted hover:text-accent cursor-pointer p-0.5 disabled:opacity-50"
-          title="Replay Prompt Script"
+          onclick={handleRunChat}
+          disabled={isLoadingRunChat}
+          class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 disabled:opacity-50"
+          title="Run Chat"
         >
-          <ArrowClockwise width={12} height={12} />
+          <PlayFill class="text-xs" />
+        </button>
+      {/if}
+      {#if isPromptScript && chatState === "active:generating"}
+        <button
+          onclick={handleStopChat}
+          disabled={isLoadingStopChat}
+          class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 disabled:opacity-50"
+          title="Stop Chat"
+        >
+          <StopFill class="text-xs" />
         </button>
       {/if}
       {#if node.isDirectory}
         <button
           onclick={handleCreatePromptScript}
           disabled={isCreatingPromptScript}
-          class="text-muted hover:text-accent cursor-pointer p-0.5 disabled:opacity-30"
+          class="text-muted hover:text-accent mr-1 cursor-pointer p-0.5 disabled:opacity-30"
           title="New Prompt Script"
         >
-          <ChatDots width={12} height={12} />
+          <ChatDots class="text-xs" />
         </button>
       {/if}
       <button
@@ -391,22 +387,22 @@
         class="text-muted hover:text-accent cursor-pointer p-0.5"
         title="More options"
       >
-        <ThreeDotsVertical width={12} height={12} />
+        <ThreeDotsVertical class="text-xs" />
       </button>
     </div>
   </div>
 
   <!-- Children -->
   {#if node.isDirectory && isExpanded}
-    <div class="ml-1">
+    <div class="ml-2 space-y-0.5">
       {#if showPlaceholderFolder}
         <div
-          class="flex min-h-[20px] w-full items-center rounded px-1 py-1 text-xs {isCreatingFolder
+          class="flex min-h-[24px] w-full items-center rounded px-1 py-1 text-sm {isCreatingFolder
             ? 'bg-selected opacity-75'
             : 'bg-hover'}"
         >
-          <div class="mr-1 flex w-4 shrink-0 items-center justify-center">
-            <FileIcon fileName="" isDirectory={true} size={10} />
+          <div class="mr-1.5 flex w-4 shrink-0 items-center justify-center">
+            <FileIcon fileName="" isDirectory={true} size={12} />
           </div>
           <input
             bind:this={folderNameInput}

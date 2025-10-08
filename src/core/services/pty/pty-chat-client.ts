@@ -1,5 +1,6 @@
 // src/core/services/pty/pty-chat-client.ts
 import { v4 as uuidv4 } from "uuid";
+import { Logger } from "tslog";
 import { PtyInstanceManager } from "./pty-instance-manager.js";
 import { PtyChatSession } from "./pty-chat-session.js";
 import { PtyDataProcessor } from "./pty-data-processor.js";
@@ -36,17 +37,22 @@ export type SnapshotProvider = (
   context: SnapshotProviderContext,
 ) => Promise<string | null | undefined> | string | null | undefined;
 
+const logger = new Logger({ name: "PtyChatClient" });
+
 export class PtyChatClient {
   private readonly sessions = new Map<string, PtyChatSession>();
   private readonly sessionIdByPtyInstance = new Map<string, string>();
   private readonly processors = new Map<string, PtyDataProcessor>();
-  private readonly processorSubscriptions = new Map<string, Array<() => void>>();
+  private readonly processorSubscriptions = new Map<
+    string,
+    Array<() => void>
+  >();
 
   constructor(
     private readonly eventBus: IEventBus,
     private readonly repository: ChatSessionRepository,
     private readonly ptyInstanceManager: PtyInstanceManager,
-    private readonly snapshotProvider?: SnapshotProvider,
+    private readonly snapshotProvider: SnapshotProvider,
   ) {
     this.subscribeToPtyEvents();
   }
@@ -186,21 +192,12 @@ export class PtyChatClient {
     event: PtyStreamEventMap[SnapshotTriggerKind],
   ): Promise<void> {
     let snapshot: string | null | undefined;
-    if (this.snapshotProvider) {
-      try {
-        snapshot = await this.snapshotProvider({
-          session,
-          processor,
-          event,
-        });
-      } catch (error) {
-        console.error("Snapshot provider failed", {
-          sessionId: session.id,
-          error,
-        });
-        snapshot = null;
-      }
-    }
+
+    snapshot = await this.snapshotProvider({
+      session,
+      processor,
+      event,
+    });
 
     if (!snapshot) {
       snapshot = processor.getBufferedOutput();
@@ -210,6 +207,7 @@ export class PtyChatClient {
       return;
     }
 
+    processor.recordSnapshot(event.kind, snapshot);
     session.updateFromSnapshot(snapshot);
   }
 

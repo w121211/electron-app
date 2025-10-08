@@ -7,7 +7,7 @@
   import { FitAddon } from "@xterm/addon-fit";
   import { SerializeAddon } from "@xterm/addon-serialize";
   import { Logger } from "tslog";
-  import { type PtyStream } from "../services/pty-stream-manager.js";
+  import type { PtyStream } from "../../services/pty-stream-manager.js";
 
   const logger = new Logger({ name: "XtermStream" });
 
@@ -92,7 +92,7 @@
         cursor: "#ffffff",
       },
       cursorBlink: true,
-      allowProposedApi: true,
+      // allowProposedApi: true,
       convertEol: true,
       macOptionIsMeta: true,
       scrollOnUserInput: true,

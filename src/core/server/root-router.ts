@@ -19,7 +19,10 @@ import { createModelRouter } from "./routers/model-router.js";
 import { createPromptScriptRouter } from "./routers/prompt-script-router.js";
 import { createDocumentRouter } from "./routers/document-router.js";
 import { router } from "./trpc-init.js";
-import { PtyChatClient, type SnapshotProvider } from "../services/pty/pty-chat-client.js";
+import {
+  PtyChatClient,
+  type SnapshotProvider,
+} from "../services/pty/pty-chat-client.js";
 import { createPtyChatRouter } from "./routers/pty-chat-router.js";
 import { createChatCacheMiddleware } from "../services/chat-engine/chat-cache-middleware.js";
 import type { PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
@@ -34,16 +37,12 @@ interface TrpcRouterConfig {
   userDataDir: string;
   eventBus: IEventBus;
   ptyInstanceManager: PtyInstanceManager;
-  snapshotProvider?: SnapshotProvider;
+  snapshotProvider: SnapshotProvider;
 }
 
 export async function createTrpcRouter(config: TrpcRouterConfig) {
-  const {
-    userDataDir,
-    eventBus,
-    ptyInstanceManager,
-    snapshotProvider,
-  } = config;
+  const { userDataDir, eventBus, ptyInstanceManager, snapshotProvider } =
+    config;
 
   // Setup logger
   const logger: Logger<ILogObj> = new Logger({ name: "AppServer" });

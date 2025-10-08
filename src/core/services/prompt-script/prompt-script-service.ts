@@ -86,7 +86,7 @@ export class PromptScriptService {
     filePath: string,
   ): Promise<PromptScriptLinkResult> {
     const promptScript = await this.promptScriptRepo.read(filePath);
-    logger.debug(promptScript);
+    // logger.debug(promptScript);
 
     const warnings: PromptScriptWarning[] = [
       ...promptScript.promptScriptParsed.warnings,
