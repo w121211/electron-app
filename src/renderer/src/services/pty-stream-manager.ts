@@ -193,7 +193,12 @@ class PtyStreamManager {
       stream = new PtyStream(ptySessionId);
       this.streams.set(ptySessionId, stream);
       const result = window.api.pty.attach(ptySessionId);
-      this.logger.debug("getOrAttachStream result", { result });
+      if (!result) {
+        this.streams.delete(ptySessionId);
+        throw new Error(
+          `Failed to attach to PTY session: ${ptySessionId}. Session may not exist or is already attached.`,
+        );
+      }
       this.logger.info(
         `New PtyStream created and attached to session: ${ptySessionId}`,
       );

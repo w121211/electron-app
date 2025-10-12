@@ -106,10 +106,17 @@ class PtyStreamRecorder {
     if (!this.stream) {
       return;
     }
+    const originalBytes = Buffer.byteLength(chunk, "utf8");
+    const compressed = gzipSync(Buffer.from(chunk, "utf8"));
+    const payload = compressed.toString("base64");
+
     this.writeEntry({
       type: "chunk",
       timestamp: new Date().toISOString(),
-      data: chunk,
+      encoding: "base64/gzip",
+      originalBytes,
+      compressedBytes: compressed.byteLength,
+      payload,
     });
   }
 
@@ -171,7 +178,7 @@ class PtyStreamRecorder {
   }
 }
 
-function stripAnsi(payload: string): string {
+export function stripAnsi(payload: string): string {
   return payload.replace(/\x1b\[[0-9;:?]*[A-Za-z]/g, "");
 }
 

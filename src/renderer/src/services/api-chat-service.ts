@@ -2,12 +2,27 @@
 
 import { Logger } from "tslog";
 import type { UserModelMessage } from "ai";
+import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
 import { setChatSession } from "../stores/chat.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
 
 const logger = new Logger({ name: "ApiChatService" });
 
 export class ApiChatService {
+  async listSessions(): Promise<ChatSessionData[]> {
+    logger.info("Loading API chat sessions");
+    const sessions = await trpcClient.apiChat.listSessions.query();
+    for (const session of sessions) {
+      setChatSession(session);
+    }
+    return sessions;
+  }
+
+  async abortSession(chatSessionId: string): Promise<void> {
+    logger.info("Aborting chat session", { chatSessionId });
+    await trpcClient.apiChat.abort.mutate({ chatSessionId });
+  }
+
   async sendMessage({
     sessionId,
     prompt,

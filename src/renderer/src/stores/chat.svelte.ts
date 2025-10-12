@@ -37,6 +37,19 @@ export const setChatSession = (session: ChatSessionData): ChatSessionState => {
   return chatSessions[session.id];
 };
 
+export const getChatSessionStates = () => Object.values(chatSessions);
+
+export const getRunningChatSessionStates = () => {
+  return getChatSessionStates()
+    .filter((state) => state.data.state !== "terminated")
+    .slice()
+    .sort((a, b) => {
+      const updatedA = new Date(a.data.updatedAt).getTime();
+      const updatedB = new Date(b.data.updatedAt).getTime();
+      return updatedB - updatedA;
+    });
+};
+
 // --- Global chat settings ---
 
 interface ChatGlobalSettings {

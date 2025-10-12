@@ -1,7 +1,16 @@
 // tests/pty-recording-replay.test.ts
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+// Usage tips:
+// - Re-run this test against a specific recording with:
+//     PTY_RECORDING_FIXTURE=tmp/pty-recordings/<session>/<file>.ndjson \
+//       npm run test -- --run tests/pty-recording-replay.test.ts
+// - Recordings using gzip/base64 payloads can be inspected manually via:
+//     npm run decode:pty -- tmp/pty-recordings/<session>/<file>.ndjson
+// - Add `.golden.json` files beside fixtures to assert extractor output for regressions.
+// - Set `VERBOSE_PTY_TEST=1` while replaying to emit a `<file>.messages.json` snapshot next to the source recording.
+import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { gunzipSync } from "node:zlib";
 import { EventBus } from "../src/core/event-bus.js";
 import {
   PtyChatSession,
@@ -18,10 +27,12 @@ import type {
 } from "../src/core/services/chat/chat-session-repository.js";
 
 interface RecordingEntry {
-  type: "chunk" | "write" | "info" | "meta";
+  type: "chunk" | "write" | "info" | "meta" | "snapshot";
   timestamp: string;
   data?: string;
   message?: string;
+  payload?: string;
+  encoding?: string;
 }
 
 interface RecordingMetadata {
@@ -114,6 +125,14 @@ function parseRecording(recordingPath: string): {
           cwd: parsed.cwd ?? metadata.cwd,
         };
         continue;
+      }
+      if (
+        parsed.type === "chunk" &&
+        (!parsed.data || parsed.data.length === 0) &&
+        parsed.encoding === "base64/gzip" &&
+        typeof parsed.payload === "string"
+      ) {
+        parsed.data = gunzipSync(Buffer.from(parsed.payload, "base64")).toString("utf8");
       }
       entries.push(parsed);
     } catch {
@@ -344,13 +363,32 @@ describe("PtyChatSession recordings", () => {
         ) as { messages: ReturnType<typeof sanitizeMessages> };
         expect(sanitized).toEqual(expected.messages);
       } else if (process.env.VERBOSE_PTY_TEST === "1") {
-        console.log(
-          `[${testCase.name}] final messages:\n${JSON.stringify(
-            sanitized,
-            null,
-            2,
-          )}`,
+        const outputPath = testCase.recordingPath.replace(
+          /\.ndjson$/,
+          ".messages.json",
         );
+        try {
+          writeFileSync(
+            outputPath,
+            `${JSON.stringify({ messages: sanitized }, null, 2)}\n`,
+            "utf8",
+          );
+          console.log(
+            `[${testCase.name}] wrote sanitized messages to ${outputPath}`,
+          );
+        } catch (error) {
+          console.error(
+            `[${testCase.name}] failed to write sanitized messages:`,
+            error,
+          );
+          console.log(
+            `[${testCase.name}] final messages:\n${JSON.stringify(
+              sanitized,
+              null,
+              2,
+            )}`,
+          );
+        }
       }
     });
   }

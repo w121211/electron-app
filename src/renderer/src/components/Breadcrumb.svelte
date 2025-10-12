@@ -6,10 +6,14 @@
     ArrowClockwise,
     ThreeDots,
   } from "svelte-bootstrap-icons";
+  import { Logger } from "tslog";
   import { projectState } from "../stores/project-store.svelte.js";
   import { getChatSessionByPromptScriptPath } from "../stores/ui.svelte.js";
   import { uiState } from "../stores/ui-store.svelte.js";
+  import { ptyChatService } from "../services/pty-chat-service.js";
   import type { ChatState } from "../../../core/services/chat/chat-session-repository.js";
+
+  const logger = new Logger({ name: "Breadcrumb" });
 
   interface Props {
     filePath: string;

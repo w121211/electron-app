@@ -30,6 +30,7 @@
   import ContextMenu from "./ContextMenu.svelte";
   import RenameDialog from "./RenameDialog.svelte";
   import UserSettings from "../UserSettings.svelte";
+  // import RunningChats from "./RunningChats.svelte";
 
   const logger = new Logger({ name: "NewExplorerPanel" });
 
@@ -133,6 +134,8 @@
   <!-- Section 2: Scrollable Content -->
   <div class="flex-1 overflow-y-auto">
     <div class="px-3">
+      <!-- <RunningChats /> -->
+
       <!-- Projects Header -->
       <div
         class="hover:bg-hover text-muted group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1"

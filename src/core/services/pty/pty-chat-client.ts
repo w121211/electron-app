@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Logger } from "tslog";
 import { PtyInstanceManager } from "./pty-instance-manager.js";
 import { PtyChatSession } from "./pty-chat-session.js";
-import { PtyDataProcessor } from "./pty-data-processor.js";
+import { PtyDataProcessor, stripAnsi } from "./pty-data-processor.js";
 import type { PtyStreamEventMap } from "./pty-data-processor.js";
 import type { IEventBus } from "../../event-bus.js";
 import type {
@@ -95,6 +95,7 @@ export class PtyChatClient {
 
     const processor = new PtyDataProcessor(ptyInstance, {
       sessionId: session.id,
+      idleTimeoutMs: 3000,
     });
     this.processors.set(ptyInstance.id, processor);
     this.attachProcessorListeners(session, processor, ptyInstance.id);
@@ -160,28 +161,28 @@ export class PtyChatClient {
       }),
     );
 
-    subscriptions.push(
-      processor.on("outputIdle", (event) => {
-        void this.flushSnapshot(session, processor, event);
-      }),
-    );
+    // subscriptions.push(
+    //   processor.on("outputIdle", (event) => {
+    //     void this.flushSnapshot(session, processor, event);
+    //   }),
+    // );
 
-    subscriptions.push(
-      processor.on("screenCleared", (event) => {
-        session.recordCliEvent("screenRefresh", {});
-        void this.flushSnapshot(session, processor, event);
-      }),
-    );
+    // subscriptions.push(
+    //   processor.on("screenCleared", (event) => {
+    //     session.recordCliEvent("screenRefresh", {});
+    //     void this.flushSnapshot(session, processor, event);
+    //   }),
+    // );
 
-    subscriptions.push(
-      processor.on("sessionBanner", (event) => {
-        session.recordCliEvent("newSession", {
-          source: event.provider,
-          raw: event.raw,
-        });
-        void this.flushSnapshot(session, processor, event);
-      }),
-    );
+    // subscriptions.push(
+    //   processor.on("sessionBanner", (event) => {
+    //     session.recordCliEvent("newSession", {
+    //       source: event.provider,
+    //       raw: event.raw,
+    //     });
+    //     void this.flushSnapshot(session, processor, event);
+    //   }),
+    // );
 
     this.processorSubscriptions.set(ptyInstanceId, subscriptions);
   }
@@ -191,24 +192,31 @@ export class PtyChatClient {
     processor: PtyDataProcessor,
     event: PtyStreamEventMap[SnapshotTriggerKind],
   ): Promise<void> {
-    let snapshot: string | null | undefined;
+    let rawSnapshot: string | null | undefined;
 
-    snapshot = await this.snapshotProvider({
+    rawSnapshot = await this.snapshotProvider({
       session,
       processor,
       event,
     });
 
-    if (!snapshot) {
-      snapshot = processor.getBufferedOutput();
+    if (!rawSnapshot) {
+      rawSnapshot = processor.getBufferedOutput();
     }
 
-    if (!snapshot || snapshot.trim().length === 0) {
+    if (!rawSnapshot || rawSnapshot.trim().length === 0) {
       return;
     }
 
-    processor.recordSnapshot(event.kind, snapshot);
-    session.updateFromSnapshot(snapshot);
+    const cleanSnapshot = stripAnsi(rawSnapshot);
+    const lastSnapshot = session.toChatSessionData().scriptSnapshot;
+
+    if (cleanSnapshot === lastSnapshot) {
+      return;
+    }
+
+    processor.recordSnapshot(event.kind, cleanSnapshot);
+    session.updateFromSnapshot(cleanSnapshot);
   }
 
   private subscribeToPtyEvents(): void {
@@ -240,7 +248,16 @@ export class PtyChatClient {
 
     const ptyId = session.ptyInstanceId;
     if (ptyId) {
-      this.sessionIdByPtyInstance.set(ptyId, sessionId);
+      const ptyInstance = this.ptyInstanceManager.getSession(ptyId);
+      if (!ptyInstance) {
+        logger.warn(
+          `PTY instance ${ptyId} no longer exists for session ${sessionId}, clearing reference`,
+        );
+        session.ptyInstanceId = undefined;
+        await this.repository.update(session.toChatSessionData());
+      } else {
+        this.sessionIdByPtyInstance.set(ptyId, sessionId);
+      }
     }
 
     return session;

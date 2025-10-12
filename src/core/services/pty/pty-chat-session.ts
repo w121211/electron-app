@@ -9,7 +9,7 @@ import type {
   ChatState,
 } from "../chat/chat-session-repository.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
-import { extractMessages } from "./pty-snapshot-extractor.js";
+import { extractMessages } from "./universal-snapshot-extractor.js";
 import { findSimilarMessageIndex } from "./pty-message-matcher.js";
 
 export type PtyChatUpdateType =
@@ -47,6 +47,13 @@ export class PtyChatSession {
   private state: ChatState;
   private readonly createdAt: Date;
   private updatedAt: Date;
+
+  // Script-related fields
+  private scriptPath: string | null;
+  private scriptModifiedAt: Date | null;
+  private scriptHash: string | null;
+  private scriptSnapshot: string | null;
+
   constructor(data: ChatSessionData, eventBus: IEventBus) {
     if (data.sessionType !== "pty_chat") {
       throw new Error("PtyChatSession requires a sessionType of 'pty_chat'");
@@ -62,6 +69,14 @@ export class PtyChatSession {
     this.state = data.state;
     this.createdAt = new Date(data.createdAt);
     this.updatedAt = new Date(data.updatedAt);
+
+    // Initialize script-related fields
+    this.scriptPath = data.scriptPath ?? null;
+    this.scriptModifiedAt = data.scriptModifiedAt
+      ? new Date(data.scriptModifiedAt)
+      : null;
+    this.scriptHash = data.scriptHash ?? null;
+    this.scriptSnapshot = data.scriptSnapshot ?? null;
   }
 
   get chatState(): ChatState {
@@ -195,10 +210,10 @@ export class PtyChatSession {
         },
       })),
       metadata: structuredClone(this.metadata),
-      scriptPath: null,
-      scriptModifiedAt: null,
-      scriptHash: null,
-      scriptSnapshot: null,
+      scriptPath: this.scriptPath,
+      scriptModifiedAt: this.scriptModifiedAt,
+      scriptHash: this.scriptHash,
+      scriptSnapshot: this.scriptSnapshot,
       createdAt: this.createdAt,
       updatedAt: new Date(this.updatedAt),
     };

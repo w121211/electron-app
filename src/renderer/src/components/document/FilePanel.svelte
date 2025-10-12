@@ -11,11 +11,10 @@
   import MarkdownTodoRenderer from "../MarkdownTodoRenderer.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
-  import PromptEditor from "./PromptEditor.svelte";
   import DocumentEditor from "./DocumentEditor.svelte";
 
   let isEditing = $state(false);
-  let editorContent = $state("");
+  let editorContent = "";
 
   const activeContext = $derived(getSelectedDocContext());
   const activeDocument = $derived(activeContext?.documentState ?? null);
@@ -26,12 +25,7 @@
       activeDocument?.savedContent ??
       "";
 
-    if (activeContext?.documentState?.promptScript !== null) {
-      // PromptEditor is still coupled to chatState
-      // updateMessageInput(content);
-    } else {
-      editorContent = content;
-    }
+    editorContent = content;
     isEditing = true;
   };
 
@@ -72,15 +66,7 @@
   <!-- File Viewer / Editor -->
   <div class="flex-1 overflow-y-auto">
     {#if isEditing}
-      {#if isPromptScript && ui.activeFilePath}
-        <PromptEditor
-          headerText="Edit Prompt Script"
-          filePath={ui.activeFilePath}
-          onClose={closeEditor}
-        />
-      {:else}
-        <DocumentEditor value={editorContent} onInput={onDocumentEditorInput} />
-      {/if}
+      <DocumentEditor value={editorContent} onInput={onDocumentEditorInput} />
     {:else}
       <div class="mx-auto w-full max-w-3xl px-6 py-3">
         <!-- File Toolbar -->

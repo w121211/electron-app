@@ -5,6 +5,8 @@
 //     PTY_RECORDING_FIXTURE=tmp/pty-recordings/<file>.ndjson node -e "const fs = require('fs'); const lines = fs.readFileSync(process.env.PTY_RECORDING_FIXTURE,'utf8').trim().split(/\n/); for (const line of lines) console.log(JSON.parse(line));"
 // - Replay a recording in this test by running:
 //     PTY_RECORDING_FIXTURE=tmp/pty-recordings/<file>.ndjson npm run test -- --run src/core/services/pty/pty-data-processor.test.ts
+// - Decode gzip/base64 payloads inline with:
+//     npm run decode:pty -- tmp/pty-recordings/<file>.ndjson
 // - Set `PTY_RECORDING_DISABLED=1` to skip capturing or `PTY_RECORDING_DIR=/path` to change the output location.
 
 import {
@@ -61,9 +63,19 @@ function loadChunksFromRecording(filePath: string): string[] {
   const chunks: string[] = [];
   for (const line of lines) {
     try {
-      const parsed = JSON.parse(line) as { type?: string; data?: string };
-      if (parsed.type === "chunk" && typeof parsed.data === "string") {
-        chunks.push(parsed.data);
+      const parsed = JSON.parse(line) as {
+        type?: string;
+        data?: string;
+        payload?: string;
+        encoding?: string;
+      };
+      if (parsed.type === "chunk") {
+        if (typeof parsed.data === "string") {
+          chunks.push(parsed.data);
+        } else if (parsed.encoding === "base64/gzip" && typeof parsed.payload === "string") {
+          const decoded = gunzipSync(Buffer.from(parsed.payload, "base64")).toString("utf8");
+          chunks.push(decoded);
+        }
       }
     } catch {
       continue;

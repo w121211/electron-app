@@ -13,10 +13,20 @@ import type { DocumentFileWithPromptScript } from "../../../core/services/docume
 import { editorViews } from "../stores/editor-views.svelte.js";
 import { ptyStreamManager } from "./pty-stream-manager.js";
 import { getSelectedDocContext } from "../stores/ui.svelte.js";
+import { stripAnsi } from "../utils/ansi-utils.js";
 
 const logger = new Logger({ name: "PtyChatService" });
 
 export class PtyChatService {
+  async listSessions(): Promise<ChatSessionData[]> {
+    logger.info("Loading PTY chat sessions");
+    const sessions = await trpcClient.ptyChat.listSessions.query();
+    for (const session of sessions) {
+      setChatSession(session);
+    }
+    return sessions;
+  }
+
   async createSession(
     workingDirectory: string,
     modelId: `${string}/${string}`,
@@ -82,7 +92,7 @@ export class PtyChatService {
     sessionId: string,
     updates: {
       metadata?: Partial<ChatMetadata>;
-      sessionStatus?: ChatSessionData["sessionStatus"];
+      state?: ChatSessionData["state"];
     },
   ): Promise<ChatSessionData> {
     logger.info("Updating PTY chat session", { sessionId, updates });
@@ -134,17 +144,17 @@ export class PtyChatService {
       throw new Error("No terminal snapshot available");
     }
 
-    const modelName =
-      session.data.metadata?.modelId?.split("/").pop() || "unknown";
+    const strippedSnapshot = stripAnsi(snapshot);
+
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10);
     const timeStr = date.toTimeString().slice(0, 8).replace(/:/g, "-");
-    const filename = `pty-snapshot-${modelName}-${dateStr}-${timeStr}.txt`;
+    const filename = `pty-snapshot-${dateStr}-${timeStr}.txt`;
     const filepath = `tests/fixtures/${filename}`;
 
     await trpcClient.file.writeFile.mutate({
       filePath: filepath,
-      content: snapshot,
+      content: strippedSnapshot,
     });
 
     logger.info(`PTY snapshot saved to ${filepath}`);
