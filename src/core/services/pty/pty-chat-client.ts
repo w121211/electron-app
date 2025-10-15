@@ -85,31 +85,20 @@ export class PtyChatClient {
     await this.repository.create(sessionData);
 
     const session = new PtyChatSession(sessionData, this.eventBus);
-    const ptyInstance = this.ptyInstanceManager.create({
-      cwd: input.workingDirectory,
-    });
-
-    session.ptyInstanceId = ptyInstance.id;
     this.sessions.set(session.id, session);
-    this.sessionIdByPtyInstance.set(ptyInstance.id, session.id);
 
-    const processor = new PtyDataProcessor(ptyInstance, {
-      sessionId: session.id,
-      idleTimeoutMs: 3000,
-    });
-    this.processors.set(ptyInstance.id, processor);
-    this.attachProcessorListeners(session, processor, ptyInstance.id);
+    this.attachPtyToSession(session, input.workingDirectory);
 
-    await this.repository.update(session.toChatSessionData());
-
-    return session.toChatSessionData();
+    const updatedSession = session.toChatSessionData();
+    await this.repository.update(updatedSession);
+    return updatedSession;
   }
 
   async updateSession(
     sessionId: string,
     updates: Partial<ChatSessionData>,
   ): Promise<ChatSessionData> {
-    const session = await this.ensureSessionLoaded(sessionId);
+    const session = await this.getOrLoadSession(sessionId);
     const currentData = session.toChatSessionData();
     const updatedData = { ...currentData, ...updates, updatedAt: new Date() };
     await this.repository.update(updatedData);
@@ -117,35 +106,87 @@ export class PtyChatClient {
   }
 
   async terminateSession(sessionId: string): Promise<ChatSessionData> {
-    const session = await this.ensureSessionLoaded(sessionId);
-    const ptyInstance = this.getPtyInstance(session);
-    const ptyInstanceId = session.ptyInstanceId;
+    const session = await this.getOrLoadSession(sessionId);
 
     session.markTerminated();
-    session.ptyInstanceId = undefined;
-
-    if (ptyInstance) {
-      ptyInstance.kill();
-    }
-
-    if (ptyInstanceId) {
-      const processor = this.processors.get(ptyInstanceId);
-      if (processor) {
-        processor.destroy();
-        this.processors.delete(ptyInstanceId);
-      }
-      const subscriptions = this.processorSubscriptions.get(ptyInstanceId);
-      if (subscriptions) {
-        subscriptions.forEach((unsubscribe) => unsubscribe());
-        this.processorSubscriptions.delete(ptyInstanceId);
-      }
-      this.sessionIdByPtyInstance.delete(ptyInstanceId);
-    }
+    this.detachPtyFromSession(session);
 
     const updatedSession = session.toChatSessionData();
     await this.repository.update(updatedSession);
     this.sessions.delete(sessionId);
     return updatedSession;
+  }
+
+  async restartTerminal(sessionId: string): Promise<ChatSessionData> {
+    const session = await this.getOrLoadSession(sessionId);
+    this.detachPtyFromSession(session);
+
+    const workingDirectory = session.workingDirectory;
+    if (!workingDirectory) {
+      throw new Error(`No working directory found for session ${sessionId}`);
+    }
+
+    this.attachPtyToSession(session, workingDirectory);
+
+    const updatedData = session.toChatSessionData();
+    await this.repository.update(updatedData);
+
+    logger.info(`Terminal restarted successfully for session ${sessionId}`);
+
+    return updatedData;
+  }
+
+  private detachPtyFromSession(session: PtyChatSession): void {
+    const ptyInstanceId = session.ptyInstanceId;
+    if (!ptyInstanceId) {
+      return;
+    }
+    session.ptyInstanceId = undefined;
+
+    const processor = this.processors.get(ptyInstanceId);
+    if (processor) {
+      processor.destroy();
+      this.processors.delete(ptyInstanceId);
+    }
+
+    const subscriptions = this.processorSubscriptions.get(ptyInstanceId);
+    if (subscriptions) {
+      subscriptions.forEach((unsubscribe) => unsubscribe());
+      this.processorSubscriptions.delete(ptyInstanceId);
+    }
+
+    const instance = this.ptyInstanceManager.getSession(ptyInstanceId);
+    if (instance) {
+      logger.info(
+        `Killing PTY instance ${ptyInstanceId} for session ${session.id}`,
+      );
+      instance.kill();
+    }
+
+    // `PtyOnExit` event requires sessionIdByPtyInstance, so we don't delete it here.
+    // this.sessionIdByPtyInstance.delete(ptyInstanceId);
+  }
+
+  private attachPtyToSession(
+    session: PtyChatSession,
+    workingDirectory: string,
+  ): void {
+    const newInstance = this.ptyInstanceManager.create({
+      cwd: workingDirectory,
+    });
+    logger.info(
+      `Created new PTY instance ${newInstance.id} for session ${session.id}`,
+    );
+
+    session.ptyInstanceId = newInstance.id;
+    this.sessionIdByPtyInstance.set(newInstance.id, session.id);
+
+    const newProcessor = new PtyDataProcessor(newInstance, {
+      sessionId: session.id,
+      idleTimeoutMs: 3000,
+    });
+    this.processors.set(newInstance.id, newProcessor);
+    this.attachProcessorListeners(session, newProcessor, newInstance.id);
   }
 
   private attachProcessorListeners(
@@ -223,6 +264,9 @@ export class PtyChatClient {
     this.eventBus.subscribe("PtyOnExit", async (event: PtyOnExitEvent) => {
       const session = await this.getSessionByPtyInstance(event.sessionId);
       if (!session) {
+        logger.debug(
+          `PTY instance ${event.sessionId} exited but no associated session found, ignoring`,
+        );
         return;
       }
       session.recordPtyExit();
@@ -231,9 +275,7 @@ export class PtyChatClient {
     });
   }
 
-  private async ensureSessionLoaded(
-    sessionId: string,
-  ): Promise<PtyChatSession> {
+  private async getOrLoadSession(sessionId: string): Promise<PtyChatSession> {
     const existing = this.sessions.get(sessionId);
     if (existing) {
       return existing;
@@ -268,8 +310,12 @@ export class PtyChatClient {
   ): Promise<PtyChatSession | undefined> {
     const sessionId = this.sessionIdByPtyInstance.get(ptyInstanceId);
     if (sessionId) {
-      return this.ensureSessionLoaded(sessionId);
+      return this.getOrLoadSession(sessionId);
     }
+
+    logger.warn(
+      `PTY instance ${ptyInstanceId} not found in memory map, falling back to expensive database scan. This should not happen during normal operation.`,
+    );
 
     const sessions = await this.repository.list();
     for (const data of sessions) {
@@ -279,7 +325,7 @@ export class PtyChatClient {
       const existingPtyId = data.metadata?.external?.pty?.ptyInstanceId;
       if (existingPtyId === ptyInstanceId) {
         this.sessionIdByPtyInstance.set(ptyInstanceId, data.id);
-        return this.ensureSessionLoaded(data.id);
+        return this.getOrLoadSession(data.id);
       }
     }
     return undefined;

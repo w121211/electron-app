@@ -25,16 +25,17 @@
 
   const centerPanelView: CenterPanelView = $derived.by(() => {
     const scriptLink = docContext?.documentState.data.promptScriptLink;
+    const chatSession = docContext?.chatSessionState?.data;
 
     if (scriptLink) {
-      if (scriptLink.chatSession?.sessionType === "pty_chat") {
+      if (chatSession?.sessionType === "pty_chat") {
         return "ptyChatPanel";
-      } else if (scriptLink.chatSession?.sessionType === "chat_engine") {
+      } else if (chatSession?.sessionType === "chat_engine") {
         return "apiChatPanel";
-      } else if (scriptLink.promptScript && !scriptLink.chatSession) {
+      } else if (scriptLink.promptScript && !chatSession) {
         return "promptEditorPanel";
       } else {
-        throw new Error("Unhandled chat session" + scriptLink.chatSession);
+        throw new Error("Unhandled chat session" + chatSession);
       }
     } else if (docContext?.documentState) {
       return "filePanel";

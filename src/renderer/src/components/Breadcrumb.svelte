@@ -5,6 +5,7 @@
     StopFill,
     ArrowClockwise,
     ThreeDots,
+    XCircle,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { projectState } from "../stores/project-store.svelte.js";
@@ -31,8 +32,13 @@
     linkedChatSession?.data.state,
   );
 
-  const isLoadingStopChat = $derived(uiState.loadingStates["stopChat"] || false);
+  const isLoadingStopChat = $derived(
+    uiState.loadingStates["stopChat"] || false,
+  );
   const isLoadingRunChat = $derived(uiState.loadingStates["runChat"] || false);
+  const isLoadingTerminateChat = $derived(
+    uiState.loadingStates["terminateChat"] || false,
+  );
 
   const breadcrumb = $derived.by(() => {
     if (!filePath) return null;
@@ -93,6 +99,31 @@
     if (!isPromptScript) return;
     // TODO: Implement stop chat functionality
   }
+
+  async function handleTerminateChat(e: MouseEvent): Promise<void> {
+    e.stopPropagation();
+    if (!isPromptScript || !linkedChatSession) return;
+
+    if (linkedChatSession.data.sessionType !== "pty_chat") {
+      logger.warn("Cannot terminate non-PTY chat session with snapshot");
+      return;
+    }
+
+    const confirmed = confirm(
+      "Terminate session? This will end the session and save a final snapshot.",
+    );
+    if (!confirmed) return;
+
+    try {
+      await ptyChatService.terminateSessionWithSnapshot(
+        linkedChatSession.data.id,
+      );
+      logger.info(`Session ${linkedChatSession.data.id} terminated`);
+    } catch (error) {
+      logger.error("Failed to terminate session", error);
+      alert("Failed to terminate session. Please try again.");
+    }
+  }
 </script>
 
 {#if breadcrumb}
@@ -135,6 +166,17 @@
         >
           <ArrowClockwise />
         </button>
+
+        {#if chatState && chatState !== "terminated"}
+          <button
+            onclick={handleTerminateChat}
+            disabled={isLoadingTerminateChat}
+            class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+            title="Terminate"
+          >
+            <XCircle />
+          </button>
+        {/if}
 
         <button
           class="text-muted hover:text-accent cursor-pointer rounded p-1.5"

@@ -3,13 +3,11 @@
   import { onDestroy, tick } from "svelte";
   import { Paperclip, XLg, Send } from "svelte-bootstrap-icons";
   import { ptyChatService } from "../../services/pty-chat-service.js";
-  import { apiChatService } from "../../services/api-chat-service.js";
   import { documentClientService } from "../../services/document-client-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import { projectService } from "../../services/project-service.js";
   import { chatSettings } from "../../stores/chat.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
-  import { showToast } from "../../stores/ui-store.svelte.js";
   import { ui } from "../../stores/ui.svelte.js";
   import {
     lineColumnToOffset,
@@ -189,19 +187,15 @@
       return;
     }
 
-    if (chatSession.data.sessionType !== "pty_chat") {
-      showToast(
-        "Sending commands is only available for PTY sessions now.",
-        "info",
+    // PTY chat sessions can only be created, not sent to after creation.
+    // Follow-up interactions happen directly in the xterm terminal.
+    if (chatSession.data.sessionType === "pty_chat") {
+      throw new Error(
+        "PTY chat session already exists. Use the terminal to send commands.",
       );
-      return;
     }
 
-    // Send prompt to existing session
-    await apiChatService.sendMessage({
-      sessionId: chatSession.data.id,
-      prompt: trimmedContent,
-    });
+    throw new Error("Sending commands is only available for PTY sessions now.");
   };
 
   const handleKeyPress = (event: KeyboardEvent): void => {
@@ -266,9 +260,12 @@
     <div class="flex items-center gap-2">
       <button
         onclick={handleSendMessage}
-        disabled={!inputValue.trim()}
-        class="text-muted hover:text-accent cursor-pointer rounded p-1.5 disabled:cursor-not-allowed"
-        title="Send Message"
+        disabled={!inputValue.trim() ||
+          chatSession?.data.sessionType === "pty_chat"}
+        class="text-muted hover:text-accent cursor-pointer rounded p-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+        title={chatSession?.data.sessionType === "pty_chat"
+          ? "Use terminal to send commands"
+          : "Send Message"}
       >
         <Send />
       </button>

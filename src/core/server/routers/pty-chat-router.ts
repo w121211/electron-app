@@ -129,6 +129,13 @@ export function createPtyChatRouter(
         return session;
       }),
 
+    restartTerminal: publicProcedure
+      .input(z.object({ chatSessionId: z.string() }))
+      .mutation(async ({ input }): Promise<ChatSessionData> => {
+        const session = await client.restartTerminal(input.chatSessionId);
+        return session;
+      }),
+
     getSession: publicProcedure
       .input(z.object({ chatSessionId: z.string() }))
       .query(async ({ input }) => {

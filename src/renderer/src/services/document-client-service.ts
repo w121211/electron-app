@@ -1,4 +1,4 @@
-// src/renderer/src/services/document-service.ts
+// src/renderer/src/services/document-client-service.ts
 
 import { Logger } from "tslog";
 import { documents, type DocumentState } from "../stores/documents.svelte.js";
@@ -32,12 +32,26 @@ export class DocumentService {
       filePath,
     });
 
-    const document: DocumentState = {
-      data: documentFile,
+    // If document has a linked chat session, extract and store it in chatSessions store
+    if (documentFile.promptScriptLink?.chatSession) {
+      setChatSession(documentFile.promptScriptLink.chatSession);
+    }
+
+    // Normalize: replace full chatSession with just the ID
+    const normalizedDocument: DocumentState = {
+      data: {
+        ...documentFile,
+        promptScriptLink: documentFile.promptScriptLink
+          ? {
+              ...documentFile.promptScriptLink,
+              chatSession: undefined, // Remove full session object
+              chatSessionId: documentFile.promptScriptLink.chatSession?.id ?? null,
+            }
+          : null,
+      },
       lastOpenedAt: now,
-      // promptScript: promptScriptState,
     };
-    documents[filePath] = document;
+    documents[filePath] = normalizedDocument;
 
     // Update editor views and UI state based on the new data structure.
     if (!documentFile.isBase64) {
@@ -54,11 +68,6 @@ export class DocumentService {
         };
         editorViews[filePath] = editorView;
       }
-    }
-
-    // If document has a linked chat session, add it to chat sessions store
-    if (documentFile.promptScriptLink?.chatSession) {
-      setChatSession(documentFile.promptScriptLink.chatSession);
     }
 
     ensureOpenFilePath(filePath);
@@ -102,9 +111,24 @@ export class DocumentService {
       content: inputValue ?? editorView.unsavedContent,
     });
 
-    // Update the document's data and local state.
+    // If document has a linked chat session, extract and store it in chatSessions store
+    if (updatedDocumentFile.promptScriptLink?.chatSession) {
+      setChatSession(updatedDocumentFile.promptScriptLink.chatSession);
+    }
+
+    // Update the document's data and local state with normalized promptScriptLink
     const now = new Date().toISOString();
-    document.data = updatedDocumentFile;
+    document.data = {
+      ...updatedDocumentFile,
+      promptScriptLink: updatedDocumentFile.promptScriptLink
+        ? {
+            promptScript: updatedDocumentFile.promptScriptLink.promptScript,
+            chatSessionId:
+              updatedDocumentFile.promptScriptLink.chatSession?.id ?? null,
+            warnings: updatedDocumentFile.promptScriptLink.warnings,
+          }
+        : null,
+    };
     document.lastOpenedAt = now;
 
     return document;

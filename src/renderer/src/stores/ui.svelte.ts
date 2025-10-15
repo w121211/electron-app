@@ -39,8 +39,8 @@ export const getSelectedDocContext = () => {
 
   const documentState = documents[ui.activeFilePath] ?? null;
   const editorViewState = editorViews[ui.activeFilePath] ?? null;
-  const chatSessionState = documentState.data.promptScriptLink?.chatSession?.id
-    ? chatSessions[documentState.data.promptScriptLink.chatSession.id]
+  const chatSessionState = documentState?.data.promptScriptLink?.chatSessionId
+    ? chatSessions[documentState.data.promptScriptLink.chatSessionId]
     : null;
 
   return {
@@ -54,8 +54,8 @@ export const getSelectedDocContext = () => {
 
 export const getChatSessionByPromptScriptPath = (filePath: string) => {
   const documentState = documents[filePath] ?? null;
-  if (!documentState?.data.promptScriptLink?.chatSession?.id) {
+  if (!documentState?.data.promptScriptLink?.chatSessionId) {
     return null;
   }
-  return chatSessions[documentState.data.promptScriptLink.chatSession.id] ?? null;
+  return chatSessions[documentState.data.promptScriptLink.chatSessionId] ?? null;
 };

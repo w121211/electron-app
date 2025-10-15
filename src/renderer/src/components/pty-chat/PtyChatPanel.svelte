@@ -1,12 +1,18 @@
 <!-- src/renderer/src/components/pty-chat/PtyChatPanel.svelte -->
 <script lang="ts">
-  import { CodeSlash } from "svelte-bootstrap-icons";
+  import {
+    CodeSlash,
+    ArrowClockwise,
+    Terminal,
+    XCircle,
+  } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import {
     type PtyStream,
     ptyStreamManager,
   } from "../../services/pty-stream-manager.js";
   import { ui, getSelectedDocContext } from "../../stores/ui.svelte.js";
+  import { ptyChatService } from "../../services/pty-chat-service.js";
   import Breadcrumb from "../Breadcrumb.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
   import PtyStreamPool from "./PtyStreamPool.svelte";
@@ -23,12 +29,10 @@
   let selectedPtyStream: PtyStream | null = $state(null);
 
   const activeContext = $derived.by(getSelectedDocContext);
-  const chatSession = $derived(
-    activeContext?.documentState.data.promptScriptLink?.chatSession,
-  );
+  const chatSession = $derived(activeContext?.chatSessionState?.data);
 
-  // $inspect(chatSession);
-  // $inspect(selectedPtyStream);
+  $inspect(chatSession);
+  $inspect(selectedPtyStream);
 
   $effect(() => {
     const ptyInstanceId = chatSession?.metadata?.external?.pty?.ptyInstanceId;
@@ -79,6 +83,51 @@
       );
     }
   };
+
+  let isRestarting = $state(false);
+
+  const handleRestartTerminal = async (): Promise<void> => {
+    if (!chatSession || isRestarting) return;
+
+    const confirmed = confirm(
+      "Restart terminal? This will close the current terminal session and start a new one.",
+    );
+    if (!confirmed) return;
+
+    isRestarting = true;
+    try {
+      const updatedSession = await ptyChatService.restartTerminal(
+        chatSession.id,
+      );
+      logger.info(`Terminal restarted for session ${chatSession.id}`, {
+        newPtyInstanceId: updatedSession.metadata?.external?.pty?.ptyInstanceId,
+      });
+    } catch (error) {
+      logger.error("Failed to restart terminal", error);
+      alert("Failed to restart terminal. Please try again.");
+    } finally {
+      isRestarting = false;
+    }
+  };
+
+  const handleOpenTerminal = async (): Promise<void> => {
+    if (!chatSession || isRestarting) return;
+
+    isRestarting = true;
+    try {
+      const updatedSession = await ptyChatService.restartTerminal(
+        chatSession.id,
+      );
+      logger.info(`Terminal opened for session ${chatSession.id}`, {
+        newPtyInstanceId: updatedSession.metadata?.external?.pty?.ptyInstanceId,
+      });
+    } catch (error) {
+      logger.error("Failed to open terminal", error);
+      alert("Failed to open terminal. Please try again.");
+    } finally {
+      isRestarting = false;
+    }
+  };
 </script>
 
 <section class="relative flex min-w-0 flex-1 flex-col" class:hidden>
@@ -97,6 +146,27 @@
       {/if}
     </div>
     <div class="flex items-center gap-2">
+      {#if chatSession?.state !== "terminated"}
+        {#if selectedPtyStream}
+          <button
+            class="text-muted hover:text-foreground focus:outline-none disabled:opacity-50"
+            onclick={handleRestartTerminal}
+            disabled={isRestarting}
+            title="Restart Terminal"
+          >
+            <ArrowClockwise width={16} height={16} />
+          </button>
+        {:else}
+          <button
+            class="text-muted hover:text-foreground focus:outline-none disabled:opacity-50"
+            onclick={handleOpenTerminal}
+            disabled={isRestarting}
+            title="Open Terminal"
+          >
+            <Terminal width={16} height={16} />
+          </button>
+        {/if}
+      {/if}
       <button
         class="text-muted hover:text-foreground focus:outline-none"
         onclick={() => (ui.promptEditorOpen = !ui.promptEditorOpen)}
@@ -108,7 +178,7 @@
   </header>
 
   {#if !hidden && chatSession}
-    {#if chatSession.sessionStatus === "external_terminated" || !selectedPtyStream}
+    {#if chatSession.state === "terminated" || !selectedPtyStream}
       <div class="flex-1 overflow-hidden p-5">
         {#if chatSession.metadata?.external?.pty?.snapshots}
           <XtermSnapshots
