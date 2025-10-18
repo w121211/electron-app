@@ -1,50 +1,38 @@
-<!-- src/renderer/src/components/FilePanel.svelte -->
+<!-- src/renderer/src/components/document/FilePanel.svelte -->
 <script lang="ts">
   import { Pencil } from "svelte-bootstrap-icons";
   import { ui, getSelectedDocContext } from "../../stores/ui.svelte.js";
-  import { uiState, showToast } from "../../stores/ui-store.svelte.js";
-  import { documentClientService } from "../../services/document-client-service.js";
-  // import {
-  //   chatState,
-  //   updateMessageInput,
-  // } from "../stores/chat-store.svelte.js";
+  import { uiState } from "../../stores/ui-store.svelte.js";
   import MarkdownTodoRenderer from "../MarkdownTodoRenderer.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
   import DocumentEditor from "./DocumentEditor.svelte";
 
   let isEditing = $state(false);
-  let editorContent = "";
 
-  const activeContext = $derived(getSelectedDocContext());
-  const activeDocument = $derived(activeContext?.documentState ?? null);
+  const activeContext = $derived.by(getSelectedDocContext);
+  const activeDocument = $derived(activeContext?.documentState?.data ?? null);
+  const activeDocumentProjectPath = $derived(() => {
+    if (!activeDocument?.absolutePath) {
+      return "";
+    }
+
+    const normalizedPath = activeDocument.absolutePath.replaceAll("\\", "/");
+    const lastSeparatorIndex = normalizedPath.lastIndexOf("/");
+    if (lastSeparatorIndex === -1) {
+      return "";
+    }
+
+    return normalizedPath.slice(0, lastSeparatorIndex);
+  });
 
   const openEditor = (): void => {
-    const content =
-      activeContext?.editorViewState?.unsavedContent ??
-      activeDocument?.savedContent ??
-      "";
-
-    editorContent = content;
     isEditing = true;
   };
 
   const closeEditor = (): void => {
     isEditing = false;
   };
-
-  const onDocumentEditorInput = (newValue: string): void => {
-    editorContent = newValue;
-    if (ui.activeFilePath) {
-      documentClientService.updateEditorViewState(ui.activeFilePath, {
-        unsavedContent: newValue,
-      });
-    }
-  };
-
-  $effect(() => {
-    console.log(ui.activeFilePath);
-  });
 </script>
 
 <!-- {@debug ui} -->
@@ -66,7 +54,7 @@
   <!-- File Viewer / Editor -->
   <div class="flex-1 overflow-y-auto">
     {#if isEditing}
-      <DocumentEditor value={editorContent} onInput={onDocumentEditorInput} />
+      <DocumentEditor onClose={closeEditor} />
     {:else}
       <div class="mx-auto w-full max-w-3xl px-6 py-3">
         <!-- File Toolbar -->
@@ -88,13 +76,16 @@
             <div class="flex h-full items-center justify-center">
               <p class="text-muted">No file open.</p>
             </div>
-          {:else if activeDocument.savedContent}
+          {:else if activeDocument.isBase64}
+            <div class="flex h-full items-center justify-center">
+              <p class="text-muted">
+                Preview is not available for binary files.
+              </p>
+            </div>
+          {:else if activeDocument.content}
             <MarkdownTodoRenderer
-              content={activeDocument.savedContent}
-              projectPath={activeDocument.filePath.substring(
-                0,
-                activeDocument.filePath.lastIndexOf("/"),
-              )}
+              content={activeDocument.content}
+              projectPath={activeDocumentProjectPath}
             />
           {:else}
             <div class="flex h-full items-center justify-center">
