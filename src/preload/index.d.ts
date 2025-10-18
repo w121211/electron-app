@@ -10,6 +10,32 @@ declare global {
       getPlatformInfo: () => Promise<{ platform: string; cwd: string }>;
       showOpenDialog: () => Promise<string | null>;
       showInFolder: (filePath: string) => Promise<void>;
+      mainWindow: {
+        focus: () => Promise<boolean>;
+      };
+      quickPromptWindow: {
+        toggle: () => Promise<boolean>;
+        show: () => Promise<boolean>;
+        hide: () => Promise<boolean>;
+        focus: () => Promise<boolean>;
+      };
+      quickPrompt: {
+        launchChat: (payload: {
+          scriptPath: string;
+          sessionId: string;
+          projectPath: string;
+          modelId: `${string}/${string}`;
+        }) => Promise<boolean>;
+        selectFiles: (options?: { defaultPath?: string }) => Promise<string[]>;
+        onLaunch: (
+          callback: (payload: {
+            scriptPath: string;
+            sessionId: string;
+            projectPath: string;
+            modelId: `${string}/${string}`;
+          }) => void,
+        ) => () => void;
+      };
       pty: {
         createAndAttach: (options: {
           cols?: number;

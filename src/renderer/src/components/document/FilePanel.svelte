@@ -12,7 +12,7 @@
 
   const activeContext = $derived.by(getSelectedDocContext);
   const activeDocument = $derived(activeContext?.documentState?.data ?? null);
-  const activeDocumentProjectPath = $derived(() => {
+  const activeDocumentProjectPath = $derived.by(() => {
     if (!activeDocument?.absolutePath) {
       return "";
     }
@@ -62,7 +62,7 @@
           <div class="flex items-center gap-2">
             <button
               onclick={openEditor}
-              class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+              class="text-muted hover:text-accent cursor-pointer rounded p-1.5 transition-colors"
               title="Edit File"
             >
               <Pencil />
@@ -83,10 +83,11 @@
               </p>
             </div>
           {:else if activeDocument.content}
-            <MarkdownTodoRenderer
+            <!-- <MarkdownTodoRenderer
               content={activeDocument.content}
               projectPath={activeDocumentProjectPath}
-            />
+            /> -->
+            <p>{activeDocument.content}</p>
           {:else}
             <div class="flex h-full items-center justify-center">
               <p class="text-muted">No file content available.</p>

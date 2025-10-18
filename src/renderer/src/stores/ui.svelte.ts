@@ -20,7 +20,7 @@ export const ui = $state<UiState>({
   leftPanelOpen: true,
   rightPanelOpen: false,
   previewPaneOpen: false,
-  promptEditorOpen: true,
+  promptEditorOpen: false,
   // promptConsoleOpen: false,
 });
 

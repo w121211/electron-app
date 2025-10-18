@@ -101,6 +101,7 @@
       </main>
 
       <!-- Prompt Editor Overlay -->
+      <!-- TODO: Re-evaluate the need for a separate prompt editor overlay. A single, dedicated editor view might be simpler. -->
       {#if ui.promptEditorOpen && centerPanelView !== "promptEditorPanel"}
         <div class="absolute inset-0 z-30 flex">
           <PromptEditorPanel />

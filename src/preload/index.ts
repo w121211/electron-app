@@ -9,6 +9,47 @@ const api = {
   showOpenDialog: () => ipcRenderer.invoke("show-open-dialog"),
   showInFolder: (filePath: string) =>
     ipcRenderer.invoke("show-in-folder", filePath),
+  mainWindow: {
+    focus: () => ipcRenderer.invoke("main-window:focus"),
+  },
+  quickPromptWindow: {
+    toggle: () => ipcRenderer.invoke("quick-prompt-window:toggle"),
+    show: () => ipcRenderer.invoke("quick-prompt-window:show"),
+    hide: () => ipcRenderer.invoke("quick-prompt-window:hide"),
+    focus: () => ipcRenderer.invoke("quick-prompt-window:focus"),
+  },
+  quickPrompt: {
+    launchChat: (payload: {
+      scriptPath: string;
+      sessionId: string;
+      projectPath: string;
+      modelId: `${string}/${string}`;
+    }) => ipcRenderer.invoke("quick-prompt:launch-chat", payload),
+    selectFiles: (options?: { defaultPath?: string }) =>
+      ipcRenderer.invoke("quick-prompt:select-files", options),
+    onLaunch: (
+      callback: (payload: {
+        scriptPath: string;
+        sessionId: string;
+        projectPath: string;
+        modelId: `${string}/${string}`;
+      }) => void,
+    ) => {
+      const handler = (
+        _: unknown,
+        payload: {
+          scriptPath: string;
+          sessionId: string;
+          projectPath: string;
+          modelId: `${string}/${string}`;
+        },
+      ) => callback(payload);
+      ipcRenderer.on("quick-prompt:launch-chat", handler);
+      return () => {
+        ipcRenderer.removeListener("quick-prompt:launch-chat", handler);
+      };
+    },
+  },
   // Pty APIs
   pty: {
     createAndAttach: (options: {
