@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Chat App - Dashboard v26</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+  <style type="text/tailwindcss">
+    @theme {
+        --color-background: #181818;
+        --color-surface: #1f1f1f;
+        --color-border: #2b2b2b;
+        --color-muted: #9d9d9d;
+        --color-hover: #2b2b2b;
+        --color-accent: #4a90e2;
+        --color-foreground: #cccccc;
+      }
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #2c2c2e;
+        border-radius: 3px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+      }
+    </style>
+</head>
+
+<body class="bg-background text-foreground h-screen overflow-hidden font-sans text-sm">
+  <div class="flex h-screen flex-col">
+    <!-- Header -->
+    <header class="flex h-12 flex-shrink-0 items-center justify-between px-4">
+      <div class="flex items-center gap-3">
+        <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Home">
+          <i class="bi bi-house text-lg"></i>
+        </button>
+        <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Search">
+          <i class="bi bi-search text-lg"></i>
+        </button>
+        <button
+          class="flex items-center gap-0.5 rounded-md bg-surface px-2.5 py-1 text-sm font-medium text-muted hover:text-accent">
+          <i class="bi bi-plus"></i>
+          <span>Prompt</span>
+        </button>
+      </div>
+      <div class="flex items-center">
+        <button class="text-muted hover:text-accent cursor-pointer rounded p-1.5" title="Settings">
+          <i class="bi bi-gear text-lg"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <div class="scrollbar-thin flex-1 overflow-y-auto">
+      <div class="space-y-10 p-4 lg:p-6">
+        <!-- Chats Section with Tabs -->
+        <div>
+          <div class="flex items-center border-b border-border">
+            <button class="border-b-2 border-accent px-4 py-2 font-medium text-foreground">
+              Active
+              <span class="ml-1.5 rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent">2</span>
+            </button>
+            <button class="border-b-2 border-transparent px-4 py-2 text-muted hover:text-foreground">
+              Queued
+              <span class="ml-1.5 rounded-full bg-surface px-2 py-0.5 text-xs">1</span>
+            </button>
+            <button class="border-b-2 border-transparent px-4 py-2 text-muted hover:text-foreground">
+              Terminated
+              <span class="ml-1.5 rounded-full bg-surface px-2 py-0.5 text-xs">5</span>
+            </button>
+          </div>
+          <div class="mt-4 space-y-1">
+            <!-- Chat List Item 1: Running -->
+            <div class="group flex items-center gap-3 rounded-lg p-2 hover:bg-surface">
+              <i class="bi bi-stars text-accent"></i>
+              <div class="min-w-0 flex-1">
+                <a href="#" class="font-medium text-foreground hover:text-accent truncate block">Scan Reddit and Hacker
+                  News
+                  for hot topics on productivity tools, then summarize the top user pain points</a>
+                <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
+                  <button class="flex items-center gap-1.5 hover:text-foreground">
+                    <i class="bi bi-folder"></i>
+                    <span>my-ai-project</span>
+                  </button>
+                  <div class="flex items-center gap-1.5">
+                    <i class="bi bi-cpu"></i>
+                    <span>Claude 3.5</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <i class="bi bi-clock"></i>
+                    <span>2m ago</span>
+                  </div>
+                  <span class="font-medium border border-border rounded px-2 py-0.5">Generating</span>
+                  <button
+                    class="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1  hover:text-accent"
+                    title="Stop">
+                    <i class="bi bi-stop-fill"></i>
+                    <span>Stop</span>
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1  hover:text-accent"
+                    title="Edit prompt">
+                    <i class="bi bi-pencil"></i>
+                    <span>Edit Prompt</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- Chat List Item 2: Awaiting -->
+            <div class="group flex items-center gap-3 rounded-lg p-2 hover:bg-surface">
+              <i class="bi bi-person-raised-hand text-accent"></i>
+              <div class="min-w-0 flex-1">
+                <a href="#" class="font-medium text-foreground hover:text-accent truncate block">Research the top five
+                  AI
+                  automation competitors and create a report covering their features and pricing</a>
+                <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
+                  <button class="flex items-center gap-1.5 hover:text-foreground">
+                    <i class="bi bi-folder"></i>
+                    <span>demo-project</span>
+                  </button>
+                  <div class="flex items-center gap-1.5">
+                    <i class="bi bi-cpu"></i>
+                    <span>GPT-4</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <i class="bi bi-clock"></i>
+                    <span>3h ago</span>
+                  </div>
+                  <span class="font-medium border border-border rounded px-2 py-0.5">Awaiting Input</span>
+                  <button
+                    class="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 hover:text-accent"
+                    title="Resume">
+                    <i class="bi bi-play-fill"></i>
+                    <span>Resume</span>
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 hover:text-accent"
+                    title="Edit prompt">
+                    <i class="bi bi-pencil"></i>
+                    <span>Edit Prompt</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- Chat List Item 3: Idle -->
+            <div class="group flex items-center gap-3 rounded-lg p-2 hover:bg-surface">
+              <i class="bi bi-moon-fill text-muted"></i>
+              <div class="min-w-0 flex-1">
+                <a href="#" class="font-medium text-foreground hover:text-accent truncate block">Analyze user feedback
+                  from
+                  the last 30 days and generate a summary of the top 3 feature requests.</a>
+                <div class="mt-1.5 flex items-center gap-3 text-xs text-muted">
+                  <button class="flex items-center gap-1.5 hover:text-foreground">
+                    <i class="bi bi-folder"></i>
+                    <span>customer-feedback</span>
+                  </button>
+                  <div class="flex items-center gap-1.5">
+                    <i class="bi bi-cpu"></i>
+                    <span>Claude 3.5</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <i class="bi bi-clock"></i>
+                    <span>1d ago</span>
+                  </div>
+                  <span class="font-medium border border-border rounded px-2 py-0.5">Idle</span>
+                  <button
+                    class="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 hover:text-accent"
+                    title="Terminate">
+                    <i class="bi bi-stop-fill"></i>
+                    <span>Terminate</span>
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 hover:text-accent"
+                    title="Edit prompt">
+                    <i class="bi bi-pencil"></i>
+                    <span>Edit Prompt</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Prompts Section -->
+        <div>
+          <h2 class="text-muted px-2 text-sm font-medium">Recent Prompts</h2>
+          <div class="mt-2 space-y-1">
+            <!-- Prompt Item 1 -->
+            <div class="group flex items-center gap-3 rounded-lg p-2 hover:bg-surface">
+              <i class="bi bi-terminal text-muted"></i>
+              <div class="min-w-0 flex-1">
+                <a href="#" class="font-medium text-foreground hover:text-accent truncate block">Monitor job boards,
+                  match new
+                  postings to my resume, and draft a cover letter for the top three perfect fits</a>
+                <div class="text-xs text-muted">my-ai-project/refactor.prompt.md</div>
+              </div>
+            </div>
+            <!-- Prompt Item 2 -->
+            <div class="group flex items-center gap-3 rounded-lg p-2 hover:bg-surface">
+              <i class="bi bi-terminal text-muted"></i>
+              <div class="min-w-0 flex-1">
+                <a href="#" class="font-medium text-foreground hover:text-accent truncate block">Draft a 60-second video
+                  script for the product, including narration and visual concepts</a>
+                <div class="text-xs text-muted">my-ai-project/generate-tests.prompt.md</div>
+              </div>
+            </div>
+            <!-- Prompt Item 3 -->
+            <div class="group flex items-center gap-3 rounded-lg p-2 hover:bg-surface">
+              <i class="bi bi-terminal text-muted"></i>
+              <div class="min-w-0 flex-1">
+                <a href="#" class="font-medium text-foreground hover:text-accent truncate block">Create a new UI design
+                  for
+                  the dashboard</a>
+                <div class="text-xs text-muted">demo-project/dashboard-design.prompt.md</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
