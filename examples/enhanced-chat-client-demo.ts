@@ -24,6 +24,7 @@ async function setupEnhancedDemo(): Promise<ChatEngineClient> {
   const taskRepository = new TaskRepository();
   const userSettingsRepository = new UserSettingsRepository(
     path.join(demoDir, "user-settings.json"),
+    demoDir,
   );
 
   // Setup services

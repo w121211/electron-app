@@ -32,6 +32,7 @@ async function setupServices() {
 
   const userSettingsRepository = new UserSettingsRepository(
     path.join(tempDir, "user-settings.json"),
+    tempDir,
   );
   const taskRepository = new TaskRepository();
   const fileWatcherService = new FileWatcherService(eventBus);

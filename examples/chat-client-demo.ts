@@ -60,6 +60,7 @@ async function setupServices(): Promise<DemoServices> {
   // Initialize repositories
   const userSettingsRepository = new UserSettingsRepository(
     `${settingsDir}/settings.json`,
+    settingsDir,
   );
   const taskRepository = new TaskRepository();
   const fileWatcherService = new FileWatcherService(eventBus);

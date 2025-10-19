@@ -31,6 +31,7 @@ async function setupServices() {
 
   const userSettingsRepository = new UserSettingsRepository(
     `${settingsDir}/settings.json`,
+    settingsDir,
   );
   const fileWatcherService = new FileWatcherService(eventBus);
 
