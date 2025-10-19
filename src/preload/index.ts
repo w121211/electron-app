@@ -22,7 +22,7 @@ const api = {
     launchChat: (payload: {
       scriptPath: string;
       sessionId: string;
-      projectPath: string;
+      projectPath: string | null;
       modelId: `${string}/${string}`;
     }) => ipcRenderer.invoke("quick-prompt:launch-chat", payload),
     selectFiles: (options?: { defaultPath?: string }) =>
@@ -31,7 +31,7 @@ const api = {
       callback: (payload: {
         scriptPath: string;
         sessionId: string;
-        projectPath: string;
+        projectPath: string | null;
         modelId: `${string}/${string}`;
       }) => void,
     ) => {
@@ -40,7 +40,7 @@ const api = {
         payload: {
           scriptPath: string;
           sessionId: string;
-          projectPath: string;
+          projectPath: string | null;
           modelId: `${string}/${string}`;
         },
       ) => callback(payload);

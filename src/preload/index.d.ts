@@ -23,7 +23,7 @@ declare global {
         launchChat: (payload: {
           scriptPath: string;
           sessionId: string;
-          projectPath: string;
+          projectPath: string | null;
           modelId: `${string}/${string}`;
         }) => Promise<boolean>;
         selectFiles: (options?: { defaultPath?: string }) => Promise<string[]>;
@@ -31,7 +31,7 @@ declare global {
           callback: (payload: {
             scriptPath: string;
             sessionId: string;
-            projectPath: string;
+            projectPath: string | null;
             modelId: `${string}/${string}`;
           }) => void,
         ) => () => void;

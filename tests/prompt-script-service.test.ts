@@ -21,6 +21,7 @@ describe("PromptScriptService", () => {
   let scriptRepository: PromptScriptRepository;
   let chatSessionRepository: ChatSessionRepositoryImpl;
   let service: PromptScriptService;
+  let defaultPromptDir: string;
 
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "prompt-script-test-"));
@@ -30,7 +31,12 @@ describe("PromptScriptService", () => {
     chatSessionRepository = new ChatSessionRepositoryImpl({
       databaseFilePath: databasePath,
     });
-    service = new PromptScriptService(scriptRepository, chatSessionRepository);
+    defaultPromptDir = path.join(tempDir, "default-prompts");
+    service = new PromptScriptService(
+      scriptRepository,
+      chatSessionRepository,
+      async () => defaultPromptDir,
+    );
   });
 
   afterEach(async () => {
@@ -49,7 +55,7 @@ describe("PromptScriptService", () => {
     const session: ChatSessionData = {
       id: overrides.id ?? uuidv4(),
       sessionType: overrides.sessionType ?? "chat_engine",
-      sessionStatus: overrides.sessionStatus ?? "idle",
+      state: overrides.state ?? "terminated",
       messages: overrides.messages ?? [],
       metadata: overrides.metadata,
       scriptPath: overrides.scriptPath ?? script.absolutePath,
@@ -203,6 +209,16 @@ Prompt
       expect(path.basename(script3.absolutePath)).toMatch(
         /^test\.prompt \(\d+\)\.md$/,
       );
+    });
+
+    it("creates prompt script in default directory when no directory provided", async () => {
+      const script = await service.createPromptScript();
+      expect(script.absolutePath.startsWith(defaultPromptDir)).toBe(true);
+      const exists = await fs
+        .access(script.absolutePath)
+        .then(() => true)
+        .catch(() => false);
+      expect(exists).toBe(true);
     });
 
     it("fills gaps in sequential numbering", async () => {

@@ -48,7 +48,7 @@ export function registerQuickPromptIpcHandlers(
       payload: {
         scriptPath: string;
         sessionId: string;
-        projectPath: string;
+        projectPath: string | null;
         modelId: `${string}/${string}`;
       },
     ) => {

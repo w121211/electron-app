@@ -10,7 +10,7 @@ export function createPromptScriptRouter(
     create: publicProcedure
       .input(
         z.object({
-          directory: z.string(),
+          directory: z.string().optional(),
           name: z.string().optional(),
         }),
       )

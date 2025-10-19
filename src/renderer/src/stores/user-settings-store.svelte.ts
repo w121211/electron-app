@@ -14,6 +14,7 @@ export const userSettingsState = $state<UserSettingsState>({
     projectFolders: [],
     providers: {},
     agent: { ...DEFAULT_USER_SETTINGS.agent },
+    promptScriptsDirectory: DEFAULT_USER_SETTINGS.promptScriptsDirectory,
   },
   loading: false,
   error: null,

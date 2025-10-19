@@ -15,10 +15,16 @@
     ExclamationTriangle,
     XLg,
   } from "svelte-bootstrap-icons";
-  import { trpcClient } from "../../lib/trpc-client.js";
-  import { getPreference, setPreference } from "../../lib/local-storage.js";
+  import {
+    chatSettings,
+    getAvailableModelsAsList,
+  } from "../../stores/chat.svelte.js";
+  import { projectState } from "../../stores/project-store.svelte.js";
+  import { projectService } from "../../services/project-service.js";
+  import { modelClientService } from "../../services/model-client-service.js";
+  import { documentClientService } from "../../services/document-client-service.js";
+  import { apiChatService } from "../../services/api-chat-service.js";
   import type { ProjectFolder } from "../../stores/project-store.svelte.js";
-  import type { AvailableModels } from "../../../../core/utils/model-utils.js";
 
   const logger = new Logger({ name: "QuickPromptApp" });
 
@@ -123,17 +129,10 @@ Plan:
     },
   ];
 
-  interface ModelOption {
-    id: `${string}/${string}`;
-    label: string;
-    source: "external" | "internal";
-    enabled: boolean;
-  }
-
   interface LaunchChatPayload {
     scriptPath: string;
     sessionId: string;
-    projectPath: string;
+    projectPath: string | null;
     modelId: `${string}/${string}`;
   }
 
@@ -189,10 +188,7 @@ Plan:
 
   let promptValue = $state("");
   let textareaElement = $state<HTMLTextAreaElement | null>(null);
-  let projects = $state<ProjectFolder[]>([]);
-  let models = $state<ModelOption[]>([]);
   let selectedProjectPath = $state<string | null>(null);
-  let selectedModelId = $state<`${string}/${string}` | null>(null);
   let projectMenuOpen = $state(false);
   let modelMenuOpen = $state(false);
   let generatorMenuOpen = $state(false);
@@ -202,6 +198,11 @@ Plan:
   let recordingState = $state<"idle" | "listening" | "unavailable">("idle");
   let recognitionInstance: MinimalSpeechRecognition | null = null;
   let attachments = $state<AttachmentEntry[]>([]);
+
+  const projects = $derived(projectState.projectFolders);
+  const allModels = $derived.by(getAvailableModelsAsList);
+  const enabledModels = $derived(allModels.filter((model) => model.enabled));
+  const selectedModelId = $derived(chatSettings.selectedModel);
 
   const projectPreferenceKey = "quickPromptProjectPath";
 
@@ -269,8 +270,7 @@ Plan:
   };
 
   const selectModel = (modelId: `${string}/${string}`): void => {
-    selectedModelId = modelId;
-    setPreference("selectedModel", modelId);
+    modelClientService.selectModel(modelId);
     closeMenus();
   };
 
@@ -488,35 +488,21 @@ Plan:
     status = { message, type };
   };
 
-  const buildModelOptions = (data: AvailableModels): ModelOption[] => {
-    const options: ModelOption[] = [];
-    for (const model of Object.values(data.external)) {
-      options.push({
-        id: model.modelId,
-        label: model.modelId,
-        source: "external",
-        enabled: model.enabled,
-      });
-    }
-    for (const model of Object.values(data.internal)) {
-      options.push({
-        id: model.modelId,
-        label: model.modelId,
-        source: "internal",
-        enabled: model.enabled,
-      });
-    }
-    return options.filter((option) => option.enabled);
-  };
-
   const loadInitialData = async (): Promise<void> => {
     try {
-      const [projectFolders, modelResponse] = await Promise.all([
-        trpcClient.projectFolder.getAllProjectFolders.query(),
-        trpcClient.model.getAvailableModels.query(),
+      const shouldLoadProjects = projectState.projectFolders.length === 0;
+      const shouldLoadModels = allModels.length === 0;
+
+      await Promise.all([
+        shouldLoadProjects
+          ? projectService.loadProjectFolders()
+          : Promise.resolve(),
+        shouldLoadModels
+          ? modelClientService.hydrateAvailableModels()
+          : Promise.resolve(),
       ]);
 
-      projects = projectFolders;
+      const projectFolders = projectState.projectFolders;
       if (projectFolders.length === 0) {
         applyStatus(
           "Add a project folder in the main app before creating prompts.",
@@ -534,25 +520,25 @@ Plan:
         selectedProjectPath = projectFolders[0]?.path ?? null;
       }
 
-      const availableOptions = buildModelOptions(modelResponse);
-      models = availableOptions;
+      const availableOptions = getAvailableModelsAsList().filter(
+        (option) => option.enabled,
+      );
 
-      const storedModel = getPreference("selectedModel");
-      if (
-        typeof storedModel === "string" &&
-        storedModel.includes("/") &&
-        availableOptions.some((option) => option.id === storedModel)
-      ) {
-        selectedModelId = storedModel as `${string}/${string}`;
-      } else {
-        selectedModelId = availableOptions[0]?.id ?? null;
-      }
-
-      if (!selectedModelId) {
+      if (availableOptions.length === 0) {
         applyStatus(
           "No enabled models found. Configure providers in the main app.",
           "error",
         );
+        return;
+      }
+
+      if (
+        !availableOptions.some((option) => option.modelId === selectedModelId)
+      ) {
+        const fallback = availableOptions[0]?.modelId;
+        if (fallback) {
+          modelClientService.selectModel(fallback);
+        }
       }
     } catch (error) {
       logger.error("Failed to load quick prompt metadata", error);
@@ -563,57 +549,6 @@ Plan:
         "error",
       );
     }
-  };
-
-  const createPromptScript = async (directory: string, content: string): Promise<string> => {
-    const script = await trpcClient.promptScript.create.mutate({
-      directory,
-    });
-    await trpcClient.document.saveDocument.mutate({
-      filePath: script.absolutePath,
-      content,
-    });
-    return script.absolutePath;
-  };
-
-  const createChatSession = async (
-    promptText: string,
-    scriptPath: string,
-    modelId: `${string}/${string}`,
-  ): Promise<string> => {
-    const firstLine =
-      promptText
-        .split("\n")
-        .map((line) => line.trim())
-        .find((line) => line.length > 0) ?? "New Prompt";
-
-    const session = await trpcClient.apiChat.createSession.mutate({
-      sessionType: "chat_engine",
-      metadata: {
-        title: firstLine.slice(0, 120),
-        modelId,
-        mode: "chat",
-      },
-      script: {
-        path: scriptPath,
-        snapshot: promptText,
-      },
-    });
-
-    await trpcClient.promptScript.linkChatSession.mutate({
-      promptScriptPath: scriptPath,
-      chatSessionId: session.id,
-    });
-
-    await trpcClient.apiChat.sendMessage.mutate({
-      chatSessionId: session.id,
-      input: {
-        role: "user",
-        content: promptText,
-      },
-    });
-
-    return session.id;
   };
 
   const launchChat = async (): Promise<void> => {
@@ -630,11 +565,6 @@ Plan:
       return;
     }
 
-    if (!selectedProjectPath) {
-      applyStatus("Select a project to store the prompt script.", "error");
-      return;
-    }
-
     if (!selectedModelId) {
       applyStatus("Select an enabled model to continue.", "error");
       return;
@@ -644,19 +574,44 @@ Plan:
     applyStatus("Creating prompt script and launching chat…", "info");
 
     try {
-      const scriptPath = await createPromptScript(
-        selectedProjectPath,
-        trimmedPrompt,
-      );
-      const sessionId = await createChatSession(
-        trimmedPrompt,
-        scriptPath,
-        selectedModelId,
+      const script =
+        await documentClientService.createPromptScriptWithContent(
+          selectedProjectPath ?? undefined,
+          trimmedPrompt,
+        );
+
+      const firstLine =
+        trimmedPrompt
+          .split("\n")
+          .map((line) => line.trim())
+          .find((line) => line.length > 0) ?? "New Prompt";
+
+      const session = await apiChatService.createSession({
+        sessionType: "chat_engine",
+        metadata: {
+          title: firstLine.slice(0, 120),
+          modelId: selectedModelId,
+          mode: "chat",
+        },
+        script: {
+          path: script.absolutePath,
+          snapshot: trimmedPrompt,
+        },
+      });
+
+      await documentClientService.linkPromptScriptToChatSession(
+        script.absolutePath,
+        session.id,
       );
 
+      await apiChatService.sendMessage({
+        sessionId: session.id,
+        prompt: trimmedPrompt,
+      });
+
       const payload: LaunchChatPayload = {
-        scriptPath,
-        sessionId,
+        scriptPath: script.absolutePath,
+        sessionId: session.id,
         projectPath: selectedProjectPath,
         modelId: selectedModelId,
       };
@@ -813,19 +768,19 @@ Plan:
           <div
             class="bg-background text-foreground border-border absolute top-full left-0 z-20 mt-2 min-w-[220px] overflow-hidden rounded-md border shadow-lg"
           >
-            {#if models.length === 0}
+            {#if enabledModels.length === 0}
               <div class="text-muted px-3 py-2 text-sm">
                 Enable a model in the main application.
               </div>
             {:else}
-              {#each models as model (model.id)}
+              {#each enabledModels as model (model.modelId)}
                 <button
                   type="button"
                   class="hover:bg-hover flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors"
-                  onclick={() => selectModel(model.id)}
+                  onclick={() => selectModel(model.modelId)}
                 >
-                  <span class="truncate">{model.label}</span>
-                  {#if selectedModelId === model.id}
+                  <span class="truncate">{model.modelId}</span>
+                  {#if selectedModelId === model.modelId}
                     <CheckCircle class="text-accent text-sm" />
                   {/if}
                 </button>
@@ -959,11 +914,11 @@ Plan:
   {/if}
 </div>
 
-<style>
+<!-- <style>
   .window-drag {
     -webkit-app-region: drag;
   }
   .no-drag {
     -webkit-app-region: no-drag;
   }
-</style>
+</style> -->

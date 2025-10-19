@@ -3,6 +3,7 @@
 import { Logger } from "tslog";
 import type { UserModelMessage } from "ai";
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
+import type { CreateChatSessionInput } from "../../../core/services/chat-engine/api-chat-client.js";
 import { setChatSession } from "../stores/chat.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
 
@@ -16,6 +17,17 @@ export class ApiChatService {
       setChatSession(session);
     }
     return sessions;
+  }
+
+  async createSession(
+    input: CreateChatSessionInput,
+  ): Promise<ChatSessionData> {
+    logger.info("Creating API chat session", {
+      sessionType: input.sessionType,
+    });
+    const session = await trpcClient.apiChat.createSession.mutate(input);
+    setChatSession(session);
+    return session;
   }
 
   async abortSession(chatSessionId: string): Promise<void> {

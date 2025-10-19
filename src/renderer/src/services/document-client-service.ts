@@ -8,7 +8,10 @@ import {
 } from "../stores/editor-views.svelte.js";
 import { ui } from "../stores/ui.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
-import type { PromptScriptFile } from "../../../core/services/prompt-script/prompt-script-repository.js";
+import type {
+  PromptScriptFile,
+  PromptScriptLinkResult,
+} from "../../../core/services/prompt-script/prompt-script-repository.js";
 import { setChatSession } from "../stores/chat.svelte.js";
 
 function ensureOpenFilePath(filePath: string): void {
@@ -156,14 +159,68 @@ export class DocumentService {
   }
 
   async createPromptScript(
-    directory: string,
+    directory?: string,
     name?: string,
   ): Promise<PromptScriptFile> {
-    const script = await trpcClient.promptScript.create.mutate({
-      directory,
-      name,
+    const payload: { directory?: string; name?: string } = {};
+
+    if (directory && directory.trim().length > 0) {
+      payload.directory = directory;
+    }
+
+    if (name && name.trim().length > 0) {
+      payload.name = name;
+    }
+
+    const script = await trpcClient.promptScript.create.mutate(payload);
+    return script;
+  }
+
+  async createPromptScriptWithContent(
+    directory: string | undefined,
+    content: string,
+    name?: string,
+  ): Promise<PromptScriptFile> {
+    const script = await this.createPromptScript(directory, name);
+    await trpcClient.document.saveDocument.mutate({
+      filePath: script.absolutePath,
+      content,
     });
     return script;
+  }
+
+  async linkPromptScriptToChatSession(
+    promptScriptPath: string,
+    chatSessionId: string,
+  ): Promise<PromptScriptLinkResult> {
+    const linked = await trpcClient.promptScript.linkChatSession.mutate({
+      promptScriptPath,
+      chatSessionId,
+    });
+
+    if (linked.chatSession) {
+      setChatSession(linked.chatSession);
+    }
+
+    const document = documents[promptScriptPath];
+    const editorView = editorViews[promptScriptPath];
+
+    if (document) {
+      document.data = {
+        ...linked.promptScript,
+        promptScriptLink: {
+          promptScript: linked.promptScript,
+          chatSessionId: linked.chatSession?.id ?? null,
+          warnings: linked.warnings,
+        },
+      };
+    }
+
+    if (editorView) {
+      editorView.unsavedContent = linked.promptScript.content;
+    }
+
+    return linked;
   }
 }
 
