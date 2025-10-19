@@ -43,6 +43,7 @@ async function bootstrap(): Promise<MainProcessContext> {
   const mainContext = createMainProcessContext({
     trpcServer,
     ptyInstanceManager,
+    userDataDir,
   });
 
   registerShutdownHooks(mainContext);

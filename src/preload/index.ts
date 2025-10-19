@@ -27,6 +27,8 @@ const api = {
     }) => ipcRenderer.invoke("quick-prompt:launch-chat", payload),
     selectFiles: (options?: { defaultPath?: string }) =>
       ipcRenderer.invoke("quick-prompt:select-files", options),
+    saveAudio: (audioData: Uint8Array): Promise<string> =>
+      ipcRenderer.invoke("quick-prompt:save-audio", audioData),
     onLaunch: (
       callback: (payload: {
         scriptPath: string;

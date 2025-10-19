@@ -38,7 +38,7 @@ chatSessionId: abc-123
 ---
 
 First prompt
-<!-- user key="intro" -->
+<!-- user label="Intro" input="true" -->
 Second prompt
 <!-- user key="follow-up" session='cli' -->
 Third prompt
@@ -53,7 +53,10 @@ Third prompt
     expect(result.prompts).toHaveLength(3);
     expect(result.prompts[0]?.content).toBe("First prompt");
     expect(result.prompts[1]?.content).toBe("Second prompt");
-    expect(result.prompts[1]?.attributes).toEqual({ key: "intro" });
+    expect(result.prompts[1]?.attributes).toEqual({
+      label: "Intro",
+      input: "true",
+    });
     expect(result.prompts[2]?.attributes).toEqual({
       key: "follow-up",
       session: "cli",
@@ -78,13 +81,14 @@ Prompt text
     expect(result.metadata.title).toBeUndefined();
     expect(result.metadata.tags).toEqual(["valid"]);
     expect(result.metadata.extras).toEqual({ custom: true, title: 123 });
-    expect(result.warnings).toContain(
+    const warningMessages = result.warnings.map((warning) => warning.message);
+    expect(warningMessages).toContain(
       "Invalid engine in prompt script front matter. Defaulting to 'pty'",
     );
-    expect(result.warnings).toContain(
+    expect(warningMessages).toContain(
       "Ignoring non-string title in prompt script front matter",
     );
-    expect(result.warnings).toContain(
+    expect(warningMessages).toContain(
       "Some prompt script tags are not strings and were ignored",
     );
   });

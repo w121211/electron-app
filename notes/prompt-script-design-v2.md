@@ -69,9 +69,10 @@ A Prompt Script consists of one or more user prompts. For files containing multi
 # Optional YAML front matter for metadata
 ---
 
-This is the first user prompt, which can include arguments like $1.
 <!-- user -->
+This is the first user prompt, which can include arguments like $1.
 
+<!-- user label="Follow-up" input="true" -->
 This is the second user prompt.
 ```
 
@@ -85,6 +86,7 @@ This is the second user prompt.
 ### Prompt Delimiter
 
 - **`<!-- user -->`**: This HTML comment is the standard delimiter used to separate distinct user prompts within a single file.
+- The delimiter may include optional key/value attributes (e.g. `<!-- user label="Summary" input="true" -->`). These are parsed and stored alongside the prompt so the UI can decide how to present inputs or labels before execution. The runtime currently treats them as metadata only—execution always sends the block of text following the delimiter.
 
 ### Arguments (Inputs)
 

@@ -153,37 +153,6 @@ Plan:
     build: (context: TemplateContext) => string;
   }
 
-  interface MinimalRecognitionResultItem {
-    transcript: string;
-  }
-
-  interface MinimalRecognitionResult {
-    isFinal: boolean;
-    length: number;
-    [index: number]: MinimalRecognitionResultItem;
-  }
-
-  interface MinimalRecognitionEvent {
-    results: Array<MinimalRecognitionResult>;
-  }
-
-  interface MinimalSpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    start: () => void;
-    stop: () => void;
-    abort: () => void;
-    onstart: (() => void) | null;
-    onend: (() => void) | null;
-    onerror: ((event: { error?: string }) => void) | null;
-    onresult: ((event: MinimalRecognitionEvent) => void) | null;
-  }
-
-  interface SpeechRecognitionConstructor {
-    new (): MinimalSpeechRecognition;
-  }
-
   type StatusType = "info" | "success" | "error" | "warning";
 
   let promptValue = $state("");
@@ -195,8 +164,9 @@ Plan:
   let isSubmitting = $state(false);
   let hasFocusedEditor = $state(false);
   let status = $state<{ message: string; type: StatusType } | null>(null);
-  let recordingState = $state<"idle" | "listening" | "unavailable">("idle");
-  let recognitionInstance: MinimalSpeechRecognition | null = null;
+  let recordingState = $state<"idle" | "recording" | "unavailable">("idle");
+  let mediaRecorder: MediaRecorder | null = null;
+  let audioChunks = $state<Blob[]>([]);
   let attachments = $state<AttachmentEntry[]>([]);
 
   const projects = $derived(projectState.projectFolders);
@@ -211,24 +181,6 @@ Plan:
     modelMenuOpen = false;
     generatorMenuOpen = false;
   };
-
-  const getSpeechRecognitionConstructor =
-    (): SpeechRecognitionConstructor | null => {
-      const win = window as typeof window & {
-        SpeechRecognition?: SpeechRecognitionConstructor;
-        webkitSpeechRecognition?: SpeechRecognitionConstructor;
-      };
-
-      if (win.SpeechRecognition) {
-        return win.SpeechRecognition;
-      }
-
-      if (win.webkitSpeechRecognition) {
-        return win.webkitSpeechRecognition;
-      }
-
-      return null;
-    };
 
   const updatePromptFromEvent = (event: Event): void => {
     const target = event.target;
@@ -412,67 +364,83 @@ Plan:
     await window.api.quickPromptWindow.hide();
   };
 
-  const startSpeechRecognition = (): void => {
-    if (recordingState === "listening") {
-      recognitionInstance?.stop();
+  const startAudioRecording = async (): Promise<void> => {
+    if (recordingState === "recording") {
+      mediaRecorder?.stop();
       return;
     }
-
-    const ctor = getSpeechRecognitionConstructor();
-    if (!ctor) {
-      recordingState = "unavailable";
-      applyStatus("Voice capture is unavailable on this platform.", "error");
-      setTimeout(() => {
-        recordingState = "idle";
-      }, 1500);
-      return;
-    }
-
-    recognitionInstance = new ctor();
-    recognitionInstance.continuous = false;
-    recognitionInstance.interimResults = true;
-    recognitionInstance.lang = "en-US";
-
-    recognitionInstance.onstart = () => {
-      recordingState = "listening";
-      applyStatus("Listening… speak your prompt.", "info");
-    };
-
-    recognitionInstance.onresult = (event) => {
-      const transcripts: string[] = [];
-      for (const result of event.results) {
-        for (let i = 0; i < result.length; i += 1) {
-          transcripts.push(result[i].transcript);
-        }
-      }
-      promptValue = transcripts.join(" ").trim();
-    };
-
-    recognitionInstance.onerror = (event) => {
-      logger.warn("Speech recognition error", event);
-      recordingState = "idle";
-      recognitionInstance = null;
-      applyStatus(event.error ?? "Voice capture failed.", "error");
-    };
-
-    recognitionInstance.onend = () => {
-      recordingState = "idle";
-      recognitionInstance = null;
-      applyStatus(
-        promptValue
-          ? "Transcribed voice input ready to send."
-          : "Listening ended.",
-        promptValue ? "success" : "info",
-      );
-    };
 
     try {
-      recognitionInstance.start();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+
+      mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm",
+      });
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstart = () => {
+        recordingState = "recording";
+        applyStatus("Recording audio…", "info");
+      };
+
+      mediaRecorder.onstop = async () => {
+        recordingState = "idle";
+        stream.getTracks().forEach((track) => track.stop());
+
+        if (audioChunks.length === 0) {
+          applyStatus("No audio recorded.", "warning");
+          mediaRecorder = null;
+          return;
+        }
+
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        try {
+          const relativePath = await window.api.quickPrompt.saveAudio(uint8Array);
+          ensureAttachmentReference(relativePath);
+          applyStatus(`Audio saved: @${relativePath}`, "success");
+        } catch (error) {
+          logger.error("Failed to save audio recording", error);
+          applyStatus(
+            error instanceof Error ? error.message : "Failed to save audio.",
+            "error",
+          );
+        } finally {
+          mediaRecorder = null;
+          audioChunks = [];
+        }
+      };
+
+      mediaRecorder.onerror = (event) => {
+        logger.error("MediaRecorder error", event);
+        recordingState = "idle";
+        mediaRecorder = null;
+        audioChunks = [];
+        stream.getTracks().forEach((track) => track.stop());
+        applyStatus("Audio recording failed.", "error");
+      };
+
+      mediaRecorder.start();
     } catch (error) {
-      logger.error("Failed to start speech recognition", error);
-      recordingState = "idle";
-      recognitionInstance = null;
-      applyStatus("Unable to start voice capture.", "error");
+      logger.error("Failed to access microphone", error);
+      recordingState = "unavailable";
+      applyStatus(
+        error instanceof Error
+          ? error.message
+          : "Microphone access denied or unavailable.",
+        "error",
+      );
+      setTimeout(() => {
+        recordingState = "idle";
+      }, 2000);
     }
   };
 
@@ -681,7 +649,9 @@ Plan:
   });
 
   onDestroy(() => {
-    recognitionInstance?.abort();
+    if (mediaRecorder && recordingState === "recording") {
+      mediaRecorder.stop();
+    }
   });
 
   $effect(() => {
@@ -805,11 +775,11 @@ Plan:
         type="button"
         class="text-muted hover:text-accent rounded p-1.5 transition-colors"
         class:opacity-60={recordingState === "unavailable"}
-        class:animate-pulse={recordingState === "listening"}
-        title={recordingState === "listening"
+        class:animate-pulse={recordingState === "recording"}
+        title={recordingState === "recording"
           ? "Stop recording"
-          : "Record prompt"}
-        onclick={startSpeechRecognition}
+          : "Record audio"}
+        onclick={() => void startAudioRecording()}
       >
         <Mic class="text-base" />
       </button>

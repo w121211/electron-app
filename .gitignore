@@ -35,8 +35,7 @@ yarn-error.log*
 # Playwright
 /test-results
 
-# Chat app
+# This app
 /chats
 .chat
 /tests/fixtures
-

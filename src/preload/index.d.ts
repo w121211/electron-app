@@ -27,6 +27,7 @@ declare global {
           modelId: `${string}/${string}`;
         }) => Promise<boolean>;
         selectFiles: (options?: { defaultPath?: string }) => Promise<string[]>;
+        saveAudio: (audioData: Uint8Array) => Promise<string>;
         onLaunch: (
           callback: (payload: {
             scriptPath: string;

@@ -6,6 +6,7 @@ import type { PtyInstanceManager } from "../core/services/pty/pty-instance-manag
 export interface MainProcessContext {
   trpcServer: HttpTrpcServer;
   ptyInstanceManager: PtyInstanceManager;
+  userDataDir: string;
   getMainWindow(): BrowserWindow | null;
   setMainWindow(window: BrowserWindow | null): void;
   getQuickPromptWindow(): BrowserWindow | null;
@@ -23,6 +24,7 @@ export function createMainProcessContext(
   dependencies: {
     trpcServer: HttpTrpcServer;
     ptyInstanceManager: PtyInstanceManager;
+    userDataDir: string;
   },
 ): MainProcessContext {
   const windows: WindowRegistry = {
@@ -34,6 +36,7 @@ export function createMainProcessContext(
   return {
     trpcServer: dependencies.trpcServer,
     ptyInstanceManager: dependencies.ptyInstanceManager,
+    userDataDir: dependencies.userDataDir,
     getMainWindow: () => windows.main,
     setMainWindow: (window) => {
       windows.main = window;

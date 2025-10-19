@@ -139,9 +139,15 @@ function parseDelimiterAttributes(
   let match: RegExpExecArray | null;
   ATTRIBUTE_REGEX.lastIndex = 0;
   while ((match = ATTRIBUTE_REGEX.exec(raw)) !== null) {
-    const key = match[1] ?? match[3];
-    const value = match[2] ?? match[4];
-    if (key && value !== undefined) {
+    const keyCandidate = (match[1] ?? match[3] ?? "").trim();
+    if (!keyCandidate) {
+      continue;
+    }
+
+    const key = keyCandidate.toLowerCase();
+    const valueRaw = match[2] ?? match[4];
+    const value = valueRaw !== undefined ? valueRaw.trim() : "";
+    if (value !== undefined) {
       attributes[key] = value;
     }
   }

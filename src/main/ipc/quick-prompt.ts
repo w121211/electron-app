@@ -7,6 +7,7 @@ import {
   hideQuickPromptWindow,
   focusQuickPromptWindow,
 } from "../windows/quick-prompt-window.js";
+import { AudioRecordingService } from "../../core/services/audio/audio-recording-service.js";
 
 export function registerQuickPromptIpcHandlers(
   context: MainProcessContext,
@@ -92,6 +93,17 @@ export function registerQuickPromptIpcHandlers(
       }
 
       return result.filePaths;
+    },
+  );
+
+  ipcMain.handle(
+    "quick-prompt:save-audio",
+    async (_, audioData: Uint8Array) => {
+      const audioService = new AudioRecordingService(context.userDataDir);
+      const result = await audioService.saveRecording({
+        audioData: Buffer.from(audioData),
+      });
+      return result.relativePath;
     },
   );
 }
