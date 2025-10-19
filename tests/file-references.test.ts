@@ -1,7 +1,10 @@
 // tests/file-references.test.ts
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Logger, ILogObj } from "tslog";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createServerEventBus } from "../src/core/event-bus.js";
 import { createUserSettingsRepository } from "../src/core/services/user-settings-repository.js";
 import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
@@ -10,13 +13,14 @@ import { ProjectFolderService } from "../src/core/services/project-folder-servic
 describe("File References", () => {
   let eventBus: ReturnType<typeof createServerEventBus>;
   let projectFolderService: ProjectFolderService;
+  let tempDir: string;
 
   beforeEach(() => {
     const logger = new Logger<ILogObj>({ name: "FileReferencesTest" });
     eventBus = createServerEventBus({ logger });
 
-    const userDataDir = process.cwd();
-    const userSettingsRepo = createUserSettingsRepository(userDataDir);
+    tempDir = mkdtempSync(join(tmpdir(), "file-references-test-"));
+    const userSettingsRepo = createUserSettingsRepository(tempDir);
     const fileWatcherService = new FileWatcherService(eventBus);
 
     projectFolderService = new ProjectFolderService(
@@ -24,6 +28,10 @@ describe("File References", () => {
       userSettingsRepo,
       fileWatcherService,
     );
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
   });
 
   describe("ProjectFolderService", () => {

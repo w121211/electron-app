@@ -10,7 +10,7 @@ import {
   type ChatSessionData,
   type ChatMessage,
   type ChatSessionType,
-  type ChatSessionStatus,
+  type ChatState,
   type ChatMetadata,
 } from "../src/core/services/chat/chat-session-repository.js";
 
@@ -45,7 +45,7 @@ function createMockChatMessage(
 function createMockChatSession(
   options: {
     sessionType?: ChatSessionType;
-    sessionStatus?: ChatSessionStatus;
+    state?: ChatState;
     messages?: ChatMessage[];
     metadata?: ChatMetadata;
     scriptPath?: string;
@@ -58,7 +58,7 @@ function createMockChatSession(
   return {
     id: uuidv4(),
     sessionType: options.sessionType || "chat_engine",
-    sessionStatus: options.sessionStatus || "idle",
+    state: options.state || "active",
     messages: options.messages || [],
     metadata: options.metadata,
     scriptPath: options.scriptPath || null,
@@ -98,7 +98,7 @@ describe("ChatSessionRepository", () => {
     it("should create a new chat session", async () => {
       const session = createMockChatSession({
         sessionType: "chat_engine",
-        sessionStatus: "idle",
+        state: "active",
         messages: [
           createMockChatMessage(createMockUserMessage("Hello, world!")),
           createMockChatMessage(createMockAssistantMessage("Hi there! How can I help you?")),
@@ -137,7 +137,7 @@ describe("ChatSessionRepository", () => {
 
     it("should update an existing chat session", async () => {
       const session = createMockChatSession({
-        sessionStatus: "idle",
+        state: "active",
         messages: [createMockChatMessage(createMockUserMessage("Original message"))],
         metadata: { title: "Original Title" },
       });
@@ -146,7 +146,7 @@ describe("ChatSessionRepository", () => {
 
       const updatedSession = {
         ...session,
-        sessionStatus: "processing" as ChatSessionStatus,
+        state: "active:generating" as ChatState,
         messages: [
           ...session.messages,
           createMockChatMessage(createMockUserMessage("Updated message")),
@@ -161,7 +161,7 @@ describe("ChatSessionRepository", () => {
       await repository.update(updatedSession);
       const retrieved = await repository.getById(session.id);
 
-      expect(retrieved?.sessionStatus).toBe("processing");
+      expect(retrieved?.state).toBe("active:generating");
       expect(retrieved?.messages).toHaveLength(2);
       expect(retrieved?.metadata?.title).toBe("Updated Title");
     });
@@ -365,7 +365,7 @@ What time is it?`;
     it("should handle PTY sessions with complex metadata", async () => {
       const session = createMockChatSession({
         sessionType: "pty_chat",
-        sessionStatus: "external_terminated",
+        state: "terminated",
         messages: [
           createMockChatMessage(createMockUserMessage("!claude")),
           createMockChatMessage(createMockUserMessage("Write a Python script")),
@@ -383,8 +383,14 @@ What time is it?`;
             pty: {
               initialCommand: "!claude",
               ptyInstanceId: "pty-complex-123",
-              snapshot: "Last command output...",
-              snapshotHtml: "<div>Last command output...</div>",
+              snapshots: [
+                {
+                  modelId: "anthropic/claude-3-5-sonnet-20241022",
+                  snapshot: "Last command output...",
+                  snapshotHtml: "<div>Last command output...</div>",
+                  timestamp: new Date(),
+                },
+              ],
             },
           },
           currentTurn: 4,
@@ -396,7 +402,7 @@ What time is it?`;
       const retrieved = await repository.getById(session.id);
 
       expect(retrieved?.sessionType).toBe("pty_chat");
-      expect(retrieved?.metadata?.external?.pty?.snapshot).toBe("Last command output...");
+      expect(retrieved?.metadata?.external?.pty?.snapshots?.[0].snapshot).toBe("Last command output...");
       expect(retrieved?.metadata?.currentTurn).toBe(4);
       expect(retrieved?.messages).toHaveLength(4);
     });
@@ -404,7 +410,7 @@ What time is it?`;
     it("should handle sessions with empty messages", async () => {
       const session = createMockChatSession({
         sessionType: "chat_draft",
-        sessionStatus: "scheduled",
+        state: "queued",
         messages: [],
         metadata: {
           title: "Empty Draft Session",
