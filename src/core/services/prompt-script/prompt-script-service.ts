@@ -2,9 +2,11 @@
 import path from "node:path";
 import { Logger } from "tslog";
 import {
+  createDirectory,
   generateSequentiallyNumberedFilename,
   generateUniqueFileName,
 } from "../../utils/file-utils.js";
+import { substituteArguments } from "./prompt-script-parser.js";
 import { PromptScriptRepository } from "./prompt-script-repository.js";
 import type {
   ChatSessionData,
@@ -22,19 +24,30 @@ export class PromptScriptService {
   constructor(
     private readonly promptScriptRepo: PromptScriptRepository,
     private readonly chatSessionRepo: ChatSessionRepository,
+    private readonly resolveDefaultDirectory: () => Promise<string>,
   ) {}
 
   /**
    * Create an empty prompt script without link
    */
   async createPromptScript(
-    directory: string,
+    directory?: string,
     name?: string,
   ): Promise<PromptScriptFile> {
+    const trimmedDirectory = directory?.trim();
+    const baseDirectory =
+      trimmedDirectory && trimmedDirectory.length > 0
+        ? trimmedDirectory
+        : await this.resolveDefaultDirectory();
+
+    const resolvedDirectory = path.resolve(baseDirectory);
+    await createDirectory(resolvedDirectory);
+
+    const trimmedName = name?.trim();
     let filePath: string;
-    if (name) {
-      const baseName = `${name}.prompt.md`;
-      filePath = await generateUniqueFileName(directory, baseName);
+    if (trimmedName && trimmedName.length > 0) {
+      const baseName = `${trimmedName}.prompt.md`;
+      filePath = await generateUniqueFileName(resolvedDirectory, baseName);
     } else {
       /*
       // Format: 20251003-143045
@@ -46,11 +59,11 @@ export class PromptScriptService {
       baseName = `${timestamp}.prompt.md`;
       */
       const fileName = await generateSequentiallyNumberedFilename(
-        directory,
+        resolvedDirectory,
         ".prompt.md",
         3,
       );
-      filePath = path.join(directory, fileName);
+      filePath = path.join(resolvedDirectory, fileName);
     }
 
     return this.promptScriptRepo.create(filePath);
@@ -200,6 +213,34 @@ export class PromptScriptService {
         warnings,
       },
     };
+  }
+
+  /**
+   * DEMO METHOD: This is a placeholder to demonstrate how to execute a prompt
+   * with argument substitution. The actual implementation would call the
+   * appropriate chat engine (API or PTY) with the substituted content.
+   */
+  async executePrompt(prompt: PromptScriptPrompt, args: string[]): Promise<void> {
+    const substitutedContent = substituteArguments(prompt.content, args);
+
+    logger.info(
+      `Executing prompt index ${prompt.index} with substituted content:`,
+    );
+    logger.info(substitutedContent);
+
+    // In a real implementation, you would now send `substitutedContent`
+    // to the appropriate engine (e.g., apiChatClient or ptyChatClient)
+    // based on the script's metadata.
+
+    // For example:
+    // const engine = promptScript.promptScriptParsed.metadata.engine;
+    // if (engine === 'api') {
+    //   await apiChatClient.sendMessage(substitutedContent);
+    // } else {
+    //   await ptyChatClient.sendCommand(substitutedContent);
+    // }
+
+    return Promise.resolve();
   }
 
   private async updateSessionMetadata(

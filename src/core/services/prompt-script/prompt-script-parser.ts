@@ -194,6 +194,25 @@ function extractPrompts(body: string): PromptScriptPrompt[] {
   return prompts;
 }
 
+export function substituteArguments(content: string, args: string[]): string {
+  // Substitute $ARGUMENTS, but not \$ARGUMENTS
+  let substitutedContent = content.replace(/(?<!\\)\$ARGUMENTS/g, args.join(" "));
+
+  // Substitute $n (e.g., $1, $2), but not \$n. Limit to 1-2 digits and ensure it's not followed by another digit.
+  substitutedContent = substitutedContent.replace(
+    /(?<!\\)\$(\d{1,2})(?!\d)/g,
+    (_, indexStr) => {
+      const index = parseInt(indexStr, 10) - 1;
+      return index >= 0 && index < args.length ? args[index] : "";
+    },
+  );
+
+  // Remove the escape backslash for any placeholders that were intentionally skipped
+  substitutedContent = substitutedContent.replace(/\\(\$ARGUMENTS|\$\d{1,2}(?!\d))/g, "$1");
+
+  return substitutedContent;
+}
+
 export function parsePromptScriptContent(
   content: string,
 ): ParsePromptScriptResult {
