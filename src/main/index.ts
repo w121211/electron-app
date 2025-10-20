@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import { app, BrowserWindow } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
-import { requestRendererSnapshot } from "../core/services/pty/pty-snapshot-provider.js";
+import { requestRendererSnapshot } from "../core/services/chat/pty-chat/pty-snapshot-provider.js";
 import {
   createMainProcessContext,
   type MainProcessContext,

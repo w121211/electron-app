@@ -1,8 +1,8 @@
-// src/core/services/pty/pty-instance-manager.ts
+// src/core/pty/pty-instance-manager.ts
 import * as pty from "node-pty";
 import { Logger } from "tslog";
 import { v4 as uuidv4 } from "uuid";
-import type { IEventBus } from "../../event-bus.js";
+import type { IEventBus } from "../event-bus.js";
 
 export interface PtyCreateOptions {
   shell?: string;

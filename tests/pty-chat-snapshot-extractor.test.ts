@@ -1,6 +1,6 @@
 // tests/pty-chat-snapshot-extractor.test.ts
 import { describe, it, expect } from "vitest";
-import { extractMessages } from "../src/core/services/pty/pty-chat-snapshot-extractor.js";
+import { extractMessages } from "../src/core/services/chat/pty-chat/pty-snapshot-extractor.js";
 
 describe("pty-chat-snapshot-extractor", () => {
   it("should return empty array for empty snapshot", () => {

@@ -7,7 +7,7 @@ import {
   type ChatSessionRepository,
   type ChatState,
 } from "../../services/chat/chat-session-repository.js";
-import { PtyChatClient } from "../../services/pty/pty-chat-client.js";
+import { PtyChatClient } from "../../services/chat/pty-chat/pty-chat-client.js";
 import { router, publicProcedure } from "../trpc-init.js";
 
 const metadataSchema: z.ZodType<Partial<ChatMetadata>> = z.object({

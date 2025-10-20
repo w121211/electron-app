@@ -4,8 +4,8 @@ import {
   requestRendererSnapshot,
   handleSnapshotResponse,
   type SnapshotResponsePayload,
-} from "../../core/services/pty/pty-snapshot-provider.js";
-import type { SnapshotProviderContext } from "../../core/services/pty/pty-chat-client.js";
+} from "../../core/services/chat/pty-chat/pty-snapshot-provider.js";
+import type { SnapshotProviderContext } from "../../core/services/chat/pty-chat/pty-chat-client.js";
 import type { MainProcessContext } from "../context.js";
 import type { PtyAttachmentService } from "../services/pty-attachments.js";
 

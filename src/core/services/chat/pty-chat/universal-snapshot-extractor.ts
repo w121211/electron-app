@@ -1,7 +1,7 @@
-// src/core/services/pty/universal-snapshot-extractor.ts
+// src/core/services/chat/pty-chat/universal-snapshot-extractor.ts
 import { v4 as uuidv4 } from "uuid";
-import type { ChatMessage } from "../chat/chat-session-repository.js";
-import { stripAnsi } from "./pty-data-processor.js";
+import type { ChatMessage } from "../chat-session-repository.js";
+import { stripAnsi } from "../../../pty/pty-data-processor.js";
 
 type Role = "user" | "assistant";
 

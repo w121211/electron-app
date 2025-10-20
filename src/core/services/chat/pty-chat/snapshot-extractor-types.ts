@@ -1,4 +1,4 @@
-// src/core/services/pty/snapshot-extractor-types.ts
+// src/core/services/chat/pty-chat/snapshot-extractor-types.ts
 
 /**
  * Types for PTY terminal snapshot extraction

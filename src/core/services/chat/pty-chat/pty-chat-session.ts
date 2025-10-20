@@ -1,13 +1,13 @@
-// src/core/services/pty/pty-chat-session.ts
+// src/core/services/chat/pty-chat/pty-chat-session.ts
 import { v4 as uuidv4 } from "uuid";
-import type { IEventBus } from "../../event-bus.js";
+import type { IEventBus } from "../../../event-bus.js";
 import type {
   ChatMessage,
   ChatMessageMetadata,
   ChatMetadata,
   ChatSessionData,
   ChatState,
-} from "../chat/chat-session-repository.js";
+} from "../chat-session-repository.js";
 import type { PtyChatUpdatedEvent } from "./events.js";
 import { extractMessages } from "./universal-snapshot-extractor.js";
 import { findSimilarMessageIndex } from "./pty-message-matcher.js";

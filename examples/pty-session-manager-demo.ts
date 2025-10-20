@@ -2,7 +2,7 @@
 import {
   createPtyInstanceManager,
   PtyInstance,
-} from "../src/core/services/pty/pty-instance-manager.js";
+} from "../src/core/pty/pty-instance-manager.js";
 import { createServerEventBus } from "../src/core/event-bus.js";
 
 async function runPtyInstanceManagerDemo() {

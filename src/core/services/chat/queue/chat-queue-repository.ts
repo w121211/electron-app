@@ -1,7 +1,7 @@
-// src/core/services/chat-queue-repository.ts
+// src/core/services/chat/queue/chat-queue-repository.ts
 import { Level } from "level";
 import { ILogObj, Logger } from "tslog";
-import path from "path";
+import path from "node:path";
 
 export interface QueuedChatItem {
   chatId: string;

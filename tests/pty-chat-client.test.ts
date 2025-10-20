@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import { v4 as uuidv4 } from "uuid";
-import { PtyChatClient } from "../src/core/services/pty/pty-chat-client.js";
+import { PtyChatClient } from "../src/core/services/chat/pty-chat/pty-chat-client.js";
 import {
   ChatSessionRepositoryImpl,
   type ChatSessionData,
@@ -11,12 +11,12 @@ import {
   type ChatState,
 } from "../src/core/services/chat/chat-session-repository.js";
 import { EventBus, type IEventBus } from "../src/core/event-bus.js";
-import type { PtyInstanceManager, PtyInstance } from "../src/core/services/pty/pty-instance-manager.js";
+import type { PtyInstanceManager, PtyInstance } from "../src/core/pty/pty-instance-manager.js";
 import type {
   PtyOnDataEvent,
   PtyOnExitEvent,
   PtyWriteEvent,
-} from "../src/core/services/pty/events.js";
+} from "../src/core/pty/events.js";
 
 // Mock node-pty to avoid spawning real processes
 vi.mock("node-pty", () => ({
@@ -31,7 +31,7 @@ vi.mock("node-pty", () => ({
 }));
 
 // Mock PtyChatSession
-vi.mock("../src/core/services/pty/pty-chat-session.js", () => ({
+vi.mock("../src/core/services/chat/pty-chat/pty-chat-session.js", () => ({
   PtyChatSession: class MockPtyChatSession {
     id: string;
     ptyInstanceId: string | undefined = undefined;

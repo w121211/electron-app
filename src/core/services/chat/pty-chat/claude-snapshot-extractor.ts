@@ -1,6 +1,6 @@
-// src/core/services/pty/claude-snapshot-extractor.ts
+// src/core/services/chat/pty-chat/claude-snapshot-extractor.ts
 import { v4 as uuidv4 } from "uuid";
-import type { ChatMessage } from "../chat/chat-session-repository.js";
+import type { ChatMessage } from "../chat-session-repository.js";
 
 /**
  * Extracts chat messages from Claude Code terminal snapshots.

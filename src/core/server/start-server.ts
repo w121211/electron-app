@@ -6,8 +6,8 @@ import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import { createTrpcRouter } from "./root-router.js";
 import { createContext } from "./trpc-init.js";
 import { createServerEventBus } from "../event-bus.js";
-import { createPtyInstanceManager } from "../services/pty/pty-instance-manager.js";
-import type { SnapshotProvider } from "../services/pty/pty-chat-client.js";
+import { createPtyInstanceManager } from "../pty/pty-instance-manager.js";
+import type { SnapshotProvider } from "../services/chat/pty-chat/pty-chat-client.js";
 
 const logger = new Logger<ILogObj>({ name: "Start-Server" });
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3333;

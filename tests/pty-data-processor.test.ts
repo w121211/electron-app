@@ -1,10 +1,10 @@
-// src/core/services/pty/pty-data-processor.test.ts
+// src/core/pty/pty-data-processor.test.ts
 // PTY recording quick guide:
 // - Run `npm run dev` and open a PTY chat; chunks stream into `tmp/pty-recordings/<sessionId>/<timestamp>-<ptyId>.ndjson`.
 // - Inspect captures with a Node one-liner, e.g.:
 //     PTY_RECORDING_FIXTURE=tmp/pty-recordings/<file>.ndjson node -e "const fs = require('fs'); const lines = fs.readFileSync(process.env.PTY_RECORDING_FIXTURE,'utf8').trim().split(/\n/); for (const line of lines) console.log(JSON.parse(line));"
 // - Replay a recording in this test by running:
-//     PTY_RECORDING_FIXTURE=tmp/pty-recordings/<file>.ndjson npm run test -- --run src/core/services/pty/pty-data-processor.test.ts
+//     PTY_RECORDING_FIXTURE=tmp/pty-recordings/<file>.ndjson npm run test -- --run src/core/pty/pty-data-processor.test.ts
 // - Decode gzip/base64 payloads inline with:
 //     npm run decode:pty -- tmp/pty-recordings/<file>.ndjson
 // - Set `PTY_RECORDING_DISABLED=1` to skip capturing or `PTY_RECORDING_DIR=/path` to change the output location.
@@ -19,7 +19,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PtyDataProcessor } from "./pty-data-processor.js";
+import { PtyDataProcessor } from "../src/core/pty/pty-data-processor.js";
 
 class TestPtyDataSource {
   readonly id: string;

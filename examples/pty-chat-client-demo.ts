@@ -9,14 +9,14 @@ import { ChatSessionRepositoryImpl } from "../src/core/services/chat/chat-sessio
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
 import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";
 import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
-import { createPtyInstanceManager } from "../src/core/services/pty/pty-instance-manager.js";
-import { PtyChatClient } from "../src/core/services/pty/pty-chat-client.js";
+import { createPtyInstanceManager } from "../src/core/pty/pty-instance-manager.js";
+import { PtyChatClient } from "../src/core/services/chat/pty-chat/pty-chat-client.js";
 import type { ChatSessionData } from "../src/core/services/chat/chat-session-repository.js";
 import {
   PtyOnDataEvent,
   PtyOnExitEvent,
   PtyWriteEvent,
-} from "../src/core/services/pty/events.js";
+} from "../src/core/pty/events.js";
 
 const logger = new Logger<ILogObj>();
 const eventBus = new EventBus({

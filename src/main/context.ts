@@ -1,7 +1,7 @@
 // src/main/context.ts
 import type { BrowserWindow } from "electron";
 import type { HttpTrpcServer } from "../core/server/trpc-server.js";
-import type { PtyInstanceManager } from "../core/services/pty/pty-instance-manager.js";
+import type { PtyInstanceManager } from "../core/pty/pty-instance-manager.js";
 
 export interface MainProcessContext {
   trpcServer: HttpTrpcServer;

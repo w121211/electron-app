@@ -1,5 +1,5 @@
-// src/core/services/pty/pty-message-matcher.ts
-import type { ChatMessage } from "../chat/chat-session-repository.js";
+// src/core/services/chat/pty-chat/pty-message-matcher.ts
+import type { ChatMessage } from "../chat-session-repository.js";
 
 const DEFAULT_SIMILARITY_THRESHOLD = 0.95;
 const DEFAULT_LENGTH_TOLERANCE = 0.9;

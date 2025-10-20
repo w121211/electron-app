@@ -2,7 +2,7 @@
 import { describe, it } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { extractMessages } from "../src/core/services/pty/claude-snapshot-extractor.js";
+import { extractMessages } from "../src/core/services/chat/pty-chat/claude-snapshot-extractor.js";
 
 describe("Claude Snapshot Extractor", () => {
   const snapshotFiles = [

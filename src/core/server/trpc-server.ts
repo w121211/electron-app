@@ -11,8 +11,8 @@ import { createServerEventBus } from "../event-bus.js";
 import {
   createPtyInstanceManager,
   type PtyInstanceManager,
-} from "../services/pty/pty-instance-manager.js";
-import type { SnapshotProvider } from "../services/pty/pty-chat-client.js";
+} from "../pty/pty-instance-manager.js";
+import type { SnapshotProvider } from "../services/chat/pty-chat/pty-chat-client.js";
 import type { FileWatcherService } from "../services/file-watcher-service.js";
 
 const logger: Logger<ILogObj> = new Logger({ name: "HttpTrpcServer" });

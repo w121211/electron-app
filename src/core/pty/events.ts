@@ -1,7 +1,5 @@
-// src/core/services/pty/events.ts
-import type { BaseEvent } from "../../event-bus.js";
-import type { PtyChatSession } from "./pty-chat-session.js";
-import type { PtyChatUpdateType, PtyChatUpdate } from "./pty-chat-session.js";
+// src/core/pty/events.ts
+import type { BaseEvent } from "../event-bus.js";
 
 // PTY events
 export interface PtyOnDataEvent extends BaseEvent {
@@ -28,13 +26,4 @@ export interface PtyOnExitEvent extends BaseEvent {
   sessionId: string;
   exitCode: number;
   signal?: number;
-}
-
-// PTY chat session events
-export interface PtyChatUpdatedEvent extends BaseEvent {
-  kind: "PtyChatUpdatedEvent";
-  sessionId: string;
-  updateType: PtyChatUpdateType;
-  update: PtyChatUpdate;
-  session: PtyChatSession;
 }

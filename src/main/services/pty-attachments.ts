@@ -1,6 +1,6 @@
 // src/main/services/pty-attachments.ts
 import type { WebContents } from "electron";
-import type { PtyInstanceManager } from "../../core/services/pty/pty-instance-manager.js";
+import type { PtyInstanceManager } from "../../core/pty/pty-instance-manager.js";
 
 interface AttachmentCleanup {
   offData: () => void;

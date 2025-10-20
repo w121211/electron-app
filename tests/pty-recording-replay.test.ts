@@ -15,12 +15,12 @@ import { EventBus } from "../src/core/event-bus.js";
 import {
   PtyChatSession,
   type PtyChatUpdateType,
-} from "../src/core/services/pty/pty-chat-session.js";
+} from "../src/core/services/chat/pty-chat/pty-chat-session.js";
 import {
   PtyDataProcessor,
   type PtyStreamEventKind,
   type PtyStreamEventMap,
-} from "../src/core/services/pty/pty-data-processor.js";
+} from "../src/core/pty/pty-data-processor.js";
 import type {
   ChatMessage,
   ChatSessionData,

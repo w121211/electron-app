@@ -1,15 +1,26 @@
-// src/core/services/chat-queue-manager.ts
+// src/core/services/chat/queue/chat-queue-manager.ts
 import { Logger, type ILogObj } from "tslog";
 import type {
   ChatSessionData,
   ChatSessionRepository,
-} from "./chat/chat-session-repository.js";
-import type { IEventBus } from "../event-bus.js";
-import type { ChatUpdatedEvent } from "./chat-engine/events.js";
+} from "../chat-session-repository.js";
+import type { IEventBus } from "../../../event-bus.js";
+import type { ChatUpdatedEvent } from "../../chat-engine/events.js";
 import type { UserModelMessage } from "ai";
-import { isTerminalModel } from "../../shared/utils/model-utils.js";
-import type { ApiChatClient } from "./chat-engine/api-chat-client.js";
+import { isTerminalModel } from "../../../../shared/utils/model-utils.js";
+import type { ApiTurnResult } from "../../chat-engine/api-chat-client.js";
 import { ChatQueueRepository } from "./chat-queue-repository.js";
+
+export interface ChatMessageSender {
+  sendMessage(input: {
+    chatSessionId: string;
+    input: UserModelMessage;
+    toolNames?: string[];
+  }): Promise<{
+    turnResult: ApiTurnResult;
+    session: ChatSessionData;
+  }>;
+}
 
 export class ChatQueueManager {
   private readonly logger: Logger<ILogObj> = new Logger({
@@ -21,7 +32,7 @@ export class ChatQueueManager {
     private readonly chatSessionRepository: ChatSessionRepository,
     private readonly chatQueueRepository: ChatQueueRepository,
     private readonly eventBus: IEventBus,
-    private readonly chatClient: ApiChatClient,
+    private readonly chatClient: ChatMessageSender,
   ) {
     this.logger.info("ChatQueueManager initialized");
     this.eventBus.subscribe(

@@ -1,4 +1,4 @@
-// src/core/services/pty/snapshot-extractor.ts
+// src/core/services/chat/pty-chat/snapshot-extractor.ts
 
 import type {
   AgentType,

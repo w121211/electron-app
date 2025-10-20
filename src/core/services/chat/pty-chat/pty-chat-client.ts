@@ -1,17 +1,17 @@
-// src/core/services/pty/pty-chat-client.ts
+// src/core/services/chat/pty-chat/pty-chat-client.ts
 import { v4 as uuidv4 } from "uuid";
 import { Logger } from "tslog";
-import { PtyInstanceManager } from "./pty-instance-manager.js";
+import { PtyInstanceManager } from "../../../pty/pty-instance-manager.js";
 import { PtyChatSession } from "./pty-chat-session.js";
-import { PtyDataProcessor, stripAnsi } from "./pty-data-processor.js";
-import type { PtyStreamEventMap } from "./pty-data-processor.js";
-import type { IEventBus } from "../../event-bus.js";
+import { PtyDataProcessor, stripAnsi } from "../../../pty/pty-data-processor.js";
+import type { PtyStreamEventMap } from "../../../pty/pty-data-processor.js";
+import type { IEventBus } from "../../../event-bus.js";
 import type {
   ChatMetadata,
   ChatSessionData,
   ChatSessionRepository,
-} from "../chat/chat-session-repository.js";
-import type { PtyOnExitEvent } from "./events.js";
+} from "../chat-session-repository.js";
+import type { PtyOnExitEvent } from "../../../pty/events.js";
 
 interface CreatePtyChatInput {
   workingDirectory: string;

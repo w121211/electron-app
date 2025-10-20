@@ -17,12 +17,12 @@ import {
 import { dirname, join, relative, resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { describe, it, expect } from "vitest";
-import { extractMessages as defaultExtractor } from "../src/core/services/pty/pty-snapshot-extractor.js";
-import { extractMessages as claudeExtractor } from "../src/core/services/pty/claude-snapshot-extractor.js";
-import { extractMessages as codexExtractor } from "../src/core/services/pty/codex-snapshot-extractor.js";
-import { extractMessages as geminiExtractor } from "../src/core/services/pty/gemini-snapshot-extractor.js";
-import { extractMessages as universalExtractor } from "../src/core/services/pty/universal-snapshot-extractor.js";
-import { stripAnsi } from "../src/core/services/pty/pty-data-processor.js";
+import { extractMessages as defaultExtractor } from "../src/core/services/chat/pty-chat/pty-snapshot-extractor.js";
+import { extractMessages as claudeExtractor } from "../src/core/services/chat/pty-chat/claude-snapshot-extractor.js";
+import { extractMessages as codexExtractor } from "../src/core/services/chat/pty-chat/codex-snapshot-extractor.js";
+import { extractMessages as geminiExtractor } from "../src/core/services/chat/pty-chat/gemini-snapshot-extractor.js";
+import { extractMessages as universalExtractor } from "../src/core/services/chat/pty-chat/universal-snapshot-extractor.js";
+import { stripAnsi } from "../src/core/pty/pty-data-processor.js";
 import type { ChatMessage } from "../src/core/services/chat/chat-session-repository.js";
 
 type ExtractorKey = "default" | "claude" | "codex" | "gemini" | "universal";

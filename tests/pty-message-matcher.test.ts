@@ -5,7 +5,7 @@ import type { ChatMessage } from "../src/core/services/chat/chat-session-reposit
 import {
   findSimilarMessageIndex,
   messagesAreSimilar,
-} from "../src/core/services/pty/pty-message-matcher.js";
+} from "../src/core/services/chat/pty-chat/pty-message-matcher.js";
 
 function createMessage(content: string, role: "user" | "assistant"): ChatMessage {
   return {

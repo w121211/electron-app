@@ -1,4 +1,4 @@
-// src/core/services/pty/pty-snapshot-provider.ts
+// src/core/services/chat/pty-chat/pty-snapshot-provider.ts
 import { randomUUID } from "node:crypto";
 import { BrowserWindow } from "electron";
 import type {

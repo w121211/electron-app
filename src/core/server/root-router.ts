@@ -22,10 +22,10 @@ import { router } from "./trpc-init.js";
 import {
   PtyChatClient,
   type SnapshotProvider,
-} from "../services/pty/pty-chat-client.js";
+} from "../services/chat/pty-chat/pty-chat-client.js";
 import { createPtyChatRouter } from "./routers/pty-chat-router.js";
 import { createChatCacheMiddleware } from "../services/chat-engine/chat-cache-middleware.js";
-import type { PtyInstanceManager } from "../services/pty/pty-instance-manager.js";
+import type { PtyInstanceManager } from "../pty/pty-instance-manager.js";
 import type { IEventBus } from "../event-bus.js";
 import { ApiChatClient } from "../services/chat-engine/api-chat-client.js";
 import { createApiChatRouter } from "./routers/api-chat-router.js";

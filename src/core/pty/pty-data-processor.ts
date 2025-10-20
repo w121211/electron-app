@@ -1,4 +1,4 @@
-// src/core/services/pty/pty-data-processor.ts
+// src/core/pty/pty-data-processor.ts
 import { createWriteStream, type WriteStream } from "node:fs";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

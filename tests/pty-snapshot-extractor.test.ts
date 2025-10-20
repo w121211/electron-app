@@ -7,7 +7,7 @@ import type {
   AgentType,
   ExtractedSnapshot,
   SnapshotSection,
-} from '../src/core/services/pty/snapshot-extractor-types.js';
+} from '../src/core/services/chat/pty-chat/snapshot-extractor-types.js';
 import {
   detectAgentType,
   extractAgentMetadata,
@@ -17,7 +17,7 @@ import {
   extractToolResults,
   extractConversationTurns,
   extractSnapshot,
-} from '../src/core/services/pty/snapshot-extractor.js';
+} from '../src/core/services/chat/pty-chat/snapshot-extractor.js';
 
 // Test with first Claude snapshot only
 const FIRST_SNAPSHOT = 'pty-snapshot-2025-10-09-20-24-04.txt';
