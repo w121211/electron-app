@@ -5,7 +5,7 @@ import {
   getWebModelUrl,
   getWebModelWindowTitle,
   type ModelSurface,
-} from "../../utils/model-utils.js";
+} from "../../../shared/utils/model-utils.js";
 import {
   launchTerminalFromConfig,
   type LaunchTerminalResult,

@@ -52,6 +52,9 @@ declare global {
           }) => void,
         ) => () => void;
       };
+      xtermWindow: {
+        launch: (ptySessionId: string) => Promise<boolean>;
+      };
       pty: {
         createAndAttach: (options: {
           cols?: number;

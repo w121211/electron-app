@@ -16,6 +16,7 @@ import type {
   PromptScriptFile,
   PromptScriptLinkResult,
   PromptScriptWarning,
+  PromptScriptPrompt,
 } from "./prompt-script-repository.js";
 
 const logger = new Logger({ name: "PromptScriptService" });

@@ -14,7 +14,7 @@ import {
 } from "../../database/sqlite-client.js";
 import type { ToolCallConfirmation } from "../tool-call/tool-call-confirmation.js";
 import type { ToolAlwaysAllowRule } from "../tool-call/tool-call-runner.js";
-import type { ModelSurface } from "../../utils/model-utils.js";
+import type { ModelSurface } from "../../../shared/utils/model-utils.js";
 
 export type ChatSessionType =
   | "chat_engine"

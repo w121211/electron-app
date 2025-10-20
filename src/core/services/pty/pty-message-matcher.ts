@@ -4,8 +4,86 @@ import type { ChatMessage } from "../chat/chat-session-repository.js";
 const DEFAULT_SIMILARITY_THRESHOLD = 0.95;
 const DEFAULT_LENGTH_TOLERANCE = 0.9;
 
-function normalizeContent(content: string): string {
-  return content.replace(/\r/g, "").replace(/\s+/g, " ").trim();
+type MessageContent = ChatMessage["message"]["content"];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function tryGetString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function extractTextFromPart(part: unknown): string {
+  if (typeof part === "string") {
+    return part;
+  }
+
+  if (isRecord(part)) {
+    const textValue = tryGetString(part.text);
+    if (textValue) {
+      return textValue;
+    }
+
+    const contentValue = tryGetString(part.content);
+    if (contentValue) {
+      return contentValue;
+    }
+  }
+
+  return "";
+}
+
+function getArrayContent(
+  content: MessageContent,
+): readonly unknown[] | null {
+  if (Array.isArray(content)) {
+    return content;
+  }
+  return null;
+}
+
+function extractTextContent(content: MessageContent): string {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  const arrayContent = getArrayContent(content);
+  if (arrayContent) {
+    const textParts: string[] = [];
+    for (const part of arrayContent) {
+      const text = extractTextFromPart(part);
+      if (text.length > 0) {
+        textParts.push(text);
+      }
+    }
+    if (textParts.length > 0) {
+      return textParts.join(" ");
+    }
+    return "";
+  }
+
+  if (isRecord(content)) {
+    const textValue =
+      tryGetString(content.text) ?? tryGetString(content.content);
+    if (textValue) {
+      return textValue;
+    }
+  }
+
+  try {
+    return JSON.stringify(content);
+  } catch {
+    return "";
+  }
+}
+
+function normalizeContent(content: MessageContent): string {
+  const text = extractTextContent(content);
+  if (text.length === 0) {
+    return "";
+  }
+  return text.replace(/\r/g, "").replace(/\s+/g, " ").trim();
 }
 
 function levenshteinDistance(a: string, b: string): number {

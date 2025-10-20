@@ -1,7 +1,7 @@
 // src/core/services/surface-launcher/terminal-launcher.ts
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import { Logger, type ILogObj } from "tslog";
-import { presetExternalModels } from "../../utils/model-utils.js";
+import { presetExternalModels } from "../../../shared/utils/model-utils.js";
 import itermAppleScriptTemplate from "./scripts/launch-iterm.applescript?raw";
 import terminalAppleScriptTemplate from "./scripts/launch-terminal.applescript?raw";
 import { focusWindowsWindowByTitle } from "./os/windows.js";

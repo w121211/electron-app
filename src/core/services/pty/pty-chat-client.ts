@@ -11,7 +11,6 @@ import type {
   ChatSessionData,
   ChatSessionRepository,
 } from "../chat/chat-session-repository.js";
-import type { PtyInstance } from "./pty-instance-manager.js";
 import type { PtyOnExitEvent } from "./events.js";
 
 interface CreatePtyChatInput {
@@ -333,11 +332,4 @@ export class PtyChatClient {
     return undefined;
   }
 
-  private getPtyInstance(session: PtyChatSession): PtyInstance | undefined {
-    const instanceId = session.ptyInstanceId;
-    if (!instanceId) {
-      return undefined;
-    }
-    return this.ptyInstanceManager.getSession(instanceId);
-  }
 }

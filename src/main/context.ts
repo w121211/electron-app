@@ -11,6 +11,8 @@ export interface MainProcessContext {
   setMainWindow(window: BrowserWindow | null): void;
   getQuickPromptWindow(): BrowserWindow | null;
   setQuickPromptWindow(window: BrowserWindow | null): void;
+  addXtermWindow(window: BrowserWindow): void;
+  getXtermWindows(): BrowserWindow[];
   isQuitting(): boolean;
   setQuitting(value: boolean): void;
 }
@@ -18,6 +20,7 @@ export interface MainProcessContext {
 interface WindowRegistry {
   main: BrowserWindow | null;
   quickPrompt: BrowserWindow | null;
+  xterm: BrowserWindow[];
 }
 
 export function createMainProcessContext(
@@ -30,6 +33,7 @@ export function createMainProcessContext(
   const windows: WindowRegistry = {
     main: null,
     quickPrompt: null,
+    xterm: [],
   };
   let quitting = false;
 
@@ -45,6 +49,13 @@ export function createMainProcessContext(
     setQuickPromptWindow: (window) => {
       windows.quickPrompt = window;
     },
+    addXtermWindow: (window) => {
+      windows.xterm.push(window);
+      window.on("closed", () => {
+        windows.xterm = windows.xterm.filter((win) => win !== window);
+      });
+    },
+    getXtermWindows: () => windows.xterm,
     isQuitting: () => quitting,
     setQuitting: (value) => {
       quitting = value;

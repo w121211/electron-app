@@ -2,7 +2,7 @@
 import { Logger } from "tslog";
 import { getPreference } from "../lib/local-storage.js";
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
-import type { AvailableModels } from "../../../core/utils/model-utils.js";
+import type { AvailableModels } from "../../../shared/utils/model-utils.js";
 
 const logger = new Logger({ name: "chatStore" });
 

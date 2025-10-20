@@ -1,4 +1,4 @@
-// src/core/utils/model-utils.ts
+// src/shared/utils/model-utils.ts
 
 export interface ExternalModel {
   modelId: `${string}/${string}`;

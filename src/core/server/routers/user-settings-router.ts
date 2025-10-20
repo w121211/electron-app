@@ -1,5 +1,4 @@
 // src/core/server/routers/user-settings-router.ts
-import path from "node:path";
 import { z } from "zod";
 import { UserSettingsService } from "../../services/user-settings-service.js";
 import { router, publicProcedure } from "../trpc-init.js";

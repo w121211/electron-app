@@ -226,19 +226,6 @@ export function extractMessages(snapshot: string): ChatMessage[] {
 
     // Detect assistant response start
     if (ASSISTANT_START.test(line) && !currentMessage) {
-      if (currentMessage) {
-        messages.push({
-          id: uuidv4(),
-          message: {
-            role: currentMessage.role,
-            content: currentMessage.lines.join("\n"),
-          },
-          metadata: {
-            timestamp: new Date(),
-          },
-        });
-      }
-
       currentMessage = {
         role: "assistant",
         lines: [line],

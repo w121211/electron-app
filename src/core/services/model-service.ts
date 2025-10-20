@@ -6,7 +6,7 @@ import {
   type AvailableModels,
   presetExternalModels,
   presetInternalModels,
-} from "../utils/model-utils.js";
+} from "../../shared/utils/model-utils.js";
 
 export class ModelService {
   // @ts-expect-error - Intentionally unused for future use

@@ -1,6 +1,5 @@
 // src/core/services/document/document-service.ts
 import * as path from "node:path";
-import { Logger } from "tslog";
 import { getFileType, resolveDocumentKind } from "../../utils/file-utils.js";
 import type { PromptScriptService } from "../prompt-script/prompt-script-service.js";
 import type { PromptScriptLinkResult } from "../prompt-script/prompt-script-repository.js";
@@ -9,8 +8,6 @@ import {
   saveDocument as saveDocumentHelper,
 } from "./document-repository.js";
 import type { DocumentFile } from "./document-repository.js";
-
-const logger = new Logger({ name: "DocumentService" });
 
 export interface DocumentFileWithPromptScript extends DocumentFile {
   // Already includes PromptScriptFile via PromptScriptLinkResult
@@ -28,8 +25,6 @@ export class DocumentService {
     if (kind === "promptScript") {
       const linkResult =
         await this.promptScriptService.findLinkedChatSession(absolutePath);
-
-      // logger.debug(linkResult);
 
       return {
         ...linkResult.promptScript,

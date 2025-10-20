@@ -27,16 +27,11 @@ const SESSION_HEADER = /^\[38;2;\d+;\d+;\d+m [█░]/;
 
 // User input box start
 const USER_PROMPT_BOX_START = /^╭────/;
-const USER_PROMPT_LINE = /^│\[0m\s+\[38;2;108;112;134m>/;
 const USER_PROMPT_BOX_END = /^╰────/;
 
 // Assistant response marker (sparkle)
 const ASSISTANT_START =
   /^\[38;2;203;166;247m✦ \[38;2;205;214;244m/;
-
-// Tool approval box
-const TOOL_APPROVAL_BOX =
-  /^\[0m \[38;2;108;112;134m╭─.*\n\[0m \[38;2;108;112;134m│\[0m \[38;2;166;227;161m✓\[0m/;
 
 // Request cancelled
 const REQUEST_CANCELLED = /^\[38;2;249;226;175mℹRequest cancelled/;

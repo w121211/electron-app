@@ -10,7 +10,7 @@ import {
   type CreateExternalSessionInput,
 } from './external-chat-client.interface.js';
 import { TerminalChatSession } from './terminal-chat-session.js';
-import { getModelSurface } from '../../utils/model-utils.js';
+import { getModelSurface } from '../../../shared/utils/model-utils.js';
 
 export class TerminalChatClient implements IExternalChatClient {
   private readonly sessions = new Map<string, TerminalChatSession>();

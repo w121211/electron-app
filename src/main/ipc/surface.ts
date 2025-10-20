@@ -4,7 +4,7 @@ import {
   createSurfaceLauncher,
   type SurfaceLaunchResult,
 } from "../../core/services/surface-launcher/surface-launcher.js";
-import type { ModelSurface } from "../../core/utils/model-utils.js";
+import type { ModelSurface } from "../../shared/utils/model-utils.js";
 
 interface SurfaceLaunchPayload {
   sessionId: string;

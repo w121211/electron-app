@@ -1,6 +1,4 @@
 // src/core/services/user-settings-service.ts
-import fs from "node:fs/promises";
-import path from "node:path";
 import { safeStorage } from "electron";
 import { Logger, ILogObj } from "tslog";
 import type {
@@ -179,17 +177,6 @@ export class UserSettingsService {
     // this.logger.debug(process.env);
   }
 
-  private async validateWorkspaceDirectory(
-    workspaceDirectory: string,
-  ): Promise<boolean> {
-    try {
-      const stats = await fs.stat(workspaceDirectory);
-      return stats.isDirectory();
-    } catch (error) {
-      this.logger.error(`Error validating workspace directory: ${error}`);
-      return false;
-    }
-  }
 }
 
 export function createUserSettingsService(

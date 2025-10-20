@@ -62,6 +62,9 @@ const api = {
       };
     },
   },
+  xtermWindow: {
+    launch: (ptySessionId: string) => ipcRenderer.invoke("xterm-window:launch", ptySessionId),
+  },
   // Pty APIs
   pty: {
     createAndAttach: (options: {

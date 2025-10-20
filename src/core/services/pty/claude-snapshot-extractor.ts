@@ -22,17 +22,6 @@ import type { ChatMessage } from "../chat/chat-session-repository.js";
 
 type Role = "user" | "assistant" | "system";
 
-interface ExtractorState {
-  messages: ChatMessage[];
-  currentMessage: {
-    role: Role;
-    content: string;
-    startIndex: number;
-  } | null;
-  inUserPrompt: boolean;
-  inAssistantResponse: boolean;
-}
-
 // User prompt marker: gray background with "> "
 // Matches: ESC[48;2;55;55;55m> ... ESC[0m or ESC[48;2;55;55;55;22m> ...
 const USER_PROMPT_START = /^\x1b\[(?:48;2;55;55;55(?:;22)?m)>\s*/;
@@ -40,9 +29,6 @@ const USER_PROMPT_START = /^\x1b\[(?:48;2;55;55;55(?:;22)?m)>\s*/;
 // Assistant response marker: colored circle "⏺"
 // Matches various color codes followed by ⏺ and reset
 const ASSISTANT_START = /^\x1b\[38;2;(?:\d+);(?:\d+);(?:\d+)(?:;22)?m⏺\x1b\[0m/;
-
-// Tool call pattern: "⏺ **ToolName**(args)"
-const TOOL_CALL = /⏺\x1b\[0m\s+\x1b\[1m([A-Z][a-zA-Z]+)\x1b\[0m\(/;
 
 // Clear command detection
 const CLEAR_COMMAND = /^\x1b\[48;2;55;55;55(?:;22)?m>\s*\/clear\s*\x1b\[0m/;
@@ -74,18 +60,6 @@ function isUserPromptContinuation(line: string): boolean {
 
 /**
  * Checks if a line is part of assistant response content
- */
-function isAssistantContent(line: string): boolean {
-  // Assistant content typically starts with color codes or is plain text
-  // Exclude lines that start new user prompts or are empty
-  if (!line.trim()) return false;
-  if (USER_PROMPT_START.test(line)) return false;
-  if (BOTTOM_PROMPT.test(line)) return false;
-  return true;
-}
-
-/**
- * Strips ANSI escape codes for clean text extraction (optional)
  */
 function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;:]*m/g, "");

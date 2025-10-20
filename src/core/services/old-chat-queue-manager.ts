@@ -1,15 +1,15 @@
 // src/core/services/chat-queue-manager.ts
-import { ILogObj, Logger } from "tslog";
-import type { ChatSessionRepository } from "./chat/chat-session-repository.js";
+import { Logger, type ILogObj } from "tslog";
+import type {
+  ChatSessionData,
+  ChatSessionRepository,
+} from "./chat/chat-session-repository.js";
 import type { IEventBus } from "../event-bus.js";
 import type { ChatUpdatedEvent } from "./chat-engine/events.js";
 import type { UserModelMessage } from "ai";
-import { isTerminalModel } from "../utils/model-utils.js";
+import { isTerminalModel } from "../../shared/utils/model-utils.js";
 import type { ApiChatClient } from "./chat-engine/api-chat-client.js";
-import type { ExternalChatClient } from "./external-chat/external-chat-client.js";
 import { ChatQueueRepository } from "./chat-queue-repository.js";
-import type { ServerFileWatcherEvent } from "../event-types.js";
-import { promises as fs } from "fs";
 
 export class ChatQueueManager {
   private readonly logger: Logger<ILogObj> = new Logger({
@@ -22,26 +22,24 @@ export class ChatQueueManager {
     private readonly chatQueueRepository: ChatQueueRepository,
     private readonly eventBus: IEventBus,
     private readonly chatClient: ApiChatClient,
-    private readonly externalChatClient: ExternalChatClient,
   ) {
     this.logger.info("ChatQueueManager initialized");
     this.eventBus.subscribe(
       "ChatUpdatedEvent",
       this.handleChatUpdated.bind(this),
     );
-    this.eventBus.subscribe(
-      "ServerFileWatcherEvent",
-      this.handleFileWatcherEvent.bind(this),
-    );
   }
 
   public async init(): Promise<void> {
-    this.logger.info("Initializing chat queue...");
     const items = await this.chatQueueRepository.getAllItems();
     const modelIds = new Set(items.map((item) => item.modelId));
+    if (modelIds.size === 0) {
+      this.logger.info("No queued chats found on startup.");
+      return;
+    }
 
     this.logger.info(
-      `Found ${items.length} items across ${modelIds.size} model queues. Triggering processing.`,
+      `Initializing chat queue with ${items.length} item(s) across ${modelIds.size} model(s).`,
     );
 
     for (const modelId of modelIds) {
@@ -53,177 +51,155 @@ export class ChatQueueManager {
     chatId: string,
     absoluteFilePath: string,
   ): Promise<void> {
-    this.logger.info(`Scheduling chat ${chatId} at ${absoluteFilePath}`);
-    const sessionData =
-      await this.chatSessionRepository.loadFromFile(absoluteFilePath);
-
-    if (!sessionData.modelId) {
-      this.logger.error(`Cannot schedule chat ${chatId} without a modelId.`);
-      sessionData.sessionStatus = "idle";
-      await this.chatSessionRepository.saveToFile(
-        absoluteFilePath,
-        sessionData,
+    const session = await this.chatSessionRepository.getById(chatId);
+    if (!session) {
+      this.logger.error(
+        `Cannot schedule chat ${chatId}. Session was not found in repository.`,
       );
       return;
     }
 
-    sessionData.sessionStatus = "scheduled";
-    await this.chatSessionRepository.saveToFile(absoluteFilePath, sessionData);
+    const modelId = session.metadata?.modelId;
+    if (!modelId) {
+      this.logger.error(
+        `Cannot schedule chat ${chatId}. Session metadata is missing modelId.`,
+      );
+      return;
+    }
+
+    await this.updateSessionState(session, "queued");
 
     await this.chatQueueRepository.addItem({
       chatId,
       absoluteFilePath,
-      modelId: sessionData.modelId,
+      modelId,
     });
 
-    this.tryRunNext(sessionData.modelId);
+    this.logger.info(`Queued chat ${chatId} for model ${modelId}.`);
+    this.tryRunNext(modelId);
   }
 
   public tryRunNext(modelId?: string): void {
-    if (modelId) {
-      this.processModelQueue(modelId);
-    } else {
+    if (!modelId) {
       this.logger.warn(
-        "tryRunNext called without a modelId. Processing will only start for models that have items added.",
+        "tryRunNext called without a modelId. Ignoring request.",
       );
+      return;
     }
+
+    void this.processModelQueue(modelId);
   }
 
   private async handleChatUpdated(event: ChatUpdatedEvent): Promise<void> {
-    const { chatId, updateType, chat } = event;
-    const modelId = chat.modelId;
-
+    const modelId = event.chat.metadata?.modelId;
     if (!modelId) {
       this.logger.warn(
-        `ChatUpdatedEvent for ${chatId} has no modelId. Cannot update busy status.`,
+        `ChatUpdatedEvent for ${event.chatId} did not include a modelId.`,
       );
       return;
     }
 
+    const state = event.chat.state;
     if (
-      updateType === "AI_RESPONSE_COMPLETED" ||
-      (updateType === "STATUS_CHANGED" &&
-        chat.sessionStatus !== "processing" &&
-        chat.sessionStatus !== "waiting_confirmation")
+      event.updateType === "AI_RESPONSE_COMPLETED" ||
+      (event.updateType === "STATUS_CHANGED" &&
+        state !== "active:generating")
     ) {
-      this.logger.info(`Model ${modelId} is now free.`);
+      this.logger.info(`Model ${modelId} is available. Checking queue...`);
       this.busyModels.delete(modelId);
-      // Use the file path from the chat object to remove from the queue
-      await this.chatQueueRepository.removeItem(chat.absoluteFilePath);
+      await this.removeQueueItemForChat(event.chatId);
       this.tryRunNext(modelId);
-    }
-  }
-
-  private async handleFileWatcherEvent(
-    event: ServerFileWatcherEvent,
-  ): Promise<void> {
-    const { fsEventKind, srcPath, isDirectory } = event.data;
-
-    if (isDirectory || !srcPath.endsWith(".chat.json")) {
-      return;
-    }
-
-    if (fsEventKind === "unlink") {
-      this.logger.info(`Chat file deleted: ${srcPath}. Removing from queue.`);
-      await this.chatQueueRepository.removeItem(srcPath);
-    }
-
-    if (fsEventKind === "add") {
-      this.logger.info(
-        `Chat file added: ${srcPath}. Checking if it should be scheduled.`,
-      );
-      try {
-        const sessionData =
-          await this.chatSessionRepository.loadFromFile(srcPath);
-        if (sessionData.sessionStatus === "scheduled") {
-          await this.schedule(sessionData.id, sessionData.absoluteFilePath);
-        }
-      } catch (error) {
-        this.logger.error(
-          `Error processing added chat file ${srcPath}:`,
-          error,
-        );
-      }
     }
   }
 
   private async processModelQueue(modelId: string): Promise<void> {
     if (this.busyModels.has(modelId)) {
-      this.logger.debug(`Model ${modelId} is busy. Skipping.`);
+      this.logger.debug(`Model ${modelId} is currently running. Skipping.`);
       return;
     }
 
     const nextChat = await this.chatQueueRepository.getNextInQueue(modelId);
     if (!nextChat) {
-      this.logger.debug(`No chats in queue for model ${modelId}.`);
+      this.logger.debug(`No queued chats for model ${modelId}.`);
       return;
     }
 
-    // --- Verification Step ---
-    try {
-      await fs.access(nextChat.absoluteFilePath);
-    } catch (error) {
+    const session = await this.chatSessionRepository.getById(nextChat.chatId);
+    if (!session) {
       this.logger.warn(
-        `File ${nextChat.absoluteFilePath} not found for queued chat. Removing orphan.`,
+        `Queued chat ${nextChat.chatId} no longer exists. Removing from queue.`,
       );
       await this.chatQueueRepository.removeItem(nextChat.absoluteFilePath);
-      this.processModelQueue(modelId); // Try next
+      this.tryRunNext(modelId);
       return;
     }
 
-    const sessionData = await this.chatSessionRepository.loadFromFile(
-      nextChat.absoluteFilePath,
-    );
-    if (sessionData.id !== nextChat.chatId) {
-      this.logger.error(
-        `Chat ID mismatch for ${nextChat.absoluteFilePath}. Expected ${nextChat.chatId}, found ${sessionData.id}. File may have been swapped. Removing invalid queue item.`,
+    const promptDraft = session.metadata?.promptDraft;
+    if (!promptDraft || promptDraft.trim().length === 0) {
+      this.logger.warn(
+        `Chat ${session.id} has no promptDraft. Removing from queue.`,
       );
       await this.chatQueueRepository.removeItem(nextChat.absoluteFilePath);
-      this.processModelQueue(modelId); // Try next
+      this.tryRunNext(modelId);
       return;
     }
-    // --- End Verification ---
+
+    if (isTerminalModel(modelId)) {
+      this.logger.warn(
+        `Terminal models (${modelId}) are not currently supported by ChatQueueManager. Removing queued item.`,
+      );
+      await this.chatQueueRepository.removeItem(nextChat.absoluteFilePath);
+      return;
+    }
 
     this.busyModels.add(modelId);
-    this.logger.info(`Running chat ${nextChat.chatId} on model ${modelId}`);
+    await this.updateSessionState(session, "active:generating");
+
+    const userInput: UserModelMessage = {
+      role: "user",
+      content: promptDraft,
+    };
 
     try {
-      const prompt = sessionData.metadata?.promptDraft;
-      if (!prompt) {
-        this.logger.warn(
-          `Chat ${nextChat.chatId} has no promptDraft. Freeing queue.`,
-        );
-        this.busyModels.delete(modelId);
-        await this.chatQueueRepository.removeItem(nextChat.absoluteFilePath);
-        this.processModelQueue(modelId);
-        return;
-      }
-
-      const userInput: UserModelMessage = {
-        role: "user",
-        content: prompt,
-      };
-
-      if (isTerminalModel(modelId)) {
-        await this.externalChatClient.sendMessageToExternal(
-          nextChat.absoluteFilePath,
-          nextChat.chatId,
-          userInput,
-        );
-      } else {
-        await this.chatClient.sendMessage(
-          nextChat.absoluteFilePath,
-          nextChat.chatId,
-          userInput,
-        );
-      }
+      await this.chatClient.sendMessage({
+        chatSessionId: session.id,
+        input: userInput,
+      });
     } catch (error) {
       this.logger.error(
-        `Error running chat ${nextChat.chatId} on model ${modelId}:`,
+        `Failed to process chat ${session.id} on model ${modelId}:`,
         error,
       );
       this.busyModels.delete(modelId);
+      await this.updateSessionState(session, "queued");
       this.tryRunNext(modelId);
     }
+  }
+
+  private async updateSessionState(
+    session: ChatSessionData,
+    state: ChatSessionData["state"],
+  ): Promise<void> {
+    if (session.state === state) {
+      return;
+    }
+
+    const updatedSession: ChatSessionData = {
+      ...session,
+      state,
+      updatedAt: new Date(),
+    };
+
+    await this.chatSessionRepository.update(updatedSession);
+  }
+
+  private async removeQueueItemForChat(chatId: string): Promise<void> {
+    const items = await this.chatQueueRepository.getAllItems();
+    const match = items.find((item) => item.chatId === chatId);
+    if (!match) {
+      return;
+    }
+
+    await this.chatQueueRepository.removeItem(match.absoluteFilePath);
   }
 }
