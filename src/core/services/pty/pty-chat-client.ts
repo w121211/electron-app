@@ -59,21 +59,23 @@ export class PtyChatClient {
 
   async createSession(input: CreatePtyChatInput): Promise<ChatSessionData> {
     const timestamp = new Date();
+    const metadata = {
+      ...input.metadata,
+      modelId: input.modelId,
+      modelSurface: "pty" as const,
+      mode: "agent" as const,
+      external: {
+        ...input.metadata?.external,
+        workingDirectory: input.workingDirectory,
+      },
+    };
+
     const sessionData: ChatSessionData = {
       id: uuidv4(),
       sessionType: "pty_chat",
       state: "active",
       messages: [],
-      metadata: {
-        modelId: input.modelId,
-        mode: "agent",
-        external: {
-          mode: "pty",
-          workingDirectory: input.workingDirectory,
-          pty: {},
-        },
-        ...input.metadata,
-      },
+      metadata,
       scriptPath: null,
       scriptModifiedAt: null,
       scriptHash: null,
@@ -322,7 +324,7 @@ export class PtyChatClient {
       if (data.sessionType !== "pty_chat") {
         continue;
       }
-      const existingPtyId = data.metadata?.external?.pty?.ptyInstanceId;
+      const existingPtyId = data.metadata?.external?.ptyInstanceId;
       if (existingPtyId === ptyInstanceId) {
         this.sessionIdByPtyInstance.set(ptyInstanceId, data.id);
         return this.getOrLoadSession(data.id);

@@ -4,7 +4,6 @@
     CodeSlash,
     ArrowClockwise,
     Terminal,
-    XCircle,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import {
@@ -35,7 +34,7 @@
   $inspect(selectedPtyStream);
 
   $effect(() => {
-    const ptyInstanceId = chatSession?.metadata?.external?.pty?.ptyInstanceId;
+    const ptyInstanceId = chatSession?.metadata?.external?.ptyInstanceId;
     logger.debug("ptyInstanceId", ptyInstanceId);
     if (ptyInstanceId) {
       selectedPtyStream = ptyStreamManager.getOrAttachStream(ptyInstanceId);
@@ -62,21 +61,9 @@
       selectedPtyStream &&
       readyStream.ptySessionId === selectedPtyStream.ptySessionId
     ) {
-      const initialCommand =
-        chatSession?.metadata?.external?.pty?.initialCommand;
-
-      if (initialCommand) {
-        logger.debug(
-          `Executing initial command: "${initialCommand}" for session ${readyStream.ptySessionId}`,
-        );
-        setTimeout(() => {
-          readyStream.write(initialCommand + "\n");
-        }, 50);
-      } else {
-        logger.debug(
-          `No initial command found for session ${readyStream.ptySessionId}`,
-        );
-      }
+      logger.debug(
+        `No initial command configured for session ${readyStream.ptySessionId}`,
+      );
     } else {
       logger.debug(
         `Terminal for session ${readyStream.ptySessionId} is ready, but not the selected stream. Skipping initial command.`,
@@ -100,7 +87,7 @@
         chatSession.id,
       );
       logger.info(`Terminal restarted for session ${chatSession.id}`, {
-        newPtyInstanceId: updatedSession.metadata?.external?.pty?.ptyInstanceId,
+        newPtyInstanceId: updatedSession.metadata?.external?.ptyInstanceId,
       });
     } catch (error) {
       logger.error("Failed to restart terminal", error);
@@ -119,7 +106,7 @@
         chatSession.id,
       );
       logger.info(`Terminal opened for session ${chatSession.id}`, {
-        newPtyInstanceId: updatedSession.metadata?.external?.pty?.ptyInstanceId,
+        newPtyInstanceId: updatedSession.metadata?.external?.ptyInstanceId,
       });
     } catch (error) {
       logger.error("Failed to open terminal", error);
@@ -180,9 +167,9 @@
   {#if !hidden && chatSession}
     {#if chatSession.state === "terminated" || !selectedPtyStream}
       <div class="flex-1 overflow-hidden p-5">
-        {#if chatSession.metadata?.external?.pty?.snapshots}
+        {#if chatSession.metadata?.external?.ptySnapshots}
           <XtermSnapshots
-            snapshots={chatSession.metadata.external.pty.snapshots}
+            snapshots={chatSession.metadata.external.ptySnapshots}
           />
         {:else}
           <div class="text-muted mt-4 px-4 py-2 text-sm">

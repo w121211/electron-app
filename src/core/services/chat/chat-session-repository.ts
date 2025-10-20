@@ -14,12 +14,24 @@ import {
 } from "../../database/sqlite-client.js";
 import type { ToolCallConfirmation } from "../tool-call/tool-call-confirmation.js";
 import type { ToolAlwaysAllowRule } from "../tool-call/tool-call-runner.js";
+import type { ModelSurface } from "../../utils/model-utils.js";
 
 export type ChatSessionType =
   | "chat_engine"
   | "chat_draft"
   | "external_chat"
   | "pty_chat";
+
+export const ChatSessionTypeSchema = z.enum([
+  "chat_engine",
+  "chat_draft",
+  "external_chat",
+  "pty_chat",
+]);
+
+const modelSurfaceValues = ["api", "terminal", "web", "pty"] as const;
+
+export const ModelSurfaceSchema = z.enum(modelSurfaceValues);
 
 export type ChatMode = "chat" | "agent";
 
@@ -55,14 +67,12 @@ export interface PtyChatSnapshot {
 }
 
 export interface ExternalChatMetadata {
-  mode?: "terminal" | "pty";
-  pid?: number;
   workingDirectory?: string;
-  pty?: {
-    initialCommand?: string;
-    ptyInstanceId?: string;
-    snapshots?: PtyChatSnapshot[];
-  };
+  pid?: number;
+  ptyInstanceId?: string;
+  ptySnapshots?: PtyChatSnapshot[];
+  windowTitle?: string;
+  webChatId?: string;
 }
 
 export interface ChatMetadata {
@@ -73,6 +83,7 @@ export interface ChatMetadata {
   promptDraft?: string;
   external?: ExternalChatMetadata;
   modelId?: `${string}/${string}`;
+  modelSurface?: ModelSurface;
   currentTurn?: number;
   maxTurns?: number;
   toolSet?: ToolSet;
@@ -95,32 +106,29 @@ export interface ChatSessionData {
   updatedAt: Date;
 }
 
-const ModelIdSchema = z
+export const ModelIdSchema = z
   .string()
   .regex(/^.+\/.+$/)
   .transform((value) => value as `${string}/${string}`);
 
-const PtyChatSnapshotSchema: z.ZodType<PtyChatSnapshot> = z.object({
+export const PtyChatSnapshotSchema: z.ZodType<PtyChatSnapshot> = z.object({
   modelId: ModelIdSchema,
   snapshot: z.string(),
   snapshotHtml: z.string().optional(),
   timestamp: z.coerce.date(),
 });
 
-const ExternalChatMetadataSchema: z.ZodType<ExternalChatMetadata> = z.object({
-  mode: z.enum(["terminal", "pty"]).optional(),
-  pid: z.number().optional(),
-  workingDirectory: z.string().optional(),
-  pty: z
-    .object({
-      initialCommand: z.string().optional(),
-      ptyInstanceId: z.string().optional(),
-      snapshots: z.array(PtyChatSnapshotSchema).optional(),
-    })
-    .optional(),
-});
+export const ExternalChatMetadataSchema: z.ZodType<ExternalChatMetadata> =
+  z.object({
+    workingDirectory: z.string().optional(),
+    pid: z.number().optional(),
+    ptyInstanceId: z.string().optional(),
+    ptySnapshots: z.array(PtyChatSnapshotSchema).optional(),
+    windowTitle: z.string().optional(),
+    webChatId: z.string().optional(),
+  });
 
-const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
+export const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   title: z.string().optional(),
   tags: z.array(z.string()).optional(),
   mode: z.enum(["chat", "agent"]).optional(),
@@ -128,6 +136,7 @@ const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   promptDraft: z.string().optional(),
   external: ExternalChatMetadataSchema.optional(),
   modelId: ModelIdSchema.optional(),
+  modelSurface: ModelSurfaceSchema.optional(),
   currentTurn: z.number().optional(),
   maxTurns: z.number().optional(),
   toolSet: z.any().optional(),
@@ -155,27 +164,28 @@ const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
     .optional(),
 });
 
-const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> = z.object({
-  timestamp: z.coerce.date(),
-  subtaskId: z.string().optional(),
-  taskId: z.string().optional(),
-  fileReferences: z
-    .array(
-      z.object({
-        path: z.string(),
-        md5: z.string(),
-      }),
-    )
-    .optional(),
-});
+export const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> =
+  z.object({
+    timestamp: z.coerce.date(),
+    subtaskId: z.string().optional(),
+    taskId: z.string().optional(),
+    fileReferences: z
+      .array(
+        z.object({
+          path: z.string(),
+          md5: z.string(),
+        }),
+      )
+      .optional(),
+  });
 
-const ChatMessageSchema: z.ZodType<ChatMessage> = z.object({
+export const ChatMessageSchema: z.ZodType<ChatMessage> = z.object({
   id: z.string(),
   message: modelMessageSchema,
   metadata: ChatMessageMetadataSchema,
 });
 
-const ChatStateSchema = z.enum([
+export const ChatStateSchema = z.enum([
   "queued",
   "active",
   "active:generating",
@@ -184,14 +194,9 @@ const ChatStateSchema = z.enum([
   "terminated",
 ]);
 
-const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
+export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
   id: z.string(),
-  sessionType: z.enum([
-    "chat_engine",
-    "chat_draft",
-    "external_chat",
-    "pty_chat",
-  ]),
+  sessionType: ChatSessionTypeSchema,
   state: ChatStateSchema,
   messages: z.array(ChatMessageSchema),
   metadata: ChatMetadataSchema.optional(),

@@ -73,10 +73,7 @@ vi.mock("../src/core/services/pty/pty-chat-session.js", () => ({
           ...this.sessionData.metadata,
           external: {
             ...this.sessionData.metadata?.external,
-            pty: {
-              ...this.sessionData.metadata?.external?.pty,
-              ptyInstanceId: this.ptyInstanceId,
-            },
+            ptyInstanceId: this.ptyInstanceId,
           },
         },
       };
@@ -226,7 +223,7 @@ describe("PtyChatClient", () => {
       expect(session.sessionType).toBe("pty_chat");
       expect(session.state).toBe("active");
       expect(session.metadata?.modelId).toBe("cli/claude");
-      expect(session.metadata?.external?.mode).toBe("pty");
+      expect(session.metadata?.modelSurface).toBe("pty");
       expect(session.metadata?.external?.workingDirectory).toBe("/tmp/test");
       expect(session.metadata?.title).toBe("Test PTY Session");
 
@@ -308,7 +305,7 @@ describe("PtyChatClient", () => {
       const session = await repository.getById(sessionId);
 
       expect(session).toBeDefined();
-      expect(session?.metadata?.external?.pty?.ptyInstanceId).toBe(mockInstance.id);
+      expect(session?.metadata?.external?.ptyInstanceId).toBe(mockInstance.id);
       expect(ptyInstanceManager.create).toHaveBeenCalledWith({
         cwd: "/tmp",
       });
@@ -316,7 +313,7 @@ describe("PtyChatClient", () => {
 
     it("should have PTY instance accessible via manager", async () => {
       const session = await repository.getById(sessionId);
-      const ptyInstanceId = session?.metadata?.external?.pty?.ptyInstanceId;
+      const ptyInstanceId = session?.metadata?.external?.ptyInstanceId;
 
       expect(ptyInstanceId).toBeDefined();
       const instance = ptyInstanceManager.getSession(ptyInstanceId!);
@@ -354,12 +351,12 @@ describe("PtyChatClient", () => {
       expect(mockInstance.kill).toHaveBeenCalled();
 
       expect(result.state).toBe("terminated");
-      expect(result.metadata?.external?.pty?.ptyInstanceId).toBeUndefined();
+      expect(result.metadata?.external?.ptyInstanceId).toBeUndefined();
 
       const terminatedSession = await repository.getById(sessionId);
       expect(terminatedSession?.state).toBe("terminated");
       expect(
-        terminatedSession?.metadata?.external?.pty?.ptyInstanceId,
+        terminatedSession?.metadata?.external?.ptyInstanceId,
       ).toBeUndefined();
     });
 
@@ -452,10 +449,7 @@ describe("PtyChatClient", () => {
       const sessionData = createMockChatSession({
         metadata: {
           external: {
-            mode: "pty",
-            pty: {
-              ptyInstanceId: "test-pty-id",
-            },
+            ptyInstanceId: "test-pty-id",
           },
         },
       });
@@ -464,7 +458,7 @@ describe("PtyChatClient", () => {
       // Verify it can be loaded
       const loaded = await repository.getById(sessionData.id);
       expect(loaded).toBeDefined();
-      expect(loaded?.metadata?.external?.pty?.ptyInstanceId).toBe("test-pty-id");
+      expect(loaded?.metadata?.external?.ptyInstanceId).toBe("test-pty-id");
     });
 
     it("should find session by PTY instance ID from repository", async () => {
@@ -474,10 +468,7 @@ describe("PtyChatClient", () => {
       const sessionData = createMockChatSession({
         metadata: {
           external: {
-            mode: "pty",
-            pty: {
-              ptyInstanceId,
-            },
+            ptyInstanceId,
           },
         },
       });
@@ -485,7 +476,7 @@ describe("PtyChatClient", () => {
 
       // Verify the session is in the repository
       const loaded = await repository.getById(sessionData.id);
-      expect(loaded?.metadata?.external?.pty?.ptyInstanceId).toBe(ptyInstanceId);
+      expect(loaded?.metadata?.external?.ptyInstanceId).toBe(ptyInstanceId);
     });
   });
 

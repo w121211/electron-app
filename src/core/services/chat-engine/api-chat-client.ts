@@ -1,6 +1,7 @@
 // src/core/services/chat-engine/api-chat-client.ts
 import { gateway } from "@ai-sdk/gateway";
 import { v4 as uuidv4 } from "uuid";
+import { z } from "zod";
 import type { LanguageModelV2Middleware } from "@ai-sdk/provider";
 import {
   streamText,
@@ -21,6 +22,12 @@ import type {
   ChatSessionRepository,
   ChatState,
   ChatSessionType,
+} from "../chat/chat-session-repository.js";
+import {
+  ChatMessageSchema,
+  ChatMetadataSchema,
+  ChatSessionTypeSchema,
+  ChatStateSchema,
 } from "../chat/chat-session-repository.js";
 import {
   extractChatFileReferences,
@@ -53,6 +60,27 @@ export interface CreateChatSessionInput {
     snapshot?: string | null;
   };
 }
+
+export const CreateChatSessionInputSchema: z.ZodType<CreateChatSessionInput> = z
+  .object({
+    sessionType: ChatSessionTypeSchema,
+    metadata: ChatMetadataSchema.optional(),
+    messages: z.array(ChatMessageSchema).optional(),
+    state: ChatStateSchema.optional(),
+    script: z
+      .object({
+        path: z.string().nullable().optional(),
+        modifiedAt: z.coerce.date().nullable().optional(),
+        hash: z.string().nullable().optional(),
+        snapshot: z.string().nullable().optional(),
+      })
+      .optional(),
+  })
+  .transform((value) => ({
+    ...value,
+    metadata: value.metadata ?? {},
+    messages: value.messages ?? [],
+  }));
 
 export interface SendChatMessageInput {
   chatSessionId: string;

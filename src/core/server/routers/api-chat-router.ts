@@ -1,7 +1,6 @@
 // src/core/server/routers/api-chat-router.ts
 import { z } from "zod";
 import {
-  modelMessageSchema,
   type FinishReason,
   type LanguageModelUsage,
   type ModelMessage,
@@ -10,129 +9,13 @@ import {
   type TypedToolCall,
   type UserModelMessage,
 } from "ai";
-import type {
-  ChatMessage,
-  ChatMessageMetadata,
-  ChatMetadata,
-  ChatState,
-  ChatSessionType,
-} from "../../services/chat/chat-session-repository.js";
+import type { ChatState } from "../../services/chat/chat-session-repository.js";
 import {
   ApiChatClient,
   type ApiTurnResult,
-  type CreateChatSessionInput,
+  CreateChatSessionInputSchema,
 } from "../../services/chat-engine/api-chat-client.js";
 import { router, publicProcedure } from "../trpc-init.js";
-
-const chatSessionTypeSchema: z.ZodType<ChatSessionType> = z.enum([
-  "chat_engine",
-  "chat_draft",
-  "external_chat",
-  "pty_chat",
-]);
-
-const chatStateSchema: z.ZodType<ChatState> = z.enum([
-  "queued",
-  "active",
-  "active:generating",
-  "active:awaiting_input",
-  "active:disconnected",
-  "terminated",
-]);
-
-const chatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> = z.object({
-  timestamp: z.coerce.date(),
-  subtaskId: z.string().optional(),
-  taskId: z.string().optional(),
-  fileReferences: z
-    .array(
-      z.object({
-        path: z.string(),
-        md5: z.string(),
-      }),
-    )
-    .optional(),
-});
-
-const chatMessageSchema: z.ZodType<ChatMessage> = z.object({
-  id: z.string(),
-  message: modelMessageSchema,
-  metadata: chatMessageMetadataSchema,
-});
-
-const chatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
-  title: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  mode: z.enum(["chat", "agent"]).optional(),
-  knowledge: z.array(z.string()).optional(),
-  promptDraft: z.string().optional(),
-  external: z
-    .object({
-      mode: z.enum(["terminal", "pty"]).optional(),
-      pid: z.number().optional(),
-      workingDirectory: z.string().optional(),
-      pty: z
-        .object({
-          initialCommand: z.string().optional(),
-          ptyInstanceId: z.string().optional(),
-          snapshot: z.string().optional(),
-          snapshotHtml: z.string().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-  modelId: z
-    .string()
-    .regex(/^.+\/.+$/)
-    .transform((value) => value as `${string}/${string}`)
-    .optional(),
-  currentTurn: z.number().optional(),
-  maxTurns: z.number().optional(),
-  toolSet: z.any().optional(),
-  toolCallsAwaitingConfirmation: z.array(z.any()).optional(),
-  toolCallConfirmations: z
-    .array(
-      z.object({
-        toolCallId: z.string(),
-        outcome: z.enum(["yes", "yes_always", "no"]),
-        timestamp: z.coerce.date(),
-      }),
-    )
-    .optional(),
-  toolAlwaysAllowRules: z
-    .array(
-      z.object({
-        toolName: z.string(),
-        sourceConfirmation: z.object({
-          toolCallId: z.string(),
-          outcome: z.enum(["yes", "yes_always", "no"]),
-          timestamp: z.coerce.date(),
-        }),
-      }),
-    )
-    .optional(),
-});
-
-const createChatSessionInputSchema: z.ZodType<CreateChatSessionInput> = z
-  .object({
-    sessionType: chatSessionTypeSchema,
-    metadata: chatMetadataSchema.optional(),
-    messages: z.array(chatMessageSchema).optional(),
-    state: chatStateSchema.optional(),
-    script: z
-      .object({
-        path: z.string().nullable().optional(),
-        modifiedAt: z.coerce.date().nullable().optional(),
-        hash: z.string().nullable().optional(),
-        snapshot: z.string().nullable().optional(),
-      })
-      .optional(),
-  })
-  .transform((value) => ({
-    ...value,
-    metadata: value.metadata ?? {},
-    messages: value.messages ?? [],
-  }));
 
 const userModelMessageSchema: z.ZodType<UserModelMessage> = z.object({
   role: z.literal("user"),
@@ -191,7 +74,7 @@ async function serializeTurnResult(
 export function createApiChatRouter(chatClient: ApiChatClient) {
   return router({
     createSession: publicProcedure
-      .input(createChatSessionInputSchema)
+      .input(CreateChatSessionInputSchema)
       .mutation(async ({ input }) => {
         const session = await chatClient.createSession(input);
         return session;

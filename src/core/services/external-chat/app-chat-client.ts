@@ -10,6 +10,7 @@ import {
   type IExternalChatClient,
   type CreateExternalSessionInput,
 } from "./external-chat-client.interface.js";
+import { getModelSurface } from "../../utils/model-utils.js";
 
 import { ExternalChatSession } from "./external-chat-session.js";
 
@@ -28,26 +29,28 @@ export class AppChatClient implements IExternalChatClient {
   ): Promise<ChatSessionData> {
     logger.info("Creating a tracking session for an app chat...");
     const timestamp = new Date();
+    const modelSurface = getModelSurface(input.modelId);
+    const metadata = {
+      ...input.metadata,
+      title: input.title ?? input.metadata?.title ?? "App Chat Session",
+      modelId: input.modelId,
+      modelSurface,
+      mode: "agent" as const,
+      external: input.metadata?.external,
+    };
+
     const sessionData: ChatSessionData = {
       id: uuidv4(),
       sessionType: "external_chat",
       state: "active",
       messages: [],
-      metadata: {
-        title: input.title || "App Chat Session",
-        modelId: input.modelId,
-        mode: "agent",
-        external: {
-          mode: "app",
-        },
-        ...input.metadata,
-      },
+      metadata,
       createdAt: timestamp,
       updatedAt: timestamp,
-      scriptPath: null,
-      scriptHash: null,
-      scriptSnapshot: null,
-      scriptModifiedAt: null,
+      scriptPath: input.script?.path ?? null,
+      scriptHash: input.script?.hash ?? null,
+      scriptSnapshot: input.script?.snapshot ?? null,
+      scriptModifiedAt: input.script?.modifiedAt ?? null,
     };
 
     await this.repository.create(sessionData);

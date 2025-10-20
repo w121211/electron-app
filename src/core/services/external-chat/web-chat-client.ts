@@ -12,6 +12,7 @@ import {
 } from './external-chat-client.interface.js';
 
 import { ExternalChatSession } from './external-chat-session.js';
+import { getModelSurface } from '../../utils/model-utils.js';
 
 const logger = new Logger({ name: 'WebChatClient' });
 
@@ -28,26 +29,28 @@ export class WebChatClient implements IExternalChatClient {
   ): Promise<ChatSessionData> {
     logger.info('Creating a tracking session for a web chat...');
     const timestamp = new Date();
+    const modelSurface = getModelSurface(input.modelId);
+    const metadata = {
+      ...input.metadata,
+      title: input.title ?? input.metadata?.title ?? 'Web Chat Session',
+      modelId: input.modelId,
+      modelSurface,
+      mode: 'agent' as const,
+      external: input.metadata?.external,
+    };
+
     const sessionData: ChatSessionData = {
       id: uuidv4(),
       sessionType: 'external_chat',
       state: 'active',
       messages: [],
-      metadata: {
-        title: input.title || 'Web Chat Session',
-        modelId: input.modelId,
-        mode: 'agent',
-        external: {
-          mode: 'web',
-        },
-        ...input.metadata,
-      },
+      metadata,
       createdAt: timestamp,
       updatedAt: timestamp,
-      scriptPath: null,
-      scriptHash: null,
-      scriptSnapshot: null,
-      scriptModifiedAt: null,
+      scriptPath: input.script?.path ?? null,
+      scriptHash: input.script?.hash ?? null,
+      scriptSnapshot: input.script?.snapshot ?? null,
+      scriptModifiedAt: input.script?.modifiedAt ?? null,
     };
 
     await this.repository.create(sessionData);
@@ -83,3 +86,4 @@ export class WebChatClient implements IExternalChatClient {
     this.sessions.set(sessionId, session);
     return session;
   }
+}

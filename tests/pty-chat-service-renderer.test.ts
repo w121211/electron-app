@@ -103,11 +103,8 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
       metadata: {
         modelId: "anthropic/claude-3-5-sonnet-20241022",
         external: {
-          mode: "pty",
-          pty: {
-            ptyInstanceId: "pty-instance-789",
-            snapshots: [],
-          },
+          ptyInstanceId: "pty-instance-789",
+          ptySnapshots: [],
         },
       },
       scriptPath: null,
@@ -130,16 +127,13 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
         ...ptyChatSession.metadata,
         external: {
           ...ptyChatSession.metadata?.external,
-          pty: {
-            ...ptyChatSession.metadata?.external?.pty,
-            snapshots: [
-              {
-                modelId: "anthropic/claude-3-5-sonnet-20241022",
-                snapshot: "Terminal output here",
-                timestamp: expect.any(Date),
-              },
-            ],
-          },
+          ptySnapshots: [
+            {
+              modelId: "anthropic/claude-3-5-sonnet-20241022",
+              snapshot: "Terminal output here",
+              timestamp: expect.any(Date),
+            },
+          ],
         },
       },
     });
@@ -193,12 +187,7 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
       messages: [],
       metadata: {
         modelId: "anthropic/claude-3-5-sonnet-20241022",
-        external: {
-          mode: "pty",
-          pty: {
-            // No ptyInstanceId
-          },
-        },
+        external: {},
       },
       scriptPath: null,
       scriptModifiedAt: null,
@@ -237,10 +226,7 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
       messages: [],
       metadata: {
         external: {
-          mode: "pty",
-          pty: {
-            ptyInstanceId: "pty-instance-123",
-          },
+          ptyInstanceId: "pty-instance-123",
         },
       },
       scriptPath: null,
@@ -269,10 +255,7 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
       metadata: {
         modelId: "anthropic/claude-3-5-sonnet-20241022",
         external: {
-          mode: "pty",
-          pty: {
-            ptyInstanceId: "pty-instance-fail",
-          },
+          ptyInstanceId: "pty-instance-fail",
         },
       },
       scriptPath: null,

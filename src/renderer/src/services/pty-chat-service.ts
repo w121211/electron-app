@@ -136,7 +136,7 @@ export class PtyChatService {
       throw new Error("Session is not a PTY chat session");
     }
 
-    const ptyInstanceId = sessionData.metadata?.external?.pty?.ptyInstanceId;
+    const ptyInstanceId = sessionData.metadata?.external?.ptyInstanceId;
     const modelId = sessionData.metadata?.modelId;
 
     if (!ptyInstanceId) {
@@ -164,24 +164,21 @@ export class PtyChatService {
 
     if (snapshot) {
       const existingSnapshots =
-        sessionData.metadata?.external?.pty?.snapshots || [];
+        sessionData.metadata?.external?.ptySnapshots || [];
 
       const updatedSession = await this.updateSession(sessionId, {
         metadata: {
           ...sessionData.metadata,
           external: {
             ...sessionData.metadata?.external,
-            pty: {
-              ...sessionData.metadata?.external?.pty,
-              snapshots: [
-                ...existingSnapshots,
-                {
-                  modelId,
-                  snapshot,
-                  timestamp: new Date(),
-                },
-              ],
-            },
+            ptySnapshots: [
+              ...existingSnapshots,
+              {
+                modelId,
+                snapshot,
+                timestamp: new Date(),
+              },
+            ],
           },
         },
       });
@@ -215,7 +212,7 @@ export class PtyChatService {
       throw new Error("Current session is not a PTY chat session");
     }
 
-    const ptyInstanceId = session.data.metadata?.external?.pty?.ptyInstanceId;
+    const ptyInstanceId = session.data.metadata?.external?.ptyInstanceId;
     if (!ptyInstanceId) {
       throw new Error("No PTY instance found for current session");
     }

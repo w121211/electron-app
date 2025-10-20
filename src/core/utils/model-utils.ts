@@ -2,9 +2,11 @@
 
 export interface ExternalModel {
   modelId: `${string}/${string}`;
-  command: string;
-  args: string[];
+  command?: string;
+  args?: string[];
   enabled: boolean;
+  url?: string;
+  windowTitle?: string;
 }
 
 export interface InternalModel {
@@ -18,8 +20,22 @@ export interface AvailableModels {
   internal: Record<string, InternalModel>;
 }
 
+export type ModelSurface = "api" | "terminal" | "web" | "pty";
+
+export function getModelSurface(modelId: string): ModelSurface {
+  if (modelId.startsWith("cli/")) {
+    return "terminal";
+  }
+
+  if (modelId.startsWith("web/")) {
+    return "web";
+  }
+
+  return "api";
+}
+
 export function isTerminalModel(modelId: string): boolean {
-  return modelId.startsWith("cli/");
+  return getModelSurface(modelId) === "terminal";
 }
 
 export const presetExternalModels: Record<string, ExternalModel> = {
@@ -46,6 +62,18 @@ export const presetExternalModels: Record<string, ExternalModel> = {
     command: "",
     args: [],
     enabled: true,
+  },
+  "web/chatgpt": {
+    modelId: "web/chatgpt",
+    enabled: true,
+    url: "https://chatgpt.com/",
+    windowTitle: "ChatGPT",
+  },
+  "web/claude": {
+    modelId: "web/claude",
+    enabled: true,
+    url: "https://claude.ai/chat",
+    windowTitle: "Claude",
   },
 };
 
@@ -77,10 +105,29 @@ export function buildCliModelCommand(
   }
 
   const command = model.command;
+  if (!command || command.trim().length === 0) {
+    throw new Error(`No command configured for external model: ${modelId}`);
+  }
   // const args = model.args.join(" ");
   // const fullCommand = args ? `${command} ${args}` : command;
 
   // return `${fullCommand} "${prompt.replace(/"/g, '\\"')}"`;
   // return `${fullCommand}`;
   return command;
+}
+
+export function getWebModelUrl(modelId: string): string | null {
+  const model = presetExternalModels[modelId];
+  if (!model?.url) {
+    return null;
+  }
+  return model.url;
+}
+
+export function getWebModelWindowTitle(modelId: string): string | null {
+  const model = presetExternalModels[modelId];
+  if (!model?.windowTitle) {
+    return null;
+  }
+  return model.windowTitle;
 }

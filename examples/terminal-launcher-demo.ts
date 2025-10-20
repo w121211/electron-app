@@ -1,5 +1,5 @@
 // examples/terminal-launcher-demo.ts
-import { launchTerminal } from "../src/core/services/terminal-launcher.js";
+import { launchTerminal } from "../src/core/services/surface-launcher/terminal-launcher.js";
 import { Logger, ILogObj } from "tslog";
 
 const logger = new Logger<ILogObj>({ name: "TerminalLauncherDemo" });

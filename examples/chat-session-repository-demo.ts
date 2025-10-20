@@ -220,11 +220,8 @@ What time is it?`;
     metadata: {
       title: "Another Script",
       external: {
-        mode: "pty",
-        pty: {
-          initialCommand: "!claude",
-          ptyInstanceId: "pty-123",
-        },
+        ptyInstanceId: "pty-123",
+        windowTitle: "AI Chat pty-123",
       },
     },
     scriptPath: scriptPath2,
@@ -367,15 +364,18 @@ async function testComplexScenarios(repository: ChatSessionRepositoryImpl) {
       tags: ["pty", "multi-model", "complex"],
       mode: "agent",
       external: {
-        mode: "pty",
         pid: 12345,
         workingDirectory: "/tmp/test",
-        pty: {
-          initialCommand: "!claude",
-          ptyInstanceId: "pty-complex-123",
-          snapshot: "Last command output...",
-          snapshotHtml: "<div>Last command output...</div>",
-        },
+        ptyInstanceId: "pty-complex-123",
+        windowTitle: "AI Chat pty-complex-123",
+        ptySnapshots: [
+          {
+            modelId: "cli/claude",
+            snapshot: "Last command output...",
+            snapshotHtml: "<div>Last command output...</div>",
+            timestamp: new Date(),
+          },
+        ],
       },
       currentTurn: 4,
       maxTurns: 10,
@@ -385,7 +385,10 @@ async function testComplexScenarios(repository: ChatSessionRepositoryImpl) {
   await repository.create(complexSession);
   const retrievedComplex = await repository.getById(complexSession.id);
 
-  if (!retrievedComplex || !retrievedComplex.metadata?.external?.pty?.snapshot) {
+  if (
+    !retrievedComplex ||
+    !retrievedComplex.metadata?.external?.ptySnapshots?.[0]?.snapshot
+  ) {
     throw new Error("Failed to store/retrieve complex metadata");
   }
 

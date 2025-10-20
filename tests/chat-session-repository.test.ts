@@ -376,22 +376,20 @@ What time is it?`;
           title: "Multi-Model PTY Session",
           tags: ["pty", "multi-model", "complex"],
           mode: "agent",
+          modelSurface: "pty",
           external: {
-            mode: "pty",
             pid: 12345,
             workingDirectory: "/tmp/test",
-            pty: {
-              initialCommand: "!claude",
-              ptyInstanceId: "pty-complex-123",
-              snapshots: [
-                {
-                  modelId: "anthropic/claude-3-5-sonnet-20241022",
-                  snapshot: "Last command output...",
-                  snapshotHtml: "<div>Last command output...</div>",
-                  timestamp: new Date(),
-                },
-              ],
-            },
+            ptyInstanceId: "pty-complex-123",
+            windowTitle: "AI Chat pty-complex-123",
+            ptySnapshots: [
+              {
+                modelId: "anthropic/claude-3-5-sonnet-20241022",
+                snapshot: "Last command output...",
+                snapshotHtml: "<div>Last command output...</div>",
+                timestamp: new Date(),
+              },
+            ],
           },
           currentTurn: 4,
           maxTurns: 10,
@@ -402,7 +400,7 @@ What time is it?`;
       const retrieved = await repository.getById(session.id);
 
       expect(retrieved?.sessionType).toBe("pty_chat");
-      expect(retrieved?.metadata?.external?.pty?.snapshots?.[0].snapshot).toBe("Last command output...");
+      expect(retrieved?.metadata?.external?.ptySnapshots?.[0]?.snapshot).toBe("Last command output...");
       expect(retrieved?.metadata?.currentTurn).toBe(4);
       expect(retrieved?.messages).toHaveLength(4);
     });

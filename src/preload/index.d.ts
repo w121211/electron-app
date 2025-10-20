@@ -19,12 +19,27 @@ declare global {
         hide: () => Promise<boolean>;
         focus: () => Promise<boolean>;
       };
+      surface: {
+        launch: (payload: {
+          sessionId: string;
+          modelId: `${string}/${string}`;
+          modelSurface: "api" | "terminal" | "web" | "pty";
+          projectPath?: string | null;
+        }) => Promise<{
+          success: boolean;
+          pid?: number;
+          error?: string;
+          message?: string;
+        }>;
+      };
       quickPrompt: {
         launchChat: (payload: {
           scriptPath: string;
           sessionId: string;
           projectPath: string | null;
           modelId: `${string}/${string}`;
+          closeQuickPromptWindow?: boolean;
+          focusMainWindow?: boolean;
         }) => Promise<boolean>;
         selectFiles: (options?: { defaultPath?: string }) => Promise<string[]>;
         saveAudio: (audioData: Uint8Array) => Promise<string>;

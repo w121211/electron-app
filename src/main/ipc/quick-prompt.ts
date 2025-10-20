@@ -51,10 +51,22 @@ export function registerQuickPromptIpcHandlers(
         sessionId: string;
         projectPath: string | null;
         modelId: `${string}/${string}`;
+        closeQuickPromptWindow?: boolean;
+        focusMainWindow?: boolean;
       },
     ) => {
+      const {
+        closeQuickPromptWindow = true,
+        focusMainWindow = true,
+        ...rest
+      } = payload;
+
       const quickPromptWindow = context.getQuickPromptWindow();
-      if (quickPromptWindow && !quickPromptWindow.isDestroyed()) {
+      if (
+        closeQuickPromptWindow &&
+        quickPromptWindow &&
+        !quickPromptWindow.isDestroyed()
+      ) {
         quickPromptWindow.hide();
       }
 
@@ -63,8 +75,10 @@ export function registerQuickPromptIpcHandlers(
         if (!mainWindow.isVisible()) {
           mainWindow.show();
         }
-        mainWindow.focus();
-        mainWindow.webContents.send("quick-prompt:launch-chat", payload);
+        if (focusMainWindow) {
+          mainWindow.focus();
+        }
+        mainWindow.webContents.send("quick-prompt:launch-chat", rest);
         return true;
       }
 

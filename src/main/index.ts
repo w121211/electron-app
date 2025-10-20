@@ -12,6 +12,7 @@ import {
 import { registerShutdownHooks } from "./lifecycle/shutdown.js";
 import { registerDialogIpcHandlers } from "./ipc/dialogs.js";
 import { registerQuickPromptIpcHandlers } from "./ipc/quick-prompt.js";
+import { registerSurfaceIpcHandlers } from "./ipc/surface.js";
 import { registerPtyIpcHandlers } from "./ipc/pty.js";
 import { registerSystemIpcHandlers } from "./ipc/system.js";
 import { createPtyAttachmentService } from "./services/pty-attachments.js";
@@ -54,6 +55,7 @@ async function bootstrap(): Promise<MainProcessContext> {
     mainContext.ptyInstanceManager,
   );
   registerPtyIpcHandlers(mainContext, attachmentService);
+  registerSurfaceIpcHandlers();
   registerQuickPromptIpcHandlers(mainContext);
   registerQuickPromptWindowShortcut(mainContext);
 

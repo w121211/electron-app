@@ -17,7 +17,7 @@
     if (!selectedPtyChatId) return null;
 
     const selectedChat = ptyChats.find((chat) => chat.id === selectedPtyChatId);
-    const ptyInstanceId = selectedChat?.metadata?.external?.pty?.ptyInstanceId;
+    const ptyInstanceId = selectedChat?.metadata?.external?.ptyInstanceId;
     if (ptyInstanceId) {
       const stram = ptyStreamManager.getStream(ptyInstanceId);
       return stram?.ptySessionId ?? null;
@@ -56,7 +56,7 @@
       "Starting new PTY chat session",
     );
 
-    const ptyInstanceId = ptyChat.metadata?.external?.pty?.ptyInstanceId;
+    const ptyInstanceId = ptyChat.metadata?.external?.ptyInstanceId;
     if (ptyInstanceId) {
       ptyStreamManager.getOrAttachStream(ptyInstanceId);
       ptyChats.push(ptyChat);
@@ -70,7 +70,7 @@
   const terminateSession = async (): Promise<void> => {
     if (!selectedPtyChatId) return;
     const selectedChat = ptyChats.find((chat) => chat.id === selectedPtyChatId);
-    const ptyInstanceId = selectedChat?.metadata?.external?.pty?.ptyInstanceId;
+    const ptyInstanceId = selectedChat?.metadata?.external?.ptyInstanceId;
     if (ptyInstanceId) {
       await ptyStreamManager.disposeStream(ptyInstanceId);
       refreshStreams();

@@ -18,12 +18,22 @@ const api = {
     hide: () => ipcRenderer.invoke("quick-prompt-window:hide"),
     focus: () => ipcRenderer.invoke("quick-prompt-window:focus"),
   },
+  surface: {
+    launch: (payload: {
+      sessionId: string;
+      modelId: `${string}/${string}`;
+      modelSurface: "api" | "terminal" | "web" | "pty";
+      projectPath?: string | null;
+    }) => ipcRenderer.invoke("surface:launch", payload),
+  },
   quickPrompt: {
     launchChat: (payload: {
       scriptPath: string;
       sessionId: string;
       projectPath: string | null;
       modelId: `${string}/${string}`;
+      closeQuickPromptWindow?: boolean;
+      focusMainWindow?: boolean;
     }) => ipcRenderer.invoke("quick-prompt:launch-chat", payload),
     selectFiles: (options?: { defaultPath?: string }) =>
       ipcRenderer.invoke("quick-prompt:select-files", options),

@@ -18,12 +18,18 @@
   import {
     chatSettings,
     getAvailableModelsAsList,
+    setChatSession,
   } from "../../stores/chat.svelte.js";
   import { projectState } from "../../stores/project-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
   import { modelClientService } from "../../services/model-client-service.js";
   import { documentClientService } from "../../services/document-client-service.js";
   import { apiChatService } from "../../services/api-chat-service.js";
+  import { trpcClient } from "../../lib/trpc-client.js";
+  import {
+    getModelSurface,
+    type ModelSurface,
+  } from "../../../../core/utils/model-utils.js";
   import type { ProjectFolder } from "../../stores/project-store.svelte.js";
 
   const logger = new Logger({ name: "QuickPromptApp" });
@@ -134,6 +140,8 @@ Plan:
     sessionId: string;
     projectPath: string | null;
     modelId: `${string}/${string}`;
+    closeQuickPromptWindow?: boolean;
+    focusMainWindow?: boolean;
   }
 
   interface AttachmentEntry {
@@ -404,7 +412,8 @@ Plan:
         const uint8Array = new Uint8Array(arrayBuffer);
 
         try {
-          const relativePath = await window.api.quickPrompt.saveAudio(uint8Array);
+          const relativePath =
+            await window.api.quickPrompt.saveAudio(uint8Array);
           ensureAttachmentReference(relativePath);
           applyStatus(`Audio saved: @${relativePath}`, "success");
         } catch (error) {
@@ -538,15 +547,24 @@ Plan:
       return;
     }
 
+    const initialSurface: ModelSurface = getModelSurface(selectedModelId);
+    const requiresWorkingDirectory = initialSurface === "terminal";
+    if (requiresWorkingDirectory && !selectedProjectPath) {
+      applyStatus(
+        "Select a project folder before launching a terminal model.",
+        "error",
+      );
+      return;
+    }
+
     isSubmitting = true;
     applyStatus("Creating prompt script and launching chat…", "info");
 
     try {
-      const script =
-        await documentClientService.createPromptScriptWithContent(
-          selectedProjectPath ?? undefined,
-          trimmedPrompt,
-        );
+      const script = await documentClientService.createPromptScriptWithContent(
+        selectedProjectPath ?? undefined,
+        trimmedPrompt,
+      );
 
       const firstLine =
         trimmedPrompt
@@ -554,28 +572,31 @@ Plan:
           .map((line) => line.trim())
           .find((line) => line.length > 0) ?? "New Prompt";
 
-      const session = await apiChatService.createSession({
-        sessionType: "chat_engine",
-        metadata: {
-          title: firstLine.slice(0, 120),
-          modelId: selectedModelId,
-          mode: "chat",
-        },
+      const session = await trpcClient.chat.createSession.mutate({
+        modelId: selectedModelId,
+        title: firstLine.slice(0, 120),
+        workingDirectory: requiresWorkingDirectory
+          ? (selectedProjectPath ?? undefined)
+          : undefined,
         script: {
           path: script.absolutePath,
           snapshot: trimmedPrompt,
         },
       });
 
+      setChatSession(session);
+
       await documentClientService.linkPromptScriptToChatSession(
         script.absolutePath,
         session.id,
       );
 
-      await apiChatService.sendMessage({
-        sessionId: session.id,
-        prompt: trimmedPrompt,
-      });
+      if (session.sessionType === "chat_engine") {
+        await apiChatService.sendMessage({
+          sessionId: session.id,
+          prompt: trimmedPrompt,
+        });
+      }
 
       const payload: LaunchChatPayload = {
         scriptPath: script.absolutePath,
@@ -584,12 +605,79 @@ Plan:
         modelId: selectedModelId,
       };
 
-      await window.api.quickPrompt.launchChat(payload);
-      await window.api.mainWindow.focus();
-      await window.api.quickPromptWindow.hide();
+      const sessionSurface: ModelSurface =
+        session.metadata?.modelSurface ?? initialSurface;
 
-      promptValue = "";
-      applyStatus("Chat launched in the main window.", "success");
+      let shouldCloseQuickPromptWindow = sessionSurface === "api";
+      let shouldFocusMainWindow = shouldCloseQuickPromptWindow;
+      let finalStatus: { message: string; type: StatusType } | null = null;
+
+      if (sessionSurface !== "api") {
+        try {
+          const result = await window.api.surface.launch({
+            sessionId: session.id,
+            modelId: selectedModelId,
+            modelSurface: sessionSurface,
+            projectPath: selectedProjectPath,
+          });
+
+          if (result.success) {
+            shouldCloseQuickPromptWindow = true;
+            shouldFocusMainWindow = true;
+          } else {
+            finalStatus = {
+              message:
+                result.error ??
+                "Failed to launch the selected surface. Try again.",
+              type: "error",
+            };
+          }
+        } catch (surfaceError) {
+          logger.error("Surface launch failed", surfaceError);
+          finalStatus = {
+            message:
+              surfaceError instanceof Error
+                ? surfaceError.message
+                : "Surface launch failed.",
+            type: "error",
+          };
+        }
+      }
+
+      const notifiedMainWindow = await window.api.quickPrompt.launchChat({
+        ...payload,
+        closeQuickPromptWindow: shouldCloseQuickPromptWindow,
+        focusMainWindow: shouldFocusMainWindow,
+      });
+
+      if (!notifiedMainWindow && (!finalStatus || finalStatus.type !== "error")) {
+        finalStatus = {
+          message: "Main window is unavailable. Review the chat from the chat list.",
+          type: "warning",
+        };
+      }
+
+      if (shouldCloseQuickPromptWindow) {
+        promptValue = "";
+        if (!finalStatus || finalStatus.type !== "error") {
+          finalStatus = {
+            message:
+              session.sessionType === "chat_engine"
+                ? "Chat launched in the main window."
+                : "External chat launched in the main window.",
+            type: "success",
+          };
+        }
+      } else if (!finalStatus) {
+        finalStatus = {
+          message: "Chat session created. Launch the surface when you're ready.",
+          type: "info",
+        };
+      }
+
+      if (finalStatus) {
+        applyStatus(finalStatus.message, finalStatus.type);
+      }
     } catch (error) {
       logger.error("Failed to launch chat from quick prompt", error);
       applyStatus(

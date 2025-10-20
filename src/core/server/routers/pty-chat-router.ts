@@ -1,10 +1,11 @@
 // src/core/server/routers/pty-chat-router.ts
 import { z } from "zod";
-import type {
-  ChatMetadata,
-  ChatSessionData,
-  ChatSessionRepository,
-  ChatState,
+import {
+  ExternalChatMetadataSchema,
+  type ChatMetadata,
+  type ChatSessionData,
+  type ChatSessionRepository,
+  type ChatState,
 } from "../../services/chat/chat-session-repository.js";
 import { PtyChatClient } from "../../services/pty/pty-chat-client.js";
 import { router, publicProcedure } from "../trpc-init.js";
@@ -15,21 +16,7 @@ const metadataSchema: z.ZodType<Partial<ChatMetadata>> = z.object({
   mode: z.enum(["chat", "agent"]).optional(),
   knowledge: z.array(z.string()).optional(),
   promptDraft: z.string().optional(),
-  external: z
-    .object({
-      mode: z.enum(["terminal", "pty"]).optional(),
-      pid: z.number().optional(),
-      workingDirectory: z.string().optional(),
-      pty: z
-        .object({
-          initialCommand: z.string().optional(),
-          ptyInstanceId: z.string().optional(),
-          snapshot: z.string().optional(),
-          snapshotHtml: z.string().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
+  external: ExternalChatMetadataSchema.optional(),
   modelId: z
     .string()
     .regex(/^.+\/.+$/)

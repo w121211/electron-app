@@ -88,7 +88,7 @@ export class PtyChatSession {
   }
 
   get ptyInstanceId(): string | undefined {
-    return this.metadata.external?.pty?.ptyInstanceId;
+    return this.metadata.external?.ptyInstanceId;
   }
 
   set ptyInstanceId(value: string | undefined) {
@@ -96,10 +96,7 @@ export class PtyChatSession {
       ...this.metadata,
       external: {
         ...this.metadata.external,
-        pty: {
-          ...this.metadata.external?.pty,
-          ptyInstanceId: value,
-        },
+        ptyInstanceId: value,
       },
     };
   }
@@ -151,9 +148,6 @@ export class PtyChatSession {
       ...this.metadata,
       external: {
         ...this.metadata.external,
-        pty: {
-          ...this.metadata.external?.pty,
-        },
       },
     };
     this.updatedAt = new Date();

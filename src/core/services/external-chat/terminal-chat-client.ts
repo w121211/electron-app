@@ -1,6 +1,5 @@
 // src/core/services/external-chat/terminal-chat-client.ts
 import { v4 as uuidv4 } from 'uuid';
-import { Logger } from 'tslog';
 import type { IEventBus } from '../../event-bus.js';
 import type {
   ChatSessionData,
@@ -10,9 +9,8 @@ import {
   type IExternalChatClient,
   type CreateExternalSessionInput,
 } from './external-chat-client.interface.js';
-import { launchTerminalFromConfig } from '../terminal-launcher.js';
-
-const logger = new Logger({ name: 'TerminalChatClient' });
+import { TerminalChatSession } from './terminal-chat-session.js';
+import { getModelSurface } from '../../utils/model-utils.js';
 
 export class TerminalChatClient implements IExternalChatClient {
   private readonly sessions = new Map<string, TerminalChatSession>();
@@ -26,42 +24,35 @@ export class TerminalChatClient implements IExternalChatClient {
     input: CreateExternalSessionInput,
   ): Promise<ChatSessionData> {
     const timestamp = new Date();
+    const modelSurface = getModelSurface(input.modelId);
+    const metadata = {
+      ...input.metadata,
+      title: input.title ?? input.metadata?.title ?? 'Terminal Session',
+      modelId: input.modelId,
+      modelSurface,
+      mode: 'agent' as const,
+      external: {
+        ...input.metadata?.external,
+        workingDirectory: input.workingDirectory,
+      },
+    };
+
     const sessionData: ChatSessionData = {
       id: uuidv4(),
       sessionType: 'external_chat',
       state: 'active',
       messages: [],
-      metadata: {
-        title: input.title || 'Terminal Session',
-        modelId: input.modelId,
-        mode: 'agent',
-        external: {
-          mode: 'terminal',
-          workingDirectory: input.workingDirectory,
-        },
-        ...input.metadata,
-      },
+      metadata,
       createdAt: timestamp,
       updatedAt: timestamp,
-      scriptPath: null,
-      scriptHash: null,
-      scriptSnapshot: null,
-      scriptModifiedAt: null,
+      scriptPath: input.script?.path ?? null,
+      scriptHash: input.script?.hash ?? null,
+      scriptSnapshot: input.script?.snapshot ?? null,
+      scriptModifiedAt: input.script?.modifiedAt ?? null,
     };
 
     if (!input.workingDirectory) {
       throw new Error('Working directory is required for a terminal session.');
-    }
-
-    const launchResult = launchTerminalFromConfig({
-      modelId: input.modelId,
-      workingDirectory: input.workingDirectory,
-    });
-
-    if (launchResult.success) {
-      sessionData.metadata!.external!.pid = launchResult.pid;
-    } else {
-      logger.error('Failed to launch terminal', launchResult.error);
     }
 
     await this.repository.create(sessionData);

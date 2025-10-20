@@ -94,7 +94,7 @@
 
   // Derived state for the current PTY stream
   const ptyStream = $derived.by(() => {
-    const ptyInstanceId = chat.metadata?.external?.pty?.ptyInstanceId;
+    const ptyInstanceId = chat.metadata?.external?.ptyInstanceId;
     if (ptyInstanceId) {
       return ptyStreamManager.getOrAttachStream(ptyInstanceId);
     }

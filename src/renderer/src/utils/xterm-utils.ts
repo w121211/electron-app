@@ -69,7 +69,9 @@ export const saveTerminalSnapshotToFile = async (
 export const buildTerminatedSessionSnapshot = (
   chat: ChatSessionData,
 ): string => {
-  const metadataSnapshot = chat.metadata?.external?.pty?.screenshot;
+  const snapshots = chat.metadata?.external?.ptySnapshots;
+  const latestSnapshot = snapshots?.[snapshots.length - 1];
+  const metadataSnapshot = latestSnapshot?.snapshot;
   if (metadataSnapshot && metadataSnapshot.trim().length > 0) {
     return metadataSnapshot;
   }

@@ -32,6 +32,9 @@ import { createApiChatRouter } from "./routers/api-chat-router.js";
 import { PromptScriptRepository } from "../services/prompt-script/prompt-script-repository.js";
 import { PromptScriptService } from "../services/prompt-script/prompt-script-service.js";
 import { DocumentService } from "../services/document/document-service.js";
+import { TerminalChatClient } from "../services/external-chat/terminal-chat-client.js";
+import { WebChatClient } from "../services/external-chat/web-chat-client.js";
+import { createChatRouter } from "./routers/chat-router.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
@@ -115,6 +118,12 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     cacheMiddleware: chatCacheMiddleware,
   });
 
+  const terminalChatClient = new TerminalChatClient(
+    eventBus,
+    chatSessionRepository,
+  );
+  const webChatClient = new WebChatClient(eventBus, chatSessionRepository);
+
   const ptyChatClient = new PtyChatClient(
     eventBus,
     chatSessionRepository,
@@ -144,6 +153,11 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   // Create the application router
   const appRouter = router({
     task: createTaskRouter(taskService),
+    chat: createChatRouter({
+      apiChatClient,
+      terminalChatClient,
+      webChatClient,
+    }),
     apiChat: createApiChatRouter(apiChatClient),
     // toolCall: createToolCallRouter(toolCallScheduler, toolRegistry),
     ptyChat: createPtyChatRouter(ptyChatClient, chatSessionRepository),
