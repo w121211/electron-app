@@ -2,12 +2,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import XtermStream from "./XtermStream.svelte";
-  import { ptyChatService } from "../services/pty-chat-service.js";
+  import { ptyChatService } from "../../services/pty-chat-service.js";
   import {
     ptyStreamManager,
     type PtyStream,
-  } from "../services/pty-stream-manager.js";
-  import type { ChatSessionData } from "../../../core/services/chat-engine/chat-session-repository.js";
+  } from "../../services/pty-stream-manager.js";
+  import type { ChatSessionData } from "../../../../core/services/chat/chat-session-repository.js";
 
   let streams = $state<PtyStream[]>([]);
   let ptyChats = $state<ChatSessionData[]>([]);
@@ -134,7 +134,7 @@
           class:hidden={stream.ptySessionId !== selectedPtySessionId}
         > -->
       <XtermStream
-        ptyStream={stream}
+        stream={stream}
         hidden={stream.ptySessionId !== selectedPtySessionId}
       />
       <!-- </div> -->

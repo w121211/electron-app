@@ -2,7 +2,7 @@
 <script lang="ts">
   import { Logger } from "tslog";
   import { projectService } from "../services/project-service.js";
-  // import { taskService } from "../services/task-service.js";
+
   import { getSelectedDocContext, ui } from "../stores/ui.svelte.js";
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
   // import ApiChatPanel from "./chat/ChatPanel.svelte";
@@ -49,7 +49,6 @@
       // Initialize core application data
       await Promise.all([
         projectService.loadProjectFolders(),
-        // taskService.getAllTasks(),
       ]);
       logger.info("App data initialization complete");
     }

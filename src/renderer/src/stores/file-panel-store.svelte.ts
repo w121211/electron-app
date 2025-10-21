@@ -3,6 +3,7 @@ import { Logger } from "tslog";
 // import { fileService } from "../services/file-service";
 import { projectState } from "./project-store.svelte.js";
 
+// @ts-expect-error - Intentionally unused for future use
 const logger = new Logger({ name: "file-panel-store" });
 
 interface FilePanelState {

@@ -29,7 +29,7 @@
   import {
     getModelSurface,
     type ModelSurface,
-  } from "../../../../core/utils/model-utils.js";
+  } from "../../../../shared/utils/model-utils.js";
   import type { ProjectFolder } from "../../stores/project-store.svelte.js";
 
   const logger = new Logger({ name: "QuickPromptApp" });

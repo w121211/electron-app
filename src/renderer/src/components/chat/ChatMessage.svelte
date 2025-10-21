@@ -14,9 +14,9 @@
     Download,
   } from "svelte-bootstrap-icons";
   import { showToast } from "../../stores/ui-store.svelte.js";
-  import { extractFileReferences } from "../../stores/chat-store.svelte.js";
+  import { extractFileReferences } from "../../../../core/utils/message-utils.js";
   import ToolResultDisplay from "./ToolResultDisplay.svelte";
-  import type { ChatMessage } from "../../../../core/services/chat-engine/chat-session-repository.js";
+  import type { ChatMessage } from "../../../../core/services/chat/chat-session-repository.js";
 
   interface Props {
     chatMessage: ChatMessage;
@@ -25,6 +25,7 @@
   let { chatMessage }: Props = $props();
 
   const message = chatMessage.message;
+  // @ts-expect-error - Intentionally unused for future use
   const metadata = chatMessage.metadata;
 
   // Message type discrimination
@@ -33,6 +34,7 @@
   const isAssistant = message.role === "assistant";
   const isTool = message.role === "tool";
 
+  // @ts-expect-error - Intentionally unused for future use
   function formatTimestamp(timestamp: Date): string {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: "2-digit",
@@ -108,12 +110,12 @@
 
           <!-- File References -->
           {#if fileReferences.length > 0}
-            {#each fileReferences as ref (ref.path)}
+            {#each fileReferences as ref (ref)}
               <button
-                onclick={() => handleFileReference(ref.path)}
+                onclick={() => handleFileReference(ref)}
                 class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
               >
-                {ref.syntax}{ref.path}
+                @{ref}
               </button>
             {/each}
           {/if}

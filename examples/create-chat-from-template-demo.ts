@@ -9,12 +9,12 @@ import { EventBus } from "../src/core/event-bus.js";
 import { ApiChatClient as ChatEngineClient } from "../src/core/services/chat-engine/api-chat-client.js";
 import { ChatSessionRepositoryImpl } from "../src/core/services/chat/chat-session-repository.js";
 import { ToolRegistryImpl } from "../src/core/services/tool-call/tool-registry.js";
-import { TaskService } from "../src/core/services/task-service.js";
+
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
 import { UserSettingsService } from "../src/core/services/user-settings-service.js";
 import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";
 import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
-import { TaskRepository } from "../src/core/services/task-repository.js";
+
 import fs from "fs/promises";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,7 +34,6 @@ async function setupServices() {
     path.join(tempDir, "user-settings.json"),
     tempDir,
   );
-  const taskRepository = new TaskRepository();
   const fileWatcherService = new FileWatcherService(eventBus);
 
   const projectFolderService = new ProjectFolderService(
@@ -45,14 +44,12 @@ async function setupServices() {
   await projectFolderService.addProjectFolder(tempDir);
 
   const userSettingsService = new UserSettingsService(userSettingsRepository);
-  const taskService = new TaskService(eventBus, taskRepository);
   const chatSessionRepository = new ChatSessionRepositoryImpl();
   const toolRegistry = new ToolRegistryImpl(eventBus, logger);
 
   const chatClient = new ChatEngineClient(
     eventBus,
     chatSessionRepository,
-    taskService,
     projectFolderService,
     userSettingsService,
     toolRegistry,

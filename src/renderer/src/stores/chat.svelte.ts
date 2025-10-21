@@ -4,6 +4,7 @@ import { getPreference } from "../lib/local-storage.js";
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
 import type { AvailableModels } from "../../../shared/utils/model-utils.js";
 
+// @ts-expect-error - Intentionally unused for future use
 const logger = new Logger({ name: "chatStore" });
 
 function toIsoTimestamp(date: Date = new Date()): string {

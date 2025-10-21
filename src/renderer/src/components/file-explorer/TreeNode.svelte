@@ -13,7 +13,7 @@
     clearDragState,
     canDropOn,
   } from "../../stores/tree-store.svelte.js";
-  import { tasksByPath } from "../../stores/task-store.svelte.js";
+
   import { projectService } from "../../services/project-service.js";
   import { getChatSessionByPromptScriptPath } from "../../stores/ui.svelte.js";
   import { uiState } from "../../stores/ui-store.svelte.js";
@@ -39,8 +39,7 @@
 
   const isExpanded = $derived(treeState.expandedNodePaths.includes(node.path));
   const isSelected = $derived(treeState.selectedNode === node.path);
-  const task = $derived(tasksByPath.get(node.path));
-  const isTaskDir = $derived(isTaskFolder(node.name));
+
   const isProjectFolder = $derived(level === 0);
 
   const isPromptScript = $derived(node.name.endsWith(".prompt.md"));
@@ -143,26 +142,7 @@
     }
   }
 
-  function isTaskFolder(folderName: string): boolean {
-    return folderName.startsWith("task-");
-  }
 
-  function getTaskStatusConfig(status: string): {
-    label: string;
-    className: string;
-  } {
-    const statusMap: { [key: string]: string } = {
-      COMPLETED: "completed",
-      IN_PROGRESS: "running",
-      CREATED: "created",
-      INITIALIZED: "ready",
-      PAUSED: "paused",
-    };
-    return {
-      label: statusMap[status] || status.toLowerCase().replace("_", "-"),
-      className: "border-border text-foreground",
-    };
-  }
 
   function getChatStatusConfig(state: ChatState): { label: string | null } {
     switch (state) {
@@ -329,14 +309,7 @@
     <span class="flex-1 truncate text-xs" title={node.name}>{node.name}</span>
 
     <!-- Statuses -->
-    {#if isTaskDir && task}
-      {@const statusConfig = getTaskStatusConfig(task.status)}
-      <span
-        class="ml-1 rounded border px-1 py-0.5 font-mono text-[10px] {statusConfig.className}"
-      >
-        {statusConfig.label}
-      </span>
-    {/if}
+
     {#if isPromptScript && chatState}
       {@const statusConfig = getChatStatusConfig(chatState)}
       {#if statusConfig.label}

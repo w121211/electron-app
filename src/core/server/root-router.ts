@@ -1,17 +1,14 @@
 // src/core/server/root-router.ts
 import path from "path";
-import { ILogObj, Logger } from "tslog";
+import { type ILogObj, Logger } from "tslog";
 import { ChatSessionRepositoryImpl } from "../services/chat/chat-session-repository.js";
 import { FileWatcherService } from "../services/file-watcher-service.js";
 import { createProjectFolderService } from "../services/project-folder-service.js";
-import { TaskRepository } from "../services/task-repository.js";
-import { TaskService } from "../services/task-service.js";
 import { ToolRegistryImpl } from "../services/tool-call/tool-registry.js";
 import { createUserSettingsRepository } from "../services/user-settings-repository.js";
 import { createUserSettingsService } from "../services/user-settings-service.js";
 import { createModelService } from "../services/model-service.js";
 import { createEventRouter } from "./routers/event-router.js";
-import { createTaskRouter } from "./routers/task-router.js";
 import { createProjectFolderRouter } from "./routers/project-folder-router.js";
 import { createFileRouter } from "./routers/file-router.js";
 import { createUserSettingsRouter } from "./routers/user-settings-router.js";
@@ -61,26 +58,6 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     userSettingsRepo,
     fileWatcherService,
   );
-
-  // Create task repository
-  const taskRepo = new TaskRepository();
-
-  // Initialize task repository with any existing tasks
-  // projectFolderService.getAllProjectFolders();
-  // .then(async (folders) => {
-  //   for (const folder of folders) {
-  //     await taskRepo.scanFolder(folder.path);
-  //   }
-  //   logger.info(`Task repository initialized with folders`);
-  // })
-  // .catch((err) =>
-  //   logger.error(
-  //     "Failed to initialize task repository with project folders:",
-  //     err
-  //   )
-  // );
-
-  const taskService = new TaskService(eventBus, taskRepo);
 
   const userSettingsService = createUserSettingsService(userSettingsRepo);
 
@@ -152,7 +129,6 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
 
   // Create the application router
   const appRouter = router({
-    task: createTaskRouter(taskService),
     chat: createChatRouter({
       apiChatClient,
       terminalChatClient,

@@ -1,6 +1,6 @@
 <!-- src/renderer/src/components/AppXtermMulti.svelte -->
 <script lang="ts">
-  import Xterm from "../Xterm.svelte";
+  import Xterm from "./Xterm.svelte";
 
   let terminals = $state<string[]>([]);
   let selectedId = $state<string | null>(null);

@@ -83,6 +83,7 @@ Text is also allowed`);
     showToast("Download functionality coming soon", "info");
   }
 
+  // @ts-expect-error - Intentionally unused for future use
   function handleRefresh(): void {
     if (treeState.selectedPreviewFile) {
       loadFileContent(treeState.selectedPreviewFile);

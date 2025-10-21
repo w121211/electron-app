@@ -126,6 +126,7 @@ export class DocumentService {
       promptScriptLink: updatedDocumentFile.promptScriptLink
         ? {
             promptScript: updatedDocumentFile.promptScriptLink.promptScript,
+            chatSession: undefined,
             chatSessionId:
               updatedDocumentFile.promptScriptLink.chatSession?.id ?? null,
             warnings: updatedDocumentFile.promptScriptLink.warnings,
@@ -210,6 +211,7 @@ export class DocumentService {
         ...linked.promptScript,
         promptScriptLink: {
           promptScript: linked.promptScript,
+          chatSession: undefined,
           chatSessionId: linked.chatSession?.id ?? null,
           warnings: linked.warnings,
         },

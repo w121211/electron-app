@@ -1,7 +1,8 @@
 // src/core/utils/file-utils.ts
 import fs from "node:fs/promises";
 import path from "node:path";
-import { ILogObj, Logger } from "tslog";
+import type { ILogObj } from "tslog";
+import { Logger } from "tslog";
 import ignore from "ignore";
 
 export interface FileContent {

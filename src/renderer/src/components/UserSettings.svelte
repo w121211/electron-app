@@ -104,46 +104,8 @@
               <p class="text-muted mt-2 text-sm">Loading settings...</p>
             </div>
           {:else}
-            <!-- Workspace Directory Section -->
-            <section>
-              <h2 class="text-lg font-semibold">Workspace Directory</h2>
-              <p class="text-muted mt-1 text-sm">
-                Set the main workspace directory for your projects.
-              </p>
-              <div class="border-border mt-4 rounded-lg border">
-                <div class="border-border border-b p-3">
-                  <h3 class="text-sm font-medium">Current Workspace</h3>
-                </div>
-                <div class="p-3">
-                  {#if userSettingsState.settings.workspaceDirectory}
-                    <div class="flex items-center justify-between">
-                      <p class="font-mono text-sm">
-                        {userSettingsState.settings.workspaceDirectory}
-                      </p>
-                      <button
-                        onclick={userSettingsService.setupWorkspaceDirectory}
-                        class="bg-surface hover:bg-hover border-border text-foreground cursor-pointer rounded-md border px-3 py-1 text-sm font-medium"
-                      >
-                        Change
-                      </button>
-                    </div>
-                  {:else}
-                    <div class="flex items-center justify-between">
-                      <p class="text-muted text-sm italic">
-                        No workspace directory set
-                      </p>
-                      <button
-                        onclick={userSettingsService.setupWorkspaceDirectory}
-                        class="cursor-pointer rounded-md bg-blue-600 px-3 py-1 text-sm text-white transition-colors hover:bg-blue-700"
-                      >
-                        <Plus class="mr-1 inline h-3 w-3" />
-                        Set Workspace
-                      </button>
-                    </div>
-                  {/if}
-                </div>
-              </div>
-            </section>
+            <!-- COMMENTED OUT: Workspace Directory Section - Feature not needed -->
+            <!-- Users can add existing folders instead -->
 
             <!-- Project Management Section -->
             <section>

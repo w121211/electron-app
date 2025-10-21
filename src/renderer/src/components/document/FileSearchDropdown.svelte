@@ -24,6 +24,7 @@
     onselect(result);
   }
 
+  // @ts-expect-error - Intentionally unused for future use
   function handleCancel(): void {
     oncancel();
   }

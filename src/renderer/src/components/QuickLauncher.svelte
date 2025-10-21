@@ -203,9 +203,10 @@
                       {/if}
                     </div>
                   </div>
-                  {#if result.type === "chat"}
+                  <!-- COMMENTED OUT: Chat type not currently supported -->
+                  <!-- {#if result.type === "chat"}
                     <div class="text-muted flex-shrink-0 text-xs">Chat</div>
-                  {/if}
+                  {/if} -->
                 </div>
               </button>
             {/each}

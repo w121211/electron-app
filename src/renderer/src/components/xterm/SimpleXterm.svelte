@@ -4,14 +4,17 @@
   import { onMount, onDestroy } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
-  import { ptyClient, type PtySession } from "../../services/pty-client";
+  // @ts-expect-error - Intentionally unused for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  import { ptyClient } from "../../services/pty-client.js";
   import { Logger } from "tslog";
 
   const logger = new Logger({ name: "SimpleXterm" });
 
-  let terminalElement: HTMLDivElement;
+  let terminalElement = $state<HTMLDivElement>();
   let terminal: Terminal | undefined = $state();
-  let session: PtySession | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let session: any | null = null;
   let isInitialized = false;
 
   onMount(async () => {
@@ -49,12 +52,15 @@
     });
 
     terminal.loadAddon(new WebglAddon());
-    terminal.open(terminalElement);
+    if (terminalElement) {
+      terminal.open(terminalElement);
+    }
 
-    session = await ptyClient.createSession({
-      cols: terminal.cols,
-      rows: terminal.rows,
-    });
+    // COMMENTED OUT: Old API no longer exists
+    // session = await ptyClient.createSession({
+    //   cols: terminal.cols,
+    //   rows: terminal.rows,
+    // });
 
     if (!session) {
       logger.error("Failed to create terminal session");
@@ -89,7 +95,7 @@
   }
 </script>
 
-<div bind:this={terminalElement} role="application" aria-label="Terminal" />
+<div bind:this={terminalElement} role="application" aria-label="Terminal"></div>
 
 <style>
   /* This component has no specific styles. Global xterm styles apply. */

@@ -82,6 +82,7 @@ export class PtyChatService {
         ...linked.promptScript,
         promptScriptLink: {
           promptScript: linked.promptScript,
+          chatSession: undefined,
           chatSessionId: linked.chatSession?.id ?? null,
           warnings: linked.warnings,
         },

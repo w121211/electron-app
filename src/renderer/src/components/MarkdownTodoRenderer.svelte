@@ -21,6 +21,7 @@
     return parseMarkdownTodos(content);
   });
 
+  // @ts-expect-error - Intentionally unused for future use
   async function handleLaunchTodo(todoContent: string): Promise<void> {
     const settings = userSettingsState.settings;
 

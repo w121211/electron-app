@@ -1,7 +1,7 @@
 // src/core/services/project-folder-service.ts
 import path from "node:path";
 import fs from "node:fs/promises";
-import { Logger, ILogObj } from "tslog";
+import { Logger, type ILogObj } from "tslog";
 import fuzzysort from "fuzzysort";
 import { shell } from "electron";
 import type { IEventBus, BaseEvent } from "../event-bus.js";

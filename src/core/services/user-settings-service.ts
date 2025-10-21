@@ -1,6 +1,6 @@
 // src/core/services/user-settings-service.ts
 import { safeStorage } from "electron";
-import { Logger, ILogObj } from "tslog";
+import { Logger, type ILogObj } from "tslog";
 import type {
   UserSettingsRepository,
   UserSettings,

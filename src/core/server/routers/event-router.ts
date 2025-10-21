@@ -2,17 +2,16 @@
 import { z } from "zod";
 // import { tracked } from "@trpc/server";
 import { tracked } from "@trpc/server/unstable-core-do-not-import";
-import { IEventBus, BaseEvent } from "../../event-bus.js";
-import { FileWatcherEvent } from "../../services/file-watcher-service.js";
-import { TaskUpdatedEvent } from "../../services/task-service.js";
-import { ProjectFolderUpdatedEvent } from "../../services/project-folder-service.js";
-import { ChatUpdatedEvent } from "../../services/chat-engine/events.js";
+import type { IEventBus, BaseEvent } from "../../event-bus.js";
+import type { FileWatcherEvent } from "../../services/file-watcher-service.js";
+
+import type { ProjectFolderUpdatedEvent } from "../../services/project-folder-service.js";
+import type { ChatUpdatedEvent } from "../../services/chat-engine/events.js";
 import { router, publicProcedure } from "../trpc-init.js";
 
 // Map event kinds to their event types
 interface EventTypeMap {
   FileWatcherEvent: FileWatcherEvent;
-  TaskUpdatedEvent: TaskUpdatedEvent;
   ProjectFolderUpdatedEvent: ProjectFolderUpdatedEvent;
   ChatUpdatedEvent: ChatUpdatedEvent;
   PingEvent: BaseEvent & { message: string };
@@ -42,7 +41,7 @@ function createEventSubscription<K extends keyof EventTypeMap>(
 export function createEventRouter(eventBus: IEventBus) {
   return router({
     fileWatcherEvents: createEventSubscription(eventBus, "FileWatcherEvent"),
-    taskEvents: createEventSubscription(eventBus, "TaskUpdatedEvent"),
+
     projectFolderEvents: createEventSubscription(
       eventBus,
       "ProjectFolderUpdatedEvent",

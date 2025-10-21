@@ -1,12 +1,12 @@
 // src/core/services/user-settings-repository.ts
 import path from "node:path";
-import { Logger, ILogObj } from "tslog";
+import { Logger, type ILogObj } from "tslog";
 import {
   fileExists,
   readJsonFile,
   writeJsonFile,
 } from "../utils/file-utils.js";
-import { ProjectFolder } from "./project-folder-service.js";
+import type { ProjectFolder } from "./project-folder-service.js";
 
 export interface ProviderConfig {
   enabled: boolean;

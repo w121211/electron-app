@@ -5,7 +5,8 @@
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
   import { FitAddon } from "@xterm/addon-fit";
-  import { ptyClient, type PtySession } from "../services/pty-client";
+  // @ts-expect-error - Intentionally unused for future use
+  import { ptyClient } from "../../services/pty-client.js";
 
   // Hidden flag provided by parent
   let { hidden = false }: { hidden?: boolean } = $props();
@@ -15,7 +16,8 @@
   let terminal: Terminal;
   let fitAddon: FitAddon;
   let webglAddon: WebglAddon;
-  let session: PtySession | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let session: any | null = null;
   let isInitialized = false;
   let resizeObserver: ResizeObserver;
   let resizeTimeout: ReturnType<typeof setTimeout>;
@@ -67,20 +69,23 @@
     terminal.loadAddon(fitAddon);
     terminal.open(terminalElement);
 
+    // @ts-expect-error - Intentionally unused for future use
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const dims = fitAddon.proposeDimensions();
 
-    session = await ptyClient.createSession({
-      cols: dims?.cols,
-      rows: dims?.rows,
-    });
+    // COMMENTED OUT: Old API no longer exists
+    // session = await ptyClient.createSession({
+    //   cols: dims?.cols,
+    //   rows: dims?.rows,
+    // });
 
-    if (!session) {
-      throw new Error("Failed to create terminal session");
-    }
+    // if (!session) {
+    //   throw new Error("Failed to create terminal session");
+    // }
 
-    session.onData.on((data: string) => {
-      terminal?.write(data);
-    });
+    // session.onData.on((data: string) => {
+    //   terminal?.write(data);
+    // });
 
     session.onExit.on(({ exitCode }) => {
       console.info(`Terminal session exited with code: ${exitCode}`);

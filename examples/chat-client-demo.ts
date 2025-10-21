@@ -10,12 +10,12 @@ import { EventBus } from "../src/core/event-bus.js";
 import { ApiChatClient as ChatEngineClient } from "../src/core/services/chat-engine/api-chat-client.js";
 import { ChatSessionRepositoryImpl } from "../src/core/services/chat/chat-session-repository.js";
 import { ToolRegistryImpl } from "../src/core/services/tool-call/tool-registry.js";
-import { TaskService } from "../src/core/services/task-service.js";
+
 import { ProjectFolderService } from "../src/core/services/project-folder-service.js";
 import { UserSettingsService } from "../src/core/services/user-settings-service.js";
 import { UserSettingsRepository } from "../src/core/services/user-settings-repository.js";
 import { FileWatcherService } from "../src/core/services/file-watcher-service.js";
-import { TaskRepository } from "../src/core/services/task-repository.js";
+
 import type { ToolRegistry } from "../src/core/services/tool-call/tool-registry.js";
 import type {
   TurnResult,
@@ -25,7 +25,6 @@ import type {
 interface DemoServices {
   projectFolderService: ProjectFolderService;
   userSettingsService: UserSettingsService;
-  taskService: TaskService;
   chatSessionRepository: ChatSessionRepositoryImpl;
   toolRegistry: ToolRegistry;
 }
@@ -62,7 +61,6 @@ async function setupServices(): Promise<DemoServices> {
     `${settingsDir}/settings.json`,
     settingsDir,
   );
-  const taskRepository = new TaskRepository();
   const fileWatcherService = new FileWatcherService(eventBus);
 
   // Initialize services
@@ -74,17 +72,12 @@ async function setupServices(): Promise<DemoServices> {
 
   const userSettingsService = new UserSettingsService(userSettingsRepository);
 
-  const taskService = new TaskService(eventBus, taskRepository);
-
-  const fileService = new FileService(eventBus);
-
   const chatSessionRepository = new ChatSessionRepositoryImpl();
   const toolRegistry = new ToolRegistryImpl(eventBus, logger);
 
   return {
     projectFolderService,
     userSettingsService,
-    taskService,
     chatSessionRepository,
     toolRegistry,
   };
@@ -172,7 +165,6 @@ async function runChatDemo(): Promise<{
   const chatClient = new ChatEngineClient(
     eventBus,
     services.chatSessionRepository,
-    services.taskService,
     services.projectFolderService,
     services.userSettingsService,
     services.toolRegistry,

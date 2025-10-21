@@ -40,16 +40,16 @@ npm run build:linux   # Build for Linux
 
 **Event-Driven Architecture**: All system communication flows through a central EventBus using pub/sub patterns with strongly typed events for both client and server sides.
 
-**tRPC API Layer**: Type-safe end-to-end API with modular routers (chatClient, task, file, projectFolder, event, userSettings) and real-time capabilities via subscriptions.
+**tRPC API Layer**: Type-safe end-to-end API with modular routers (chatClient, file, projectFolder, event, userSettings) and real-time capabilities via subscriptions.
 
-**Repository Pattern**: Consistent data access layer with file-based persistence using human-readable JSON files for chats, tasks, and settings.
+**Repository Pattern**: Consistent data access layer with file-based persistence using human-readable JSON files for chats, and settings.
 
 ### Key Services
 
 - **ChatSessionRepository**: Manages chat session lifecycle and message persistence
 - **ChatClient**: Handles AI chat sessions with streaming responses and tool execution
 - **ExternalChatClient**: Manages terminal-based chat sessions for external models
-- **TaskService**: Handles task creation, status tracking, and directory management with repository pattern
+
 - **FileService**: Manages file operations and artifact creation with watch capabilities
 - **ProjectFolderService**: Workspace management and project registration with real-time folder watching
 - **FileWatcherService**: Real-time file system monitoring using chokidar
@@ -97,7 +97,6 @@ Services interact directly with the file system for persistence, with structured
 
 Central EventBus with strongly-typed events (`ClientEventUnion` | `ServerEventUnion`) including:
 
-- Task lifecycle events (creation, updates, completion)
 - File system events (watching, changes, artifacts)
 - Tool call events (registration, execution, approval)
 - Real-time subscriptions via tRPC with async iterators and proper cleanup

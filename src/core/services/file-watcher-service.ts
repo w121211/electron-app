@@ -1,7 +1,7 @@
 // src/core/services/file-watcher-service.ts
 import path from "node:path";
-import chokidar, { FSWatcher, ChokidarOptions } from "chokidar";
-import { Logger, ILogObj } from "tslog";
+import chokidar, { type FSWatcher, type ChokidarOptions } from "chokidar";
+import { Logger, type ILogObj } from "tslog";
 import type { IEventBus, BaseEvent } from "../event-bus.js";
 import { createIgnoreInstance } from "../utils/file-utils.js";
 

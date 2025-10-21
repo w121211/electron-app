@@ -4,7 +4,6 @@ import { trpcClient } from "../lib/trpc-client.js";
 import { setConnectionState } from "../stores/ui-store.svelte.js";
 import { setChatSession } from "../stores/chat.svelte.js";
 import { projectService } from "./project-service.js";
-import { taskService } from "./task-service.js";
 
 interface Subscription {
   unsubscribe: () => void;
@@ -26,7 +25,6 @@ class EventService {
 
     this.startFileWatcherSubscription();
     this.startChatEventSubscription();
-    this.startTaskEventSubscription();
   }
 
   stop() {
@@ -45,7 +43,6 @@ class EventService {
     // Reset all connection states to idle
     setConnectionState("fileWatcher", "idle");
     setConnectionState("chatEvents", "idle");
-    setConnectionState("taskEvents", "idle");
   }
 
   private startFileWatcherSubscription() {
@@ -106,36 +103,6 @@ class EventService {
     );
 
     this.subscriptions.set("chatEvents", {
-      unsubscribe: subscription.unsubscribe,
-    });
-  }
-
-  private startTaskEventSubscription() {
-    setConnectionState("taskEvents", "connecting");
-
-    const subscription = trpcClient.event.taskEvents.subscribe(
-      { lastEventId: null },
-      {
-        onStarted: () => {
-          this.logger.info("Task event subscription started");
-          setConnectionState("taskEvents", "connected");
-        },
-        onData: (event) => {
-          this.logger.debug(
-            "Task event:",
-            event.data.updateType,
-            event.data.taskId,
-          );
-          taskService.handleTaskEvent(event.data);
-        },
-        onError: (error) => {
-          this.logger.error("Task event subscription error:", error);
-          setConnectionState("taskEvents", "error");
-        },
-      },
-    );
-
-    this.subscriptions.set("taskEvents", {
       unsubscribe: subscription.unsubscribe,
     });
   }

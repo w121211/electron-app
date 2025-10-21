@@ -3,6 +3,7 @@
   import { Pencil } from "svelte-bootstrap-icons";
   import { ui, getSelectedDocContext } from "../../stores/ui.svelte.js";
   import { uiState } from "../../stores/ui-store.svelte.js";
+  // @ts-expect-error - Intentionally unused for future use
   import MarkdownTodoRenderer from "../MarkdownTodoRenderer.svelte";
   import Breadcrumb from "../Breadcrumb.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
@@ -12,6 +13,7 @@
 
   const activeContext = $derived.by(getSelectedDocContext);
   const activeDocument = $derived(activeContext?.documentState?.data ?? null);
+  // @ts-expect-error - Intentionally unused for future use
   const activeDocumentProjectPath = $derived.by(() => {
     if (!activeDocument?.absolutePath) {
       return "";

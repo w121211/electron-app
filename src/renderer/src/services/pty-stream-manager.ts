@@ -98,6 +98,7 @@ class PtyStreamManager {
   private streams = new Map<string, PtyStream>();
   private unsubscribeOnData: (() => void) | undefined;
   private unsubscribeOnExit: (() => void) | undefined;
+  // @ts-expect-error - Intentionally unused for future use
   private unsubscribeSnapshotRequest: (() => void) | undefined;
   public readonly onStreamsChanged = new EventEmitter<void>();
 

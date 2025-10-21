@@ -45,8 +45,6 @@ export type ChatState =
 
 export interface ChatMessageMetadata {
   timestamp: Date;
-  subtaskId?: string;
-  taskId?: string;
   fileReferences?: {
     path: string;
     md5: string;
@@ -167,8 +165,6 @@ export const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
 export const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> =
   z.object({
     timestamp: z.coerce.date(),
-    subtaskId: z.string().optional(),
-    taskId: z.string().optional(),
     fileReferences: z
       .array(
         z.object({
@@ -502,8 +498,6 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
     const payload = JSON.parse(row.payload) as unknown;
     const metadata = JSON.parse(row.metadata) as {
       timestamp: string;
-      subtaskId?: string;
-      taskId?: string;
       fileReferences?: { path: string; md5: string }[];
     };
 

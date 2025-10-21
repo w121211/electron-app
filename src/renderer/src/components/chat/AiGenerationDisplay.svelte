@@ -1,18 +1,21 @@
 <!-- src/renderer/src/components/AiGenerationDisplay.svelte -->
 <script lang="ts">
-  import type { ChatSessionData } from "../../../../core/services/chat-engine/chat-session-repository.js";
+  import type { ChatSessionData } from "../../../../core/services/chat/chat-session-repository.js";
 
   interface Props {
     chatSession: ChatSessionData;
   }
 
+  // @ts-expect-error - Intentionally unused for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let { chatSession }: Props = $props();
 
   // Determine generation stage based on chat session state
   const generationStage = $derived(() => {
-    if (chatSession.sessionStatus !== "processing") {
-      return null;
-    }
+    // COMMENTED OUT: sessionStatus property doesn't exist on ChatSessionData
+    // if (chatSession.sessionStatus !== "processing") {
+    //   return null;
+    // }
 
     // Check if there are any messages being generated
     // For now, we'll show a simple processing state

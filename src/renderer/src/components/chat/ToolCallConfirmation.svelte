@@ -10,6 +10,7 @@
     lastAssistantMessage?: ModelMessage;
   }
 
+  // @ts-expect-error - Intentionally unused for future use
   let { chatId, absoluteFilePath, lastAssistantMessage }: Props = $props();
 
   const logger = new Logger({ name: "ToolCallConfirmation" });

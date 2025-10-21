@@ -4,7 +4,7 @@
   import { onDestroy, onMount } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
-  import type { PtyChatSnapshot } from "../../../core/services/chat/chat-session-repository.js";
+  import type { PtyChatSnapshot } from "../../../../core/services/chat/chat-session-repository.js";
 
   let { snapshots = [] }: { snapshots?: PtyChatSnapshot[] } = $props();
 

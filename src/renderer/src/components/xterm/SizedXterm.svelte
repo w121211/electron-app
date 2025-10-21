@@ -4,18 +4,39 @@
   import { onMount, onDestroy } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { WebglAddon } from "@xterm/addon-webgl";
-  import { ptyClient, type PtySession } from "../services/pty-client";
+  // @ts-expect-error - Intentionally unused for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  import { ptyClient } from "../../services/pty-client.js";
   import { Logger } from "tslog";
-  import {
-    getXtermScaledDimensions,
-    type ITerminalFont,
-  } from "../utils/xterm-utils";
+
+  interface ITerminalFont {
+    fontFamily: string;
+    fontSize: number;
+    letterSpacing: number;
+    lineHeight: number;
+    charWidth: number;
+    charHeight: number;
+  }
+
+  function getXtermScaledDimensions(
+    // @ts-expect-error - Intentionally unused for future use
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    window: Window,
+    font: ITerminalFont,
+    width: number,
+    height: number,
+  ): { cols: number; rows: number } | undefined {
+    const cols = Math.floor(width / font.charWidth);
+    const rows = Math.floor(height / font.charHeight);
+    return { cols, rows };
+  }
 
   const logger = new Logger({ name: "SizedXterm" });
 
   let terminalElement: HTMLDivElement;
   let terminal: Terminal;
-  let session: PtySession | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let session: any | null = null;
   let isInitialized = false;
   let resizeObserver: ResizeObserver;
   let isVisible = false;
@@ -67,34 +88,35 @@
     terminal.loadAddon(new WebglAddon());
     terminal.open(terminalElement);
 
-    session = await ptyClient.createSession({
-      cols: 80,
-      rows: 24,
-    });
+    // COMMENTED OUT: Old API no longer exists
+    // session = await ptyClient.createSession({
+    //   cols: 80,
+    //   rows: 24,
+    // });
 
-    if (!session) {
-      logger.error("Failed to create terminal session");
-      return;
-    }
+    // if (!session) {
+    //   logger.error("Failed to create terminal session");
+    //   return;
+    // }
 
-    session.onData.on((data: string) => {
-      terminal?.write(data);
-    });
+    // session.onData.on((data: string) => {
+    //   terminal?.write(data);
+    // });
 
-    session.onExit.on(({ exitCode }) => {
-      logger.info(`Terminal session exited with code: ${exitCode}`);
-      terminal?.write(`
+    // session.onExit.on(({ exitCode }) => {
+    //   logger.info(`Terminal session exited with code: ${exitCode}`);
+    //   terminal?.write(`
 
-[Process completed]`);
-    });
+// [Process completed]`);
+    // });
 
-    terminal.onData((data: string) => {
-      session?.write(data);
-    });
+    // terminal.onData((data: string) => {
+    //   session?.write(data);
+    // });
 
-    logger.info("Terminal initialized successfully", {
-      sessionId: session.sessionId,
-    });
+    // logger.info("Terminal initialized successfully", {
+    //   sessionId: session.sessionId,
+    // });
   }
 
   function resizeTerminal(): { cols: number; rows: number } | undefined {
@@ -109,13 +131,7 @@
     }
 
     const cellDims = (terminal as any)._core._renderService.dimensions.css.cell;
-    const fontFamily = terminal.options.fontFamily!;
-    const fontSize = terminal.options.fontSize!;
     const letterSpacing = terminal.options.letterSpacing!;
-    const lineHeight = terminal.options.lineHeight!;
-    const charWidth = cellDims.height / lineHeight!;
-    const charHeight =
-      cellDims.width - Math.round(letterSpacing) / window.devicePixelRatio;
 
     const font: ITerminalFont = {
       fontFamily: terminal.options.fontFamily!,

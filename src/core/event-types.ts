@@ -1,5 +1,5 @@
 // src/core/event-types.ts
-export type SubtaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED";
+
 
 export type ChatStatus = "ACTIVE" | "CLOSED";
 
@@ -18,13 +18,6 @@ export type FolderTreeNode = {
  */
 export const ClientEventKind = [
   // Client commands
-  "ClientCreateTask",
-  "ClientStartTask",
-  "ClientStopTask",
-  "ClientStartSubtask",
-  "ClientCompleteSubtask",
-  "ClientStopSubtask",
-  "ClientCloneSubtask",
 
   // Tool call related
   "ClientScheduleToolCalls",
@@ -39,7 +32,6 @@ export const ClientEventKind = [
   "ClientEditorReloadRequested",
   "ClientEditorUpdated",
   "ClientFileChangeIgnored",
-  "ClientTaskUpdated",
   "ClientUIStateUpdated",
   "ClientOpenFile",
 
@@ -53,19 +45,6 @@ export type ClientEventKind = (typeof ClientEventKind)[number];
  * Events originating from the server
  */
 export const ServerEventKind = [
-  // Task related
-  "ServerTaskCreated",
-  "ServerTaskFolderCreated",
-  "ServerTaskConfigFileCreated",
-  "ServerTaskInitialized",
-  "ServerTaskLoaded",
-
-  // Subtask related
-  "ServerSubtaskStarted",
-  "ServerSubtaskCompleted",
-  "ServerSubtaskUpdated",
-  "ServerNextSubtaskTriggered",
-
   // File related
   "ServerFileOpened",
   "ServerArtifactFileCreated",
@@ -97,17 +76,7 @@ export type EventKind = ClientEventKind | ServerEventKind | string;
 //   human?: Role
 // }
 
-export interface Subtask {
-  id: string;
-  taskId: string;
-  seqNumber: number;
-  title: string;
-  status: SubtaskStatus;
-  description: string;
-  // team: TeamConfig
-  inputType: string;
-  outputType: string;
-}
+
 
 export interface Artifact {
   id: string;
@@ -154,47 +123,7 @@ export interface BaseServerEvent extends BaseEvent {
 
 // Client Command Events
 
-export interface ClientCreateTaskEvent extends BaseClientEvent {
-  kind: "ClientCreateTask";
-  taskName: string;
-  taskConfig: Record<string, unknown>;
-}
 
-export interface ClientStartTaskEvent extends BaseClientEvent {
-  kind: "ClientStartTask";
-  taskId: string;
-}
-
-export interface ClientStopTaskEvent extends BaseClientEvent {
-  kind: "ClientStopTask";
-  taskId: string;
-}
-
-export interface ClientStartSubtaskEvent extends BaseClientEvent {
-  kind: "ClientStartSubtask";
-  taskId: string;
-  subtaskId: string;
-}
-
-export interface ClientCompleteSubtaskEvent extends BaseClientEvent {
-  kind: "ClientCompleteSubtask";
-  taskId: string;
-  subtaskId: string;
-  output: string;
-  requiresApproval: boolean;
-}
-
-export interface ClientStopSubtaskEvent extends BaseClientEvent {
-  kind: "ClientStopSubtask";
-  taskId: string;
-  subtaskId: string;
-}
-
-export interface ClientCloneSubtaskEvent extends BaseClientEvent {
-  kind: "ClientCloneSubtask";
-  taskId: string;
-  subtaskId: string;
-}
 
 export interface ClientOpenFileEvent extends BaseClientEvent {
   kind: "ClientOpenFile";
@@ -250,10 +179,7 @@ export interface ClientFileChangeIgnoredEvent extends BaseClientEvent {
   filePath: string;
 }
 
-export interface ClientTaskUpdatedEvent extends BaseClientEvent {
-  kind: "ClientTaskUpdated";
-  // task: Task;
-}
+
 
 export interface ClientUIStateUpdatedEvent extends BaseClientEvent {
   kind: "ClientUIStateUpdated";
@@ -262,70 +188,7 @@ export interface ClientUIStateUpdatedEvent extends BaseClientEvent {
 
 // Server Events
 
-export interface ServerTaskCreatedEvent extends BaseServerEvent {
-  kind: "ServerTaskCreated";
-  taskId: string;
-  taskName: string;
-  config: Record<string, unknown>;
-}
 
-export interface ServerTaskFolderCreatedEvent extends BaseServerEvent {
-  kind: "ServerTaskFolderCreated";
-  taskId: string;
-  folderPath: string;
-}
-
-export interface ServerTaskConfigFileCreatedEvent extends BaseServerEvent {
-  kind: "ServerTaskConfigFileCreated";
-  taskId: string;
-  filePath: string;
-  config: Record<string, unknown>;
-}
-
-export interface ServerTaskConfigFileCreatedEvent extends BaseServerEvent {
-  kind: "ServerTaskConfigFileCreated";
-  taskId: string;
-  filePath: string;
-  config: Record<string, unknown>;
-}
-
-export interface ServerTaskInitializedEvent extends BaseServerEvent {
-  kind: "ServerTaskInitialized";
-  taskId: string;
-  initialState: Record<string, unknown>;
-}
-
-export interface ServerTaskLoadedEvent extends BaseServerEvent {
-  kind: "ServerTaskLoaded";
-  taskId: string;
-  // taskState: Task;
-}
-
-export interface ServerSubtaskStartedEvent extends BaseServerEvent {
-  kind: "ServerSubtaskStarted";
-  taskId: string;
-  subtaskId: string;
-  input?: unknown;
-}
-
-export interface ServerSubtaskCompletedEvent extends BaseServerEvent {
-  kind: "ServerSubtaskCompleted";
-  taskId: string;
-  subtaskId: string;
-}
-
-export interface ServerSubtaskUpdatedEvent extends BaseServerEvent {
-  kind: "ServerSubtaskUpdated";
-  taskId: string;
-  subtaskId: string;
-  status: SubtaskStatus;
-}
-
-export interface ServerNextSubtaskTriggeredEvent extends BaseServerEvent {
-  kind: "ServerNextSubtaskTriggered";
-  taskId: string;
-  currentSubtaskId: string;
-}
 
 export interface ServerFileOpenedEvent extends BaseServerEvent {
   kind: "ServerFileOpened";
@@ -479,13 +342,6 @@ export interface ToolCallsCompleteEvent extends BaseServerEvent {
 
 // Union types for events
 export type ClientEventUnion =
-  | ClientCreateTaskEvent
-  | ClientStartTaskEvent
-  | ClientStopTaskEvent
-  | ClientStartSubtaskEvent
-  | ClientCompleteSubtaskEvent
-  | ClientStopSubtaskEvent
-  | ClientCloneSubtaskEvent
   | ClientOpenFileEvent
   | ClientRequestWorkspaceFolderTreeEvent
   | ClientTestPingEvent
@@ -495,22 +351,12 @@ export type ClientEventUnion =
   | ClientEditorReloadRequestedEvent
   | ClientEditorUpdatedEvent
   | ClientFileChangeIgnoredEvent
-  | ClientTaskUpdatedEvent
   | ClientUIStateUpdatedEvent
   | ClientScheduleToolCallsEvent
   | ClientConfirmToolCallEvent
   | ClientCancelToolCallEvent;
 
 export type ServerEventUnion =
-  | ServerTaskCreatedEvent
-  | ServerTaskFolderCreatedEvent
-  | ServerTaskConfigFileCreatedEvent
-  | ServerTaskInitializedEvent
-  | ServerTaskLoadedEvent
-  | ServerSubtaskStartedEvent
-  | ServerSubtaskCompletedEvent
-  | ServerSubtaskUpdatedEvent
-  | ServerNextSubtaskTriggeredEvent
   | ServerFileOpenedEvent
   | ServerArtifactFileCreatedEvent
   | ServerFileWatcherEvent
@@ -556,13 +402,6 @@ export function isServerEvent(event: BaseEvent): event is ServerEventUnion {
  */
 export function isCommandEvent(event: BaseEvent): boolean {
   const clientCommandEvents = [
-    "ClientCreateTask",
-    "ClientStartTask",
-    "ClientStopTask",
-    "ClientStartSubtask",
-    "ClientCompleteSubtask",
-    "ClientStopSubtask",
-    "ClientCloneSubtask",
     "ClientOpenFile",
     "ClientRunTest",
   ];

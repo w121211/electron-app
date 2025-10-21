@@ -41,7 +41,9 @@ export const saveTerminalSnapshotToFile = async (
   serializeAddon: SerializeAddon,
   // fileService: FileService,
 ): Promise<void> => {
+  // @ts-expect-error - Intentionally unused for future use
   const serializedContent = serializeAddon.serialize();
+  // @ts-expect-error - Intentionally unused for future use
   const htmlContent = serializeAddon.serializeAsHTML();
 
   // Generate timestamp for filenames

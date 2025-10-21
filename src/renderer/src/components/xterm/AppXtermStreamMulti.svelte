@@ -5,7 +5,7 @@
   import {
     ptyStreamManager,
     type PtyStream,
-  } from "../services/pty-stream-manager.js";
+  } from "../../services/pty-stream-manager.js";
 
   let streams = $state<PtyStream[]>([]);
   let selectedSessionId = $state<string | null>(null);

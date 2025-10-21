@@ -19,6 +19,7 @@
   import { projectService } from "../../services/project-service.js";
   // import { userSettingsService } from "../../services/user-settings-service.js"; // COMMENTED OUT: Workspace setup not needed
   import {
+    // @ts-expect-error - Intentionally unused for future use
     showContextMenu,
     // startInlineNewProjectFolderCreation, // COMMENTED OUT: New project folder not needed
     fileExplorerState,
@@ -32,12 +33,14 @@
   import UserSettings from "../UserSettings.svelte";
   // import RunningChats from "./RunningChats.svelte";
 
+  // @ts-expect-error - Intentionally unused for future use
   const logger = new Logger({ name: "NewExplorerPanel" });
 
   // Derived loading states
   const isLoadingAddProjectFolder = $derived(
     uiState.loadingStates["addProjectFolder"] || false,
   );
+  // @ts-expect-error - Intentionally unused for future use
   const isLoadingCreateNewProjectFolder = $derived(
     uiState.loadingStates["createNewProjectFolder"] || false,
   );

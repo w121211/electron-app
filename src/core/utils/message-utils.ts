@@ -1,7 +1,7 @@
 // src/core/utils/message-utils.ts
 import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
-import { ILogObj, Logger } from "tslog";
+import { type ILogObj, Logger } from "tslog";
 import type { ModelMessage, UIMessage, UserModelMessage, TextPart } from "ai";
 import { openFile } from "./file-utils.js";
 

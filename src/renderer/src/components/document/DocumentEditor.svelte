@@ -24,6 +24,7 @@
   // IMPORTANT: This state is initialized only once and does not react to prop changes.
   // The component relies on its parent using a `{#key filePath}` block to force a
   // re-mount on file changes, which is the pattern that ensures this state is reset.
+  // svelte-ignore state_referenced_locally
   let inputValue = $state(editorView?.unsavedContent ?? "");
   let editorTextarea = $state<HTMLTextAreaElement>();
 

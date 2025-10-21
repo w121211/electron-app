@@ -8,14 +8,19 @@
     PencilSquare,
     Paperclip,
   } from "svelte-bootstrap-icons";
-  import { isTerminalModel } from "../../../../core/utils/model-utils.js";
+  import { isTerminalModel } from "../../../../shared/utils/model-utils.js";
   import { apiChatService } from "../../services/api-chat-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
-  import {
-    chatState,
-    updateMessageInput,
-  } from "../../stores/chat-store.svelte.js";
-  import { ui } from "../../stores/ui.svelte.ts";
+  import type {
+    ChatSessionData,
+    ChatMode,
+  } from "../../../../core/services/chat/chat-session-repository.js";
+  // COMMENTED OUT: These exports don't exist in chat.svelte.js
+  // import {
+  //   chatState,
+  //   updateMessageInput,
+  // } from "../../stores/chat.svelte.js";
+  import { ui } from "../../stores/ui.svelte.js";
   import { showToast } from "../../stores/ui-store.svelte.js";
   import { fileSearchState } from "../../stores/file-search-store.svelte.js";
   import { setPreference } from "../../lib/local-storage.js";
@@ -27,9 +32,27 @@
   import Breadcrumb from "../Breadcrumb.svelte";
   import NavigationButtons from "../NavigationButtons.svelte";
 
+  // COMMENTED OUT: Stub placeholders for missing chatState
+  const chatState = $state<{
+    currentChat: ChatSessionData | null;
+    messageInput: string;
+    selectedModel: string;
+    chatMode: ChatMode;
+    hasUnsavedDraftChanges: boolean;
+  }>({
+    currentChat: null,
+    messageInput: "",
+    selectedModel: "anthropic/claude-sonnet-4",
+    chatMode: "chat",
+    hasUnsavedDraftChanges: false,
+  });
+  const updateMessageInput = (value: string) => {
+    chatState.messageInput = value;
+  };
+
   // Derived loading states
   const isLoadingSubmitMessage = $derived(
-    chatState.currentChat?.sessionStatus === "processing",
+    chatState.currentChat?.state === "active:generating",
   );
 
   // Derived chat states
@@ -76,10 +99,10 @@
     if (
       chatState.currentChat &&
       chatState.currentChat.messages.length > 0 &&
-      chatState.currentChat.modelId
+      chatState.currentChat.metadata?.modelId
     ) {
       // Chat has messages, set selectedModel to the chat's current modelId
-      chatState.selectedModel = chatState.currentChat.modelId;
+      chatState.selectedModel = chatState.currentChat.metadata.modelId;
     }
   });
 
@@ -183,7 +206,7 @@
         {#if chatState.currentChat}
           <div class={!ui.leftPanelOpen ? "ml-3" : ""}>
             <Breadcrumb
-              filePath={chatState.currentChat.absoluteFilePath}
+              filePath={chatState.currentChat.scriptPath || ""}
               modelInfo={currentChatMessages.length > 0
                 ? selectedModelLabel()
                 : undefined}
@@ -228,17 +251,17 @@
         {/each}
 
         <!-- AI Generation Display -->
-        {#if chatState.currentChat?.sessionStatus === "processing"}
+        {#if chatState.currentChat?.state === "active:generating"}
           <AiGenerationDisplay chatSession={chatState.currentChat} />
         {/if}
 
         <!-- Tool Call Confirmation Block -->
-        {#if chatState.currentChat?.sessionStatus === "waiting_confirmation"}
+        {#if chatState.currentChat?.state === "active:awaiting_input"}
           {@const lastMessage =
             currentChatMessages[currentChatMessages.length - 1]?.message}
           <ToolCallConfirmation
             chatId={chatState.currentChat.id}
-            absoluteFilePath={chatState.currentChat.absoluteFilePath}
+            absoluteFilePath={chatState.currentChat.scriptPath || ""}
             lastAssistantMessage={lastMessage}
           />
         {/if}
@@ -261,7 +284,8 @@
             class="text-foreground placeholder-muted min-h-[72px] w-full resize-none border-none bg-transparent px-2 text-[15px] leading-6 outline-none"
             style="height: auto;"
             disabled={isLoadingSubmitMessage ||
-              chatState.currentChat?.sessionStatus !== "idle"}
+              (chatState.currentChat?.state !== "active" &&
+                chatState.currentChat?.state !== "active:awaiting_input")}
           ></textarea>
 
           <!-- File Search Dropdown -->

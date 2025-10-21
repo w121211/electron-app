@@ -177,7 +177,9 @@ class ProjectService {
     // Expand parent directories to ensure file is visible
     expandParentDirectories(filePath);
 
+    // @ts-expect-error - Intentionally unused for future use
     const isPromptScript = filePath.endsWith(".prompt.md");
+    // @ts-expect-error - Intentionally unused for future use
     const isLegacyChatFile = filePath.endsWith(".chat.json");
 
     setTreeSelectionState(filePath, null, filePath);
@@ -543,6 +545,7 @@ class ProjectService {
     });
   }
 
+  // @ts-expect-error - Intentionally unused for future use
   private logTreeRecursively(node: FolderTreeNode, depth: number) {
     const indent = "  ".repeat(depth);
     const type = node.isDirectory ? "📁" : "📄";

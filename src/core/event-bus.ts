@@ -1,5 +1,5 @@
 // src/core/event-bus.ts
-import { Logger, ILogObj } from "tslog";
+import { Logger, type ILogObj } from "tslog";
 
 // Base event interface
 export interface BaseEvent {
