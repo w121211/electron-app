@@ -50,11 +50,11 @@ export function ensureQuickPromptWindow(
 
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     window.loadURL(
-      `${process.env["ELECTRON_RENDERER_URL"]}/windows/quick-prompt/index.html`,
+      `${process.env["ELECTRON_RENDERER_URL"]}/src/windows/quick-prompt/index.html`,
     );
   } else {
     window.loadFile(
-      join(__dirname, "../renderer/windows/quick-prompt/index.html"),
+      join(__dirname, "../renderer/src/windows/quick-prompt/index.html"),
     );
   }
 

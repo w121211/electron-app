@@ -1,4 +1,4 @@
-<!-- src/renderer/src/windows/quick-prompt/QuickPromptApp.svelte -->
+<!-- src/renderer/src/windows/quick-prompt/QuickPromptdApp.svelte -->
 <script lang="ts">
   import path from "node:path";
   import { onMount, onDestroy } from "svelte";
@@ -14,6 +14,7 @@
     ChevronDown,
     CheckCircle,
     XLg,
+    Clipboard,
   } from "svelte-bootstrap-icons";
   import {
     chatSettings,
@@ -32,108 +33,7 @@
   } from "../../../../shared/utils/model-utils.js";
   import type { ProjectFolder } from "../../stores/project-store.svelte.js";
 
-  const logger = new Logger({ name: "QuickPromptApp" });
-
-  const promptTemplates: PromptTemplate[] = [
-    {
-      id: "bug-investigation",
-      label: "Bug Investigation",
-      description:
-        "Document symptoms, reproduction steps, and expected behaviour.",
-      build: ({ projectName, attachments }) => {
-        const header = projectName
-          ? `Project: ${projectName}\n`
-          : "Project context: (fill in project name)\n";
-        const attachmentLines =
-          attachments.length > 0
-            ? attachments.map((entry) => `- @${entry.relativePath}`).join("\n")
-            : "- Attach relevant stack traces or source files.";
-
-        return `${header}
-Issue Summary:
-- What is the unexpected behaviour?
-
-Reproduction Steps:
-1. 
-2. 
-
-Observed Behaviour:
-- Describe what currently happens.
-
-Expected Behaviour:
-- Describe what should happen instead.
-
-Relevant Files:
-${attachmentLines}
-
-Request:
-- Investigate the root cause and outline the fix.`;
-      },
-    },
-    {
-      id: "feature-implementation",
-      label: "Feature Implementation",
-      description: "Outline user story, acceptance criteria, and constraints.",
-      build: ({ projectName, attachments }) => {
-        const header = projectName
-          ? `Implement a feature for ${projectName}.\n`
-          : "Implement a new feature for this project.\n";
-        const attachmentLines =
-          attachments.length > 0
-            ? attachments.map((entry) => `- @${entry.relativePath}`).join("\n")
-            : "- Attach design docs or related files.";
-
-        return `${header}
-User Story:
-- As a ..., I want ...
-
-Acceptance Criteria:
-- [ ] Criterion 1
-- [ ] Criterion 2
-
-Constraints:
-- Note any technical or product constraints.
-
-Reference Material:
-${attachmentLines}
-
-Deliverables:
-- Provide implementation details.
-- Include tests and update documentation as needed.`;
-      },
-    },
-    {
-      id: "refactor-plan",
-      label: "Refactor Plan",
-      description: "Summarise current state, risks, and desired improvements.",
-      build: ({ projectName, attachments }) => {
-        const header = projectName
-          ? `Refactor plan for ${projectName} component.\n`
-          : "Refactor plan for the current component.\n";
-        const attachmentLines =
-          attachments.length > 0
-            ? attachments.map((entry) => `- @${entry.relativePath}`).join("\n")
-            : "- Attach files that need restructuring.";
-
-        return `${header}
-Current State:
-- Summarise the existing implementation and pain points.
-
-Goals:
-- List the improvements the refactor should deliver.
-
-Risks:
-- Identify potential regressions or dependency impacts.
-
-Key Files:
-${attachmentLines}
-
-Plan:
-- Outline the sequence of changes.
-- Highlight testing strategy.`;
-      },
-    },
-  ];
+  const logger = new Logger({ name: "QuickPromptdApp" });
 
   interface LaunchChatPayload {
     scriptPath: string;
@@ -149,18 +49,6 @@ Plan:
     relativePath: string;
   }
 
-  interface TemplateContext {
-    projectName: string | null;
-    attachments: AttachmentEntry[];
-  }
-
-  interface PromptTemplate {
-    id: string;
-    label: string;
-    description: string;
-    build: (context: TemplateContext) => string;
-  }
-
   type StatusType = "info" | "success" | "error" | "warning";
 
   let promptValue = $state("");
@@ -168,7 +56,6 @@ Plan:
   let selectedProjectPath = $state<string | null>(null);
   let projectMenuOpen = $state(false);
   let modelMenuOpen = $state(false);
-  let generatorMenuOpen = $state(false);
   let isSubmitting = $state(false);
   let hasFocusedEditor = $state(false);
   let status = $state<{ message: string; type: StatusType } | null>(null);
@@ -188,7 +75,6 @@ Plan:
   const closeMenus = (): void => {
     projectMenuOpen = false;
     modelMenuOpen = false;
-    generatorMenuOpen = false;
   };
 
   const updatePromptFromEvent = (event: Event): void => {
@@ -224,7 +110,6 @@ Plan:
         localStorage.removeItem(projectPreferenceKey);
       }
       if (attachments.length > 0) {
-        // Remove any attachment references from the prompt when switching projects
         for (const attachment of attachments) {
           removeAttachmentReference(attachment.relativePath);
         }
@@ -370,28 +255,33 @@ Plan:
     applyStatus(`Removed @${attachment.relativePath} from the prompt.`, "info");
   };
 
-  const toggleTemplateMenu = (event: MouseEvent): void => {
-    event.stopPropagation();
-    const nextState = !generatorMenuOpen;
-    closeMenus();
-    generatorMenuOpen = nextState;
+  const handleGeneratePlaceholder = (): void => {
+    applyStatus("Prompt generator coming soon.", "info");
   };
 
-  const applyTemplate = (template: PromptTemplate): void => {
-    const project = getSelectedProject();
-    promptValue = `${template
-      .build({
-        projectName: project?.name ?? null,
-        attachments,
-      })
-      .trim()}\n`;
-    generatorMenuOpen = false;
-    applyStatus(`Applied "${template.label}" template.`, "success");
-    queueMicrotask(ensureInitialFocus);
-  };
+  const handleCopyPrompt = async (): Promise<void> => {
+    const trimmed = promptValue.trim();
+    if (!trimmed) {
+      applyStatus("Nothing to copy yet.", "info");
+      return;
+    }
 
-  const handleCloseWindow = async (): Promise<void> => {
-    await window.api.quickPromptWindow.hide();
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      applyStatus("Clipboard unavailable.", "error", 0);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(trimmed);
+      applyStatus("Prompt copied to clipboard.", "success", 2000);
+    } catch (error) {
+      logger.error("Failed to copy prompt", error);
+      applyStatus(
+        error instanceof Error ? error.message : "Clipboard unavailable.",
+        "error",
+        0,
+      );
+    }
   };
 
   const startAudioRecording = async (): Promise<void> => {
@@ -690,9 +580,13 @@ Plan:
         focusMainWindow: shouldFocusMainWindow,
       });
 
-      if (!notifiedMainWindow && (!finalStatus || finalStatus.type !== "error")) {
+      if (
+        !notifiedMainWindow &&
+        (!finalStatus || finalStatus.type !== "error")
+      ) {
         finalStatus = {
-          message: "Main window is unavailable. Review the chat from the chat list.",
+          message:
+            "Main window is unavailable. Review the chat from the chat list.",
           type: "warning",
         };
       }
@@ -710,7 +604,8 @@ Plan:
         }
       } else if (!finalStatus) {
         finalStatus = {
-          message: "Chat session created. Launch the surface when you're ready.",
+          message:
+            "Chat session created. Launch the surface when you're ready.",
           type: "info",
         };
       }
@@ -757,10 +652,6 @@ Plan:
       if (!event.target.closest("[data-model-menu]")) {
         modelMenuOpen = false;
       }
-
-      if (!event.target.closest("[data-generator-menu]")) {
-        generatorMenuOpen = false;
-      }
     };
 
     const handleVisibilityChange = (): void => {
@@ -792,21 +683,20 @@ Plan:
   });
 </script>
 
-<div class="bg-surface text-foreground flex h-full flex-col">
+<div class="bg-surface text-foreground flex h-screen flex-col">
   <header
-    class="window-drag flex h-12 flex-shrink-0 items-center justify-between px-4"
+    class="window-drag border-border flex h-12 flex-shrink-0 items-center justify-between border-b px-4"
   >
     <div class="no-drag flex items-center gap-3">
       <div class="relative" data-project-menu>
         <button
           type="button"
-          class="text-muted hover:text-accent flex items-center gap-1 rounded px-2 py-1 text-sm transition-colors"
+          class="text-muted hover:text-accent flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors"
           onclick={(event) => {
             event.stopPropagation();
             projectMenuOpen = !projectMenuOpen;
             if (projectMenuOpen) {
               modelMenuOpen = false;
-              generatorMenuOpen = false;
             }
           }}
         >
@@ -827,7 +717,7 @@ Plan:
           >
             <button
               type="button"
-              class="hover:bg-hover text-accent flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left text-sm font-medium transition-colors"
+              class="hover:bg-hover text-accent border-border flex w-full items-center gap-2 border-b px-3 py-2 text-left text-sm font-medium transition-colors"
               onclick={handleAddNewProject}
             >
               <span>+ Add New Project</span>
@@ -864,13 +754,12 @@ Plan:
       <div class="relative" data-model-menu>
         <button
           type="button"
-          class="text-muted hover:text-accent flex items-center gap-1 rounded px-2 py-1 text-sm transition-colors"
+          class="text-muted hover:text-accent flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors"
           onclick={(event) => {
             event.stopPropagation();
             modelMenuOpen = !modelMenuOpen;
             if (modelMenuOpen) {
               projectMenuOpen = false;
-              generatorMenuOpen = false;
             }
           }}
         >
@@ -909,7 +798,7 @@ Plan:
 
       <button
         type="button"
-        class="text-muted hover:text-accent rounded p-1.5 transition-colors"
+        class="text-muted hover:text-accent rounded-md p-1.5 transition-colors"
         title="Attach files"
         onclick={handleAttach}
       >
@@ -917,27 +806,10 @@ Plan:
       </button>
     </div>
 
-    {#if status}
-      <div
-        transition:fade={{ duration: 200 }}
-        class="absolute left-1/2 top-2 -translate-x-1/2 rounded-md px-3 py-1 text-xs"
-        class:bg-accent={status.type === "success"}
-        class:text-background={status.type === "success"}
-        class:bg-foreground={status.type === "error"}
-        class:text-background={status.type === "error"}
-        class:bg-hover={status.type === "warning" || status.type === "info"}
-        class:text-foreground={
-          status.type === "warning" || status.type === "info"
-        }
-      >
-        {status.message}
-      </div>
-    {/if}
-
     <div class="no-drag flex items-center gap-2">
       <button
         type="button"
-        class="text-muted hover:text-accent rounded p-1.5 transition-colors"
+        class="text-muted hover:text-accent rounded-md p-1.5 transition-colors"
         class:opacity-60={recordingState === "unavailable"}
         class:animate-pulse={recordingState === "recording"}
         title={recordingState === "recording"
@@ -947,42 +819,25 @@ Plan:
       >
         <Mic class="text-base" />
       </button>
-      <div class="relative" data-generator-menu>
-        <button
-          type="button"
-          class="text-muted hover:text-accent rounded p-1.5 transition-colors"
-          title="Prompt templates"
-          onclick={toggleTemplateMenu}
-        >
-          <Stars class="text-base" />
-        </button>
-
-        {#if generatorMenuOpen}
-          <div
-            class="bg-background text-foreground border-border absolute top-full right-0 z-20 mt-2 w-64 overflow-hidden rounded-md border shadow-lg"
-          >
-            {#each promptTemplates as template (template.label)}
-              <button
-                type="button"
-                class="hover:bg-hover w-full px-3 py-2 text-left transition-colors"
-                onclick={() => applyTemplate(template)}
-              >
-                <div class="flex flex-col gap-1">
-                  <span class="text-foreground text-sm font-medium">
-                    {template.label}
-                  </span>
-                  <span class="text-muted text-xs leading-snug">
-                    {template.description}
-                  </span>
-                </div>
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </div>
       <button
         type="button"
-        class="bg-accent text-background flex items-center gap-1 rounded px-3 py-1.5 text-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        class="text-muted hover:text-accent rounded-md p-1.5 transition-colors"
+        title="Generate prompt"
+        onclick={handleGeneratePlaceholder}
+      >
+        <Stars class="text-base" />
+      </button>
+      <button
+        type="button"
+        class="text-muted hover:text-accent rounded-md p-1.5 transition-colors"
+        title="Copy prompt"
+        onclick={() => void handleCopyPrompt()}
+      >
+        <Clipboard class="text-base" />
+      </button>
+      <button
+        type="button"
+        class="bg-accent text-background flex items-center gap-1 rounded-md px-3 py-1.5 text-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         title="Launch chat"
         disabled={isSubmitting}
         onclick={() => void launchChat()}
@@ -993,8 +848,23 @@ Plan:
     </div>
   </header>
 
+  {#if status}
+    <div
+      transition:fade={{ duration: 200 }}
+      class="border-border bg-background text-foreground mx-4 mt-3 rounded-md border px-3 py-2 text-xs"
+      class:bg-accent={status.type === "success"}
+      class:text-background={status.type === "success"}
+      class:bg-foreground={status.type === "error"}
+      class:bg-hover={status.type === "warning" || status.type === "info"}
+      class:text-foreground={status.type === "warning" ||
+        status.type === "info"}
+    >
+      {status.message}
+    </div>
+  {/if}
+
   {#if attachments.length > 0}
-    <div class="flex flex-wrap gap-2 px-4 pb-2 text-xs">
+    <div class="flex flex-wrap gap-2 px-4 pt-3 text-xs">
       {#each attachments as attachment (attachment.absolutePath)}
         <span
           class="bg-hover text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5"
@@ -1013,11 +883,11 @@ Plan:
     </div>
   {/if}
 
-  <main class="flex-1">
+  <main class="flex flex-1 px-4 pt-3 pb-4">
     <textarea
       bind:this={textareaElement}
       placeholder="Prompt editor, use '/' for commands, or @path/to/file"
-      class="h-full w-full resize-none border-none bg-surface p-4 text-sm leading-6 text-foreground outline-none scrollbar-thin placeholder:text-sm placeholder:text-muted"
+      class="text-foreground scrollbar-thin placeholder:text-muted h-full w-full flex-1 resize-none border-none bg-transparent text-sm leading-6 outline-none"
       value={promptValue}
       oninput={updatePromptFromEvent}
       onkeydown={handleKeyDown}
@@ -1025,11 +895,11 @@ Plan:
   </main>
 </div>
 
-<!-- <style>
+<style>
   .window-drag {
     -webkit-app-region: drag;
   }
   .no-drag {
     -webkit-app-region: no-drag;
   }
-</style> -->
+</style>
