@@ -21,7 +21,7 @@ import {
   type SnapshotProvider,
 } from "../services/chat/pty-chat/pty-chat-client.js";
 import { createPtyChatRouter } from "./routers/pty-chat-router.js";
-import { createChatCacheMiddleware } from "../services/chat-engine/chat-cache-middleware.js";
+// import { createChatCacheMiddleware } from "../services/chat-engine/chat-cache-middleware.js";
 import type { PtyInstanceManager } from "../pty/pty-instance-manager.js";
 import type { IEventBus } from "../event-bus.js";
 import { ApiChatClient } from "../services/chat-engine/api-chat-client.js";
@@ -84,15 +84,15 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     databaseFilePath,
   });
 
-  const chatCacheMiddleware = createChatCacheMiddleware(
-    path.join(userDataDir, "chat-cache"),
-  );
+  // const chatCacheMiddleware = createChatCacheMiddleware(
+  //   path.join(userDataDir, "chat-cache"),
+  // );
 
   const apiChatClient = new ApiChatClient({
     repository: chatSessionRepository,
     eventBus,
     toolRegistry,
-    cacheMiddleware: chatCacheMiddleware,
+    // cacheMiddleware: chatCacheMiddleware,
   });
 
   const terminalChatClient = new TerminalChatClient(

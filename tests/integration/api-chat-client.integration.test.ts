@@ -21,9 +21,7 @@ import {
   type ToolRegistry,
 } from "../../src/core/services/tool-call/tool-registry.js";
 
-const hasGatewayCredentials =
-  Boolean(process.env.AI_GATEWAY_API_KEY) ||
-  Boolean(process.env.VERCEL_OIDC_TOKEN);
+const hasGatewayCredentials = Boolean(process.env.AI_GATEWAY_API_KEY);
 
 const describeIntegration = describe.runIf(hasGatewayCredentials);
 
@@ -72,9 +70,7 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
   });
 
   it("streams a response through the real AI SDK", async () => {
-    const modelId =
-      (process.env.AI_GATEWAY_MODEL_ID as `${string}/${string}` | undefined) ??
-      "openai/gpt-4o-mini";
+    const modelId = "openai/gpt-4o-mini";
 
     const sessionInput: CreateChatSessionInput = {
       sessionType: "chat_engine",

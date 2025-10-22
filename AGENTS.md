@@ -179,6 +179,7 @@ The embedded tRPC server (`HttpTrpcServer`) runs on localhost and handles:
   - Node.js with TypeScript
   - tRPC for API layer
   - Logger: tslog
+  - Testing: Vitest (runs via Electron's Node.js runtime to match dev environment)
 
 ### UI Design
 

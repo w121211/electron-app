@@ -1,7 +1,8 @@
-<!-- src/renderer/src/windows/quick-prompt/PromptApp.svelte -->
+<!-- src/renderer/src/windows/quick-prompt/QuickPromptApp.svelte -->
 <script lang="ts">
   import path from "node:path";
   import { onMount, onDestroy } from "svelte";
+  import { fade } from "svelte/transition";
   import { Logger } from "tslog";
   import {
     Folder,
@@ -12,7 +13,6 @@
     Send,
     ChevronDown,
     CheckCircle,
-    ExclamationTriangle,
     XLg,
   } from "svelte-bootstrap-icons";
   import {
@@ -172,6 +172,7 @@ Plan:
   let isSubmitting = $state(false);
   let hasFocusedEditor = $state(false);
   let status = $state<{ message: string; type: StatusType } | null>(null);
+  let statusTimeout = $state<number | null>(null);
   let recordingState = $state<"idle" | "recording" | "unavailable">("idle");
   let mediaRecorder: MediaRecorder | null = null;
   let audioChunks = $state<Blob[]>([]);
@@ -214,10 +215,14 @@ Plan:
     );
   };
 
-  const selectProject = (projectPath: string): void => {
+  const selectProject = (projectPath: string | null): void => {
     if (selectedProjectPath !== projectPath) {
       selectedProjectPath = projectPath;
-      localStorage.setItem(projectPreferenceKey, projectPath);
+      if (projectPath) {
+        localStorage.setItem(projectPreferenceKey, projectPath);
+      } else {
+        localStorage.removeItem(projectPreferenceKey);
+      }
       if (attachments.length > 0) {
         // Remove any attachment references from the prompt when switching projects
         for (const attachment of attachments) {
@@ -227,6 +232,28 @@ Plan:
       }
     }
     closeMenus();
+  };
+
+  const handleAddNewProject = async (): Promise<void> => {
+    closeMenus();
+    try {
+      const folderPath = await window.api.showOpenDialog();
+      if (!folderPath) {
+        return;
+      }
+
+      await projectService.addProjectFolder(folderPath);
+      selectedProjectPath = folderPath;
+      localStorage.setItem(projectPreferenceKey, folderPath);
+      applyStatus(`Added project: ${folderPath}`, "success");
+    } catch (error) {
+      logger.error("Failed to add new project", error);
+      applyStatus(
+        error instanceof Error ? error.message : "Failed to add project.",
+        "error",
+        0,
+      );
+    }
   };
 
   const selectModel = (modelId: `${string}/${string}`): void => {
@@ -272,15 +299,11 @@ Plan:
 
   const handleAttach = async (): Promise<void> => {
     const project = getSelectedProject();
-    if (!project) {
-      applyStatus("Select a project before attaching files.", "error");
-      return;
-    }
 
     try {
       const filePaths =
         (await window.api.quickPrompt.selectFiles({
-          defaultPath: project.path,
+          defaultPath: project?.path,
         })) ?? [];
 
       if (!filePaths.length) {
@@ -291,13 +314,6 @@ Plan:
 
       for (const filePath of filePaths) {
         const absolutePath = path.resolve(filePath);
-        if (!absolutePath.startsWith(project.path)) {
-          applyStatus(
-            `Skipped ${path.basename(filePath)} because it is outside the selected project.`,
-            "warning",
-          );
-          continue;
-        }
 
         if (
           attachments.some(
@@ -307,7 +323,12 @@ Plan:
           continue;
         }
 
-        const relativePath = path.relative(project.path, absolutePath);
+        let relativePath: string;
+        if (project && absolutePath.startsWith(project.path)) {
+          relativePath = path.relative(project.path, absolutePath);
+        } else {
+          relativePath = absolutePath;
+        }
         const normalized = relativePath.replace(/\\/g, "/");
 
         newEntries.push({
@@ -336,6 +357,7 @@ Plan:
       applyStatus(
         error instanceof Error ? error.message : "Failed to attach files.",
         "error",
+        0,
       );
     }
   };
@@ -394,7 +416,7 @@ Plan:
 
       mediaRecorder.onstart = () => {
         recordingState = "recording";
-        applyStatus("Recording audio…", "info");
+        applyStatus("Recording audio…", "info", 0);
       };
 
       mediaRecorder.onstop = async () => {
@@ -412,15 +434,23 @@ Plan:
         const uint8Array = new Uint8Array(arrayBuffer);
 
         try {
-          const relativePath =
+          const absolutePath =
             await window.api.quickPrompt.saveAudio(uint8Array);
-          ensureAttachmentReference(relativePath);
-          applyStatus(`Audio saved: @${relativePath}`, "success");
+
+          const audioEntry: AttachmentEntry = {
+            absolutePath,
+            relativePath: absolutePath,
+          };
+
+          attachments = [...attachments, audioEntry];
+          ensureAttachmentReference(absolutePath);
+          applyStatus(`Audio saved: @${absolutePath}`, "success");
         } catch (error) {
           logger.error("Failed to save audio recording", error);
           applyStatus(
             error instanceof Error ? error.message : "Failed to save audio.",
             "error",
+            0,
           );
         } finally {
           mediaRecorder = null;
@@ -434,7 +464,7 @@ Plan:
         mediaRecorder = null;
         audioChunks = [];
         stream.getTracks().forEach((track) => track.stop());
-        applyStatus("Audio recording failed.", "error");
+        applyStatus("Audio recording failed.", "error", 0);
       };
 
       mediaRecorder.start();
@@ -446,6 +476,7 @@ Plan:
           ? error.message
           : "Microphone access denied or unavailable.",
         "error",
+        0,
       );
       setTimeout(() => {
         recordingState = "idle";
@@ -461,8 +492,20 @@ Plan:
     }
   };
 
-  const applyStatus = (message: string, type: StatusType = "info"): void => {
+  const applyStatus = (
+    message: string,
+    type: StatusType = "info",
+    duration = 4000,
+  ): void => {
     status = { message, type };
+    if (statusTimeout) {
+      clearTimeout(statusTimeout);
+    }
+    if (duration > 0) {
+      statusTimeout = window.setTimeout(() => {
+        status = null;
+      }, duration);
+    }
   };
 
   const loadInitialData = async (): Promise<void> => {
@@ -480,12 +523,6 @@ Plan:
       ]);
 
       const projectFolders = projectState.projectFolders;
-      if (projectFolders.length === 0) {
-        applyStatus(
-          "Add a project folder in the main app before creating prompts.",
-          "error",
-        );
-      }
 
       const storedProject = localStorage.getItem(projectPreferenceKey);
       if (
@@ -505,6 +542,7 @@ Plan:
         applyStatus(
           "No enabled models found. Configure providers in the main app.",
           "error",
+          0,
         );
         return;
       }
@@ -524,6 +562,7 @@ Plan:
           ? error.message
           : "Failed to load quick prompt metadata.",
         "error",
+        0,
       );
     }
   };
@@ -543,7 +582,7 @@ Plan:
     }
 
     if (!selectedModelId) {
-      applyStatus("Select an enabled model to continue.", "error");
+      applyStatus("Select an enabled model to continue.", "error", 0);
       return;
     }
 
@@ -553,12 +592,13 @@ Plan:
       applyStatus(
         "Select a project folder before launching a terminal model.",
         "error",
+        0,
       );
       return;
     }
 
     isSubmitting = true;
-    applyStatus("Creating prompt script and launching chat…", "info");
+    applyStatus("Creating prompt script and launching chat…", "info", 0);
 
     try {
       const script = await documentClientService.createPromptScriptWithContent(
@@ -676,7 +716,7 @@ Plan:
       }
 
       if (finalStatus) {
-        applyStatus(finalStatus.message, finalStatus.type);
+        applyStatus(finalStatus.message, finalStatus.type, 0);
       }
     } catch (error) {
       logger.error("Failed to launch chat from quick prompt", error);
@@ -685,6 +725,7 @@ Plan:
           ? error.message
           : "Failed to launch chat. Try again.",
         "error",
+        0,
       );
     } finally {
       isSubmitting = false;
@@ -699,6 +740,7 @@ Plan:
           ? error.message
           : "Quick prompt initialization failed.",
         "error",
+        0,
       );
     });
 
@@ -740,6 +782,9 @@ Plan:
     if (mediaRecorder && recordingState === "recording") {
       mediaRecorder.stop();
     }
+    if (statusTimeout) {
+      clearTimeout(statusTimeout);
+    }
   });
 
   $effect(() => {
@@ -780,11 +825,25 @@ Plan:
           <div
             class="bg-background text-foreground border-border absolute top-full left-0 z-20 mt-2 min-w-[220px] overflow-hidden rounded-md border shadow-lg"
           >
-            {#if projects.length === 0}
-              <div class="text-muted px-3 py-2 text-sm">
-                No projects. Add one in the main application.
-              </div>
-            {:else}
+            <button
+              type="button"
+              class="hover:bg-hover text-accent flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left text-sm font-medium transition-colors"
+              onclick={handleAddNewProject}
+            >
+              <span>+ Add New Project</span>
+            </button>
+            <button
+              type="button"
+              class="hover:bg-hover flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors"
+              onclick={() => selectProject(null)}
+            >
+              <span class="text-muted italic">None</span>
+              {#if selectedProjectPath === null}
+                <CheckCircle class="text-accent text-sm" />
+              {/if}
+            </button>
+            {#if projects.length > 0}
+              <div class="border-border border-t"></div>
               {#each projects as project (project.path)}
                 <button
                   type="button"
@@ -858,6 +917,23 @@ Plan:
       </button>
     </div>
 
+    {#if status}
+      <div
+        transition:fade={{ duration: 200 }}
+        class="absolute left-1/2 top-2 -translate-x-1/2 rounded-md px-3 py-1 text-xs"
+        class:bg-accent={status.type === "success"}
+        class:text-background={status.type === "success"}
+        class:bg-foreground={status.type === "error"}
+        class:text-background={status.type === "error"}
+        class:bg-hover={status.type === "warning" || status.type === "info"}
+        class:text-foreground={
+          status.type === "warning" || status.type === "info"
+        }
+      >
+        {status.message}
+      </div>
+    {/if}
+
     <div class="no-drag flex items-center gap-2">
       <button
         type="button"
@@ -914,14 +990,6 @@ Plan:
         <Send class="text-sm" />
         <span>{isSubmitting ? "Launching…" : "Send"}</span>
       </button>
-      <button
-        type="button"
-        class="text-muted hover:text-accent rounded p-1.5 transition-colors"
-        title="Hide window"
-        onclick={() => void handleCloseWindow()}
-      >
-        <XLg class="text-base" />
-      </button>
     </div>
   </header>
 
@@ -945,31 +1013,16 @@ Plan:
     </div>
   {/if}
 
-  <main class="flex-1 p-2">
+  <main class="flex-1">
     <textarea
       bind:this={textareaElement}
       placeholder="Prompt editor, use '/' for commands, or @path/to/file"
-      class="bg-surface text-foreground scrollbar-thin border-border h-full w-full resize-none rounded-md border px-3 py-2 text-sm leading-6 outline-none"
+      class="h-full w-full resize-none border-none bg-surface p-4 text-sm leading-6 text-foreground outline-none scrollbar-thin placeholder:text-sm placeholder:text-muted"
       value={promptValue}
       oninput={updatePromptFromEvent}
       onkeydown={handleKeyDown}
     ></textarea>
   </main>
-
-  {#if status}
-    <footer
-      class="border-border flex items-center gap-2 border-t px-4 py-2 text-xs"
-      class:text-accent={status.type === "success"}
-      class:text-muted={status.type === "info"}
-      class:text-red-400={status.type === "error"}
-      class:text-yellow-400={status.type === "warning"}
-    >
-      {#if status.type === "error" || status.type === "warning"}
-        <ExclamationTriangle class="text-sm" />
-      {/if}
-      <span class="truncate">{status.message}</span>
-    </footer>
-  {/if}
 </div>
 
 <!-- <style>

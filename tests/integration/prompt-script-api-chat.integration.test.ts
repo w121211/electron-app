@@ -25,9 +25,7 @@ import { PromptScriptService } from "../../src/core/services/prompt-script/promp
 import { substituteArguments } from "../../src/core/services/prompt-script/prompt-script-parser.js";
 import { getModelMessageContentString } from "../../src/core/utils/message-utils.js";
 
-const hasGatewayCredentials =
-  Boolean(process.env.AI_GATEWAY_API_KEY) ||
-  Boolean(process.env.VERCEL_OIDC_TOKEN);
+const hasGatewayCredentials = Boolean(process.env.AI_GATEWAY_API_KEY);
 
 const describeIntegration = describe.runIf(hasGatewayCredentials);
 
@@ -90,11 +88,11 @@ describeIntegration("Prompt script API chat integration", () => {
 
     if (promptScriptDirectory) {
       cleanups.push(
-        fs.rm(promptScriptDirectory, { recursive: true, force: true }).catch(
-          () => {
+        fs
+          .rm(promptScriptDirectory, { recursive: true, force: true })
+          .catch(() => {
             // Ignore cleanup failures
-          },
-        ),
+          }),
       );
     }
 
@@ -102,9 +100,7 @@ describeIntegration("Prompt script API chat integration", () => {
   });
 
   it("creates, links, and executes a prompt script through the API chat engine", async () => {
-    const modelId =
-      (process.env.AI_GATEWAY_MODEL_ID as `${string}/${string}` | undefined) ??
-      "openai/gpt-4o-mini";
+    const modelId = "openai/gpt-4o-mini";
 
     const createdScript = await promptScriptService.createPromptScript(
       promptScriptDirectory,
@@ -146,19 +142,20 @@ Say hello to $1 and mention this is a prompt script integration test.
       session.id,
     );
 
-    expect(linkResult.promptScript.promptScriptParsed.metadata.chatSessionId).toBe(
-      session.id,
-    );
+    expect(
+      linkResult.promptScript.promptScriptParsed.metadata.chatSessionId,
+    ).toBe(session.id);
     expect(linkResult.chatSession.id).toBe(session.id);
-    expect(linkResult.chatSession.scriptPath).toBe(
-      preparedScript.absolutePath,
-    );
+    expect(linkResult.chatSession.scriptPath).toBe(preparedScript.absolutePath);
 
     const prompts = linkResult.promptScript.promptScriptParsed.prompts;
     expect(prompts.length).toBeGreaterThan(0);
 
     const promptArgs = ["Codex integration"];
-    const promptText = substituteArguments(prompts[0]!.content, promptArgs).trim();
+    const promptText = substituteArguments(
+      prompts[0]!.content,
+      promptArgs,
+    ).trim();
 
     const messageInput: SendChatMessageInput = {
       chatSessionId: session.id,
@@ -216,4 +213,3 @@ Say hello to $1 and mention this is a prompt script integration test.
     );
   });
 });
-

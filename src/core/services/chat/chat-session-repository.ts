@@ -88,6 +88,7 @@ export interface ChatMetadata {
   toolCallsAwaitingConfirmation?: Array<TypedToolCall<ToolSet>>;
   toolCallConfirmations?: Array<ToolCallConfirmation>;
   toolAlwaysAllowRules?: Array<ToolAlwaysAllowRule>;
+  projectPath?: string;
 }
 
 export interface ChatSessionData {
@@ -160,6 +161,7 @@ export const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
       }),
     )
     .optional(),
+  projectPath: z.string().optional(),
 });
 
 export const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> =

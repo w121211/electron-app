@@ -106,8 +106,8 @@ export function registerQuickPromptWindowShortcut(
 ): void {
   const accelerator =
     process.platform === "darwin"
-      ? "CommandOrControl+Shift+Space"
-      : "Control+Shift+Space";
+      ? "CommandOrControl+Shift+."
+      : "Control+Shift+.";
 
   const registered = globalShortcut.register(accelerator, () => {
     toggleQuickPromptWindow(context);

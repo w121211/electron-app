@@ -191,6 +191,7 @@ The embedded tRPC server (`HttpTrpcServer`) runs on localhost and handles:
   - `npm test` - Run all tests in watch mode
   - Test files import from compiled source using `.js` extensions (TypeScript paths)
 - **Test Structure:** Standard describe/it/expect pattern with beforeEach/afterEach for setup/teardown
+- **Test Runtime:** Tests run using Electron's Node.js runtime (via `electron ./node_modules/vitest/vitest.mjs`) to align with the dev environment's NODE_MODULE_VERSION, preventing native module compilation issues with `better-sqlite3`
 
 ### UI Design
 

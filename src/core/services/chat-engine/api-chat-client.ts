@@ -33,6 +33,7 @@ import {
   extractChatFileReferences,
   getUserModelMessageContentString,
   getModelMessageContentString,
+  processMultimodalFileReferences,
 } from "../../utils/message-utils.js";
 import {
   ToolCallRunner,
@@ -265,7 +266,7 @@ class ApiChatSession {
         };
       }
 
-      this.appendUserMessage(input);
+      await this.appendUserMessage(input);
 
       const streamResult = await this.generateAssistantResponse(signal);
 
@@ -444,13 +445,22 @@ class ApiChatSession {
     return controller.signal;
   }
 
-  private appendUserMessage(input: UserModelMessage): void {
+  private async appendUserMessage(input: UserModelMessage): Promise<void> {
     const content = getUserModelMessageContentString(input);
     const fileReferences = extractChatFileReferences(content);
 
+    let processedInput = input;
+    if (this.metadata.projectPath && fileReferences.length > 0) {
+      const multimodalContent = await processMultimodalFileReferences(
+        content,
+        this.metadata.projectPath,
+      );
+      processedInput = { role: "user", content: multimodalContent };
+    }
+
     const message: ChatMessage = {
       id: uuidv4(),
-      message: input,
+      message: processedInput,
       metadata: {
         timestamp: new Date(),
         fileReferences: fileReferences.length > 0 ? fileReferences : undefined,
@@ -459,7 +469,7 @@ class ApiChatSession {
 
     this.messages.push(message);
     this.updatedAt = new Date();
-    void this.emitUpdateEvent("MESSAGE_ADDED", { message });
+    await this.emitUpdateEvent("MESSAGE_ADDED", { message });
   }
 
   private handleToolExecutionResult(

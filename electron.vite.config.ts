@@ -2,6 +2,7 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { resolve } from "path";
 
 export default defineConfig({
   main: {
@@ -11,6 +12,17 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
   },
   renderer: {
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, "src/renderer/index.html"),
+          "windows/quick-prompt/index": resolve(
+            __dirname,
+            "src/renderer/src/windows/quick-prompt/index.html",
+          ),
+        },
+      },
+    },
     plugins: [
       tailwindcss(),
       svelte(),

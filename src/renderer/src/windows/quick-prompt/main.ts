@@ -1,9 +1,9 @@
 // src/renderer/src/windows/quick-prompt/main.ts
 import { mount } from "svelte";
 import "../../app.css";
-import PromptApp from "./PromptApp.svelte";
+import QuickPromptApp from "./QuickPromptApp.svelte";
 
-const app = mount(PromptApp, {
+const app = mount(QuickPromptApp, {
   target: document.getElementById("prompt-root")!,
 });
 

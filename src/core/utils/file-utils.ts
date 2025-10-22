@@ -558,3 +558,8 @@ export function validateFileName(name: string): void {
     throw new Error("Name contains invalid characters");
   }
 }
+
+export async function readFileAsBase64(filePath: string): Promise<string> {
+  const buffer = await fs.readFile(filePath);
+  return buffer.toString("base64");
+}

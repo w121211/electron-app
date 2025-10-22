@@ -4,11 +4,14 @@
     "electron.vite.config.*",
     "src/main/**/*",
     "src/preload/**/*",
-    "src/core/**/*"
+    "src/core/**/*",
+    "src/shared/**/*"
   ],
   "compilerOptions": {
     "composite": true,
-    "types": ["electron-vite/node"],
+    "types": [
+      "electron-vite/node"
+    ],
     "moduleResolution": "bundler"
   }
 }

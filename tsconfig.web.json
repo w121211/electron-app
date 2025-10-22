@@ -7,11 +7,16 @@
     "src/preload/*.d.ts"
   ],
   "compilerOptions": {
+    "composite": true,
     "verbatimModuleSyntax": true,
     "useDefineForClassFields": true,
     // "strict": false,
     "allowJs": true,
     "checkJs": true,
-    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ]
   }
 }

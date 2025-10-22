@@ -2,10 +2,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 /**
- * Tests for PromptApp audio recording functionality.
+ * Tests for QuickPromptApp audio recording functionality.
  * These tests simulate the audio recording flow by mocking MediaRecorder and IPC APIs.
  */
-describe("PromptApp - Audio Recording Flow", () => {
+describe("QuickPromptApp - Audio Recording Flow", () => {
   let mockMediaRecorder: any;
   let mockMediaStream: any;
   let mockSaveAudio: ReturnType<typeof vi.fn>;
@@ -105,7 +105,7 @@ describe("PromptApp - Audio Recording Flow", () => {
       const relativePath = "audio-recordings/2025-01-15/12345-abcde.webm";
       let promptValue = "";
 
-      // Simulate ensureAttachmentReference function from PromptApp
+      // Simulate ensureAttachmentReference function from QuickPromptApp
       const ensureAttachmentReference = (path: string): string => {
         const marker = `@${path}`;
         if (promptValue.includes(marker)) {

@@ -6,6 +6,7 @@ import type { ChatSessionData } from "../../../core/services/chat/chat-session-r
 import type { CreateChatSessionInput } from "../../../core/services/chat-engine/api-chat-client.js";
 import { setChatSession } from "../stores/chat.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
+import { userSettingsState } from "../stores/user-settings-store.svelte.js";
 
 const logger = new Logger({ name: "ApiChatService" });
 
@@ -25,7 +26,17 @@ export class ApiChatService {
     logger.info("Creating API chat session", {
       sessionType: input.sessionType,
     });
-    const session = await trpcClient.apiChat.createSession.mutate(input);
+
+    const projectPath = userSettingsState.settings.projectFolders[0]?.path;
+    const sessionInput: CreateChatSessionInput = {
+      ...input,
+      metadata: {
+        ...input.metadata,
+        projectPath,
+      },
+    };
+
+    const session = await trpcClient.apiChat.createSession.mutate(sessionInput);
     setChatSession(session);
     return session;
   }

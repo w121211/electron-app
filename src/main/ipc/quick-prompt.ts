@@ -117,7 +117,7 @@ export function registerQuickPromptIpcHandlers(
       const result = await audioService.saveRecording({
         audioData: Buffer.from(audioData),
       });
-      return result.relativePath;
+      return result.absolutePath;
     },
   );
 }

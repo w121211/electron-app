@@ -8,7 +8,7 @@
   "scripts": {
     "format": "prettier --plugin prettier-plugin-svelte --write .",
     "lint": "eslint --cache .",
-    "test": "vitest",
+    "test": "electron ./node_modules/vitest/vitest.mjs",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "svelte-check": "svelte-check --tsconfig ./tsconfig.web.json",
     "typecheck": "npm run typecheck:node && npm run svelte-check",
@@ -46,6 +46,7 @@
     "kysely": "^0.28.7",
     "level": "^10.0.0",
     "marked": "^16.2.1",
+    "mime": "^4.1.0",
     "node-pty": "^1.1.0-beta33",
     "superjson": "^2.2.2",
     "svelte-bootstrap-icons": "^3.3.0",

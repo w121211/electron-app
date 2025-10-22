@@ -158,9 +158,7 @@ function createDeferred() {
 
 describe("ChatQueueManager", () => {
   it("processes scheduled chat sessions through the API client", async () => {
-    const tempDirectory = await mkdtemp(
-      join(tmpdir(), "chat-queue-manager-"),
-    );
+    const tempDirectory = await mkdtemp(join(tmpdir(), "chat-queue-manager-"));
     const queueRepository = new ChatQueueRepository(tempDirectory);
     const session = createChatSession({
       id: "chat-1",
@@ -216,9 +214,7 @@ describe("ChatQueueManager", () => {
   });
 
   it("processes queued chats sequentially when models become available", async () => {
-    const tempDirectory = await mkdtemp(
-      join(tmpdir(), "chat-queue-manager-"),
-    );
+    const tempDirectory = await mkdtemp(join(tmpdir(), "chat-queue-manager-"));
     const queueRepository = new ChatQueueRepository(tempDirectory);
     const sessionA = createChatSession({
       id: "chat-1",
@@ -272,15 +268,23 @@ describe("ChatQueueManager", () => {
       chatClient,
     );
 
-    await manager.schedule(sessionA.id, join(tempDirectory, "chat-1.chat.json"));
-    await manager.schedule(sessionB.id, join(tempDirectory, "chat-2.chat.json"));
+    await manager.schedule(
+      sessionA.id,
+      join(tempDirectory, "chat-1.chat.json"),
+    );
+    await manager.schedule(
+      sessionB.id,
+      join(tempDirectory, "chat-2.chat.json"),
+    );
     await firstSend.promise;
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(sendMessage.mock.calls[0]?.[0].chatSessionId).toBe(sessionA.id);
 
     const queuedBeforeCompletion = await queueRepository.getAllItems();
-    expect(queuedBeforeCompletion.find((item) => item.chatId === sessionB.id)).toBeDefined();
+    expect(
+      queuedBeforeCompletion.find((item) => item.chatId === sessionB.id),
+    ).toBeDefined();
 
     const sessionSnapshot = await sessionRepository.getById(sessionA.id);
     expect(sessionSnapshot).not.toBeNull();

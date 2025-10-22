@@ -2,8 +2,17 @@
 import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
 import { type ILogObj, Logger } from "tslog";
-import type { ModelMessage, UIMessage, UserModelMessage, TextPart } from "ai";
-import { openFile } from "./file-utils.js";
+import type {
+  ModelMessage,
+  UIMessage,
+  UserModelMessage,
+  TextPart,
+  UserContent,
+  FilePart,
+  ImagePart,
+} from "ai";
+import mime from "mime";
+import { openFile, readFileAsBase64 } from "./file-utils.js";
 
 // Module-level logger
 const logger = new Logger<ILogObj>({ name: "MessageUtils" });
@@ -298,4 +307,88 @@ export function extractInputDataPlaceholders(message: string): string[] {
   }
 
   return matches;
+}
+
+function isBinaryFileType(mimeType: string | null): boolean {
+  if (!mimeType) {
+    return false;
+  }
+  return (
+    mimeType.startsWith("audio/") ||
+    mimeType.startsWith("image/") ||
+    mimeType.startsWith("video/") ||
+    mimeType === "application/pdf"
+  );
+}
+
+export async function processMultimodalFileReferences(
+  message: string,
+  projectPath: string,
+): Promise<UserContent> {
+  try {
+    const fileRefs = extractFileReferences(message);
+
+    if (fileRefs.length === 0) {
+      return message;
+    }
+
+    const parts: Array<TextPart | FilePart | ImagePart> = [
+      { type: "text", text: message },
+    ];
+
+    for (const filePath of fileRefs) {
+      try {
+        const absolutePath = path.isAbsolute(filePath)
+          ? filePath
+          : path.resolve(projectPath, filePath);
+
+        const isInProject = absolutePath.startsWith(projectPath);
+        if (!isInProject) {
+          logger.warn(`File ${filePath} is outside project folder, skipping`);
+          continue;
+        }
+
+        const mimeType = mime.getType(absolutePath);
+        const isBinary = isBinaryFileType(mimeType);
+
+        if (isBinary && mimeType) {
+          const base64Data = await readFileAsBase64(absolutePath);
+
+          if (mimeType.startsWith("image/")) {
+            const imagePart: ImagePart = {
+              type: "image",
+              image: base64Data,
+              mediaType: mimeType,
+            };
+            parts.push(imagePart);
+          } else {
+            const filePart: FilePart = {
+              type: "file",
+              data: base64Data,
+              mediaType: mimeType,
+            };
+            parts.push(filePart);
+          }
+
+          logger.debug(
+            `Loaded binary file: ${filePath} as ${mimeType.startsWith("image/") ? "image" : "file"} part`,
+          );
+        } else {
+          const fileContent = await openFile(absolutePath);
+          parts.push({
+            type: "text",
+            text: `\n\nContent from @${filePath}:\n${fileContent.content}`,
+          });
+          logger.debug(`Loaded text file: ${filePath}`);
+        }
+      } catch (error) {
+        logger.warn(`Failed to load file ${filePath}: ${error}`);
+      }
+    }
+
+    return parts.length === 1 ? message : parts;
+  } catch (error) {
+    logger.error(`Error processing multimodal file references: ${error}`);
+    return message;
+  }
 }
