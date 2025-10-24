@@ -23,10 +23,13 @@ import {
 // ----------------------------------------------------------------
 
 // Define types for ProjectFolderService
-export interface ProjectFolder {
+export interface ProjectDirectory {
   name: string;
   path: string;
 }
+
+// @deprecated Use ProjectDirectory instead
+export type ProjectFolder = ProjectDirectory;
 
 export interface HighlightToken {
   text: string;
@@ -45,7 +48,7 @@ export type ProjectFolderUpdateType =
 
 export interface ProjectFolderUpdatedEvent extends BaseEvent {
   kind: "ProjectFolderUpdatedEvent";
-  projectFolders: ProjectFolder[];
+  projectFolders: ProjectDirectory[];
   updateType: ProjectFolderUpdateType;
 }
 
@@ -76,7 +79,7 @@ export class ProjectFolderService {
     // Get settings to verify project folders
     const settings = await this.userSettingsRepository.getSettings();
 
-    if (settings.projectFolders.length === 0) {
+    if (settings.project.directories.length === 0) {
       throw new Error("No project folders configured");
     }
 
@@ -86,7 +89,7 @@ export class ProjectFolderService {
 
     if (!absoluteProjectFolderPath) {
       // If no path specified, use the first project folder
-      selectedProjectFolder = settings.projectFolders[0]!;
+      selectedProjectFolder = settings.project.directories[0]!;
       fullPath = selectedProjectFolder.path;
     } else {
       // Validate that the path is absolute
@@ -97,7 +100,7 @@ export class ProjectFolderService {
       }
 
       // Find matching project folder
-      const matchingProjectFolder = settings.projectFolders.find(
+      const matchingProjectFolder = settings.project.directories.find(
         (folder) =>
           absoluteProjectFolderPath === folder.path ||
           absoluteProjectFolderPath.startsWith(folder.path + path.sep),
@@ -143,7 +146,7 @@ export class ProjectFolderService {
     const settings = await this.userSettingsRepository.getSettings();
 
     // Check if project folder already exists (idempotent operation)
-    const existingFolder = settings.projectFolders.find(
+    const existingFolder = settings.project.directories.find(
       (folder) => folder.path === absoluteProjectFolderPath,
     );
 
@@ -155,7 +158,7 @@ export class ProjectFolderService {
     }
 
     // Check if the new folder is a subfolder of an existing project folder
-    for (const existingFolder of settings.projectFolders) {
+    for (const existingFolder of settings.project.directories) {
       if (
         absoluteProjectFolderPath.startsWith(existingFolder.path + path.sep)
       ) {
@@ -166,7 +169,7 @@ export class ProjectFolderService {
     }
 
     // Check if any existing folder is a subfolder of the new folder
-    for (const existingFolder of settings.projectFolders) {
+    for (const existingFolder of settings.project.directories) {
       if (
         existingFolder.path.startsWith(absoluteProjectFolderPath + path.sep)
       ) {
@@ -184,7 +187,7 @@ export class ProjectFolderService {
     };
 
     // Add project folder to settings
-    settings.projectFolders.push(projectFolder);
+    settings.project.directories.push(projectFolder);
 
     // Save updated settings
     await this.userSettingsRepository.saveSettings(settings);
@@ -199,7 +202,7 @@ export class ProjectFolderService {
       kind: "ProjectFolderUpdatedEvent",
       timestamp: new Date(),
       correlationId: _correlationId,
-      projectFolders: settings.projectFolders,
+      projectFolders: settings.project.directories,
       updateType: "PROJECT_FOLDER_ADDED",
     });
 
@@ -219,7 +222,7 @@ export class ProjectFolderService {
     const settings = await this.userSettingsRepository.getSettings();
 
     // Find the project folder by path
-    const projectFolder = settings.projectFolders.find(
+    const projectFolder = settings.project.directories.find(
       (folder) => folder.path === projectFolderPath,
     );
 
@@ -228,7 +231,7 @@ export class ProjectFolderService {
     }
 
     // Remove project folder from settings
-    settings.projectFolders = settings.projectFolders.filter(
+    settings.project.directories = settings.project.directories.filter(
       (folder) => folder.path !== projectFolderPath,
     );
 
@@ -243,7 +246,7 @@ export class ProjectFolderService {
       kind: "ProjectFolderUpdatedEvent",
       timestamp: new Date(),
       correlationId: _correlationId,
-      projectFolders: settings.projectFolders,
+      projectFolders: settings.project.directories,
       updateType: "PROJECT_FOLDER_REMOVED",
     });
 
@@ -251,12 +254,12 @@ export class ProjectFolderService {
       `Project folder removed successfully: ${projectFolder.path}`,
     );
 
-    return settings.projectFolders;
+    return settings.project.directories;
   }
 
   public async getAllProjectFolders(): Promise<ProjectFolder[]> {
     const settings = await this.userSettingsRepository.getSettings();
-    return settings.projectFolders;
+    return settings.project.directories;
   }
 
   public async startWatchingAllProjectFolders(
@@ -266,7 +269,7 @@ export class ProjectFolderService {
 
     // Get all project folder paths from settings
     const settings = await this.userSettingsRepository.getSettings();
-    const projectFolders = settings.projectFolders;
+    const projectFolders = settings.project.directories;
 
     if (projectFolders.length === 0) {
       this.logger.info("No project folders found to watch");
@@ -293,7 +296,7 @@ export class ProjectFolderService {
     }
 
     const settings = await this.userSettingsRepository.getSettings();
-    const projectFolders = settings.projectFolders;
+    const projectFolders = settings.project.directories;
 
     for (const folder of projectFolders) {
       if (
@@ -318,7 +321,7 @@ export class ProjectFolderService {
     }
 
     const settings = await this.userSettingsRepository.getSettings();
-    const projectFolders = settings.projectFolders;
+    const projectFolders = settings.project.directories;
 
     for (const folder of projectFolders) {
       if (
@@ -347,7 +350,7 @@ export class ProjectFolderService {
 
     // Find the project folder by path
     const settings = await this.userSettingsRepository.getSettings();
-    const projectFolder = settings.projectFolders.find(
+    const projectFolder = settings.project.directories.find(
       (folder) => folder.path === projectPath,
     );
 
@@ -562,7 +565,7 @@ export class ProjectFolderService {
 
     // Check if the path being renamed is a project folder root
     const settings = await this.userSettingsRepository.getSettings();
-    const isProjectFolderRoot = settings.projectFolders.some(
+    const isProjectFolderRoot = settings.project.directories.some(
       (folder) => folder.path === absolutePath,
     );
 
@@ -623,7 +626,7 @@ export class ProjectFolderService {
 
     // Check if the path being deleted is a project folder root
     const settings = await this.userSettingsRepository.getSettings();
-    const isProjectFolderRoot = settings.projectFolders.some(
+    const isProjectFolderRoot = settings.project.directories.some(
       (folder) => folder.path === absolutePath,
     );
 

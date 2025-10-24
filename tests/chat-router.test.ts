@@ -10,7 +10,7 @@ function createSessionStub(
   const now = new Date();
   return {
     id: "session-id",
-    sessionType: "chat_engine",
+    modelSurface: "api",
     state: "active",
     messages: [],
     metadata: { modelId: "openai/gpt-4o" },
@@ -34,7 +34,7 @@ describe("chat router createSession", () => {
     const terminalChatClient = {
       createSession: vi.fn().mockResolvedValue(
         createSessionStub({
-          sessionType: "external_chat",
+          modelSurface: "terminal",
           metadata: { modelId: "cli/debug", modelSurface: "terminal" },
         }),
       ),
@@ -94,7 +94,7 @@ describe("chat router createSession", () => {
     const webChatClient = {
       createSession: vi.fn().mockResolvedValue(
         createSessionStub({
-          sessionType: "external_chat",
+          modelSurface: "terminal",
           metadata: { modelId: "web/gpt-5", modelSurface: "web" },
         }),
       ),
@@ -127,7 +127,7 @@ describe("chat router createSession", () => {
     const apiChatClient = {
       createSession: vi.fn().mockResolvedValue(
         createSessionStub({
-          sessionType: "chat_engine",
+          modelSurface: "api",
           metadata: { modelId: "openai/gpt-4o" },
         }),
       ),
@@ -151,9 +151,9 @@ describe("chat router createSession", () => {
       },
     });
 
-    expect(result.sessionType).toBe("chat_engine");
+    expect(result.sessionType).toBe("api");
     expect(apiChatClient.createSession).toHaveBeenCalledWith({
-      sessionType: "chat_engine",
+      modelSurface: "api",
       metadata: {
         modelId: "openai/gpt-4o",
         modelSurface: "api",

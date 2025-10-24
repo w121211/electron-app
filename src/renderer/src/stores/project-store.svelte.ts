@@ -1,9 +1,12 @@
 // src/renderer/src/stores/project-store.svelte.ts
 
-export interface ProjectFolder {
+export interface ProjectDirectory {
   name: string;
   path: string;
 }
+
+// @deprecated Use ProjectDirectory instead
+export type ProjectFolder = ProjectDirectory;
 
 export interface FolderTreeNode {
   name: string;
@@ -13,7 +16,7 @@ export interface FolderTreeNode {
 }
 
 interface ProjectState {
-  projectFolders: ProjectFolder[];
+  projectFolders: ProjectDirectory[];
   folderTrees: Record<string, FolderTreeNode>;
 }
 
@@ -24,11 +27,11 @@ export const projectState = $state<ProjectState>({
 });
 
 // Mutation functions
-export function setProjectFolders(folders: ProjectFolder[]) {
+export function setProjectFolders(folders: ProjectDirectory[]) {
   projectState.projectFolders = folders;
 }
 
-export function addProjectFolder(folder: ProjectFolder) {
+export function addProjectFolder(folder: ProjectDirectory) {
   projectState.projectFolders = [...projectState.projectFolders, folder];
 }
 

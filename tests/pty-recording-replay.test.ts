@@ -239,7 +239,7 @@ function replayRecording(
   const timestamp = new Date();
   const sessionData: ChatSessionData = {
     id: metadata.sessionId,
-    sessionType: "pty_chat",
+    modelSurface: "pty",
     state: "active",
     messages: [],
     metadata: {

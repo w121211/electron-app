@@ -24,10 +24,10 @@ export class ApiChatService {
     input: CreateChatSessionInput,
   ): Promise<ChatSessionData> {
     logger.info("Creating API chat session", {
-      sessionType: input.sessionType,
+      modelSurface: input.modelSurface,
     });
 
-    const projectPath = userSettingsState.settings.projectFolders[0]?.path;
+    const projectPath = userSettingsState.settings.project.directories[0]?.path;
     const sessionInput: CreateChatSessionInput = {
       ...input,
       metadata: {

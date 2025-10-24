@@ -5,7 +5,7 @@ import { ApiChatClient } from "../../services/chat-engine/api-chat-client.js";
 import { TerminalChatClient } from "../../services/external-chat/terminal-chat-client.js";
 import { WebChatClient } from "../../services/external-chat/web-chat-client.js";
 import type { ChatMetadata } from "../../services/chat/chat-session-repository.js";
-import { getModelSurface } from "../../../shared/utils/model-utils.js";
+import { getModelSurface } from "../../utils/model-utils.js";
 
 interface CreateChatRouterDependencies {
   apiChatClient: ApiChatClient;
@@ -82,7 +82,7 @@ export function createChatRouter({
         };
 
         return apiChatClient.createSession({
-          sessionType: "chat_engine",
+          modelSurface: "api",
           metadata,
           script: input.script,
         });

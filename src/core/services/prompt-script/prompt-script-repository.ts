@@ -20,7 +20,7 @@ export interface PromptScriptMetadata {
   tags?: string[];
   engine: PromptScriptEngine;
   engineDefinedInSource: boolean;
-  model?: string;
+  modelId?: string;
   chatSessionId?: string;
   extras: Record<string, unknown>;
 }
@@ -103,7 +103,7 @@ export class PromptScriptRepository {
       title: metadata.title,
       description: metadata.description,
       tags: metadata.tags,
-      model: metadata.model,
+      modelId: metadata.modelId,
       chatSessionId: metadata.chatSessionId,
     };
 

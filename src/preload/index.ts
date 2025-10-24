@@ -27,40 +27,10 @@ const api = {
     }) => ipcRenderer.invoke("surface:launch", payload),
   },
   quickPrompt: {
-    launchChat: (payload: {
-      scriptPath: string;
-      sessionId: string;
-      projectPath: string | null;
-      modelId: `${string}/${string}`;
-      closeQuickPromptWindow?: boolean;
-      focusMainWindow?: boolean;
-    }) => ipcRenderer.invoke("quick-prompt:launch-chat", payload),
     selectFiles: (options?: { defaultPath?: string }) =>
       ipcRenderer.invoke("quick-prompt:select-files", options),
     saveAudio: (audioData: Uint8Array): Promise<string> =>
       ipcRenderer.invoke("quick-prompt:save-audio", audioData),
-    onLaunch: (
-      callback: (payload: {
-        scriptPath: string;
-        sessionId: string;
-        projectPath: string | null;
-        modelId: `${string}/${string}`;
-      }) => void,
-    ) => {
-      const handler = (
-        _: unknown,
-        payload: {
-          scriptPath: string;
-          sessionId: string;
-          projectPath: string | null;
-          modelId: `${string}/${string}`;
-        },
-      ) => callback(payload);
-      ipcRenderer.on("quick-prompt:launch-chat", handler);
-      return () => {
-        ipcRenderer.removeListener("quick-prompt:launch-chat", handler);
-      };
-    },
   },
   xtermWindow: {
     launch: (ptySessionId: string) => ipcRenderer.invoke("xterm-window:launch", ptySessionId),

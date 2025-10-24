@@ -71,7 +71,7 @@ export class PtyChatClient {
 
     const sessionData: ChatSessionData = {
       id: uuidv4(),
-      sessionType: "pty_chat",
+      modelSurface: "pty",
       state: "active",
       messages: [],
       metadata,
@@ -320,7 +320,7 @@ export class PtyChatClient {
 
     const sessions = await this.repository.list();
     for (const data of sessions) {
-      if (data.sessionType !== "pty_chat") {
+      if (data.modelSurface !== "pty") {
         continue;
       }
       const existingPtyId = data.metadata?.external?.ptyInstanceId;

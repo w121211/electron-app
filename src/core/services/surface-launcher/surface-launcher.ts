@@ -5,7 +5,7 @@ import {
   getWebModelUrl,
   getWebModelWindowTitle,
   type ModelSurface,
-} from "../../../shared/utils/model-utils.js";
+} from "../../utils/model-utils.js";
 import {
   launchTerminalFromConfig,
   type LaunchTerminalResult,
@@ -38,8 +38,7 @@ export class SurfaceLauncher {
   constructor(private readonly deps: SurfaceLaunchDependencies) {}
 
   async launch(request: SurfaceLaunchRequest): Promise<SurfaceLaunchResult> {
-    const surface =
-      request.surface ?? getModelSurface(request.modelId);
+    const surface = request.surface ?? getModelSurface(request.modelId);
 
     if (surface === "api") {
       return { success: true, message: "No surface launch required." };
@@ -59,9 +58,7 @@ export class SurfaceLauncher {
     };
   }
 
-  private launchTerminal(
-    request: SurfaceLaunchRequest,
-  ): SurfaceLaunchResult {
+  private launchTerminal(request: SurfaceLaunchRequest): SurfaceLaunchResult {
     if (!request.projectPath) {
       return {
         success: false,
@@ -90,8 +87,7 @@ export class SurfaceLauncher {
     return {
       success: false,
       error:
-        result.error ??
-        "Failed to launch terminal for the selected model.",
+        result.error ?? "Failed to launch terminal for the selected model.",
     };
   }
 
@@ -188,7 +184,9 @@ export class SurfaceLauncher {
       };
     } catch (error) {
       const fallbackError =
-        error instanceof Error ? error.message : "Failed to open external browser.";
+        error instanceof Error
+          ? error.message
+          : "Failed to open external browser.";
       return {
         success: false,
         error: failureMessage ?? fallbackError,

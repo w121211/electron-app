@@ -31,9 +31,9 @@
       return;
     }
 
-    if (!settings || !settings.agent) {
-      showToast("Agent settings are not configured.", "error");
-      console.error("Agent settings not found in user settings.");
+    if (!settings || !settings.promptScript) {
+      showToast("Prompt script settings are not configured.", "error");
+      console.error("Prompt script settings not found in user settings.");
       return;
     }
 

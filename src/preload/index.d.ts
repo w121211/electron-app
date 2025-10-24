@@ -33,24 +33,8 @@ declare global {
         }>;
       };
       quickPrompt: {
-        launchChat: (payload: {
-          scriptPath: string;
-          sessionId: string;
-          projectPath: string | null;
-          modelId: `${string}/${string}`;
-          closeQuickPromptWindow?: boolean;
-          focusMainWindow?: boolean;
-        }) => Promise<boolean>;
         selectFiles: (options?: { defaultPath?: string }) => Promise<string[]>;
         saveAudio: (audioData: Uint8Array) => Promise<string>;
-        onLaunch: (
-          callback: (payload: {
-            scriptPath: string;
-            sessionId: string;
-            projectPath: string | null;
-            modelId: `${string}/${string}`;
-          }) => void,
-        ) => () => void;
       };
       xtermWindow: {
         launch: (ptySessionId: string) => Promise<boolean>;
@@ -75,7 +59,9 @@ declare global {
           options: { cols: number; rows: number },
         ) => Promise<boolean>;
         destroy: (sessionId: string) => Promise<boolean>;
-        onData: (callback: (sessionId: string, data: string) => void) => () => void;
+        onData: (
+          callback: (sessionId: string, data: string) => void,
+        ) => () => void;
         onExit: (
           callback: (
             sessionId: string,

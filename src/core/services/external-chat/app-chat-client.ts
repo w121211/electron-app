@@ -10,7 +10,7 @@ import {
   type IExternalChatClient,
   type CreateExternalSessionInput,
 } from "./external-chat-client.interface.js";
-import { getModelSurface } from "../../../shared/utils/model-utils.js";
+import { getModelSurface } from '../../utils/model-utils.js';
 
 import { ExternalChatSession } from "./external-chat-session.js";
 
@@ -41,7 +41,7 @@ export class AppChatClient implements IExternalChatClient {
 
     const sessionData: ChatSessionData = {
       id: uuidv4(),
-      sessionType: "external_chat",
+      modelSurface,
       state: "active",
       messages: [],
       metadata,

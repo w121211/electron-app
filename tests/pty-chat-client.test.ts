@@ -220,7 +220,7 @@ describe("PtyChatClient", () => {
       const session = await client.createSession(input);
 
       expect(session.id).toBeDefined();
-      expect(session.sessionType).toBe("pty_chat");
+      expect(session.modelSurface).toBe("pty_chat");
       expect(session.state).toBe("active");
       expect(session.metadata?.modelId).toBe("cli/claude");
       expect(session.metadata?.modelSurface).toBe("pty");
@@ -241,7 +241,7 @@ describe("PtyChatClient", () => {
 
       const session = await client.createSession(input);
 
-      expect(session.sessionType).toBe("pty_chat");
+      expect(session.modelSurface).toBe("pty_chat");
       expect(session.metadata?.modelId).toBe("cli/gemini");
       expect(session.metadata?.external?.workingDirectory).toBe("/home/user");
     });

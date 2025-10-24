@@ -43,50 +43,6 @@ export function registerQuickPromptIpcHandlers(
   });
 
   ipcMain.handle(
-    "quick-prompt:launch-chat",
-    (
-      _,
-      payload: {
-        scriptPath: string;
-        sessionId: string;
-        projectPath: string | null;
-        modelId: `${string}/${string}`;
-        closeQuickPromptWindow?: boolean;
-        focusMainWindow?: boolean;
-      },
-    ) => {
-      const {
-        closeQuickPromptWindow = true,
-        focusMainWindow = true,
-        ...rest
-      } = payload;
-
-      const quickPromptWindow = context.getQuickPromptWindow();
-      if (
-        closeQuickPromptWindow &&
-        quickPromptWindow &&
-        !quickPromptWindow.isDestroyed()
-      ) {
-        quickPromptWindow.hide();
-      }
-
-      const mainWindow = context.getMainWindow();
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        if (!mainWindow.isVisible()) {
-          mainWindow.show();
-        }
-        if (focusMainWindow) {
-          mainWindow.focus();
-        }
-        mainWindow.webContents.send("quick-prompt:launch-chat", rest);
-        return true;
-      }
-
-      return false;
-    },
-  );
-
-  ipcMain.handle(
     "quick-prompt:select-files",
     async (
       _,

@@ -17,8 +17,8 @@ import { openFile, readFileAsBase64 } from "./file-utils.js";
 // Module-level logger
 const logger = new Logger<ILogObj>({ name: "MessageUtils" });
 
-// Types for structured file reference processing
-export interface ReferencedFile {
+// Types for structured file mention processing
+export interface MentionedFile {
   path: string;
   content: string;
   status: "loaded" | "failed";
@@ -26,7 +26,7 @@ export interface ReferencedFile {
 
 export interface ProcessedMessageResult {
   parts: TextPart[];
-  referencedFiles: ReferencedFile[];
+  mentionedFiles: MentionedFile[];
   error?: string;
 }
 
@@ -133,23 +133,23 @@ export function convertModelMessageContentToParts(
 
 // Utility functions for message processing
 
-export async function processFileReferences(
+export async function processFileMentions(
   message: string,
   projectPath: string,
 ): Promise<ProcessedMessageResult> {
   try {
-    // Extract file references from the message
-    const fileRefs = extractFileReferences(message);
+    // Extract file mentions from the message
+    const fileMentions = extractFileMentions(message);
 
-    if (fileRefs.length === 0) {
+    if (fileMentions.length === 0) {
       return {
         parts: [{ type: "text", text: message }],
-        referencedFiles: [],
+        mentionedFiles: [],
       };
     }
 
     // Load file contents
-    const fileContentMap = await loadFileContents(fileRefs, projectPath);
+    const fileContentMap = await loadFileContents(fileMentions, projectPath);
 
     // Build parts array using AI SDK TextPart structure
     const parts: TextPart[] = [{ type: "text", text: message }];
@@ -158,12 +158,12 @@ export async function processFileReferences(
     if (fileContentMap.size > 0) {
       parts.push({
         type: "text",
-        text: "\n\n--- Content from referenced files ---",
+        text: "\n\n--- Content from mentioned files ---",
       });
     }
 
-    // Build referenced files array
-    const referencedFiles: ReferencedFile[] = [];
+    // Build mentioned files array
+    const mentionedFiles: MentionedFile[] = [];
 
     // Add loaded files
     for (const [filePath, content] of fileContentMap) {
@@ -171,17 +171,17 @@ export async function processFileReferences(
         type: "text",
         text: `\n\nContent from @${filePath}:\n${content}`,
       });
-      referencedFiles.push({
+      mentionedFiles.push({
         path: filePath,
         content,
         status: "loaded",
       });
     }
 
-    // Add failed file references
-    const failedRefs = fileRefs.filter((path) => !fileContentMap.has(path));
-    for (const path of failedRefs) {
-      referencedFiles.push({
+    // Add failed file mentions
+    const failedMentions = fileMentions.filter((path) => !fileContentMap.has(path));
+    for (const path of failedMentions) {
+      mentionedFiles.push({
         path,
         content: "",
         status: "failed",
@@ -190,19 +190,19 @@ export async function processFileReferences(
 
     return {
       parts,
-      referencedFiles,
+      mentionedFiles,
     };
   } catch (error) {
-    logger.error(`Error processing file references: ${error}`);
+    logger.error(`Error processing file mentions: ${error}`);
     return {
       parts: [{ type: "text", text: message }],
-      referencedFiles: [],
+      mentionedFiles: [],
       error: String(error),
     };
   }
 }
 
-export function extractFileReferences(message: string): string[] {
+export function extractFileMentions(message: string): string[] {
   const matches: string[] = [];
 
   // First, find quoted paths: @"path with spaces"
@@ -233,6 +233,12 @@ export function extractFileReferences(message: string): string[] {
   }
 
   return matches;
+}
+
+export function createFileMention(filePath: string): string {
+  return filePath.includes(" ") || filePath.includes("\t")
+    ? `@"${filePath}"`
+    : `@${filePath}`;
 }
 
 async function loadFileContents(
@@ -269,12 +275,12 @@ async function loadFileContents(
   return fileContentMap;
 }
 
-export function extractChatFileReferences(
+export function extractChatFileMentions(
   content: string,
 ): Array<{ path: string; md5: string }> {
-  const fileRefs = extractFileReferences(content);
+  const fileMentions = extractFileMentions(content);
 
-  return fileRefs.map((path) => ({
+  return fileMentions.map((path) => ({
     path,
     md5: "placeholder", // TODO: Implement actual MD5 calculation if needed
   }));
@@ -321,14 +327,14 @@ function isBinaryFileType(mimeType: string | null): boolean {
   );
 }
 
-export async function processMultimodalFileReferences(
+export async function processMultimodalFileMentions(
   message: string,
   projectPath: string,
 ): Promise<UserContent> {
   try {
-    const fileRefs = extractFileReferences(message);
+    const fileMentions = extractFileMentions(message);
 
-    if (fileRefs.length === 0) {
+    if (fileMentions.length === 0) {
       return message;
     }
 
@@ -336,7 +342,7 @@ export async function processMultimodalFileReferences(
       { type: "text", text: message },
     ];
 
-    for (const filePath of fileRefs) {
+    for (const filePath of fileMentions) {
       try {
         const absolutePath = path.isAbsolute(filePath)
           ? filePath
@@ -388,7 +394,7 @@ export async function processMultimodalFileReferences(
 
     return parts.length === 1 ? message : parts;
   } catch (error) {
-    logger.error(`Error processing multimodal file references: ${error}`);
+    logger.error(`Error processing multimodal file mentions: ${error}`);
     return message;
   }
 }

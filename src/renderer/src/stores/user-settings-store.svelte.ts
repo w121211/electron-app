@@ -11,10 +11,10 @@ interface UserSettingsState {
 // User settings state - configuration and providers
 export const userSettingsState = $state<UserSettingsState>({
   settings: {
-    projectFolders: [],
+    ...DEFAULT_USER_SETTINGS,
+    project: { ...DEFAULT_USER_SETTINGS.project },
+    promptScript: { ...DEFAULT_USER_SETTINGS.promptScript },
     providers: {},
-    agent: { ...DEFAULT_USER_SETTINGS.agent },
-    promptScriptsDirectory: DEFAULT_USER_SETTINGS.promptScriptsDirectory,
   },
   loading: false,
   error: null,

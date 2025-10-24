@@ -133,7 +133,7 @@ export class PtyChatService {
       chatSessionId: sessionId,
     });
 
-    if (sessionData.sessionType !== "pty_chat") {
+    if (sessionData.modelSurface !== "pty") {
       throw new Error("Session is not a PTY chat session");
     }
 
@@ -209,7 +209,7 @@ export class PtyChatService {
       throw new Error("No active chat session");
     }
 
-    if (session.data.sessionType !== "pty_chat") {
+    if (session.data.modelSurface !== "pty") {
       throw new Error("Current session is not a PTY chat session");
     }
 

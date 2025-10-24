@@ -14,20 +14,7 @@ import {
 } from "../../database/sqlite-client.js";
 import type { ToolCallConfirmation } from "../tool-call/tool-call-confirmation.js";
 import type { ToolAlwaysAllowRule } from "../tool-call/tool-call-runner.js";
-import type { ModelSurface } from "../../../shared/utils/model-utils.js";
-
-export type ChatSessionType =
-  | "chat_engine"
-  | "chat_draft"
-  | "external_chat"
-  | "pty_chat";
-
-export const ChatSessionTypeSchema = z.enum([
-  "chat_engine",
-  "chat_draft",
-  "external_chat",
-  "pty_chat",
-]);
+import type { ModelSurface } from "../../utils/model-utils.js";
 
 const modelSurfaceValues = ["api", "terminal", "web", "pty"] as const;
 
@@ -45,7 +32,7 @@ export type ChatState =
 
 export interface ChatMessageMetadata {
   timestamp: Date;
-  fileReferences?: {
+  fileMentions?: {
     path: string;
     md5: string;
   }[];
@@ -93,7 +80,7 @@ export interface ChatMetadata {
 
 export interface ChatSessionData {
   id: string;
-  sessionType: ChatSessionType;
+  modelSurface: ModelSurface;
   state: ChatState;
   messages: ChatMessage[];
   metadata?: ChatMetadata;
@@ -167,7 +154,7 @@ export const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
 export const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> =
   z.object({
     timestamp: z.coerce.date(),
-    fileReferences: z
+    fileMentions: z
       .array(
         z.object({
           path: z.string(),
@@ -194,7 +181,7 @@ export const ChatStateSchema = z.enum([
 
 export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
   id: z.string(),
-  sessionType: ChatSessionTypeSchema,
+  modelSurface: ModelSurfaceSchema,
   state: ChatStateSchema,
   messages: z.array(ChatMessageSchema),
   metadata: ChatMetadataSchema.optional(),
@@ -258,7 +245,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
       const result = await trx
         .updateTable("chat_sessions")
         .set({
-          sessionType: sessionRow.sessionType,
+          modelSurface: sessionRow.modelSurface,
           sessionStatus: sessionRow.sessionStatus,
           metadata: sessionRow.metadata,
           scriptPath: sessionRow.scriptPath,
@@ -426,7 +413,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
 
     return {
       id: session.id,
-      sessionType: session.sessionType,
+      modelSurface: session.modelSurface,
       sessionStatus: session.state,
       metadata,
       scriptPath: session.scriptPath ? path.resolve(session.scriptPath) : null,
@@ -477,7 +464,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
 
     const session: ChatSessionData = {
       id: sessionRow.id,
-      sessionType: sessionRow.sessionType,
+      modelSurface: sessionRow.modelSurface,
       state,
       messages: messageRows
         .sort((a, b) => a.messageIndex - b.messageIndex)
@@ -500,7 +487,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
     const payload = JSON.parse(row.payload) as unknown;
     const metadata = JSON.parse(row.metadata) as {
       timestamp: string;
-      fileReferences?: { path: string; md5: string }[];
+      fileMentions?: { path: string; md5: string }[];
     };
 
     const parsed = ChatMessageSchema.parse({

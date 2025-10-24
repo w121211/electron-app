@@ -73,7 +73,7 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
     const modelId = "openai/gpt-4o-mini";
 
     const sessionInput: CreateChatSessionInput = {
-      sessionType: "chat_engine",
+      modelSurface: "api",
       metadata: {
         modelId,
         maxTurns: 3,

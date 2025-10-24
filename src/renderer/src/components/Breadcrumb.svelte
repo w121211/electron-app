@@ -104,7 +104,7 @@
     e.stopPropagation();
     if (!isPromptScript || !linkedChatSession) return;
 
-    if (linkedChatSession.data.sessionType !== "pty_chat") {
+    if (linkedChatSession.data.modelSurface !== "pty") {
       logger.warn("Cannot terminate non-PTY chat session with snapshot");
       return;
     }

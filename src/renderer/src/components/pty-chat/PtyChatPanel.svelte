@@ -45,10 +45,10 @@
   });
 
   $effect(() => {
-    if (!hidden && chatSession?.sessionType !== "pty_chat") {
+    if (!hidden && chatSession?.modelSurface !== "pty") {
       throw new Error(
         "PtyChatPanel requires a PTY chat session but current chat type is: " +
-          chatSession?.sessionType,
+          chatSession?.modelSurface,
       );
     }
   });

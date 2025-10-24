@@ -191,7 +191,7 @@
 
     // PTY chat sessions can only be created, not sent to after creation.
     // Follow-up interactions happen directly in the xterm terminal.
-    if (chatSession.data.sessionType === "pty_chat") {
+    if (chatSession.data.modelSurface === "pty") {
       throw new Error(
         "PTY chat session already exists. Use the terminal to send commands.",
       );
@@ -263,9 +263,9 @@
       <button
         onclick={handleSendMessage}
         disabled={!inputValue.trim() ||
-          chatSession?.data.sessionType === "pty_chat"}
+          chatSession?.data.modelSurface === "pty"}
         class="text-muted hover:text-accent cursor-pointer rounded p-1.5 disabled:cursor-not-allowed disabled:opacity-50"
-        title={chatSession?.data.sessionType === "pty_chat"
+        title={chatSession?.data.modelSurface === "pty"
           ? "Use terminal to send commands"
           : "Send Message"}
       >

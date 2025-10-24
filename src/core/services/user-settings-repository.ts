@@ -6,7 +6,7 @@ import {
   readJsonFile,
   writeJsonFile,
 } from "../utils/file-utils.js";
-import type { ProjectFolder } from "./project-folder-service.js";
+import type { ProjectDirectory } from "./project-folder-service.js";
 
 export interface ProviderConfig {
   enabled: boolean;
@@ -14,8 +14,15 @@ export interface ProviderConfig {
 }
 
 export interface UserSettings {
-  projectFolders: ProjectFolder[];
-  // workspaceDirectory?: string; // COMMENTED OUT: Not needed - users add existing folders
+  project: {
+    directories: ProjectDirectory[]; // Multiple project folders
+    defaultWorkspaceDirectory: string; // Non-project workspace
+  };
+  promptScript: {
+    chatsFolder: string; // User configurable, relative to the project directory
+    readonly audioRecordingsSubfolder: string; // Computed: <chatsFolder>/audio-recordings
+    readonly templatesSubfolder: string; // Computed: <chatsFolder>/templates
+  };
   providers: {
     openai?: ProviderConfig;
     anthropic?: ProviderConfig;
@@ -23,39 +30,66 @@ export interface UserSettings {
     openrouter?: ProviderConfig;
     aiGateway?: ProviderConfig;
   };
-  agent: {
-    todoTemplatePath: string;
-    todoChatDirectory: {
-      mode: "project" | "global";
-      path: string;
-    };
-  };
-  promptScriptsDirectory: string;
 }
 
-export const DEFAULT_USER_SETTINGS: UserSettings = {
-  projectFolders: [],
-  // workspaceDirectory: undefined, // COMMENTED OUT: Not needed - users add existing folders
-  providers: {},
-  agent: {
-    todoTemplatePath: ".chat/todo.md",
-    todoChatDirectory: {
-      mode: "project",
-      path: "chats/todos",
-    },
+const DEFAULT_USER_SETTINGS: UserSettings = {
+  project: {
+    directories: [],
+    defaultWorkspaceDirectory: "",
   },
-  promptScriptsDirectory: "",
+  promptScript: {
+    chatsFolder: "chats",
+    audioRecordingsSubfolder: "", // Computed automatically
+    templatesSubfolder: "", // Computed automatically
+  },
+  providers: {},
 };
 
-export function createDefaultUserSettings(userDataDir: string): UserSettings {
+const createProjectSettings = (
+  projectSettings: UserSettings["project"] = DEFAULT_USER_SETTINGS.project,
+  userDataDir: string,
+): UserSettings["project"] => {
+  // Validate defaultWorkspaceDirectory is absolute path when provided
+  const defaultWorkspaceDir = projectSettings.defaultWorkspaceDirectory.trim();
+  if (defaultWorkspaceDir && defaultWorkspaceDir.length > 0) {
+    if (!path.isAbsolute(defaultWorkspaceDir)) {
+      throw new Error(
+        `defaultWorkspaceDirectory must be an absolute path, received: ${defaultWorkspaceDir}`,
+      );
+    }
+  }
+
   return {
-    ...DEFAULT_USER_SETTINGS,
-    projectFolders: [...DEFAULT_USER_SETTINGS.projectFolders],
-    providers: { ...DEFAULT_USER_SETTINGS.providers },
-    agent: { ...DEFAULT_USER_SETTINGS.agent },
-    promptScriptsDirectory: path.join(userDataDir, "prompt-scripts"),
+    directories: projectSettings.directories,
+    defaultWorkspaceDirectory:
+      defaultWorkspaceDir.length > 0
+        ? defaultWorkspaceDir
+        : path.join(userDataDir, "default-workspace"),
   };
-}
+};
+
+const createPromptScriptSettings = (
+  chatsFolder: string = DEFAULT_USER_SETTINGS.promptScript.chatsFolder,
+): UserSettings["promptScript"] => {
+  return {
+    chatsFolder,
+    audioRecordingsSubfolder: path.join(chatsFolder, "audio-recordings"),
+    templatesSubfolder: path.join(chatsFolder, "templates"),
+  };
+};
+
+const createUserSettings = (
+  settings: Partial<UserSettings>,
+  userDataDir: string,
+): UserSettings => {
+  return {
+    project: createProjectSettings(settings.project, userDataDir),
+    promptScript: createPromptScriptSettings(
+      settings.promptScript?.chatsFolder,
+    ),
+    providers: settings.providers ?? DEFAULT_USER_SETTINGS.providers,
+  };
+};
 
 export class UserSettingsRepository {
   private readonly logger: Logger<ILogObj>;
@@ -73,23 +107,26 @@ export class UserSettingsRepository {
       this.logger.info(
         `Settings file not found, creating default at ${this.filePath}`,
       );
-      const defaults = createDefaultUserSettings(this.userDataDir);
+      const defaults = createUserSettings(
+        DEFAULT_USER_SETTINGS,
+        this.userDataDir,
+      );
       await this.saveSettings(defaults);
       return { ...defaults };
     }
 
-    const rawSettings = await readJsonFile<Partial<UserSettings>>(this.filePath);
-    const normalized = this.applyDefaults(rawSettings);
+    const rawSettings = await readJsonFile<Partial<UserSettings>>(
+      this.filePath,
+    );
+    const normalized = createUserSettings(rawSettings, this.userDataDir);
 
-    if (this.needsPersistence(rawSettings, normalized)) {
-      await this.saveSettings(normalized);
-    }
+    await this.saveSettings(normalized);
 
     return normalized;
   }
 
   public async saveSettings(settings: UserSettings): Promise<void> {
-    const normalized = this.applyDefaults(settings);
+    const normalized = createUserSettings(settings, this.userDataDir);
     await writeJsonFile(this.filePath, normalized);
     this.logger.debug(`Settings saved successfully to ${this.filePath}`);
   }
@@ -100,77 +137,6 @@ export class UserSettingsRepository {
 
   public getUserDataDir(): string {
     return this.userDataDir;
-  }
-
-  private applyDefaults(settings: Partial<UserSettings>): UserSettings {
-    const projectFolders = Array.isArray(settings.projectFolders)
-      ? settings.projectFolders
-      : [];
-
-    const providers = {
-      ...DEFAULT_USER_SETTINGS.providers,
-      ...(settings.providers ?? {}),
-    };
-
-    const incomingAgent = settings.agent ?? DEFAULT_USER_SETTINGS.agent;
-    const mergedAgent = {
-      ...DEFAULT_USER_SETTINGS.agent,
-      ...incomingAgent,
-    };
-
-    const resolvedPromptDir = this.resolvePromptScriptsDirectory(
-      settings.promptScriptsDirectory,
-    );
-
-    return {
-      projectFolders: [...projectFolders],
-      providers,
-      agent: mergedAgent,
-      promptScriptsDirectory: resolvedPromptDir,
-    };
-  }
-
-  private resolvePromptScriptsDirectory(
-    directory: string | undefined,
-  ): string {
-    if (directory && directory.trim().length > 0) {
-      const trimmed = directory.trim();
-      return path.isAbsolute(trimmed)
-        ? trimmed
-        : path.resolve(this.userDataDir, trimmed);
-    }
-
-    return path.join(this.userDataDir, "prompt-scripts");
-  }
-
-  private needsPersistence(
-    original: Partial<UserSettings>,
-    normalized: UserSettings,
-  ): boolean {
-    if (
-      original.promptScriptsDirectory === normalized.promptScriptsDirectory &&
-      original.promptScriptsDirectory !== undefined
-    ) {
-      return false;
-    }
-
-    if (!original.promptScriptsDirectory) {
-      return true;
-    }
-
-    const trimmed = original.promptScriptsDirectory.trim();
-    if (trimmed.length === 0) {
-      return true;
-    }
-
-    if (!path.isAbsolute(trimmed)) {
-      return true;
-    }
-
-    return (
-      path.normalize(trimmed) !==
-      path.normalize(normalized.promptScriptsDirectory)
-    );
   }
 }
 

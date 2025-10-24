@@ -129,16 +129,16 @@ class FileSearchService {
     const searchStart = fileSearchState.searchStartPosition;
     const searchEnd = fileSearchState.cursorPosition;
 
-    // Replace @query with file reference
+    // Replace @query with file mention
     const beforeSearch = currentInput.substring(0, searchStart - 1); // -1 to remove @
     const afterSearch = currentInput.substring(searchEnd);
-    const fileReference = `@${file.relativePath} `;
+    const fileMention = `@${file.relativePath} `;
 
-    const newValue = beforeSearch + fileReference + afterSearch;
+    const newValue = beforeSearch + fileMention + afterSearch;
 
     // Update input value and cursor position
     inputElement.value = newValue;
-    const newCursorPos = beforeSearch.length + fileReference.length;
+    const newCursorPos = beforeSearch.length + fileMention.length;
     inputElement.setSelectionRange(newCursorPos, newCursorPos);
 
     // Trigger input event to update store

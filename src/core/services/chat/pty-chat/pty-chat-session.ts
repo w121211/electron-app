@@ -55,8 +55,8 @@ export class PtyChatSession {
   private scriptSnapshot: string | null;
 
   constructor(data: ChatSessionData, eventBus: IEventBus) {
-    if (data.sessionType !== "pty_chat") {
-      throw new Error("PtyChatSession requires a sessionType of 'pty_chat'");
+    if (data.modelSurface !== "pty") {
+      throw new Error("PtyChatSession requires a modelSurface of 'pty'");
     }
 
     this.id = data.id;
@@ -194,7 +194,7 @@ export class PtyChatSession {
   toChatSessionData(): ChatSessionData {
     return {
       id: this.id,
-      sessionType: "pty_chat",
+      modelSurface: "pty",
       state: this.state,
       messages: this.messages.map((message) => ({
         ...message,

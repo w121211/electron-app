@@ -10,8 +10,8 @@ import {
   writeTextFile,
 } from "../src/core/utils/file-utils.js";
 import {
-  processMultimodalFileReferences,
-  extractFileReferences,
+  processMultimodalFileMentions,
+  extractFileMentions,
 } from "../src/core/utils/message-utils.js";
 import {
   ChatSessionRepositoryImpl,
@@ -104,21 +104,21 @@ describe("Multimodal File Support", () => {
     });
   });
 
-  describe("processMultimodalFileReferences", () => {
-    it("should return plain text when no file references", async () => {
+  describe("processMultimodalFileMentions", () => {
+    it("should return plain text when no file mentions", async () => {
       const message = "Hello, how are you?";
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(result).toBe(message);
     });
 
-    it("should process text file references", async () => {
+    it("should process text file mentions", async () => {
       const filePath = path.join(projectPath, "notes.txt");
       const fileContent = "These are my notes.";
       await fs.writeFile(filePath, fileContent);
 
       const message = "Please read @notes.txt and summarize it.";
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(Array.isArray(result)).toBe(true);
       if (Array.isArray(result)) {
@@ -144,7 +144,7 @@ describe("Multimodal File Support", () => {
       await fs.writeFile(imagePath, pngBuffer);
 
       const message = "What's in this @photo.png image";
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(Array.isArray(result)).toBe(true);
       if (Array.isArray(result)) {
@@ -166,7 +166,7 @@ describe("Multimodal File Support", () => {
       await fs.writeFile(audioPath, audioBuffer);
 
       const message = "Transcribe @recording.mp3";
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(Array.isArray(result)).toBe(true);
       if (Array.isArray(result)) {
@@ -188,7 +188,7 @@ describe("Multimodal File Support", () => {
       await fs.writeFile(videoPath, videoBuffer);
 
       const message = "Analyze @clip.mp4";
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(Array.isArray(result)).toBe(true);
       if (Array.isArray(result)) {
@@ -211,7 +211,7 @@ describe("Multimodal File Support", () => {
       await fs.writeFile(imagePath, Buffer.from("png-data"));
 
       const message = "Compare @doc.txt and @img.png";
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(Array.isArray(result)).toBe(true);
       if (Array.isArray(result)) {
@@ -227,7 +227,7 @@ describe("Multimodal File Support", () => {
       await fs.writeFile(outsidePath, "Outside content");
 
       const message = `Read @${outsidePath}`;
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(Array.isArray(result)).toBe(false);
       expect(result).toBe(message);
@@ -235,7 +235,7 @@ describe("Multimodal File Support", () => {
 
     it("should handle non-existent files gracefully", async () => {
       const message = "Read @nonexistent.txt";
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(Array.isArray(result)).toBe(false);
       expect(result).toBe(message);
@@ -246,7 +246,7 @@ describe("Multimodal File Support", () => {
       await fs.writeFile(filePath, "Content with spaces");
 
       const message = 'Read @"my notes.txt"';
-      const result = await processMultimodalFileReferences(message, projectPath);
+      const result = await processMultimodalFileMentions(message, projectPath);
 
       expect(Array.isArray(result)).toBe(true);
       if (Array.isArray(result)) {
@@ -281,7 +281,7 @@ describe("Multimodal File Support", () => {
     it("should store projectPath in metadata", async () => {
       const session: ChatSessionData = {
         id: uuidv4(),
-        sessionType: "chat_engine",
+        modelSurface: "api",
         state: "active",
         messages: [],
         metadata: {
@@ -305,7 +305,7 @@ describe("Multimodal File Support", () => {
     it("should update projectPath in metadata", async () => {
       const session: ChatSessionData = {
         id: uuidv4(),
-        sessionType: "chat_engine",
+        modelSurface: "api",
         state: "active",
         messages: [],
         metadata: {
@@ -340,7 +340,7 @@ describe("Multimodal File Support", () => {
     it("should handle sessions without projectPath", async () => {
       const session: ChatSessionData = {
         id: uuidv4(),
-        sessionType: "chat_engine",
+        modelSurface: "api",
         state: "active",
         messages: [],
         metadata: {
@@ -395,7 +395,7 @@ describe("Multimodal File Support", () => {
 
     it("should create session with projectPath in metadata", async () => {
       const session = await chatClient.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           projectPath: projectPath,
           modelId: "openai/gpt-4o-mini",
@@ -413,7 +413,7 @@ describe("Multimodal File Support", () => {
       await fs.writeFile(audioPath, Buffer.from("fake-audio"));
 
       const session = await chatClient.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           projectPath: projectPath,
           modelId: "openai/gpt-4o-mini",
@@ -430,7 +430,7 @@ describe("Multimodal File Support", () => {
 
     it("should handle sessions without projectPath", async () => {
       const session = await chatClient.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           modelId: "openai/gpt-4o-mini",
         },
@@ -443,45 +443,45 @@ describe("Multimodal File Support", () => {
     });
   });
 
-  describe("File reference extraction", () => {
-    it("should extract simple file references", () => {
+  describe("File mention extraction", () => {
+    it("should extract simple file mentions", () => {
       const message = "Read @file1.txt and @file2.md";
-      const refs = extractFileReferences(message);
+      const refs = extractFileMentions(message);
 
       expect(refs).toEqual(["file1.txt", "file2.md"]);
     });
 
-    it("should extract quoted file references", () => {
+    it("should extract quoted file mentions", () => {
       const message = 'Read @"my file.txt" and @"another file.md"';
-      const refs = extractFileReferences(message);
+      const refs = extractFileMentions(message);
 
       expect(refs).toEqual(["my file.txt", "another file.md"]);
     });
 
     it("should extract mixed references", () => {
       const message = 'Check @file.txt and @"my file.md" then @audio.mp3';
-      const refs = extractFileReferences(message);
+      const refs = extractFileMentions(message);
 
       expect(refs).toEqual(["my file.md", "file.txt", "audio.mp3"]);
     });
 
     it("should handle paths with directories", () => {
       const message = "Read @docs/readme.md and @src/main.ts";
-      const refs = extractFileReferences(message);
+      const refs = extractFileMentions(message);
 
       expect(refs).toEqual(["docs/readme.md", "src/main.ts"]);
     });
 
     it("should handle audio/video file extensions", () => {
       const message = "Transcribe @audio.mp3 @video.mp4 @sound.wav";
-      const refs = extractFileReferences(message);
+      const refs = extractFileMentions(message);
 
       expect(refs).toEqual(["audio.mp3", "video.mp4", "sound.wav"]);
     });
 
     it("should handle image file extensions", () => {
       const message = "Analyze @image.png @photo.jpg @graphic.gif";
-      const refs = extractFileReferences(message);
+      const refs = extractFileMentions(message);
 
       expect(refs).toEqual(["image.png", "photo.jpg", "graphic.gif"]);
     });

@@ -72,7 +72,7 @@
       return parts[parts.length - 1] ?? session.id;
     }
 
-    if (session.sessionType === "pty_chat" && session.metadata?.modelId) {
+    if (session.modelSurface === "pty" && session.metadata?.modelId) {
       const modelParts = session.metadata.modelId.split("/");
       const modelName =
         modelParts[modelParts.length - 1] ?? session.metadata.modelId;
@@ -101,13 +101,13 @@
 
     logger.warn("No script path available for chat session", {
       chatId: session.id,
-      sessionType: session.sessionType,
+      modelSurface: session.modelSurface,
     });
   }
 
   function shouldShowStop(session: ChatSessionData): boolean {
     return (
-      session.sessionType === "chat_engine" &&
+      session.modelSurface === "api" &&
       session.state === "active:generating"
     );
   }

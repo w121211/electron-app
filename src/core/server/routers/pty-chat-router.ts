@@ -127,7 +127,7 @@ export function createPtyChatRouter(
       .input(z.object({ chatSessionId: z.string() }))
       .query(async ({ input }) => {
         const session = await repository.getById(input.chatSessionId);
-        if (!session || session.sessionType !== "pty_chat") {
+        if (!session || session.modelSurface !== "pty") {
           throw new Error(`PTY chat session ${input.chatSessionId} not found`);
         }
         return session;
@@ -135,7 +135,7 @@ export function createPtyChatRouter(
 
     listSessions: publicProcedure.query(async () => {
       const sessions = await repository.list();
-      return sessions.filter((session) => session.sessionType === "pty_chat");
+      return sessions.filter((session) => session.modelSurface === "pty");
     }),
   });
 }

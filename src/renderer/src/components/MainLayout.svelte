@@ -28,9 +28,9 @@
     const chatSession = docContext?.chatSessionState?.data;
 
     if (scriptLink) {
-      if (chatSession?.sessionType === "pty_chat") {
+      if (chatSession?.modelSurface === "pty") {
         return "ptyChatPanel";
-      } else if (chatSession?.sessionType === "chat_engine") {
+      } else if (chatSession?.modelSurface === "api") {
         return "apiChatPanel";
       } else if (scriptLink.promptScript && !chatSession) {
         return "promptEditorPanel";

@@ -71,11 +71,7 @@ describeIntegration("Prompt script multimodal integration", () => {
     });
 
     promptScriptRepo = new PromptScriptRepository();
-    promptScriptService = new PromptScriptService(
-      promptScriptRepo,
-      repository,
-      async () => promptScriptDirectory,
-    );
+    promptScriptService = new PromptScriptService(promptScriptRepo, repository);
   });
 
   afterAll(async () => {
@@ -133,7 +129,7 @@ Listen to the uploaded audio file @recording.mp3 and transcribe it
     );
 
     const sessionInput: CreateChatSessionInput = {
-      sessionType: "chat_engine",
+      modelSurface: "api",
       metadata: {
         title: "Audio Transcription Test",
         modelId,
@@ -261,7 +257,7 @@ Describe what you see in @photo.png
     );
 
     const sessionInput: CreateChatSessionInput = {
-      sessionType: "chat_engine",
+      modelSurface: "api",
       metadata: {
         title: "Image Analysis Test",
         modelId,
@@ -355,7 +351,7 @@ Review @notes.txt and describe @chart.png
     );
 
     const sessionInput: CreateChatSessionInput = {
-      sessionType: "chat_engine",
+      modelSurface: "api",
       metadata: {
         title: "Mixed Media Test",
         modelId,

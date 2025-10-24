@@ -112,10 +112,13 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   const promptScriptService = new PromptScriptService(
     promptScriptRepository,
     chatSessionRepository,
-    async () => {
-      const settings = await userSettingsService.getUserSettings();
-      return settings.promptScriptsDirectory;
-    },
+    // async () => {
+    //   const settings = await userSettingsService.getUserSettings();
+    //   return path.join(
+    //     settings.project.defaultWorkspaceDirectory,
+    //     settings.promptScript.promptScriptsSaveTo,
+    //   );
+    // },
   );
 
   const documentService = new DocumentService(promptScriptService);

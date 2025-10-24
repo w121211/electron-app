@@ -35,7 +35,7 @@ describe("PromptScriptService", () => {
     service = new PromptScriptService(
       scriptRepository,
       chatSessionRepository,
-      async () => defaultPromptDir,
+      // async () => defaultPromptDir,
     );
   });
 
@@ -54,7 +54,7 @@ describe("PromptScriptService", () => {
   ): Promise<ChatSessionData> {
     const session: ChatSessionData = {
       id: overrides.id ?? uuidv4(),
-      sessionType: overrides.sessionType ?? "chat_engine",
+      modelSurface: overrides.modelSurface ?? "api",
       state: overrides.state ?? "terminated",
       messages: overrides.messages ?? [],
       metadata: overrides.metadata,
@@ -152,9 +152,7 @@ Prompt
       sessionId,
     });
 
-    expect(
-      detached.promptScriptParsed.metadata.chatSessionId,
-    ).toBeUndefined();
+    expect(detached.promptScriptParsed.metadata.chatSessionId).toBeUndefined();
 
     const session = await chatSessionRepository.getById(sessionId);
     expect(session?.scriptPath).toBeNull();
@@ -173,7 +171,9 @@ Prompt
     });
 
     afterEach(async () => {
-      await fs.rm(createTempDir, { recursive: true, force: true }).catch(() => {});
+      await fs
+        .rm(createTempDir, { recursive: true, force: true })
+        .catch(() => {});
     });
 
     it("creates prompt script with sequential numbering when no name provided", async () => {
@@ -211,15 +211,15 @@ Prompt
       );
     });
 
-    it("creates prompt script in default directory when no directory provided", async () => {
-      const script = await service.createPromptScript();
-      expect(script.absolutePath.startsWith(defaultPromptDir)).toBe(true);
-      const exists = await fs
-        .access(script.absolutePath)
-        .then(() => true)
-        .catch(() => false);
-      expect(exists).toBe(true);
-    });
+    // it("creates prompt script in default directory when no directory provided", async () => {
+    //   const script = await service.createPromptScript();
+    //   expect(script.absolutePath.startsWith(defaultPromptDir)).toBe(true);
+    //   const exists = await fs
+    //     .access(script.absolutePath)
+    //     .then(() => true)
+    //     .catch(() => false);
+    //   expect(exists).toBe(true);
+    // });
 
     it("fills gaps in sequential numbering", async () => {
       await service.createPromptScript(createTempDir); // 001
@@ -238,14 +238,8 @@ Prompt
 
     it("handles existing sequential files correctly", async () => {
       // Create files manually
-      await fs.writeFile(
-        path.join(createTempDir, "001.prompt.md"),
-        "content1",
-      );
-      await fs.writeFile(
-        path.join(createTempDir, "005.prompt.md"),
-        "content5",
-      );
+      await fs.writeFile(path.join(createTempDir, "001.prompt.md"), "content1");
+      await fs.writeFile(path.join(createTempDir, "005.prompt.md"), "content5");
 
       // Next creation should be 006 (max + 1)
       const script = await service.createPromptScript(createTempDir);

@@ -5,46 +5,16 @@
   import { keyboardManager } from "../lib/keyboard.js";
   import { eventService } from "../services/event-service.js";
   import { projectService } from "../services/project-service.js";
-  import { documentClientService } from "../services/document-client-service.js";
   import MainLayout from "./MainLayout.svelte";
   import ToastProvider from "./ToastProvider.svelte";
 
   const logger = new Logger({ name: "App" });
-
-  let unsubscribeQuickPrompt: (() => void) | null = null;
 
   onMount(() => {
     logger.info("UI App started, initializing systems...");
 
     // Start event subscriptions
     eventService.start();
-
-    if (window.api.quickPrompt?.onLaunch) {
-      unsubscribeQuickPrompt = window.api.quickPrompt.onLaunch(
-        async (payload) => {
-          logger.info("Launching chat from quick prompt", payload);
-          try {
-            await projectService.refreshProjectTreeForFile(payload.scriptPath);
-          } catch (error) {
-            logger.warn(
-              "Failed to refresh project tree for quick prompt file",
-              error,
-            );
-          }
-
-          try {
-            await documentClientService.openDocument(payload.scriptPath, {
-              focus: true,
-            });
-          } catch (error) {
-            logger.error(
-              "Failed to open prompt script from quick prompt",
-              error,
-            );
-          }
-        },
-      );
-    }
 
     // Open specified tree node on app initialization (development only)
     setTimeout(async () => {
@@ -58,7 +28,6 @@
     logger.info("UI App unmounting, cleaning up...");
     eventService.stop();
     keyboardManager.destroy();
-    unsubscribeQuickPrompt?.();
   });
 </script>
 

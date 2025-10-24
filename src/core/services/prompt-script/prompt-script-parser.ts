@@ -96,13 +96,13 @@ function parseFrontMatter(raw: RawFrontMatter): {
         }
         break;
       }
-      case "model": {
+      case "modelId": {
         if (typeof value === "string") {
-          metadata.model = value;
+          metadata.modelId = value;
         } else if (value !== undefined) {
           warnings.push({
             code: "PARSE_ERROR",
-            message: "Ignoring non-string model in prompt script front matter",
+            message: "Ignoring non-string modelId in prompt script front matter",
           });
           extras[key] = value;
         }

@@ -11,7 +11,7 @@ import {
   SurfaceLauncher,
   createSurfaceLauncher,
 } from "../src/core/services/surface-launcher/surface-launcher.js";
-import * as modelUtils from "../src/shared/utils/model-utils.js";
+import * as modelUtils from '../src/core/utils/model-utils.js';
 
 const surfaceMocks = vi.hoisted(() => ({
   launchTerminalFromConfigMock: vi.fn(),

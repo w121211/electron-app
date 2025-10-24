@@ -5,15 +5,11 @@ import Database from "better-sqlite3";
 import type { Database as BetterSqlite3Database } from "better-sqlite3";
 import { Kysely, SqliteDialect, type ColumnType } from "kysely";
 
-export type ChatSessionType =
-  | "chat_engine"
-  | "chat_draft"
-  | "external_chat"
-  | "pty_chat";
+export type ModelSurface = "api" | "terminal" | "web" | "pty";
 
 export interface ChatSessionsTable {
   id: ColumnType<string, string, never>;
-  sessionType: ColumnType<ChatSessionType, ChatSessionType, ChatSessionType>;
+  modelSurface: ColumnType<ModelSurface, ModelSurface, ModelSurface>;
   sessionStatus: ColumnType<string, string, string>;
   metadata: ColumnType<string | null, string | null, string | null>;
   scriptPath: ColumnType<string | null, string | null, string | null>;
@@ -67,7 +63,7 @@ function ensureSchema(sqlite: BetterSqlite3Database): void {
     const columnNames = new Set(columns.map((column) => column.name));
 
     const requiresMigration =
-      columnNames.has("filePath") || columnNames.has("fileStatus") || columnNames.has("toolSet");
+      columnNames.has("filePath") || columnNames.has("fileStatus") || columnNames.has("toolSet") || columnNames.has("sessionType");
 
     if (requiresMigration) {
       sqlite.exec("DROP TABLE IF EXISTS chat_messages;");
@@ -78,7 +74,7 @@ function ensureSchema(sqlite: BetterSqlite3Database): void {
   sqlite.exec(
     `CREATE TABLE IF NOT EXISTS chat_sessions (
       id TEXT PRIMARY KEY,
-      sessionType TEXT NOT NULL,
+      modelSurface TEXT NOT NULL,
       sessionStatus TEXT NOT NULL,
       metadata TEXT,
       scriptPath TEXT,

@@ -240,7 +240,7 @@ describe("ApiChatClient", () => {
   describe("Session Management", () => {
     it("creates a new chat session", async () => {
       const input: CreateChatSessionInput = {
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           title: "Test Session",
           modelId: "openai/gpt-4o-mini",
@@ -251,7 +251,7 @@ describe("ApiChatClient", () => {
       const session = await client.createSession(input);
 
       expect(session.id).toBeDefined();
-      expect(session.sessionType).toBe("chat_engine");
+      expect(session.modelSurface).toBe("api");
       expect(session.state).toBe("active");
       expect(session.metadata?.title).toBe("Test Session");
       expect(session.metadata?.modelId).toBe("openai/gpt-4o-mini");
@@ -269,7 +269,7 @@ describe("ApiChatClient", () => {
       const modifiedAt = new Date();
 
       const input: CreateChatSessionInput = {
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           modelId: "openai/gpt-4o-mini",
         },
@@ -293,7 +293,7 @@ describe("ApiChatClient", () => {
 
     it("retrieves an existing session", async () => {
       const created = await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           title: "Existing",
           modelId: "openai/gpt-4o-mini",
@@ -308,7 +308,7 @@ describe("ApiChatClient", () => {
 
     it("lists all sessions", async () => {
       await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           title: "Session 1",
           modelId: "openai/gpt-4o-mini",
@@ -316,7 +316,7 @@ describe("ApiChatClient", () => {
       });
 
       await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           title: "Session 2",
           modelId: "openai/gpt-4o-mini",
@@ -333,7 +333,7 @@ describe("ApiChatClient", () => {
 
     it("deletes a session", async () => {
       const created = await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           modelId: "openai/gpt-4o-mini",
         },
@@ -350,7 +350,7 @@ describe("ApiChatClient", () => {
 
     beforeEach(async () => {
       const session = await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           modelId: "openai/gpt-4o-mini",
           maxTurns: 5,
@@ -439,7 +439,7 @@ describe("ApiChatClient", () => {
 
     beforeEach(async () => {
       const session = await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           modelId: "openai/gpt-4o-mini",
           toolCallsAwaitingConfirmation: [createPendingToolCall()],
@@ -488,7 +488,7 @@ describe("ApiChatClient", () => {
   describe("Abort Handling", () => {
     it("allows aborting an in-flight turn", async () => {
       const session = await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           modelId: "openai/gpt-4o-mini",
         },
@@ -518,7 +518,7 @@ describe("ApiChatClient", () => {
       });
 
       const session = await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           modelId: "openai/gpt-4o-mini",
         },
@@ -554,7 +554,7 @@ describe("ApiChatClient", () => {
       ];
 
       const session = await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata: {
           modelId: "openai/gpt-4o-mini",
           currentTurn: 1,
@@ -579,7 +579,7 @@ describe("ApiChatClient", () => {
       };
 
       const session = await client.createSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         metadata,
       });
 

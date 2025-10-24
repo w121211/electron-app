@@ -97,7 +97,7 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
     // Arrange: Create a PTY chat session with snapshot
     const ptyChatSession: ChatSessionData = {
       id: "pty-session-456",
-      sessionType: "pty_chat",
+      modelSurface: "pty",
       state: "active",
       messages: [],
       metadata: {
@@ -182,7 +182,7 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
     // Arrange: PTY session without active PTY instance
     const ptyChatSession: ChatSessionData = {
       id: "pty-session-no-instance",
-      sessionType: "pty_chat",
+      modelSurface: "pty",
       state: "active",
       messages: [],
       metadata: {
@@ -221,7 +221,7 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
     // Arrange: PTY session without model ID
     const ptyChatSession: ChatSessionData = {
       id: "pty-session-no-model",
-      sessionType: "pty_chat",
+      modelSurface: "pty",
       state: "active",
       messages: [],
       metadata: {
@@ -249,7 +249,7 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
     // Arrange: PTY session where snapshot capture fails
     const ptyChatSession: ChatSessionData = {
       id: "pty-session-snapshot-fail",
-      sessionType: "pty_chat",
+      modelSurface: "pty",
       state: "active",
       messages: [],
       metadata: {

@@ -25,23 +25,23 @@ export class PromptScriptService {
   constructor(
     private readonly promptScriptRepo: PromptScriptRepository,
     private readonly chatSessionRepo: ChatSessionRepository,
-    private readonly resolveDefaultDirectory: () => Promise<string>,
   ) {}
 
   /**
    * Create an empty prompt script without link
    */
   async createPromptScript(
-    directory?: string,
+    directory: string,
     name?: string,
   ): Promise<PromptScriptFile> {
     const trimmedDirectory = directory?.trim();
-    const baseDirectory =
-      trimmedDirectory && trimmedDirectory.length > 0
-        ? trimmedDirectory
-        : await this.resolveDefaultDirectory();
+    if (trimmedDirectory.length === 0) {
+      throw new Error(
+        `Save directory must be a valid path, received: ${trimmedDirectory}`,
+      );
+    }
 
-    const resolvedDirectory = path.resolve(baseDirectory);
+    const resolvedDirectory = path.resolve(trimmedDirectory);
     await createDirectory(resolvedDirectory);
 
     const trimmedName = name?.trim();
@@ -221,7 +221,10 @@ export class PromptScriptService {
    * with argument substitution. The actual implementation would call the
    * appropriate chat engine (API or PTY) with the substituted content.
    */
-  async executePrompt(prompt: PromptScriptPrompt, args: string[]): Promise<void> {
+  async executePrompt(
+    prompt: PromptScriptPrompt,
+    args: string[],
+  ): Promise<void> {
     const substitutedContent = substituteArguments(prompt.content, args);
 
     logger.info(

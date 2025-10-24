@@ -12,7 +12,7 @@ import {
 } from './external-chat-client.interface.js';
 
 import { ExternalChatSession } from './external-chat-session.js';
-import { getModelSurface } from '../../../shared/utils/model-utils.js';
+import { getModelSurface } from '../../utils/model-utils.js';
 
 const logger = new Logger({ name: 'WebChatClient' });
 
@@ -41,7 +41,7 @@ export class WebChatClient implements IExternalChatClient {
 
     const sessionData: ChatSessionData = {
       id: uuidv4(),
-      sessionType: 'external_chat',
+      modelSurface,
       state: 'active',
       messages: [],
       metadata,

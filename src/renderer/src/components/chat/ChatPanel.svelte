@@ -8,7 +8,7 @@
     PencilSquare,
     Paperclip,
   } from "svelte-bootstrap-icons";
-  import { isTerminalModel } from "../../../../shared/utils/model-utils.js";
+  import { isTerminalModel } from '../../../../core/utils/model-utils.js';
   import { apiChatService } from "../../services/api-chat-service.js";
   import { fileSearchService } from "../../services/file-search-service.js";
   import type {

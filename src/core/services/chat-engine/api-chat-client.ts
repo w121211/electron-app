@@ -21,19 +21,19 @@ import type {
   ChatSessionData,
   ChatSessionRepository,
   ChatState,
-  ChatSessionType,
 } from "../chat/chat-session-repository.js";
 import {
   ChatMessageSchema,
   ChatMetadataSchema,
-  ChatSessionTypeSchema,
+  ModelSurfaceSchema,
   ChatStateSchema,
 } from "../chat/chat-session-repository.js";
+import type { ModelSurface } from "../../utils/model-utils.js";
 import {
-  extractChatFileReferences,
+  extractChatFileMentions,
   getUserModelMessageContentString,
   getModelMessageContentString,
-  processMultimodalFileReferences,
+  processMultimodalFileMentions,
 } from "../../utils/message-utils.js";
 import {
   ToolCallRunner,
@@ -50,7 +50,7 @@ import type { ChatUpdatedEvent } from "./events.js";
 const DEFAULT_MAX_TURNS = 20;
 
 export interface CreateChatSessionInput {
-  sessionType: ChatSessionType;
+  modelSurface: ModelSurface;
   metadata?: Partial<ChatMetadata>;
   messages?: ChatMessage[];
   state?: ChatState;
@@ -64,7 +64,7 @@ export interface CreateChatSessionInput {
 
 export const CreateChatSessionInputSchema: z.ZodType<CreateChatSessionInput> = z
   .object({
-    sessionType: ChatSessionTypeSchema,
+    modelSurface: ModelSurfaceSchema,
     metadata: ChatMetadataSchema.optional(),
     messages: z.array(ChatMessageSchema).optional(),
     state: ChatStateSchema.optional(),
@@ -119,7 +119,7 @@ function ensureTimestamp(metadata: ChatMessageMetadata): ChatMessageMetadata {
 
 class ApiChatSession {
   readonly id: string;
-  readonly sessionType: ChatSessionType;
+  readonly modelSurface: ModelSurface;
   private messages: ChatMessage[];
   private metadata: ChatMetadata;
   private state: ChatState;
@@ -150,7 +150,7 @@ class ApiChatSession {
     },
   ) {
     this.id = data.id;
-    this.sessionType = data.sessionType;
+    this.modelSurface = data.modelSurface;
     this.messages = data.messages.map((message) => ({
       ...message,
       metadata: ensureTimestamp(message.metadata),
@@ -387,7 +387,7 @@ class ApiChatSession {
   toChatSessionData(): ChatSessionData {
     return {
       id: this.id,
-      sessionType: this.sessionType,
+      modelSurface: this.modelSurface,
       state: this.state,
       messages: this.messages.map((message) => ({
         ...message,
@@ -447,11 +447,11 @@ class ApiChatSession {
 
   private async appendUserMessage(input: UserModelMessage): Promise<void> {
     const content = getUserModelMessageContentString(input);
-    const fileReferences = extractChatFileReferences(content);
+    const fileMentions = extractChatFileMentions(content);
 
     let processedInput = input;
-    if (this.metadata.projectPath && fileReferences.length > 0) {
-      const multimodalContent = await processMultimodalFileReferences(
+    if (this.metadata.projectPath && fileMentions.length > 0) {
+      const multimodalContent = await processMultimodalFileMentions(
         content,
         this.metadata.projectPath,
       );
@@ -463,7 +463,7 @@ class ApiChatSession {
       message: processedInput,
       metadata: {
         timestamp: new Date(),
-        fileReferences: fileReferences.length > 0 ? fileReferences : undefined,
+        fileMentions: fileMentions.length > 0 ? fileMentions : undefined,
       },
     };
 
@@ -625,7 +625,7 @@ export class ApiChatClient {
     const timestamp = new Date();
     const session: ChatSessionData = {
       id: uuidv4(),
-      sessionType: input.sessionType,
+      modelSurface: input.modelSurface,
       state: input.state ?? "active",
       messages: (input.messages ?? []).map((message) => ({
         ...message,

@@ -14,7 +14,7 @@
     Download,
   } from "svelte-bootstrap-icons";
   import { showToast } from "../../stores/ui-store.svelte.js";
-  import { extractFileReferences } from "../../../../core/utils/message-utils.js";
+  import { extractFileMentions } from "../../../../core/utils/message-utils.js";
   import ToolResultDisplay from "./ToolResultDisplay.svelte";
   import type { ChatMessage } from "../../../../core/services/chat/chat-session-repository.js";
 
@@ -56,7 +56,7 @@
     showToast(`${action} functionality coming soon`, "info");
   }
 
-  function handleFileReference(filePath: string): void {
+  function handleFileMention(filePath: string): void {
     showToast(`Open ${filePath} functionality coming soon`, "info");
   }
 
@@ -106,16 +106,16 @@
       <!-- Content Parts -->
       {#each getContentParts(message.content) as part, index (index)}
         {#if part.type === "text"}
-          {@const fileReferences = extractFileReferences(part.text)}
+          {@const fileMentions = extractFileMentions(part.text)}
 
-          <!-- File References -->
-          {#if fileReferences.length > 0}
-            {#each fileReferences as ref (ref)}
+          <!-- File Mentions -->
+          {#if fileMentions.length > 0}
+            {#each fileMentions as mention (mention)}
               <button
-                onclick={() => handleFileReference(ref)}
+                onclick={() => handleFileMention(mention)}
                 class="text-accent hover:text-accent/80 ml-1 cursor-pointer"
               >
-                @{ref}
+                @{mention}
               </button>
             {/each}
           {/if}

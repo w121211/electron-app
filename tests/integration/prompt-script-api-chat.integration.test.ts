@@ -68,11 +68,7 @@ describeIntegration("Prompt script API chat integration", () => {
     });
 
     promptScriptRepo = new PromptScriptRepository();
-    promptScriptService = new PromptScriptService(
-      promptScriptRepo,
-      repository,
-      async () => promptScriptDirectory,
-    );
+    promptScriptService = new PromptScriptService(promptScriptRepo, repository);
   });
 
   afterAll(async () => {
@@ -100,21 +96,15 @@ describeIntegration("Prompt script API chat integration", () => {
   });
 
   it("creates, links, and executes a prompt script through the API chat engine", async () => {
-    const modelId = "openai/gpt-4o-mini";
-
-    const createdScript = await promptScriptService.createPromptScript(
-      promptScriptDirectory,
-    );
-
     const scriptMarkdown = `---
-title: Prompt Script Integration Test
-engine: api
----
-
-<!-- user input="true" label="Name" -->
-Say hello to $1 and mention this is a prompt script integration test.
-`;
-
+    title: Prompt Script Integration Test
+    engine: api
+    modelId: openai/gpt-4o-mini
+    ---
+    
+    <!-- user input="true" label="Name" -->
+    Say hello to $1 and mention this is a prompt script integration test.
+    `;
     await fs.writeFile(createdScript.absolutePath, scriptMarkdown);
 
     const preparedScript = await promptScriptRepo.read(
@@ -122,10 +112,11 @@ Say hello to $1 and mention this is a prompt script integration test.
     );
 
     const sessionInput: CreateChatSessionInput = {
-      sessionType: "chat_engine",
+      modelSurface: "api",
       metadata: {
         title: "Prompt Script Integration Test",
-        modelId,
+        modelId: preparedScript.promptScriptParsed.metadata
+          .modelId as `${string}/${string}`,
         mode: "chat",
         maxTurns: 3,
       },

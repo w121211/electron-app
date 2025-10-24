@@ -9,10 +9,10 @@ import {
   ChatSessionRepositoryImpl,
   type ChatSessionData,
   type ChatMessage,
-  type ChatSessionType,
   type ChatState,
   type ChatMetadata,
 } from "../src/core/services/chat/chat-session-repository.js";
+import type { ModelSurface } from "../src/core/utils/model-utils.js";
 
 // Test data factory functions
 function createMockUserMessage(content: string): UserModelMessage {
@@ -44,7 +44,7 @@ function createMockChatMessage(
 
 function createMockChatSession(
   options: {
-    sessionType?: ChatSessionType;
+    modelSurface?: ModelSurface;
     state?: ChatState;
     messages?: ChatMessage[];
     metadata?: ChatMetadata;
@@ -57,7 +57,7 @@ function createMockChatSession(
   const now = new Date();
   return {
     id: uuidv4(),
-    sessionType: options.sessionType || "chat_engine",
+    modelSurface: options.modelSurface || "api",
     state: options.state || "active",
     messages: options.messages || [],
     metadata: options.metadata,
@@ -97,7 +97,7 @@ describe("ChatSessionRepository", () => {
   describe("Basic CRUD Operations", () => {
     it("should create a new chat session", async () => {
       const session = createMockChatSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         state: "active",
         messages: [
           createMockChatMessage(createMockUserMessage("Hello, world!")),
@@ -247,7 +247,7 @@ What time is it?`;
 
     it("should create sessions with script metadata", async () => {
       const session = createMockChatSession({
-        sessionType: "chat_engine",
+        modelSurface: "api",
         messages: [
           createMockChatMessage(createMockUserMessage("Write a hello world program in Python.")),
           createMockChatMessage(createMockAssistantMessage("```python\nprint('Hello, World!')\n```")),
@@ -364,7 +364,7 @@ What time is it?`;
   describe("Complex Scenarios", () => {
     it("should handle PTY sessions with complex metadata", async () => {
       const session = createMockChatSession({
-        sessionType: "pty_chat",
+        modelSurface: "pty",
         state: "terminated",
         messages: [
           createMockChatMessage(createMockUserMessage("!claude")),
@@ -399,7 +399,7 @@ What time is it?`;
       await repository.create(session);
       const retrieved = await repository.getById(session.id);
 
-      expect(retrieved?.sessionType).toBe("pty_chat");
+      expect(retrieved?.modelSurface).toBe("pty");
       expect(retrieved?.metadata?.external?.ptySnapshots?.[0]?.snapshot).toBe("Last command output...");
       expect(retrieved?.metadata?.currentTurn).toBe(4);
       expect(retrieved?.messages).toHaveLength(4);
@@ -407,7 +407,7 @@ What time is it?`;
 
     it("should handle sessions with empty messages", async () => {
       const session = createMockChatSession({
-        sessionType: "chat_draft",
+        modelSurface: "api",
         state: "queued",
         messages: [],
         metadata: {

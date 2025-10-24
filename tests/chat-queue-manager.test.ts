@@ -129,7 +129,7 @@ function createChatSession(options: {
   const timestamp = new Date();
   return {
     id: options.id,
-    sessionType: "chat_engine",
+    modelSurface: "api",
     state: "active",
     messages: [],
     metadata: {
