@@ -2,10 +2,10 @@
 import { Logger, type ILogObj } from "tslog";
 import {
   type ExternalModel,
-  type InternalModel,
+  type ApiModelConfig,
   type AvailableModels,
   presetExternalModels,
-  presetInternalModels,
+  presetApiModels,
 } from '../utils/model-utils.js';
 
 export class ModelService {
@@ -19,7 +19,7 @@ export class ModelService {
   public async getAvailableModels(): Promise<AvailableModels> {
     return {
       external: presetExternalModels,
-      internal: presetInternalModels,
+      api: presetApiModels,
     };
   }
 
@@ -27,16 +27,16 @@ export class ModelService {
     return presetExternalModels;
   }
 
-  public getInternalModels(): Record<string, InternalModel> {
-    return presetInternalModels;
+  public getApiModels(): Record<string, ApiModelConfig> {
+    return presetApiModels;
   }
 
   public isExternalModelEnabled(modelId: string): boolean {
     return presetExternalModels[modelId]?.enabled ?? false;
   }
 
-  public isInternalModelEnabled(modelId: string): boolean {
-    return presetInternalModels[modelId]?.enabled ?? false;
+  public isApiModelEnabled(modelId: string): boolean {
+    return presetApiModels[modelId]?.enabled ?? false;
   }
 }
 

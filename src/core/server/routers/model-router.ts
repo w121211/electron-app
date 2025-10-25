@@ -5,7 +5,7 @@ import { router, publicProcedure } from "../trpc-init.js";
 
 export function createModelRouter(modelService: ModelService) {
   return router({
-    // Get all available models (external and internal)
+    // Get all available models (external and api)
     getAvailableModels: publicProcedure.query(async () => {
       return modelService.getAvailableModels();
     }),
@@ -15,9 +15,9 @@ export function createModelRouter(modelService: ModelService) {
       return modelService.getExternalModels();
     }),
 
-    // Get internal models only
-    getInternalModels: publicProcedure.query(async () => {
-      return modelService.getInternalModels();
+    // Get API models only
+    getApiModels: publicProcedure.query(async () => {
+      return modelService.getApiModels();
     }),
 
     // Check if external model is enabled
@@ -31,15 +31,15 @@ export function createModelRouter(modelService: ModelService) {
         return modelService.isExternalModelEnabled(input.modelId);
       }),
 
-    // Check if internal model is enabled
-    isInternalModelEnabled: publicProcedure
+    // Check if API model is enabled
+    isApiModelEnabled: publicProcedure
       .input(
         z.object({
           modelId: z.string(),
         }),
       )
       .query(async ({ input }) => {
-        return modelService.isInternalModelEnabled(input.modelId);
+        return modelService.isApiModelEnabled(input.modelId);
       }),
   });
 }

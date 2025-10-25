@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
     test: {
       env: {
         AI_GATEWAY_API_KEY: env.AI_GATEWAY_API_KEY,
+        OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
       },
     },
   };

@@ -1,6 +1,6 @@
 // src/core/services/chat-engine/api-chat-client.ts
-import { gateway } from "@ai-sdk/gateway";
 import { v4 as uuidv4 } from "uuid";
+import { providerRegistry } from "./provider-registry.js";
 import { z } from "zod";
 import type { LanguageModelV2Middleware } from "@ai-sdk/provider";
 import {
@@ -29,6 +29,7 @@ import {
   ChatStateSchema,
 } from "../chat/chat-session-repository.js";
 import type { ModelSurface } from "../../utils/model-utils.js";
+import { parseApiModelId } from "../../utils/model-utils.js";
 import {
   extractChatFileMentions,
   getUserModelMessageContentString,
@@ -502,7 +503,12 @@ class ApiChatSession {
   private async generateAssistantResponse(
     signal: AbortSignal,
   ): Promise<StreamTextResult<ToolSet, never>> {
-    const baseModel = gateway(this.modelId);
+    const parsed = parseApiModelId(this.modelId);
+    console.log(parsed);
+    const registryModelId = `${parsed.provider}:${parsed.modelIdForProvider}`;
+
+    // @ts-expect-error - Dynamic model ID from registry
+    const baseModel = providerRegistry.languageModel(registryModelId);
     const model = this.cacheMiddleware
       ? wrapLanguageModel({
           model: baseModel,

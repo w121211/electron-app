@@ -8,28 +8,30 @@ import {
   vi,
 } from "vitest";
 
-const terminalMocks = vi.hoisted(() => ({
-  spawnMock: vi.fn(),
-  spawnSyncMock: vi.fn(),
-  focusWindowsWindowByTitleMock: vi.fn(),
-  focusLinuxWindowByTitleMock: vi.fn(),
+const terminalMocks = vi.hoisted(() => {
+  const readFileSyncMock = vi.fn((path: any) => {
+    const pathStr = path.toString();
+    if (pathStr.includes('launch-iterm.applescript')) {
+      return 'tell application "iTerm" to activate {{SESSION_TITLE}} from {{CWD}} running "{{FULL_COMMAND}}"';
+    }
+    if (pathStr.includes('launch-terminal.applescript')) {
+      return 'tell application "Terminal" to activate {{SESSION_TITLE}} from {{CWD}} running "{{FULL_COMMAND}}"';
+    }
+    return '';
+  });
+
+  return {
+    spawnMock: vi.fn(),
+    spawnSyncMock: vi.fn(),
+    focusWindowsWindowByTitleMock: vi.fn(),
+    focusLinuxWindowByTitleMock: vi.fn(),
+    readFileSyncMock,
+  };
+});
+
+vi.mock("node:fs", () => ({
+  readFileSync: terminalMocks.readFileSyncMock,
 }));
-
-vi.mock(
-  "../src/core/services/surface-launcher/scripts/launch-iterm.applescript?raw",
-  () => ({
-    default:
-      'tell application "iTerm" to activate {{SESSION_TITLE}} from {{CWD}} running "{{FULL_COMMAND}}"',
-  }),
-);
-
-vi.mock(
-  "../src/core/services/surface-launcher/scripts/launch-terminal.applescript?raw",
-  () => ({
-    default:
-      'tell application "Terminal" to activate {{SESSION_TITLE}} from {{CWD}} running "{{FULL_COMMAND}}"',
-  }),
-);
 
 vi.mock("../src/core/services/surface-launcher/os/windows.js", () => ({
   focusWindowsWindowByTitle: terminalMocks.focusWindowsWindowByTitleMock,

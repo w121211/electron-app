@@ -3,6 +3,7 @@ import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { Logger } from "tslog";
+import type { UserSettingsRepository } from "../user-settings-repository.js";
 
 const logger = new Logger({ name: "AudioRecordingService" });
 
@@ -20,19 +21,20 @@ export interface AudioRecordingResult {
 }
 
 export class AudioRecordingService {
-  constructor(private readonly userDataDir: string) {}
+  constructor(
+    private readonly userSettingsRepository: UserSettingsRepository,
+  ) {}
 
   async saveRecording(
     options: SaveAudioRecordingOptions,
   ): Promise<AudioRecordingResult> {
     const { audioData, format = "webm" } = options;
 
+    const settings = await this.userSettingsRepository.getSettings();
+    const workspaceDir = settings.project.defaultWorkspaceDirectory;
+
     const dateFolder = this.getDateFolderName();
-    const audioDir = path.join(
-      this.userDataDir,
-      "audio-recordings",
-      dateFolder,
-    );
+    const audioDir = path.join(workspaceDir, "audio-recordings", dateFolder);
 
     await fs.mkdir(audioDir, { recursive: true });
 
@@ -43,7 +45,7 @@ export class AudioRecordingService {
 
     await fs.writeFile(absolutePath, audioData);
 
-    const relativePath = path.relative(this.userDataDir, absolutePath);
+    const relativePath = path.relative(workspaceDir, absolutePath);
 
     logger.info(`Saved audio recording: ${relativePath} (${audioData.length} bytes)`);
 
@@ -67,7 +69,9 @@ export class AudioRecordingService {
   }
 
   async cleanupOldRecordings(daysToKeep: number = 30): Promise<number> {
-    const audioDir = path.join(this.userDataDir, "audio-recordings");
+    const settings = await this.userSettingsRepository.getSettings();
+    const workspaceDir = settings.project.defaultWorkspaceDirectory;
+    const audioDir = path.join(workspaceDir, "audio-recordings");
 
     try {
       const dateFolders = await fs.readdir(audioDir);

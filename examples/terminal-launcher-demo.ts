@@ -8,7 +8,13 @@ async function main() {
   logger.info("Starting Terminal Launcher Demo");
 
   logger.info("Launching macOS Terminal...");
-  const terminalResult = launchTerminal("open", ["-a", "Terminal", "."]);
+  const terminalResult = launchTerminal(
+    "open",
+    ["-a", "Terminal", "."],
+    process.cwd(),
+    "iterm",
+    "demo-terminal",
+  );
 
   if (terminalResult.success) {
     logger.info(
@@ -19,7 +25,13 @@ async function main() {
   }
 
   logger.info("Launching VS Code...");
-  const vscodeResult = launchTerminal("code", ["."], process.cwd());
+  const vscodeResult = launchTerminal(
+    "code",
+    ["."],
+    process.cwd(),
+    "iterm",
+    "demo-vscode",
+  );
 
   if (vscodeResult.success) {
     logger.info(`Successfully launched VS Code with PID: ${vscodeResult.pid}`);
@@ -28,7 +40,13 @@ async function main() {
   }
 
   logger.info("Launching Claude Code...");
-  const claudeResult = launchTerminal("claude-code", [], process.cwd());
+  const claudeResult = launchTerminal(
+    "claude-code",
+    [],
+    process.cwd(),
+    "iterm",
+    "demo-claude",
+  );
 
   if (claudeResult.success) {
     logger.info(

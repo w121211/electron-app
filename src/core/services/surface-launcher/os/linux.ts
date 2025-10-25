@@ -1,7 +1,12 @@
 // src/core/services/surface-launcher/os/linux.ts
 import { spawnSync } from "child_process";
-import focusWindowLinuxTemplate from "../scripts/focus-window.sh?raw";
+import { readFileSync } from "node:fs";
 import { escapeForDoubleQuotedString } from "./shared.js";
+
+const focusWindowLinuxTemplate = readFileSync(
+  new URL("../scripts/focus-window.sh", import.meta.url),
+  "utf8",
+);
 
 export function focusLinuxWindowByTitle(title: string): boolean {
   const safeTitle = escapeForDoubleQuotedString(title);

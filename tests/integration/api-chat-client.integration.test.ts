@@ -1,5 +1,5 @@
 // tests/integration/api-chat-client.integration.test.ts
-// Run with: AI_GATEWAY_API_KEY=... npx vitest run tests/integration/api-chat-client.integration.test.ts
+// Run with: npx vitest run tests/integration/api-chat-client.integration.test.ts
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -70,7 +70,7 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
   });
 
   it("streams a response through the real AI SDK", async () => {
-    const modelId = "openai/gpt-4o-mini";
+    const modelId = "api/aigateway:google/gemini-2.5-flash-lite";
 
     const sessionInput: CreateChatSessionInput = {
       modelSurface: "api",
@@ -121,6 +121,86 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
     });
 
     expect(hasNonEmptyResponse).toBe(true);
+  });
+
+  it("streams a response through OpenRouter provider", async () => {
+    const modelId = "api/openrouter:deepseek/deepseek-chat-v3.1:free";
+
+    const sessionInput: CreateChatSessionInput = {
+      modelSurface: "api",
+      metadata: {
+        modelId,
+        maxTurns: 3,
+      },
+    };
+
+    const session = await client.createSession(sessionInput);
+
+    const messageInput: SendChatMessageInput = {
+      chatSessionId: session.id,
+      input: {
+        role: "user",
+        content: "Say a short hello and mention this is an integration test.",
+      },
+    };
+
+    const result = await client.sendMessage(messageInput);
+
+    expect(result.turnResult.streamResult).toBeDefined();
+    expect(result.session.metadata?.currentTurn).toBe(1);
+
+    const assistantMessages = result.session.messages.filter(
+      (message) => message.message.role === "assistant",
+    );
+
+    console.log(
+      "Assistant messages:",
+      JSON.stringify(assistantMessages, null, 2),
+    );
+
+    expect(assistantMessages.length).toBeGreaterThan(0);
+
+    const hasNonEmptyResponse = assistantMessages.some((message) => {
+      const content = message.message.content;
+      if (typeof content === "string") {
+        return content.trim().length > 0;
+      }
+
+      return content.some((part) => {
+        if (part.type !== "text") {
+          return false;
+        }
+        return part.text.trim().length > 0;
+      });
+    });
+
+    expect(hasNonEmptyResponse).toBe(true);
+  });
+
+  it("throws error for unsupported provider", async () => {
+    const modelId = "api/openai:gpt-4o-mini";
+
+    const sessionInput: CreateChatSessionInput = {
+      modelSurface: "api",
+      metadata: {
+        modelId,
+        maxTurns: 3,
+      },
+    };
+
+    const session = await client.createSession(sessionInput);
+
+    const messageInput: SendChatMessageInput = {
+      chatSessionId: session.id,
+      input: {
+        role: "user",
+        content: "This should fail.",
+      },
+    };
+
+    await expect(client.sendMessage(messageInput)).rejects.toThrow(
+      /No such provider: openai/,
+    );
   });
 });
 

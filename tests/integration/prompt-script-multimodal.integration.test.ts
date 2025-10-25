@@ -115,7 +115,7 @@ describeIntegration("Prompt script multimodal integration", () => {
 
     const scriptMarkdown = `---
 title: Audio Transcription Test
-engine: api
+modelId: api/google/gemini-2.5-flash-lite
 ---
 
 <!-- user -->

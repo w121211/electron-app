@@ -20,13 +20,14 @@ export interface UserSettings {
   };
   promptScript: {
     chatsFolder: string; // User configurable, relative to the project directory
-    readonly audioRecordingsSubfolder: string; // Computed: <chatsFolder>/audio-recordings
+    // TBC: Yet to confirm is this needed, for now it saved to the `defaultWorkspaceDirectory/audio-recordings`
+    // readonly audioRecordingsSubfolder: string; // Computed: <chatsFolder>/audio-recordings
     readonly templatesSubfolder: string; // Computed: <chatsFolder>/templates
   };
   providers: {
-    openai?: ProviderConfig;
-    anthropic?: ProviderConfig;
-    google?: ProviderConfig;
+    // openai?: ProviderConfig;
+    // anthropic?: ProviderConfig;
+    // google?: ProviderConfig;
     openrouter?: ProviderConfig;
     aiGateway?: ProviderConfig;
   };
@@ -39,7 +40,7 @@ const DEFAULT_USER_SETTINGS: UserSettings = {
   },
   promptScript: {
     chatsFolder: "chats",
-    audioRecordingsSubfolder: "", // Computed automatically
+    // audioRecordingsSubfolder: "", // Computed automatically
     templatesSubfolder: "", // Computed automatically
   },
   providers: {},
@@ -73,7 +74,7 @@ const createPromptScriptSettings = (
 ): UserSettings["promptScript"] => {
   return {
     chatsFolder,
-    audioRecordingsSubfolder: path.join(chatsFolder, "audio-recordings"),
+    // audioRecordingsSubfolder: path.join(chatsFolder, "audio-recordings"),
     templatesSubfolder: path.join(chatsFolder, "templates"),
   };
 };
@@ -95,6 +96,7 @@ export class UserSettingsRepository {
   private readonly logger: Logger<ILogObj>;
   private readonly filePath: string;
   private readonly userDataDir: string;
+  private cachedSettings?: UserSettings;
 
   constructor(settingsFilePath: string, userDataDir: string) {
     this.logger = new Logger({ name: "UserSettingsRepository" });
@@ -103,6 +105,10 @@ export class UserSettingsRepository {
   }
 
   public async getSettings(): Promise<UserSettings> {
+    if (this.cachedSettings) {
+      return this.cachedSettings;
+    }
+
     if (!(await fileExists(this.filePath))) {
       this.logger.info(
         `Settings file not found, creating default at ${this.filePath}`,
@@ -112,7 +118,8 @@ export class UserSettingsRepository {
         this.userDataDir,
       );
       await this.saveSettings(defaults);
-      return { ...defaults };
+      this.cachedSettings = defaults;
+      return defaults;
     }
 
     const rawSettings = await readJsonFile<Partial<UserSettings>>(
@@ -120,7 +127,11 @@ export class UserSettingsRepository {
     );
     const normalized = createUserSettings(rawSettings, this.userDataDir);
 
-    await this.saveSettings(normalized);
+    // Only save if normalization changed the settings
+    if (JSON.stringify(rawSettings) === JSON.stringify(normalized)) {
+      await this.saveSettings(normalized);
+    }
+    this.cachedSettings = normalized;
 
     return normalized;
   }
@@ -128,6 +139,7 @@ export class UserSettingsRepository {
   public async saveSettings(settings: UserSettings): Promise<void> {
     const normalized = createUserSettings(settings, this.userDataDir);
     await writeJsonFile(this.filePath, normalized);
+    this.cachedSettings = normalized;
     this.logger.debug(`Settings saved successfully to ${this.filePath}`);
   }
 

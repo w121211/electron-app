@@ -1,6 +1,18 @@
 // src/core/services/surface-launcher/os/macos.ts
 import { spawnSync } from "child_process";
-import focusBrowserAppleScriptTemplate from "../scripts/focus-browser.applescript?raw";
+import { readFileSync } from "node:fs";
+
+const DEFAULT_BROWSER_APP = "Google Chrome";
+
+const focusChromeAppleScriptTemplate = readFileSync(
+  new URL("../scripts/focus-chrome.applescript", import.meta.url),
+  "utf8",
+);
+
+const focusSafariAppleScriptTemplate = readFileSync(
+  new URL("../scripts/focus-safari.applescript", import.meta.url),
+  "utf8",
+);
 
 export interface FocusMacBrowserOptions {
   url: string;
@@ -12,18 +24,22 @@ export interface FocusMacBrowserResult {
   browserApp: string;
 }
 
-const DEFAULT_BROWSER_APP = "Google Chrome";
-
 export function focusMacBrowserTab({
   url,
   browserApp = DEFAULT_BROWSER_APP,
 }: FocusMacBrowserOptions): FocusMacBrowserResult {
-  const script = focusBrowserAppleScriptTemplate
+  const isSafari = browserApp.toLowerCase().includes("safari");
+  const template = isSafari
+    ? focusSafariAppleScriptTemplate
+    : focusChromeAppleScriptTemplate;
+
+  const script = template
     .replaceAll("{{TARGET_URL}}", url)
     .replaceAll("{{BROWSER_NAME}}", browserApp);
 
   const result = spawnSync("osascript", ["-e", script], {
-    stdio: "ignore",
+    stdio: "pipe",
+    encoding: "utf8",
   });
 
   return { success: result.status === 0, browserApp };

@@ -1,7 +1,12 @@
 // src/core/services/surface-launcher/os/windows.ts
 import { spawnSync } from "child_process";
-import focusWindowPowerShellTemplate from "../scripts/focus-window.ps1?raw";
+import { readFileSync } from "node:fs";
 import { escapeForDoubleQuotedString } from "./shared.js";
+
+const focusWindowPowerShellTemplate = readFileSync(
+  new URL("../scripts/focus-window.ps1", import.meta.url),
+  "utf8",
+);
 
 export function focusWindowsWindowByTitle(title: string): boolean {
   const safeTitle = escapeForDoubleQuotedString(title);

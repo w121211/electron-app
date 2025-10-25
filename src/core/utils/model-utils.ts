@@ -9,15 +9,15 @@ export interface ExternalModel {
   windowTitle?: string;
 }
 
-export interface InternalModel {
-  modelId: `${string}/${string}`;
-  provider: string;
+export interface ApiModelConfig {
+  modelId: `api/${string}:${string}`;
   enabled: boolean;
+  displayName?: string;
 }
 
 export interface AvailableModels {
   external: Record<string, ExternalModel>;
-  internal: Record<string, InternalModel>;
+  api: Record<string, ApiModelConfig>;
 }
 
 export type ModelSurface = "api" | "terminal" | "web" | "pty";
@@ -36,6 +36,39 @@ export function getModelSurface(modelId: string): ModelSurface {
 
 export function isTerminalModel(modelId: string): boolean {
   return getModelSurface(modelId) === "terminal";
+}
+
+export interface ParsedApiModelId {
+  surface: string;
+  provider: string;
+  modelIdForProvider: string;
+}
+
+export function parseApiModelId(modelId: string): ParsedApiModelId {
+  const firstSlashIndex = modelId.indexOf("/");
+  if (firstSlashIndex === -1) {
+    throw new Error(`Invalid modelId format: ${modelId}`);
+  }
+
+  const surface = modelId.substring(0, firstSlashIndex);
+  if (surface !== "api") {
+    throw new Error(`Invalid modelId format: ${modelId}`);
+  }
+
+  const rest = modelId.substring(firstSlashIndex + 1);
+  const colonIndex = rest.indexOf(":");
+  if (colonIndex === -1) {
+    throw new Error(`Invalid modelId format: ${modelId} (missing colon separator)`);
+  }
+
+  const provider = rest.substring(0, colonIndex);
+  const modelIdForProvider = rest.substring(colonIndex + 1);
+
+  return {
+    surface,
+    provider,
+    modelIdForProvider,
+  };
 }
 
 export const presetExternalModels: Record<string, ExternalModel> = {
@@ -77,20 +110,22 @@ export const presetExternalModels: Record<string, ExternalModel> = {
   },
 };
 
-export const presetInternalModels: Record<string, InternalModel> = {
-  "openai/gpt-4o": {
-    provider: "openai",
-    modelId: "openai/gpt-4o",
+export const presetApiModels: Record<string, ApiModelConfig> = {
+  "api/openai:gpt-4o": {
+    modelId: "api/openai:gpt-4o",
     enabled: false,
   },
-  "anthropic/claude-3-sonnet": {
-    provider: "anthropic",
-    modelId: "anthropic/claude-3-sonnet",
+  "api/anthropic:claude-3-5-sonnet": {
+    modelId: "api/anthropic:claude-3-5-sonnet",
+    enabled: false,
+    displayName: "Claude 3.5 Sonnet",
+  },
+  "api/ai-gateway:gemini-2.0-flash-exp": {
+    modelId: "api/ai-gateway:gemini-2.0-flash-exp",
     enabled: false,
   },
-  "google/gemini-pro": {
-    provider: "google",
-    modelId: "google/gemini-pro",
+  "api/openrouter:google/gemini-2.5-flash-preview-09-2025": {
+    modelId: "api/openrouter:google/gemini-2.5-flash-preview-09-2025",
     enabled: false,
   },
 };
