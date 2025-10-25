@@ -55,7 +55,8 @@ function parseFrontMatter(raw: RawFrontMatter): {
         } else if (value !== undefined) {
           warnings.push({
             code: "PARSE_ERROR",
-            message: "Ignoring non-string description in prompt script front matter",
+            message:
+              "Ignoring non-string description in prompt script front matter",
           });
           extras[key] = value;
         }
@@ -67,7 +68,8 @@ function parseFrontMatter(raw: RawFrontMatter): {
           if (tags.length !== value.length) {
             warnings.push({
               code: "PARSE_ERROR",
-              message: "Some prompt script tags are not strings and were ignored",
+              message:
+                "Some prompt script tags are not strings and were ignored",
             });
           }
           if (tags.length > 0) {
@@ -91,7 +93,8 @@ function parseFrontMatter(raw: RawFrontMatter): {
         } else {
           warnings.push({
             code: "PARSE_ERROR",
-            message: "Invalid engine in prompt script front matter. Defaulting to 'pty'",
+            message:
+              "Invalid engine in prompt script front matter. Defaulting to 'pty'",
           });
         }
         break;
@@ -102,7 +105,8 @@ function parseFrontMatter(raw: RawFrontMatter): {
         } else if (value !== undefined) {
           warnings.push({
             code: "PARSE_ERROR",
-            message: "Ignoring non-string modelId in prompt script front matter",
+            message:
+              "Ignoring non-string modelId in prompt script front matter",
           });
           extras[key] = value;
         }
@@ -114,7 +118,8 @@ function parseFrontMatter(raw: RawFrontMatter): {
         } else if (value !== undefined) {
           warnings.push({
             code: "PARSE_ERROR",
-            message: "Ignoring non-string chatSessionId in prompt script front matter",
+            message:
+              "Ignoring non-string chatSessionId in prompt script front matter",
           });
         }
         break;
@@ -200,25 +205,6 @@ function extractPrompts(body: string): PromptScriptPrompt[] {
   return prompts;
 }
 
-export function substituteArguments(content: string, args: string[]): string {
-  // Substitute $ARGUMENTS, but not \$ARGUMENTS
-  let substitutedContent = content.replace(/(?<!\\)\$ARGUMENTS/g, args.join(" "));
-
-  // Substitute $n (e.g., $1, $2), but not \$n. Limit to 1-2 digits and ensure it's not followed by another digit.
-  substitutedContent = substitutedContent.replace(
-    /(?<!\\)\$(\d{1,2})(?!\d)/g,
-    (_, indexStr) => {
-      const index = parseInt(indexStr, 10) - 1;
-      return index >= 0 && index < args.length ? args[index] : "";
-    },
-  );
-
-  // Remove the escape backslash for any placeholders that were intentionally skipped
-  substitutedContent = substitutedContent.replace(/\\(\$ARGUMENTS|\$\d{1,2}(?!\d))/g, "$1");
-
-  return substitutedContent;
-}
-
 export function parsePromptScriptContent(
   content: string,
 ): ParsePromptScriptResult {
@@ -235,3 +221,37 @@ export function parsePromptScriptContent(
     delimiter,
   };
 }
+
+export function substituteArgs(content: string, args: string[]): string {
+  // Substitute $ARGUMENTS, but not \$ARGUMENTS
+  let substitutedContent = content.replace(
+    /(?<!\\)\$ARGUMENTS/g,
+    args.join(" "),
+  );
+
+  // Substitute $n (e.g., $1, $2), but not \$n. Limit to 1-2 digits and ensure it's not followed by another digit.
+  substitutedContent = substitutedContent.replace(
+    /(?<!\\)\$(\d{1,2})(?!\d)/g,
+    (_, indexStr) => {
+      const index = parseInt(indexStr, 10) - 1;
+      return index >= 0 && index < args.length ? args[index] : "";
+    },
+  );
+
+  // Remove the escape backslash for any placeholders that were intentionally skipped
+  substitutedContent = substitutedContent.replace(
+    /\\(\$ARGUMENTS|\$\d{1,2}(?!\d))/g,
+    "$1",
+  );
+
+  return substitutedContent;
+}
+
+// export function substitutePromptScriptArgs(
+//   content: string,
+//   args: string[],
+// ): string {
+//   const { data: frontMatter, content: body } = matter(content);
+//   const substitutedBody = substituteArguments(body, args);
+//   return matter.stringify(substitutedBody, frontMatter);
+// }

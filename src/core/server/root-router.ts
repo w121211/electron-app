@@ -38,6 +38,7 @@ interface TrpcRouterConfig {
   eventBus: IEventBus;
   ptyInstanceManager: PtyInstanceManager;
   snapshotProvider: SnapshotProvider;
+  appResourcesPath?: string;
 }
 
 export async function createTrpcRouter(config: TrpcRouterConfig) {
@@ -59,7 +60,9 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     fileWatcherService,
   );
 
-  const userSettingsService = createUserSettingsService(userSettingsRepo);
+  const userSettingsService = createUserSettingsService(userSettingsRepo, {
+    appResourcesPath: config.appResourcesPath,
+  });
 
   const modelService = createModelService();
 

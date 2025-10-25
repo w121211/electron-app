@@ -10,14 +10,20 @@ export function createPromptScriptRouter(
     create: publicProcedure
       .input(
         z.object({
-          directory: z.string().optional(),
+          directory: z.string(),
           name: z.string().optional(),
+          templatePath: z.string().optional(),
+          args: z.array(z.string()).optional(),
         }),
       )
       .mutation(async ({ input }) => {
         return promptScriptService.createPromptScript(
           input.directory,
           input.name,
+          {
+            templatePath: input.templatePath,
+            args: input.args,
+          },
         );
       }),
 

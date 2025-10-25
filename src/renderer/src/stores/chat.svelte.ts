@@ -64,13 +64,13 @@ const resolveInitialModel = (): `${string}/${string}` => {
 };
 
 export const chatSettings = $state<ChatGlobalSettings>({
-  availableModels: { external: {}, internal: {} },
+  availableModels: { external: {}, api: {} },
   selectedModel: resolveInitialModel(),
 });
 
 export const getAvailableModelsAsList = () => [
   ...Object.values(chatSettings.availableModels.external),
-  // ...Object.values(chatSettings.availableModels.internal),
+  ...Object.values(chatSettings.availableModels.api),
 ];
 
 export const setAvailableModels = (models: AvailableModels) => {

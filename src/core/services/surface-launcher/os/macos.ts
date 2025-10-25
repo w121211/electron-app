@@ -1,18 +1,9 @@
 // src/core/services/surface-launcher/os/macos.ts
 import { spawnSync } from "child_process";
-import { readFileSync } from "node:fs";
+import focusChromeAppleScriptTemplate from "../scripts/focus-chrome.applescript?raw";
+import focusSafariAppleScriptTemplate from "../scripts/focus-safari.applescript?raw";
 
 const DEFAULT_BROWSER_APP = "Google Chrome";
-
-const focusChromeAppleScriptTemplate = readFileSync(
-  new URL("../scripts/focus-chrome.applescript", import.meta.url),
-  "utf8",
-);
-
-const focusSafariAppleScriptTemplate = readFileSync(
-  new URL("../scripts/focus-safari.applescript", import.meta.url),
-  "utf8",
-);
 
 export interface FocusMacBrowserOptions {
   url: string;

@@ -5,13 +5,17 @@
   import { keyboardManager } from "../lib/keyboard.js";
   import { eventService } from "../services/event-service.js";
   import { projectService } from "../services/project-service.js";
+  import { userSettingsService } from "../services/user-settings-service.js";
   import MainLayout from "./MainLayout.svelte";
   import ToastProvider from "./ToastProvider.svelte";
 
   const logger = new Logger({ name: "App" });
 
-  onMount(() => {
+  onMount(async () => {
     logger.info("UI App started, initializing systems...");
+
+    // Load user settings
+    await userSettingsService.loadSettings();
 
     // Start event subscriptions
     eventService.start();

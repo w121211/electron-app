@@ -1,4 +1,6 @@
 // src/core/services/user-settings-service.ts
+import path from "node:path";
+import fs from "node:fs/promises";
 import { safeStorage } from "electron";
 import { Logger, type ILogObj } from "tslog";
 import type {
@@ -10,20 +12,27 @@ import type {
 type SafeUserSettingsUpdate = Omit<Partial<UserSettings>, "projectFolders"> &
   Record<string, unknown>;
 
+const DEFAULT_RESOURCE_TEMPLATE_PATH = path.join("resources", "templates"); // relative to appResourcePath
+
 const envVarMap: Record<string, string> = {
   openai: "OPENAI_API_KEY",
   anthropic: "ANTHROPIC_API_KEY",
   google: "GOOGLE_API_KEY",
-  aiGateway: "AI_GATEWAY_API_KEY",
+  aigateway: "AI_GATEWAY_API_KEY",
 };
 
 export class UserSettingsService {
   private readonly logger: Logger<ILogObj>;
-  private readonly userSettingsRepository: UserSettingsRepository;
+  // private readonly userSettingsRepository: UserSettingsRepository;
+  // private readonly appResourcesPath: string;
 
-  constructor(userSettingsRepository: UserSettingsRepository) {
+  constructor(
+    readonly userSettingsRepository: UserSettingsRepository,
+    readonly appResourcesPath: string,
+  ) {
     this.logger = new Logger({ name: "UserSettingsService" });
-    this.userSettingsRepository = userSettingsRepository;
+    // this.userSettingsRepository = userSettingsRepository;
+    // this.appResourcesPath = options?.appResourcesPath;
   }
 
   public async getUserSettings(): Promise<UserSettings> {
@@ -46,45 +55,14 @@ export class UserSettingsService {
     };
 
     // Save updated settings
-    await this.userSettingsRepository.saveSettings(updatedSettings);
+    const normalizedSettings =
+      await this.userSettingsRepository.saveSettings(updatedSettings);
+
+    await this.setupDefaultWorkspace(normalizedSettings);
 
     this.logger.info("User settings updated successfully");
-    return updatedSettings;
+    return normalizedSettings;
   }
-
-  // COMMENTED OUT: Workspace directory feature not needed
-  // public async setWorkspaceDirectory(
-  //   workspaceDirectory: string,
-  // ): Promise<UserSettings> {
-  //   this.logger.info(`Setting workspace directory: ${workspaceDirectory}`);
-
-  //   // Validate workspace directory path
-  //   if (!workspaceDirectory.trim()) {
-  //     throw new Error("Workspace directory cannot be empty");
-  //   }
-
-  //   // Validate that the path is absolute
-  //   if (!path.isAbsolute(workspaceDirectory)) {
-  //     throw new Error(
-  //       `Workspace directory must be absolute, received: ${workspaceDirectory}`,
-  //     );
-  //   }
-
-  //   // Validate that the directory exists and is actually a directory
-  //   const isValid = await this.validateWorkspaceDirectory(workspaceDirectory);
-  //   if (!isValid) {
-  //     throw new Error(
-  //       `Invalid workspace directory path: ${workspaceDirectory}`,
-  //     );
-  //   }
-
-  //   return this.updateUserSettings({ workspaceDirectory });
-  // }
-
-  // public async getWorkspaceDirectory(): Promise<string | null> {
-  //   const settings = await this.userSettingsRepository.getSettings();
-  //   return settings.workspaceDirectory || null;
-  // }
 
   public async setProviderApiKey(
     provider: string,
@@ -177,10 +155,35 @@ export class UserSettingsService {
     // this.logger.debug(process.env);
   }
 
+  async setupDefaultWorkspace(settings: UserSettings): Promise<void> {
+    const sourceDir = path.join(
+      this.appResourcesPath,
+      DEFAULT_RESOURCE_TEMPLATE_PATH,
+    );
+    const destDir = path.join(
+      settings.project.defaultWorkspaceDirectory,
+      settings.promptScript.templatesSubfolder,
+    );
+
+    try {
+      await fs.mkdir(destDir, { recursive: true });
+      await fs.cp(sourceDir, destDir, {
+        recursive: true,
+        errorOnExist: false,
+        force: false,
+      });
+    } catch (error) {
+      console.warn(
+        `Failed to provision prompt templates from ${sourceDir} to ${destDir}`,
+        error,
+      );
+    }
+  }
 }
 
 export function createUserSettingsService(
   userSettingsRepository: UserSettingsRepository,
+  appResourcesPath: string,
 ): UserSettingsService {
-  return new UserSettingsService(userSettingsRepository);
+  return new UserSettingsService(userSettingsRepository, appResourcesPath);
 }

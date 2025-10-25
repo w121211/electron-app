@@ -1,21 +1,16 @@
 // src/renderer/src/stores/user-settings-store.svelte.ts
-import { DEFAULT_USER_SETTINGS } from "../../../core/services/user-settings-repository.js";
+// import { DEFAULT_USER_SETTINGS } from "../../../core/services/user-settings-repository.js";
 import type { UserSettings } from "../../../core/services/user-settings-repository.js";
 
 interface UserSettingsState {
-  settings: UserSettings;
+  settings: UserSettings | null;
   loading: boolean;
   error: string | null;
 }
 
 // User settings state - configuration and providers
 export const userSettingsState = $state<UserSettingsState>({
-  settings: {
-    ...DEFAULT_USER_SETTINGS,
-    project: { ...DEFAULT_USER_SETTINGS.project },
-    promptScript: { ...DEFAULT_USER_SETTINGS.promptScript },
-    providers: {},
-  },
+  settings: null,
   loading: false,
   error: null,
 });
@@ -50,5 +45,8 @@ export function setUserSettingsError(error: string | null) {
  * Update providers configuration
  */
 export function updateProviders(providers: UserSettings["providers"]) {
+  if (!userSettingsState.settings) {
+    throw new Error("User settings not initialized");
+  }
   userSettingsState.settings.providers = { ...providers };
 }

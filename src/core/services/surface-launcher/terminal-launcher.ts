@@ -1,20 +1,11 @@
 // src/core/services/surface-launcher/terminal-launcher.ts
 import { spawn, spawnSync, type ChildProcess } from "child_process";
-import { readFileSync } from "node:fs";
 import { Logger, type ILogObj } from "tslog";
 import { presetExternalModels } from "../../utils/model-utils.js";
 import { focusWindowsWindowByTitle } from "./os/windows.js";
 import { focusLinuxWindowByTitle } from "./os/linux.js";
-
-const itermAppleScriptTemplate = readFileSync(
-  new URL("./scripts/launch-iterm.applescript", import.meta.url),
-  "utf8",
-);
-
-const terminalAppleScriptTemplate = readFileSync(
-  new URL("./scripts/launch-terminal.applescript", import.meta.url),
-  "utf8",
-);
+import itermAppleScriptTemplate from "./scripts/launch-iterm.applescript?raw";
+import terminalAppleScriptTemplate from "./scripts/launch-terminal.applescript?raw";
 
 const logger: Logger<ILogObj> = new Logger({ name: "TerminalLauncher" });
 

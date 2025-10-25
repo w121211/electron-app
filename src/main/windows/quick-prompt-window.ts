@@ -63,6 +63,11 @@ export function ensureQuickPromptWindow(
     window.focus();
   });
 
+  // Open DevTools in development
+  if (is.dev) {
+    window.webContents.openDevTools();
+  }
+
   return window;
 }
 

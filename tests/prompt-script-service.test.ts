@@ -21,7 +21,6 @@ describe("PromptScriptService", () => {
   let scriptRepository: PromptScriptRepository;
   let chatSessionRepository: ChatSessionRepositoryImpl;
   let service: PromptScriptService;
-  let defaultPromptDir: string;
 
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "prompt-script-test-"));
@@ -31,12 +30,7 @@ describe("PromptScriptService", () => {
     chatSessionRepository = new ChatSessionRepositoryImpl({
       databaseFilePath: databasePath,
     });
-    defaultPromptDir = path.join(tempDir, "default-prompts");
-    service = new PromptScriptService(
-      scriptRepository,
-      chatSessionRepository,
-      // async () => defaultPromptDir,
-    );
+    service = new PromptScriptService(scriptRepository, chatSessionRepository);
   });
 
   afterEach(async () => {
@@ -61,7 +55,8 @@ describe("PromptScriptService", () => {
       scriptPath: overrides.scriptPath ?? script.absolutePath,
       scriptHash: overrides.scriptHash ?? script.hash,
       scriptSnapshot: overrides.scriptSnapshot ?? script.content,
-      scriptModifiedAt: overrides.scriptModifiedAt ?? script.modifiedAt,
+      scriptModifiedAt:
+        overrides.scriptModifiedAt ?? script.metadata.modifiedAt,
       createdAt: overrides.createdAt ?? new Date(),
       updatedAt: overrides.updatedAt ?? new Date(),
     };
@@ -179,18 +174,18 @@ Prompt
     it("creates prompt script with sequential numbering when no name provided", async () => {
       const script1 = await service.createPromptScript(createTempDir);
       expect(script1.absolutePath).toBe(
-        path.join(createTempDir, "001.prompt.md"),
+        path.join(createTempDir, "01.prompt.md"),
       );
       expect(script1.content).toBe("");
 
       const script2 = await service.createPromptScript(createTempDir);
       expect(script2.absolutePath).toBe(
-        path.join(createTempDir, "002.prompt.md"),
+        path.join(createTempDir, "02.prompt.md"),
       );
 
       const script3 = await service.createPromptScript(createTempDir);
       expect(script3.absolutePath).toBe(
-        path.join(createTempDir, "003.prompt.md"),
+        path.join(createTempDir, "03.prompt.md"),
       );
     });
 
@@ -222,29 +217,130 @@ Prompt
     // });
 
     it("fills gaps in sequential numbering", async () => {
-      await service.createPromptScript(createTempDir); // 001
-      await service.createPromptScript(createTempDir); // 002
-      await service.createPromptScript(createTempDir); // 003
+      await service.createPromptScript(createTempDir); // 01
+      await service.createPromptScript(createTempDir); // 02
+      await service.createPromptScript(createTempDir); // 03
 
-      // Delete 002
-      await fs.unlink(path.join(createTempDir, "002.prompt.md"));
+      // Delete 02
+      await fs.unlink(path.join(createTempDir, "02.prompt.md"));
 
-      // Next creation should be 004, not 002 (sequential continues from max)
+      // Next creation should be 04, not 02 (sequential continues from max)
       const script = await service.createPromptScript(createTempDir);
       expect(script.absolutePath).toBe(
-        path.join(createTempDir, "004.prompt.md"),
+        path.join(createTempDir, "04.prompt.md"),
       );
     });
 
     it("handles existing sequential files correctly", async () => {
       // Create files manually
-      await fs.writeFile(path.join(createTempDir, "001.prompt.md"), "content1");
-      await fs.writeFile(path.join(createTempDir, "005.prompt.md"), "content5");
+      await fs.writeFile(path.join(createTempDir, "01.prompt.md"), "content1");
+      await fs.writeFile(path.join(createTempDir, "05.prompt.md"), "content5");
 
-      // Next creation should be 006 (max + 1)
+      // Next creation should be 06 (max + 1)
       const script = await service.createPromptScript(createTempDir);
       expect(script.absolutePath).toBe(
-        path.join(createTempDir, "006.prompt.md"),
+        path.join(createTempDir, "06.prompt.md"),
+      );
+    });
+
+    it("creates prompt script from template with argument substitution", async () => {
+      const templatePath = path.join(createTempDir, "test-template.prompt.md");
+      const templateContent = `---
+title: Code Review Template
+modelId: openai/gpt-4o-mini
+---
+
+Review the following code for $1:
+
+File: $2
+
+Focus on: $3
+`;
+      await fs.writeFile(templatePath, templateContent);
+
+      const args = ["security issues", "auth.ts", "SQL injection and XSS"];
+
+      const result = await service.createPromptScript(
+        createTempDir,
+        "security-review",
+        {
+          templatePath,
+          args,
+        },
+      );
+
+      expect(result.absolutePath).toContain("security-review");
+      expect(result.promptScriptParsed.metadata.title).toBe(
+        "Code Review Template",
+      );
+      expect(result.promptScriptParsed.metadata.modelId).toBe(
+        "openai/gpt-4o-mini",
+      );
+
+      expect(result.promptScriptParsed.body).toContain(
+        "Review the following code for security issues",
+      );
+      expect(result.promptScriptParsed.body).toContain("File: auth.ts");
+      expect(result.promptScriptParsed.body).toContain(
+        "Focus on: SQL injection and XSS",
+      );
+
+      expect(result.promptScriptParsed.body).not.toContain("$1");
+      expect(result.promptScriptParsed.body).not.toContain("$2");
+      expect(result.promptScriptParsed.body).not.toContain("$3");
+    });
+
+    it("creates empty prompt script when no template provided", async () => {
+      const result = await service.createPromptScript(
+        createTempDir,
+        "empty-script",
+      );
+
+      expect(result.absolutePath).toContain("empty-script");
+      expect(result.promptScriptParsed.body).toBe("");
+    });
+
+    it("preserves frontmatter from template", async () => {
+      const templateWithExtras = path.join(
+        createTempDir,
+        "template-extras.prompt.md",
+      );
+      await fs.writeFile(
+        templateWithExtras,
+        `---
+title: Custom Template
+description: A test template
+tags: [testing, demo]
+modelId: anthropic/claude-3-5-sonnet
+customField: customValue
+---
+
+Test content: $1
+`,
+      );
+
+      const result = await service.createPromptScript(
+        createTempDir,
+        "with-extras",
+        {
+          templatePath: templateWithExtras,
+          args: ["hello world"],
+        },
+      );
+
+      expect(result.promptScriptParsed.metadata.title).toBe("Custom Template");
+      expect(result.promptScriptParsed.metadata.description).toBe(
+        "A test template",
+      );
+      expect(result.promptScriptParsed.metadata.tags).toEqual([
+        "testing",
+        "demo",
+      ]);
+      expect(result.promptScriptParsed.metadata.extras.customField).toBe(
+        "customValue",
+      );
+      expect(result.promptScriptParsed.body.trim()).toBe(
+        "Test content: hello world",
       );
     });
   });

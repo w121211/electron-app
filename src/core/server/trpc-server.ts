@@ -21,6 +21,7 @@ interface ServerConfig {
   port?: number;
   userDataDir: string;
   snapshotProvider: SnapshotProvider;
+  appResourcesPath?: string;
 }
 
 export class HttpTrpcServer {
@@ -31,6 +32,7 @@ export class HttpTrpcServer {
   private ptyInstanceManager: PtyInstanceManager;
   private fileWatcherService: FileWatcherService | null = null;
   private snapshotProvider: SnapshotProvider;
+  private readonly appResourcesPath?: string;
   private readonly connections = new Set<Socket>();
 
   constructor(config: ServerConfig) {
@@ -38,6 +40,7 @@ export class HttpTrpcServer {
     this.eventBus = createServerEventBus({ logger });
     this.ptyInstanceManager = createPtyInstanceManager(this.eventBus);
     this.snapshotProvider = config.snapshotProvider;
+    this.appResourcesPath = config.appResourcesPath;
     logger.info(`Using user data directory: ${this.userDataDir}`);
   }
 
@@ -55,6 +58,7 @@ export class HttpTrpcServer {
       eventBus: this.eventBus,
       ptyInstanceManager: this.ptyInstanceManager,
       snapshotProvider: this.snapshotProvider,
+      appResourcesPath: this.appResourcesPath,
     });
     this.fileWatcherService = fileWatcherService;
 

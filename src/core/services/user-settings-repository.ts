@@ -136,11 +136,13 @@ export class UserSettingsRepository {
     return normalized;
   }
 
-  public async saveSettings(settings: UserSettings): Promise<void> {
+  public async saveSettings(settings: UserSettings): Promise<UserSettings> {
     const normalized = createUserSettings(settings, this.userDataDir);
     await writeJsonFile(this.filePath, normalized);
     this.cachedSettings = normalized;
     this.logger.debug(`Settings saved successfully to ${this.filePath}`);
+
+    return normalized;
   }
 
   public getFilePath(): string {

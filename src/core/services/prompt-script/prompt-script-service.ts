@@ -5,8 +5,9 @@ import {
   createDirectory,
   generateSequentiallyNumberedFilename,
   generateUniqueFileName,
+  openFile,
 } from "../../utils/file-utils.js";
-import { substituteArguments } from "./prompt-script-parser.js";
+import { substituteArgs } from "./prompt-script-parser.js";
 import { PromptScriptRepository } from "./prompt-script-repository.js";
 import type {
   ChatSessionData,
@@ -28,11 +29,15 @@ export class PromptScriptService {
   ) {}
 
   /**
-   * Create an empty prompt script without link
+   * Create a prompt script file, optionally from a template
    */
   async createPromptScript(
     directory: string,
     name?: string,
+    options?: {
+      templatePath?: string;
+      args?: string[];
+    },
   ): Promise<PromptScriptFile> {
     const trimmedDirectory = directory?.trim();
     if (trimmedDirectory.length === 0) {
@@ -50,24 +55,21 @@ export class PromptScriptService {
       const baseName = `${trimmedName}.prompt.md`;
       filePath = await generateUniqueFileName(resolvedDirectory, baseName);
     } else {
-      /*
-      // Format: 20251003-143045
-      const timestamp = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace(/[-:T]/g, "")
-        .replace(/(\d{8})(\d{6})/, "$1-$2");
-      baseName = `${timestamp}.prompt.md`;
-      */
       const fileName = await generateSequentiallyNumberedFilename(
         resolvedDirectory,
         ".prompt.md",
-        3,
+        2,
       );
       filePath = path.join(resolvedDirectory, fileName);
     }
 
-    return this.promptScriptRepo.create(filePath);
+    let content = "";
+    if (options?.templatePath) {
+      const templateFile = await openFile(path.resolve(options.templatePath));
+      content = substituteArgs(templateFile.content, options.args ?? []);
+    }
+
+    return this.promptScriptRepo.create(filePath, content);
   }
 
   /**
@@ -225,7 +227,7 @@ export class PromptScriptService {
     prompt: PromptScriptPrompt,
     args: string[],
   ): Promise<void> {
-    const substitutedContent = substituteArguments(prompt.content, args);
+    const substitutedContent = substituteArgs(prompt.content, args);
 
     logger.info(
       `Executing prompt index ${prompt.index} with substituted content:`,

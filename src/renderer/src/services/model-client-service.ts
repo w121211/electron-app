@@ -18,7 +18,7 @@ export class ModelClientService {
     setAvailableModels(response);
     const totalModels =
       Object.keys(response.external).length +
-      Object.keys(response.internal).length;
+      Object.keys(response.api).length;
     logger.info(`Loaded ${totalModels} available models.`);
   }
 }

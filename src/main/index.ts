@@ -28,9 +28,14 @@ async function bootstrap(): Promise<MainProcessContext> {
   const userDataDir = path.join(app.getPath("userData"), "user-data");
   await fs.mkdir(userDataDir, { recursive: true });
 
+  const appResourcesPath = app.isPackaged
+    ? process.resourcesPath
+    : app.getAppPath();
+
   const trpcServer = new HttpTrpcServer({
     userDataDir,
     snapshotProvider: requestRendererSnapshot,
+    appResourcesPath,
   });
 
   try {
