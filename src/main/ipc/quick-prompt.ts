@@ -69,7 +69,11 @@ export function registerQuickPromptIpcHandlers(
   ipcMain.handle(
     "quick-prompt:save-audio",
     async (_, audioData: Uint8Array) => {
-      const audioService = new AudioRecordingService(context.userDataDir);
+      const userSettingsRepo = context.trpcServer.getUserSettingsRepository();
+      if (!userSettingsRepo) {
+        throw new Error("UserSettingsRepository not initialized");
+      }
+      const audioService = new AudioRecordingService(userSettingsRepo);
       const result = await audioService.saveRecording({
         audioData: Buffer.from(audioData),
       });

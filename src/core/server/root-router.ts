@@ -35,6 +35,7 @@ import { createChatRouter } from "./routers/chat-router.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
+  appDocumentsDir: string;
   eventBus: IEventBus;
   ptyInstanceManager: PtyInstanceManager;
   snapshotProvider: SnapshotProvider;
@@ -42,14 +43,22 @@ interface TrpcRouterConfig {
 }
 
 export async function createTrpcRouter(config: TrpcRouterConfig) {
-  const { userDataDir, eventBus, ptyInstanceManager, snapshotProvider } =
-    config;
+  const {
+    userDataDir,
+    appDocumentsDir,
+    eventBus,
+    ptyInstanceManager,
+    snapshotProvider,
+  } = config;
 
   // Setup logger
   const logger: Logger<ILogObj> = new Logger({ name: "AppServer" });
 
   // Create repositories
-  const userSettingsRepo = createUserSettingsRepository(userDataDir);
+  const userSettingsRepo = createUserSettingsRepository(
+    userDataDir,
+    appDocumentsDir,
+  );
 
   // Create services
   const fileWatcherService = new FileWatcherService(eventBus);
@@ -60,11 +69,16 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     fileWatcherService,
   );
 
-  const userSettingsService = createUserSettingsService(userSettingsRepo, {
-    appResourcesPath: config.appResourcesPath,
-  });
+  const userSettingsService = createUserSettingsService(
+    userSettingsRepo,
+    config.appResourcesPath ?? "",
+  );
 
   const modelService = createModelService();
+
+  // Initialize default workspace on app startup
+  const settings = await userSettingsService.getUserSettings();
+  await userSettingsService.setupWorkspace(settings);
 
   // Load API keys to environment variables
   userSettingsService
@@ -112,17 +126,13 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   );
 
   const promptScriptRepository = new PromptScriptRepository();
-  const promptScriptService = new PromptScriptService(
-    promptScriptRepository,
-    chatSessionRepository,
-    // async () => {
-    //   const settings = await userSettingsService.getUserSettings();
-    //   return path.join(
-    //     settings.project.defaultWorkspaceDirectory,
-    //     settings.promptScript.promptScriptsSaveTo,
-    //   );
-    // },
-  );
+  const promptScriptService = new PromptScriptService({
+    promptScriptRepo: promptScriptRepository,
+    chatSessionRepo: chatSessionRepository,
+    apiChatClient,
+    terminalChatClient,
+    webChatClient,
+  });
 
   const documentService = new DocumentService(promptScriptService);
 
@@ -156,6 +166,7 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     router: appRouter,
     fileWatcherService,
     projectFolderService,
+    userSettingsRepo,
   };
 }
 

@@ -8,6 +8,10 @@ import {
 } from "../utils/file-utils.js";
 import type { ProjectDirectory } from "./project-folder-service.js";
 
+interface AppSettings {
+  currentWorkspaceDirectory: string;
+}
+
 export interface ProviderConfig {
   enabled: boolean;
   apiKey?: string;
@@ -16,56 +20,56 @@ export interface ProviderConfig {
 export interface UserSettings {
   project: {
     directories: ProjectDirectory[]; // Multiple project folders
-    defaultWorkspaceDirectory: string; // Non-project workspace
+    workspaceDirectory: string; // Non-project workspace
   };
   promptScript: {
     chatsFolder: string; // User configurable, relative to the project directory
-    // TBC: Yet to confirm is this needed, for now it saved to the `defaultWorkspaceDirectory/audio-recordings`
+    // TBC: Yet to confirm is this needed, for now it saved to the `workspaceDirectory/audio-recordings`
     // readonly audioRecordingsSubfolder: string; // Computed: <chatsFolder>/audio-recordings
-    readonly templatesSubfolder: string; // Computed: <chatsFolder>/templates
+    readonly templatesFolder: string; // Computed: <chatsFolder>/templates
   };
   providers: {
     // openai?: ProviderConfig;
     // anthropic?: ProviderConfig;
     // google?: ProviderConfig;
     openrouter?: ProviderConfig;
-    aiGateway?: ProviderConfig;
+    aigateway?: ProviderConfig;
   };
 }
 
 const DEFAULT_USER_SETTINGS: UserSettings = {
   project: {
     directories: [],
-    defaultWorkspaceDirectory: "",
+    workspaceDirectory: "", // Computed automatically, default: "<appDocumentsDir>/my-app"
   },
   promptScript: {
     chatsFolder: "chats",
     // audioRecordingsSubfolder: "", // Computed automatically
-    templatesSubfolder: "", // Computed automatically
+    templatesFolder: "", // Computed automatically, default: "chats/templates"
   },
   providers: {},
 };
 
 const createProjectSettings = (
   projectSettings: UserSettings["project"] = DEFAULT_USER_SETTINGS.project,
-  userDataDir: string,
+  appDocumentsDir: string,
 ): UserSettings["project"] => {
-  // Validate defaultWorkspaceDirectory is absolute path when provided
-  const defaultWorkspaceDir = projectSettings.defaultWorkspaceDirectory.trim();
+  // Validate workspaceDirectory is absolute path when provided
+  const defaultWorkspaceDir = projectSettings.workspaceDirectory.trim();
   if (defaultWorkspaceDir && defaultWorkspaceDir.length > 0) {
     if (!path.isAbsolute(defaultWorkspaceDir)) {
       throw new Error(
-        `defaultWorkspaceDirectory must be an absolute path, received: ${defaultWorkspaceDir}`,
+        `workspaceDirectory must be an absolute path, received: ${defaultWorkspaceDir}`,
       );
     }
   }
 
   return {
     directories: projectSettings.directories,
-    defaultWorkspaceDirectory:
+    workspaceDirectory:
       defaultWorkspaceDir.length > 0
         ? defaultWorkspaceDir
-        : path.join(userDataDir, "default-workspace"),
+        : path.join(appDocumentsDir, "my-app"),
   };
 };
 
@@ -75,16 +79,16 @@ const createPromptScriptSettings = (
   return {
     chatsFolder,
     // audioRecordingsSubfolder: path.join(chatsFolder, "audio-recordings"),
-    templatesSubfolder: path.join(chatsFolder, "templates"),
+    templatesFolder: path.join(chatsFolder, "templates"),
   };
 };
 
-const createUserSettings = (
+const normalizeUserSettings = (
   settings: Partial<UserSettings>,
-  userDataDir: string,
+  appDocumentsDir: string,
 ): UserSettings => {
   return {
-    project: createProjectSettings(settings.project, userDataDir),
+    project: createProjectSettings(settings.project, appDocumentsDir),
     promptScript: createPromptScriptSettings(
       settings.promptScript?.chatsFolder,
     ),
@@ -94,14 +98,16 @@ const createUserSettings = (
 
 export class UserSettingsRepository {
   private readonly logger: Logger<ILogObj>;
-  private readonly filePath: string;
-  private readonly userDataDir: string;
+  private readonly appSettingsPath: string; // In userDataDir
+  private userSettingsPath: string; // In workspace dir
+  private readonly appDocumentsDir: string;
   private cachedSettings?: UserSettings;
 
-  constructor(settingsFilePath: string, userDataDir: string) {
+  constructor(appSettingsPath: string, appDocumentsDir: string) {
     this.logger = new Logger({ name: "UserSettingsRepository" });
-    this.filePath = settingsFilePath;
-    this.userDataDir = userDataDir;
+    this.appSettingsPath = appSettingsPath;
+    this.appDocumentsDir = appDocumentsDir;
+    this.userSettingsPath = ""; // Will be set after loading app settings
   }
 
   public async getSettings(): Promise<UserSettings> {
@@ -109,13 +115,17 @@ export class UserSettingsRepository {
       return this.cachedSettings;
     }
 
-    if (!(await fileExists(this.filePath))) {
+    // Get workspace directory from app settings
+    const workspaceDir = await this.getWorkspaceDirectory();
+    this.userSettingsPath = path.join(workspaceDir, "user-settings.json");
+
+    if (!(await fileExists(this.userSettingsPath))) {
       this.logger.info(
-        `Settings file not found, creating default at ${this.filePath}`,
+        `Settings file not found, creating default at ${this.userSettingsPath}`,
       );
-      const defaults = createUserSettings(
+      const defaults = normalizeUserSettings(
         DEFAULT_USER_SETTINGS,
-        this.userDataDir,
+        this.appDocumentsDir,
       );
       await this.saveSettings(defaults);
       this.cachedSettings = defaults;
@@ -123,12 +133,12 @@ export class UserSettingsRepository {
     }
 
     const rawSettings = await readJsonFile<Partial<UserSettings>>(
-      this.filePath,
+      this.userSettingsPath,
     );
-    const normalized = createUserSettings(rawSettings, this.userDataDir);
+    const normalized = normalizeUserSettings(rawSettings, this.appDocumentsDir);
 
     // Only save if normalization changed the settings
-    if (JSON.stringify(rawSettings) === JSON.stringify(normalized)) {
+    if (JSON.stringify(rawSettings) !== JSON.stringify(normalized)) {
       await this.saveSettings(normalized);
     }
     this.cachedSettings = normalized;
@@ -137,26 +147,60 @@ export class UserSettingsRepository {
   }
 
   public async saveSettings(settings: UserSettings): Promise<UserSettings> {
-    const normalized = createUserSettings(settings, this.userDataDir);
-    await writeJsonFile(this.filePath, normalized);
+    const normalized = normalizeUserSettings(settings, this.appDocumentsDir);
+    await writeJsonFile(this.userSettingsPath, normalized);
     this.cachedSettings = normalized;
-    this.logger.debug(`Settings saved successfully to ${this.filePath}`);
+    this.logger.debug(
+      `Settings saved successfully to ${this.userSettingsPath}`,
+    );
 
     return normalized;
   }
 
-  public getFilePath(): string {
-    return this.filePath;
+  public async updateWorkspaceDirectory(
+    newWorkspaceDir: string,
+  ): Promise<void> {
+    const newSettingsPath = path.join(newWorkspaceDir, "user-settings.json");
+
+    if (newSettingsPath !== this.userSettingsPath) {
+      this.logger.info(
+        `Updating workspace directory from ${this.userSettingsPath} to ${newSettingsPath}`,
+      );
+
+      // Save new workspace directory to app settings
+      await this.saveWorkspaceDirectory(newWorkspaceDir);
+
+      // Update settings file path
+      this.userSettingsPath = newSettingsPath;
+      this.cachedSettings = undefined; // Invalidate cache
+    }
   }
 
-  public getUserDataDir(): string {
-    return this.userDataDir;
+  private async getWorkspaceDirectory(): Promise<string> {
+    // Check if app settings file exists
+    if (await fileExists(this.appSettingsPath)) {
+      const appSettings = await readJsonFile<AppSettings>(this.appSettingsPath);
+      if (appSettings.currentWorkspaceDirectory) {
+        return appSettings.currentWorkspaceDirectory;
+      }
+    }
+
+    // Default workspace directory
+    return path.join(this.appDocumentsDir, "my-app");
+  }
+
+  private async saveWorkspaceDirectory(workspaceDir: string): Promise<void> {
+    const appSettings: AppSettings = {
+      currentWorkspaceDirectory: workspaceDir,
+    };
+    await writeJsonFile(this.appSettingsPath, appSettings);
   }
 }
 
 export function createUserSettingsRepository(
   userDataDir: string,
+  appDocumentsDir: string,
 ): UserSettingsRepository {
-  const filePath = path.join(userDataDir, "user-settings.json");
-  return new UserSettingsRepository(filePath, userDataDir);
+  const appSettingsPath = path.join(userDataDir, "app-settings.json");
+  return new UserSettingsRepository(appSettingsPath, appDocumentsDir);
 }

@@ -18,6 +18,7 @@ async function startServer() {
   try {
     // Get user data directory from environment or use default
     const userDataDir = process.cwd() + "/my-demo-space/user-data";
+    const appDocumentsDir = process.cwd() + "/my-demo-space/documents";
 
     // Create dependencies
     const eventBus = createServerEventBus({ logger });
@@ -26,6 +27,7 @@ async function startServer() {
 
     const { router: trpcRouter, fileWatcherService } = await createTrpcRouter({
       userDataDir,
+      appDocumentsDir,
       eventBus,
       ptyInstanceManager,
       snapshotProvider,

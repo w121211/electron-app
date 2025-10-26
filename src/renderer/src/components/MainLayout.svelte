@@ -5,6 +5,7 @@
 
   import { getSelectedDocContext, ui } from "../stores/ui.svelte.js";
   import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
+  import ChatDashboard from "./chat/ChatDashboard.svelte";
   // import ApiChatPanel from "./chat/ChatPanel.svelte";
   import RightPanel from "./RightPanel.svelte";
   import QuickLauncher from "./QuickLauncher.svelte";
@@ -15,7 +16,7 @@
   const logger = new Logger({ name: "NewMainLayout" });
 
   type CenterPanelView =
-    | "welcome"
+    | "dashboard"
     | "apiChatPanel"
     | "ptyChatPanel"
     | "filePanel"
@@ -40,7 +41,7 @@
     } else if (docContext?.documentState) {
       return "filePanel";
     }
-    return "welcome";
+    return "dashboard";
   });
 
   // Use $effect instead of onMount for Svelte 5
@@ -78,16 +79,8 @@
           <ApiChatPanel /> -->
         {:else if centerPanelView === "filePanel"}
           <FilePanel />
-        {:else if centerPanelView === "welcome"}
-          <div class="bg-surface flex flex-1 items-center justify-center">
-            <div class="text-muted text-center">
-              <div class="mx-auto mb-4 text-5xl">👋</div>
-              <p class="mb-2">Select a file to view or a chat to continue.</p>
-              <p class="text-xs opacity-75">
-                Create a new chat from the file explorer.
-              </p>
-            </div>
-          </div>
+        {:else if centerPanelView === "dashboard"}
+          <ChatDashboard />
         {/if}
 
         <!-- Keep PTY terminal mounted so the underlying xterm stream is not disposed while hidden -->

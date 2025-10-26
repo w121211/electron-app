@@ -2,6 +2,10 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc-init.js";
 import type { PromptScriptService } from "../../services/prompt-script/prompt-script-service.js";
+import {
+  ChatMetadataSchema,
+  ModelIdSchema,
+} from "../../services/chat/chat-session-repository.js";
 
 export function createPromptScriptRouter(
   promptScriptService: PromptScriptService,
@@ -25,6 +29,25 @@ export function createPromptScriptRouter(
             args: input.args,
           },
         );
+      }),
+    createLinkedChatSession: publicProcedure
+      .input(
+        z.object({
+          promptScriptPath: z.string(),
+          modelId: ModelIdSchema,
+          title: z.string().optional(),
+          workingDirectory: z.string().optional(),
+          metadata: ChatMetadataSchema.optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        return promptScriptService.createLinkedChatSession({
+          scriptPath: input.promptScriptPath,
+          modelId: input.modelId,
+          title: input.title,
+          workingDirectory: input.workingDirectory,
+          metadata: input.metadata,
+        });
       }),
 
     linkChatSession: publicProcedure

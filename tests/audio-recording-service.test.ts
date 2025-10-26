@@ -4,16 +4,39 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { AudioRecordingService } from "../src/core/services/audio/audio-recording-service.js";
+import type {
+  UserSettings,
+  UserSettingsRepository,
+} from "../src/core/services/user-settings-repository.js";
 
 describe("AudioRecordingService", () => {
   let tempDir: string;
   let service: AudioRecordingService;
+  let mockUserSettingsRepo: UserSettingsRepository;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "audio-recording-test-"),
-    );
-    service = new AudioRecordingService(tempDir);
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "audio-recording-test-"));
+
+    // Create a mock UserSettingsRepository
+    mockUserSettingsRepo = {
+      getSettings: async () =>
+        ({
+          project: {
+            directories: [],
+            defaultWorkspaceDirectory: tempDir,
+          },
+          promptScript: {
+            chatsFolder: "chats",
+            templatesFolder: "chats/templates",
+          },
+          providers: {},
+        }) as UserSettings,
+      saveSettings: async (settings: UserSettings) => settings,
+      getFilePath: () => path.join(tempDir, "user-settings.json"),
+      getDocumentsDir: () => tempDir,
+    };
+
+    service = new AudioRecordingService(mockUserSettingsRepo);
   });
 
   afterEach(async () => {
@@ -47,9 +70,7 @@ describe("AudioRecordingService", () => {
 
       const result = await service.saveRecording({ audioData });
 
-      const dateFolder = new Date()
-        .toISOString()
-        .split("T")[0];
+      const dateFolder = new Date().toISOString().split("T")[0];
       expect(result.relativePath).toContain("audio-recordings");
       expect(result.relativePath).toContain(dateFolder);
     });

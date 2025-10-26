@@ -7,6 +7,8 @@ import type {
   UserSettingsRepository,
   UserSettings,
 } from "./user-settings-repository.js";
+import { fileExists } from "../utils/file-utils.js";
+import { getPromptScriptTemplatesDirectory } from "../utils/user-settings-utils.js";
 
 // Define safe user settings update type that excludes projectFolders
 type SafeUserSettingsUpdate = Omit<Partial<UserSettings>, "projectFolders"> &
@@ -22,17 +24,18 @@ const envVarMap: Record<string, string> = {
 };
 
 export class UserSettingsService {
-  private readonly logger: Logger<ILogObj>;
-  // private readonly userSettingsRepository: UserSettingsRepository;
-  // private readonly appResourcesPath: string;
+  private readonly logger: Logger<ILogObj> = new Logger({
+    name: "UserSettingsService",
+  });
+  private readonly userSettingsRepository: UserSettingsRepository;
+  private readonly appResourcesPath: string;
 
   constructor(
-    readonly userSettingsRepository: UserSettingsRepository,
-    readonly appResourcesPath: string,
+    userSettingsRepository: UserSettingsRepository,
+    appResourcesPath: string,
   ) {
-    this.logger = new Logger({ name: "UserSettingsService" });
-    // this.userSettingsRepository = userSettingsRepository;
-    // this.appResourcesPath = options?.appResourcesPath;
+    this.userSettingsRepository = userSettingsRepository;
+    this.appResourcesPath = appResourcesPath;
   }
 
   public async getUserSettings(): Promise<UserSettings> {
@@ -54,14 +57,93 @@ export class UserSettingsService {
       ...settingsUpdate,
     };
 
+    // TODO: Need to move to project service, similar to handle projects update
+    // Check if workspace directory is changing
+    const workspaceChanged =
+      settingsUpdate.project?.workspaceDirectory &&
+      settingsUpdate.project.workspaceDirectory !==
+        currentSettings.project.workspaceDirectory;
+
+    if (workspaceChanged) {
+      // Migrate settings file to new workspace directory
+      await this.migrateToNewWorkspace(
+        currentSettings.project.workspaceDirectory,
+        updatedSettings.project.workspaceDirectory,
+      );
+    }
+
     // Save updated settings
     const normalizedSettings =
       await this.userSettingsRepository.saveSettings(updatedSettings);
 
-    await this.setupDefaultWorkspace(normalizedSettings);
+    if (workspaceChanged) {
+      await this.setupWorkspace(normalizedSettings);
+    }
 
     this.logger.info("User settings updated successfully");
     return normalizedSettings;
+  }
+
+  public async setupWorkspace(settings: UserSettings): Promise<void> {
+    const sourceTemplatesDir = path.join(
+      this.appResourcesPath,
+      DEFAULT_RESOURCE_TEMPLATE_PATH,
+    );
+    const destTempaltesDir = getPromptScriptTemplatesDirectory({ settings });
+
+    try {
+      // Check if destination directory exists
+      if (await fileExists(destTempaltesDir)) {
+        this.logger.debug(
+          `Chat templates directory already exists at ${destTempaltesDir}, skipping provisioning`,
+        );
+        return;
+      }
+
+      await fs.mkdir(destTempaltesDir, { recursive: true });
+      await fs.cp(sourceTemplatesDir, destTempaltesDir, {
+        recursive: true,
+        errorOnExist: false,
+        force: false,
+      });
+      this.logger.info(
+        `Provisioned prompt templates from ${sourceTemplatesDir} to ${destTempaltesDir}`,
+      );
+    } catch (error) {
+      console.warn(
+        `Failed to provision prompt templates from ${sourceTemplatesDir} to ${destTempaltesDir}`,
+        error,
+      );
+    }
+  }
+
+  private async migrateToNewWorkspace(
+    oldWorkspaceDir: string,
+    newWorkspaceDir: string,
+  ): Promise<void> {
+    this.logger.info(
+      `Migrating workspace from ${oldWorkspaceDir} to ${newWorkspaceDir}`,
+    );
+
+    const oldSettingsPath = path.join(oldWorkspaceDir, "user-settings.json");
+    const newSettingsPath = path.join(newWorkspaceDir, "user-settings.json");
+
+    // Check if old settings file exists
+    const oldExists = await fileExists(oldSettingsPath);
+    const newExists = await fileExists(newSettingsPath);
+
+    // Copy settings to new workspace if needed
+    if (oldExists && !newExists) {
+      // Ensure new workspace directory exists
+      await fs.mkdir(newWorkspaceDir, { recursive: true });
+
+      // Copy settings file
+      await fs.copyFile(oldSettingsPath, newSettingsPath);
+      this.logger.info(`Copied settings file to ${newSettingsPath}`);
+    }
+
+    // Update repository to use new workspace directory
+    await this.userSettingsRepository.updateWorkspaceDirectory(newWorkspaceDir);
   }
 
   public async setProviderApiKey(
@@ -142,7 +224,6 @@ export class UserSettingsService {
       if (config?.apiKey && config.enabled) {
         const apiKey = await this.getProviderApiKey(provider);
         if (apiKey) {
-          // const envVarName = envVarMap.
           if (!envVarMap.hasOwnProperty(provider)) {
             throw new Error(`Unknown provider: ${provider}`);
           }
@@ -152,32 +233,7 @@ export class UserSettingsService {
         }
       }
     }
-    // this.logger.debug(process.env);
-  }
-
-  async setupDefaultWorkspace(settings: UserSettings): Promise<void> {
-    const sourceDir = path.join(
-      this.appResourcesPath,
-      DEFAULT_RESOURCE_TEMPLATE_PATH,
-    );
-    const destDir = path.join(
-      settings.project.defaultWorkspaceDirectory,
-      settings.promptScript.templatesSubfolder,
-    );
-
-    try {
-      await fs.mkdir(destDir, { recursive: true });
-      await fs.cp(sourceDir, destDir, {
-        recursive: true,
-        errorOnExist: false,
-        force: false,
-      });
-    } catch (error) {
-      console.warn(
-        `Failed to provision prompt templates from ${sourceDir} to ${destDir}`,
-        error,
-      );
-    }
+    this.logger.debug(process.env);
   }
 }
 

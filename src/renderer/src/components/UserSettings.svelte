@@ -195,37 +195,37 @@
                 </div>
                 <ul class="divide-border divide-y">
                   <ProviderApiKeyRow
-                    provider="aiGateway"
+                    provider="aigateway"
                     displayName="AI Gateway"
-                    apiKey={userSettingsState.settings.providers?.aiGateway
+                    apiKey={userSettingsState.settings?.providers?.aigateway
                       ?.apiKey}
-                    enabled={userSettingsState.settings.providers?.aiGateway
+                    enabled={userSettingsState.settings?.providers?.aigateway
                       ?.enabled || false}
                   />
                   <ProviderApiKeyRow
-                    provider="openai"
-                    displayName="OpenAI"
-                    apiKey={userSettingsState.settings.providers?.openai
+                    provider="openrouter"
+                    displayName="OpenRouter"
+                    apiKey={userSettingsState.settings?.providers?.openrouter
                       ?.apiKey}
-                    enabled={userSettingsState.settings.providers?.openai
+                    enabled={userSettingsState.settings?.providers?.openrouter
                       ?.enabled || false}
                   />
-                  <ProviderApiKeyRow
+                  <!-- <ProviderApiKeyRow
                     provider="anthropic"
                     displayName="Anthropic"
-                    apiKey={userSettingsState.settings.providers?.anthropic
+                    apiKey={userSettingsState.settings?.providers?.anthropic
                       ?.apiKey}
-                    enabled={userSettingsState.settings.providers?.anthropic
+                    enabled={userSettingsState.settings?.providers?.anthropic
                       ?.enabled || false}
                   />
                   <ProviderApiKeyRow
                     provider="google"
                     displayName="Google"
-                    apiKey={userSettingsState.settings.providers?.google
+                    apiKey={userSettingsState.settings?.providers?.google
                       ?.apiKey}
-                    enabled={userSettingsState.settings.providers?.google
+                    enabled={userSettingsState.settings?.providers?.google
                       ?.enabled || false}
-                  />
+                  /> -->
                 </ul>
               </div>
             </section>

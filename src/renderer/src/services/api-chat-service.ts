@@ -3,10 +3,8 @@
 import { Logger } from "tslog";
 import type { UserModelMessage } from "ai";
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
-import type { CreateChatSessionInput } from "../../../core/services/chat-engine/api-chat-client.js";
 import { setChatSession } from "../stores/chat.svelte.js";
 import { trpcClient } from "../lib/trpc-client.js";
-import { userSettingsState } from "../stores/user-settings-store.svelte.js";
 
 const logger = new Logger({ name: "ApiChatService" });
 
@@ -18,27 +16,6 @@ export class ApiChatService {
       setChatSession(session);
     }
     return sessions;
-  }
-
-  async createSession(
-    input: CreateChatSessionInput,
-  ): Promise<ChatSessionData> {
-    logger.info("Creating API chat session", {
-      modelSurface: input.modelSurface,
-    });
-
-    const projectPath = userSettingsState.settings.project.directories[0]?.path;
-    const sessionInput: CreateChatSessionInput = {
-      ...input,
-      metadata: {
-        ...input.metadata,
-        projectPath,
-      },
-    };
-
-    const session = await trpcClient.apiChat.createSession.mutate(sessionInput);
-    setChatSession(session);
-    return session;
   }
 
   async abortSession(chatSessionId: string): Promise<void> {

@@ -12,6 +12,7 @@ import type {
   PromptScriptFile,
   PromptScriptLinkResult,
 } from "../../../core/services/prompt-script/prompt-script-repository.js";
+import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
 import { setChatSession } from "../stores/chat.svelte.js";
 
 function ensureOpenFilePath(filePath: string): void {
@@ -199,6 +200,15 @@ export class DocumentService {
       chatSessionId,
     });
 
+    this.applyPromptScriptLinkResult(promptScriptPath, linked);
+
+    return linked;
+  }
+
+  applyPromptScriptLinkResult(
+    promptScriptPath: string,
+    linked: PromptScriptLinkResult & { chatSession?: ChatSessionData | null },
+  ): void {
     if (linked.chatSession) {
       setChatSession(linked.chatSession);
     }
@@ -221,8 +231,6 @@ export class DocumentService {
     if (editorView) {
       editorView.unsavedContent = linked.promptScript.content;
     }
-
-    return linked;
   }
 }
 

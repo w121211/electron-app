@@ -1,13 +1,20 @@
 // src/renderer/src/services/quick-prompt-service.ts
 
-import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
+import path from "node:path";
+import type {
+  ChatSessionData,
+  ChatMetadata,
+} from "../../../core/services/chat/chat-session-repository.js";
 import { getModelSurface } from "../../../core/utils/model-utils.js";
-import { getPromptScriptSaveDirectory } from "../../../core/utils/prompt-script-utils.js";
+import {
+  getPromptScriptTemplatesDirectory,
+  getPromptScriptSaveDirectory,
+} from "../../../core/utils/user-settings-utils.js";
+import { getModelMessageContentString } from "../../../core/utils/message-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
-import { setChatSession } from "../stores/chat.svelte.js";
 import { documentClientService } from "./document-client-service.js";
 import { apiChatService } from "./api-chat-service.js";
-import { userSettingsState } from "../stores/user-settings-store.svelte.js";
+import { userSettingsService } from "./user-settings-service.js";
 
 export interface LaunchChatParams {
   prompt: string;
@@ -26,9 +33,10 @@ export async function launchChat(
   }
 
   // Step 1: Create prompt script
+  const settings = await userSettingsService.getUserSettings();
   const scriptSaveTo = getPromptScriptSaveDirectory({
     projectPath: projectPath ?? undefined,
-    settings: userSettingsState.settings,
+    settings,
   });
   const script = await documentClientService.createPromptScriptWithContent(
     scriptSaveTo,
@@ -36,7 +44,7 @@ export async function launchChat(
   );
 
   // Step 2: Create chat session
-  const session = await createChatSession({
+  const session = await createPromptChatSession({
     prompt,
     modelId,
     scriptPath: script.absolutePath,
@@ -69,7 +77,7 @@ export async function launchChat(
   return session;
 }
 
-async function createChatSession(params: {
+async function createPromptChatSession(params: {
   prompt: string;
   modelId: `${string}/${string}`;
   scriptPath: string;
@@ -89,25 +97,81 @@ async function createChatSession(params: {
   const workingDirectory =
     surface === "terminal" ? (projectPath ?? undefined) : undefined;
 
-  // Create session
-  const session = await trpcClient.chat.createSession.mutate({
+  const metadata: Partial<ChatMetadata> | undefined =
+    projectPath !== null ? { projectPath } : undefined;
+
+  const linked = await trpcClient.promptScript.createLinkedChatSession.mutate({
+    promptScriptPath: scriptPath,
     modelId,
     title: title.slice(0, 120),
     workingDirectory,
-    script: {
-      path: scriptPath,
-      snapshot: prompt,
-    },
+    metadata,
   });
 
-  // Link script to session
-  await documentClientService.linkPromptScriptToChatSession(
-    scriptPath,
-    session.id,
+  // documentClientService.applyPromptScriptLinkResult(scriptPath, linked);
+
+  return linked.chatSession;
+}
+
+export async function generatePrompt(
+  userInput: string,
+): Promise<{ session: ChatSessionData; generatedPrompt: string }> {
+  // Step 1: Get user settings to build paths
+  const settings = await userSettingsService.getUserSettings();
+  const tempalteDir = getPromptScriptTemplatesDirectory({ settings });
+  const templatePath = path.join(tempalteDir, "generate-prompt.prompt.md");
+  const saveDirectory = path.join(
+    settings.project.workspaceDirectory,
+    settings.promptScript.chatsFolder,
+    "generate-prompt",
   );
 
-  // Update store
-  setChatSession(session);
+  // Step 2: Create prompt script with template substitution (backend handles it)
+  const script = await trpcClient.promptScript.create.mutate({
+    directory: saveDirectory,
+    templatePath,
+    args: [userInput],
+  });
 
-  return session;
+  // Step 3: Extract modelId from the created prompt script
+  const modelId = script.promptScriptParsed.metadata.modelId;
+  if (!modelId) {
+    throw new Error(
+      `generate-prompt template not define the modelId, path: ${templatePath}`,
+    );
+  }
+  if (getModelSurface(modelId) !== "api") {
+    throw new Error(
+      `generate-prompt use api chat, but got modelId: ${modelId}`,
+    );
+  }
+
+  // Step 4: Create chat session
+  const linked = await trpcClient.promptScript.createLinkedChatSession.mutate({
+    promptScriptPath: script.absolutePath,
+    modelId: modelId as `${string}/${string}`,
+  });
+
+  // Step 5: Send the first message (the substituted prompt content)
+  if (!script.promptScriptParsed.prompts[0].content) {
+    throw new Error(`Prompt is empty: ${script.promptScriptParsed.prompts}`);
+  }
+
+  const firstPrompt = script.promptScriptParsed.prompts[0].content;
+
+  // Step 6: Send message and wait for AI response
+  const { session } = await apiChatService.sendMessage({
+    sessionId: linked.chatSession.id,
+    prompt: firstPrompt,
+  });
+
+  // Step 7: Extract the generated prompt from the last message
+  const lastMessage = session.messages[session.messages.length - 1];
+  if (!lastMessage || lastMessage.message.role !== "assistant") {
+    console.debug(session);
+    throw new Error("No assistant response received");
+  }
+  const generatedPrompt = getModelMessageContentString(lastMessage.message);
+
+  return { session, generatedPrompt };
 }

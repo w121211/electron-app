@@ -62,7 +62,7 @@
 
   async function saveApiKey(): Promise<void> {
     if (newApiKey.trim()) {
-      await saveProviderApiKey(provider, newApiKey.trim(), enabled);
+      await saveProviderApiKey(provider, newApiKey.trim(), true);
       isEditing = false;
       newApiKey = "";
     }
@@ -128,11 +128,12 @@
     <div class="flex items-center gap-4">
       <button onclick={toggleEnabled} class="cursor-pointer">
         <span
-          class={enabled
-            ? "rounded border border-blue-600/40 bg-blue-600/20 px-1.5 py-0.5 text-xs text-blue-400"
-            : "rounded border border-gray-600/40 bg-gray-600/20 px-1.5 py-0.5 text-xs text-gray-400"}
-          >Enabled</span
+          class="rounded px-1.5 py-0.5 text-xs {enabled
+            ? 'border border-blue-600/40 bg-blue-600/20 text-blue-400'
+            : 'border border-gray-600/40 bg-gray-600/20 text-gray-400'}"
         >
+          {enabled ? "Enabled" : "Disabled"}
+        </span>
       </button>
       <button
         onclick={startEditing}

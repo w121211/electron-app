@@ -666,6 +666,8 @@ export class ApiChatClient {
     turnResult: ApiTurnResult;
     session: ChatSessionData;
   }> {
+    console.debug(process.env);
+
     const session = await this.loadSession(input.chatSessionId);
     const result = await this.runTurn(session, input.input, {
       toolNames: input.toolNames,

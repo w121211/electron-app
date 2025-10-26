@@ -12,6 +12,7 @@ import { PromptScriptRepository } from "./prompt-script-repository.js";
 import type {
   ChatSessionData,
   ChatSessionRepository,
+  ChatMetadata,
 } from "../chat/chat-session-repository.js";
 import type {
   PromptScriptFile,
@@ -19,14 +20,33 @@ import type {
   PromptScriptWarning,
   PromptScriptPrompt,
 } from "./prompt-script-repository.js";
+import { getModelSurface } from "../../utils/model-utils.js";
+import type { ApiChatClient } from "../chat-engine/api-chat-client.js";
+import type { TerminalChatClient } from "../external-chat/terminal-chat-client.js";
+import type { WebChatClient } from "../external-chat/web-chat-client.js";
 
 const logger = new Logger({ name: "PromptScriptService" });
 
 export class PromptScriptService {
-  constructor(
-    private readonly promptScriptRepo: PromptScriptRepository,
-    private readonly chatSessionRepo: ChatSessionRepository,
-  ) {}
+  private readonly promptScriptRepo: PromptScriptRepository;
+  private readonly chatSessionRepo: ChatSessionRepository;
+  private readonly apiChatClient: ApiChatClient;
+  private readonly terminalChatClient: TerminalChatClient;
+  private readonly webChatClient: WebChatClient;
+
+  constructor(options: {
+    promptScriptRepo: PromptScriptRepository;
+    chatSessionRepo: ChatSessionRepository;
+    apiChatClient: ApiChatClient;
+    terminalChatClient: TerminalChatClient;
+    webChatClient: WebChatClient;
+  }) {
+    this.promptScriptRepo = options.promptScriptRepo;
+    this.chatSessionRepo = options.chatSessionRepo;
+    this.apiChatClient = options.apiChatClient;
+    this.terminalChatClient = options.terminalChatClient;
+    this.webChatClient = options.webChatClient;
+  }
 
   /**
    * Create a prompt script file, optionally from a template
@@ -174,6 +194,64 @@ export class PromptScriptService {
       chatSession: resolvedSession,
       warnings,
     };
+  }
+
+  async createLinkedChatSession(input: {
+    scriptPath: string;
+    modelId: `${string}/${string}`;
+    title?: string;
+    workingDirectory?: string;
+    metadata?: Partial<ChatMetadata>;
+  }): Promise<PromptScriptLinkResult & { chatSession: ChatSessionData }> {
+    const promptScript = await this.promptScriptRepo.read(input.scriptPath);
+    const surface = getModelSurface(input.modelId);
+
+    const scriptPayload = {
+      path: promptScript.absolutePath,
+      hash: promptScript.hash,
+      snapshot: promptScript.content,
+      modifiedAt: promptScript.metadata.modifiedAt,
+    };
+
+    const metadata: Partial<ChatMetadata> = {
+      ...input.metadata,
+      title: input.title ?? input.metadata?.title ?? promptScript.promptScriptParsed.metadata.title,
+      modelId: input.modelId,
+      modelSurface: surface,
+    };
+
+    let session: ChatSessionData;
+
+    if (surface === "terminal") {
+      if (!input.workingDirectory) {
+        throw new Error(
+          "Terminal chats require a working directory (project path).",
+        );
+      }
+
+      session = await this.terminalChatClient.createSession({
+        modelId: input.modelId,
+        title: input.title,
+        workingDirectory: input.workingDirectory,
+        metadata,
+        script: scriptPayload,
+      });
+    } else if (surface === "web") {
+      session = await this.webChatClient.createSession({
+        modelId: input.modelId,
+        title: input.title,
+        metadata,
+        script: scriptPayload,
+      });
+    } else {
+      session = await this.apiChatClient.createSession({
+        modelSurface: "api",
+        metadata,
+        script: scriptPayload,
+      });
+    }
+
+    return this.linkChatSession(input.scriptPath, session.id);
   }
 
   async unlinkChatSession(options: {

@@ -31,7 +31,7 @@ export class AudioRecordingService {
     const { audioData, format = "webm" } = options;
 
     const settings = await this.userSettingsRepository.getSettings();
-    const workspaceDir = settings.project.defaultWorkspaceDirectory;
+    const workspaceDir = settings.project.workspaceDirectory;
 
     const dateFolder = this.getDateFolderName();
     const audioDir = path.join(workspaceDir, "audio-recordings", dateFolder);
@@ -47,7 +47,9 @@ export class AudioRecordingService {
 
     const relativePath = path.relative(workspaceDir, absolutePath);
 
-    logger.info(`Saved audio recording: ${relativePath} (${audioData.length} bytes)`);
+    logger.info(
+      `Saved audio recording: ${relativePath} (${audioData.length} bytes)`,
+    );
 
     return {
       absolutePath,
@@ -70,7 +72,7 @@ export class AudioRecordingService {
 
   async cleanupOldRecordings(daysToKeep: number = 30): Promise<number> {
     const settings = await this.userSettingsRepository.getSettings();
-    const workspaceDir = settings.project.defaultWorkspaceDirectory;
+    const workspaceDir = settings.project.workspaceDirectory;
     const audioDir = path.join(workspaceDir, "audio-recordings");
 
     try {

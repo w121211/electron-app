@@ -4,11 +4,21 @@ import {
   setUserSettings,
   setUserSettingsLoading,
   setUserSettingsError,
+  userSettingsState,
 } from "../stores/user-settings-store.svelte.js";
 import type { UserSettings } from "../../../core/services/user-settings-repository.js";
 
 export class UserSettingsService {
-  async loadSettings() {
+  async getUserSettings(): Promise<UserSettings> {
+    if (userSettingsState.settings) {
+      return userSettingsState.settings;
+    }
+
+    // Settings not loaded yet, load them
+    return await this.loadSettings();
+  }
+
+  async loadSettings(): Promise<UserSettings> {
     setUserSettingsLoading(true);
     setUserSettingsError(null);
 

@@ -23,7 +23,10 @@
   import { projectState } from "../../stores/project-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
   import { modelClientService } from "../../services/model-client-service.js";
-  import { launchChat } from "../../services/quick-prompt-service.js";
+  import {
+    launchChat,
+    generatePrompt,
+  } from "../../services/quick-prompt-service.js";
   import type { ProjectFolder } from "../../stores/project-store.svelte.js";
   import { createFileMention } from "../../../../core/utils/message-utils.js";
 
@@ -176,8 +179,40 @@
     }
   };
 
-  const handleGeneratePlaceholder = (): void => {
-    applyStatus("Prompt generator coming soon.", "info");
+  const handleGeneratePlaceholder = async (): Promise<void> => {
+    const trimmedInput = promptValue.trim();
+    if (!trimmedInput) {
+      applyStatus("Enter a description to generate a prompt.", "error");
+      return;
+    }
+
+    if (isSubmitting) {
+      return;
+    }
+
+    isSubmitting = true;
+    applyStatus("Generating prompt…", "info", 0);
+
+    try {
+      const { generatedPrompt } = await generatePrompt(trimmedInput);
+
+      // Format the prompt with raw input as comment + generated content
+      promptValue = `<!-- raw prompt\n${trimmedInput}\n-->\n\n${generatedPrompt}`;
+
+      applyStatus("Prompt generated successfully.", "success");
+      textareaElement?.focus();
+    } catch (error) {
+      logger.error("Failed to generate prompt", error);
+      applyStatus(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate prompt. Try again.",
+        "error",
+        0,
+      );
+    } finally {
+      isSubmitting = false;
+    }
   };
 
   const handleCopyPrompt = async (): Promise<void> => {

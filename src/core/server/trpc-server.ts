@@ -14,12 +14,14 @@ import {
 } from "../pty/pty-instance-manager.js";
 import type { SnapshotProvider } from "../services/chat/pty-chat/pty-chat-client.js";
 import type { FileWatcherService } from "../services/file-watcher-service.js";
+import type { UserSettingsRepository } from "../services/user-settings-repository.js";
 
 const logger: Logger<ILogObj> = new Logger({ name: "HttpTrpcServer" });
 
 interface ServerConfig {
   port?: number;
   userDataDir: string;
+  appDocumentsDir: string;
   snapshotProvider: SnapshotProvider;
   appResourcesPath?: string;
 }
@@ -28,20 +30,24 @@ export class HttpTrpcServer {
   private server: Server | null = null;
   private port: number = 0;
   private userDataDir: string;
+  private appDocumentsDir: string;
   private eventBus: IEventBus;
   private ptyInstanceManager: PtyInstanceManager;
   private fileWatcherService: FileWatcherService | null = null;
+  private userSettingsRepo: UserSettingsRepository | null = null;
   private snapshotProvider: SnapshotProvider;
   private readonly appResourcesPath?: string;
   private readonly connections = new Set<Socket>();
 
   constructor(config: ServerConfig) {
     this.userDataDir = config.userDataDir;
+    this.appDocumentsDir = config.appDocumentsDir;
     this.eventBus = createServerEventBus({ logger });
     this.ptyInstanceManager = createPtyInstanceManager(this.eventBus);
     this.snapshotProvider = config.snapshotProvider;
     this.appResourcesPath = config.appResourcesPath;
-    logger.info(`Using user data directory: ${this.userDataDir}`);
+    logger.info(`App user data directory: ${this.userDataDir}`);
+    logger.info(`App documents directory: ${this.appDocumentsDir}`);
   }
 
   async start(preferredPort: number = 0): Promise<number> {
@@ -53,14 +59,20 @@ export class HttpTrpcServer {
     logger.info("Starting embedded tRPC server...");
 
     // Create the app router
-    const { router: trpcRouter, fileWatcherService } = await createTrpcRouter({
+    const {
+      router: trpcRouter,
+      fileWatcherService,
+      userSettingsRepo,
+    } = await createTrpcRouter({
       userDataDir: this.userDataDir,
+      appDocumentsDir: this.appDocumentsDir,
       eventBus: this.eventBus,
       ptyInstanceManager: this.ptyInstanceManager,
       snapshotProvider: this.snapshotProvider,
       appResourcesPath: this.appResourcesPath,
     });
     this.fileWatcherService = fileWatcherService;
+    this.userSettingsRepo = userSettingsRepo;
 
     // Create HTTP server with tRPC handler (no CORS needed for Electron)
     this.server = createHTTPServer({
@@ -167,6 +179,10 @@ export class HttpTrpcServer {
 
   getPtyInstanceManager(): PtyInstanceManager {
     return this.ptyInstanceManager;
+  }
+
+  getUserSettingsRepository(): UserSettingsRepository | null {
+    return this.userSettingsRepo;
   }
 
   private async shutdownFileWatchers(): Promise<void> {
