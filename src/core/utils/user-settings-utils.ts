@@ -1,6 +1,6 @@
 // src/core/utils/user-settings-utils.ts
 import path from "node:path";
-import { UserSettings } from "../services/user-settings-repository";
+import type { UserSettings } from "../services/user-settings-repository";
 
 export const getPromptScriptTemplatesDirectory = (options: {
   parentDir?: string;

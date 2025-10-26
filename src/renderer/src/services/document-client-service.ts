@@ -161,14 +161,12 @@ export class DocumentService {
   }
 
   async createPromptScript(
-    directory?: string,
+    directory: string,
     name?: string,
   ): Promise<PromptScriptFile> {
-    const payload: { directory?: string; name?: string } = {};
-
-    if (directory && directory.trim().length > 0) {
-      payload.directory = directory;
-    }
+    const payload: { directory: string; name?: string } = {
+      directory,
+    };
 
     if (name && name.trim().length > 0) {
       payload.name = name;
@@ -179,7 +177,7 @@ export class DocumentService {
   }
 
   async createPromptScriptWithContent(
-    directory: string | undefined,
+    directory: string,
     content: string,
     name?: string,
   ): Promise<PromptScriptFile> {

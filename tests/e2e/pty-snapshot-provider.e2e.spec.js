@@ -136,8 +136,7 @@ test("pty data processor emits snapshot triggers end-to-end", async () => {
     }
 
     const chatSessionId = sessionData.id;
-    const ptyInstanceId =
-      sessionData.metadata?.external?.ptyInstanceId ?? null;
+    const ptyInstanceId = sessionData.metadata?.external?.ptyInstanceId ?? null;
 
     expect(chatSessionId).toBeTruthy();
     expect(ptyInstanceId).toBeTruthy();
