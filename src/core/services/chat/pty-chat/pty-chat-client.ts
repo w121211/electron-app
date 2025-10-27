@@ -266,7 +266,7 @@ export class PtyChatClient {
       const session = await this.getSessionByPtyInstance(event.sessionId);
       if (!session) {
         logger.debug(
-          `PTY instance ${event.sessionId} exited but no associated session found, ignoring`,
+          `PTY instance ${event.sessionId} exited with no associated chat session (likely standalone terminal), skipping chat session cleanup`,
         );
         return;
       }
@@ -315,7 +315,7 @@ export class PtyChatClient {
     }
 
     logger.warn(
-      `PTY instance ${ptyInstanceId} not found in memory map, falling back to expensive database scan. This should not happen during normal operation.`,
+      `PTY instance ${ptyInstanceId} not in chat session lookup map, scanning database for chat session association (normal for standalone terminals)`,
     );
 
     const sessions = await this.repository.list();

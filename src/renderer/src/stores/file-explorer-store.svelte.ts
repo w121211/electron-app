@@ -101,7 +101,7 @@ export function closeContextMenu() {
 // Dialog Actions
 export function showRenameDialog(path: string) {
   const fileName = path.split("/").pop() || "";
-  console.log("🎯 FileExplorerStore: Showing rename dialog for:", fileName);
+  // console.debug("🎯 FileExplorerStore: Showing rename dialog for:", fileName);
 
   fileExplorerState.renameDialog.isVisible = true;
   fileExplorerState.renameDialog.targetPath = path;
@@ -114,10 +114,10 @@ export function closeRenameDialog() {
 
 // Inline Folder Creation Actions
 export function startInlineFolderCreation(parentPath: string) {
-  console.log(
-    "🎯 FileExplorerStore: Starting inline folder creation for:",
-    parentPath,
-  );
+  // console.debug(
+  //   "🎯 FileExplorerStore: Starting inline folder creation for:",
+  //   parentPath,
+  // );
 
   fileExplorerState.inlineFolderCreation.isActive = true;
   fileExplorerState.inlineFolderCreation.parentPath = parentPath;

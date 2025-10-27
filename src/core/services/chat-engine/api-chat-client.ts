@@ -504,7 +504,6 @@ class ApiChatSession {
     signal: AbortSignal,
   ): Promise<StreamTextResult<ToolSet, never>> {
     const parsed = parseApiModelId(this.modelId);
-    console.log(parsed);
     const registryModelId = `${parsed.provider}:${parsed.modelIdForProvider}`;
 
     // @ts-expect-error - Dynamic model ID from registry
@@ -666,8 +665,7 @@ export class ApiChatClient {
     turnResult: ApiTurnResult;
     session: ChatSessionData;
   }> {
-    console.debug(process.env);
-
+    // console.debug(process.env);
     const session = await this.loadSession(input.chatSessionId);
     const result = await this.runTurn(session, input.input, {
       toolNames: input.toolNames,

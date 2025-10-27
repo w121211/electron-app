@@ -62,6 +62,19 @@ async function handleSavePtySnapshot() {
   }
 }
 
+async function handleOpenXtermWindow() {
+  try {
+    const ptySessionId = await window.api.pty.create({});
+    await window.api.xtermWindow.launch(ptySessionId);
+  } catch (err) {
+    console.error("Failed to open xterm window", err);
+    showToast(
+      `Failed to open terminal: ${err instanceof Error ? err.message : String(err)}`,
+      "error",
+    );
+  }
+}
+
 // --- 2. Shortcut Definitions ---
 
 type ShortcutDefinition = {
@@ -156,6 +169,32 @@ const shortcutDefinitions: ShortcutDefinition[] = [
     os: "linux",
     handler: handleSaveDocument,
     description: "Save current file",
+    preventDefault: true,
+  },
+
+  // Terminal
+  {
+    key: "t",
+    meta: true,
+    os: "mac",
+    handler: handleOpenXtermWindow,
+    description: "Open terminal window",
+    preventDefault: true,
+  },
+  {
+    key: "t",
+    ctrl: true,
+    os: "windows",
+    handler: handleOpenXtermWindow,
+    description: "Open terminal window",
+    preventDefault: true,
+  },
+  {
+    key: "t",
+    ctrl: true,
+    os: "linux",
+    handler: handleOpenXtermWindow,
+    description: "Open terminal window",
     preventDefault: true,
   },
 

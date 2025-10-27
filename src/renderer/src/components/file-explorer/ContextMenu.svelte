@@ -14,11 +14,11 @@
   } from "../../stores/file-explorer-store.svelte.js";
 
   function handleAction(action: string): void {
-    console.log("🎯 ContextMenu handleAction called with action:", action);
-    console.log(
-      "🎯 ContextMenu targetPath:",
-      fileExplorerState.contextMenu.targetPath,
-    );
+    // console.log("🎯 ContextMenu handleAction called with action:", action);
+    // console.log(
+    //   "🎯 ContextMenu targetPath:",
+    //   fileExplorerState.contextMenu.targetPath,
+    // );
     fileExplorerService.handleFileAction(
       action,
       fileExplorerState.contextMenu.targetPath,

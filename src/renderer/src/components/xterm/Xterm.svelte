@@ -125,7 +125,7 @@
     if (!terminal || !terminalElement) return;
 
     const rect = terminalElement.getBoundingClientRect();
-    console.log(rect.width, rect.height);
+    // console.debug(rect.width, rect.height);
     if (rect.width === 0 || rect.height === 0) return; // hidden or not laid out
 
     if (rect.width === lastWidth && rect.height === lastHeight) return;

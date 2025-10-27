@@ -20,6 +20,10 @@ export default defineConfig({
             __dirname,
             "src/renderer/src/windows/quick-prompt/index.html",
           ),
+          "windows/xterm-window/index": resolve(
+            __dirname,
+            "src/renderer/src/windows/xterm-window/index.html",
+          ),
         },
       },
     },

@@ -1,10 +1,10 @@
 // src/renderer/src/windows/xterm-window/main.ts
 import { mount } from "svelte";
 import "../../app.css";
-import XtermApp from "./XtermApp.svelte";
+import XtermWindowApp from "./XtermWindowApp.svelte";
 
-const app = mount(XtermApp, {
-  target: document.getElementById("xterm-root")!,
+const app = mount(XtermWindowApp, {
+  target: document.getElementById("app")!,
 });
 
 export default app;

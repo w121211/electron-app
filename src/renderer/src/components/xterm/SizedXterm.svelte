@@ -48,7 +48,6 @@
       await initializeTerminal();
 
       resizeObserver = new ResizeObserver(() => {
-        console.log("resizeTerminal()");
         resizeTerminal();
 
         if (!isVisible) {
@@ -107,7 +106,7 @@
     //   logger.info(`Terminal session exited with code: ${exitCode}`);
     //   terminal?.write(`
 
-// [Process completed]`);
+    // [Process completed]`);
     // });
 
     // terminal.onData((data: string) => {

@@ -1,12 +1,12 @@
-<!-- src/renderer/src/windows/xterm-window/XtermApp.svelte -->
+<!-- src/renderer/src/windows/xterm-window/XtermWindowApp.svelte -->
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { Logger } from "tslog";
   import XtermStream from "../../components/xterm/XtermStream.svelte";
   import { ptyStreamManager } from "../../services/pty-stream-manager.js";
   import type { PtyStream } from "../../services/pty-stream-manager.js";
 
-  const logger = new Logger({ name: "XtermApp" });
+  const logger = new Logger({ name: "XtermWindowApp" });
 
   let stream = $state<PtyStream | null>(null);
   let error = $state<string | null>(null);
@@ -34,10 +34,13 @@
     try {
       // The stream should have been created and cached by the main process
       // before this window was opened.
-      const existingStream = ptyStreamManager.getStream(ptySessionId);
+      const existingStream = ptyStreamManager.getOrAttachStream(ptySessionId);
       if (existingStream) {
         stream = existingStream;
-        logger.info("Successfully retrieved pty stream for session:", ptySessionId);
+        logger.info(
+          "Successfully retrieved pty stream for session:",
+          ptySessionId,
+        );
       } else {
         error = `PTY stream not found for session ID: ${ptySessionId}. The stream may have been closed or not initialized correctly.`;
         logger.error(error);
@@ -47,9 +50,22 @@
       logger.error(error, e);
     }
   });
+
+  // Note: onDestroy does not run when the Electron window is closed
+  // The window closes immediately without giving the renderer a chance to cleanup
+  // PTY cleanup is now handled in the main process (xterm-window.ts)
+  onDestroy(() => {
+    if (stream) {
+      logger.info(
+        "Disposing PTY stream on component unmount:",
+        stream.ptySessionId,
+      );
+      ptyStreamManager.disposeStream(stream.ptySessionId);
+    }
+  });
 </script>
 
-<div class="bg-background text-foreground flex h-full flex-col">
+<div class="bg-background text-foreground flex h-screen flex-col px-1 py-3">
   {#if stream}
     <XtermStream {stream} />
   {:else if error}

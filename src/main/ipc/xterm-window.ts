@@ -5,7 +5,7 @@ import type { MainProcessContext } from "../context";
 
 export function registerXtermWindowHandlers(context: MainProcessContext) {
   ipcMain.handle("xterm-window:launch", (_event, ptySessionId: string) => {
-    const win = createXtermWindow(ptySessionId);
+    const win = createXtermWindow(ptySessionId, context);
     context.addXtermWindow(win);
     return true;
   });
