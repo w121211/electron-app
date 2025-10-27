@@ -4,7 +4,7 @@
   import { Logger } from "tslog";
   import { keyboardManager } from "../lib/keyboard.js";
   import { eventService } from "../services/event-service.js";
-  import { projectService } from "../services/project-service.js";
+  // import { projectService } from "../services/project-service.js";
   import { userSettingsService } from "../services/user-settings-service.js";
   import MainLayout from "./MainLayout.svelte";
   import ToastProvider from "./ToastProvider.svelte";
@@ -21,11 +21,11 @@
     eventService.start();
 
     // Open specified tree node on app initialization (development only)
-    setTimeout(async () => {
-      await projectService.selectFile(
-        "/Users/cw/Documents/GitHub/electron-app/chats/1.prompt.md",
-      );
-    }, 1000); // 1 second delay to ensure full app initialization
+    // setTimeout(async () => {
+    //   await projectService.selectFile(
+    //     "/Users/cw/Documents/GitHub/electron-app/chats/1.prompt.md",
+    //   );
+    // }, 1000); // 1 second delay to ensure full app initialization
   });
 
   onDestroy(() => {

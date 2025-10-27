@@ -1,9 +1,6 @@
 <!-- src/renderer/src/components/chat/ChatDashboard.svelte -->
 <script lang="ts">
   import {
-    House,
-    Search,
-    Plus,
     Stars,
     PersonRaisedHand,
     MoonFill,
@@ -12,16 +9,15 @@
     Clock,
     Pencil,
     StopFill,
-    Gear,
     Terminal,
+    PlayFill,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import type {
     ChatSessionData,
     ChatState,
   } from "../../../../core/services/chat/chat-session-repository.js";
-  import { getPromptScriptSaveDirectory } from "../../../../core/utils/user-settings-utils.js";
-  import { showToast, uiState } from "../../stores/ui-store.svelte.js";
+  import { showToast } from "../../stores/ui-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
   import {
     chatSessions,
@@ -30,13 +26,8 @@
   } from "../../stores/chat.svelte.js";
   import { projectState } from "../../stores/project-store.svelte.js";
   import { quickLauncherService } from "../../services/quick-launcher-service.js";
-  import {
-    quickLauncherState,
-    resetQuickLauncher,
-  } from "../../stores/quick-launcher-store.svelte.js";
-  import { documentClientService } from "../../services/document-client-service.js";
-  import { userSettingsService } from "../../services/user-settings-service.js";
-  import { ui } from "../../stores/ui.svelte.js";
+  import { quickLauncherState } from "../../stores/quick-launcher-store.svelte.js";
+  import NavigationButtonsNew from "../NavigationButtonsNew.svelte";
 
   type TabKey = "active" | "queued" | "terminated";
 
@@ -112,7 +103,7 @@
 
   const stateLabels: Record<ChatState, string> = {
     queued: "Queued",
-    active: "Active",
+    active: "Idle",
     "active:generating": "Generating",
     "active:awaiting_input": "Awaiting Input",
     "active:disconnected": "Disconnected",
@@ -161,65 +152,6 @@
     selectedTab = tab;
   }
 
-  function handleGoHome(): void {
-    ui.activeFilePath = null;
-    ui.promptEditorOpen = false;
-  }
-
-  function handleOpenSearch(): void {
-    resetQuickLauncher();
-    uiState.quickLauncherOpen = true;
-  }
-
-  async function handleCreatePrompt(): Promise<void> {
-    try {
-      const settings = await userSettingsService.getUserSettings();
-
-      const candidateProjectPath = (() => {
-        if (ui.activeFilePath) {
-          const containingProject = projectService.getProjectFolderForFile(
-            ui.activeFilePath,
-          );
-          if (containingProject) {
-            return containingProject.path;
-          }
-        }
-        return projectState.projectFolders[0]?.path ?? null;
-      })();
-
-      const saveDirectory = getPromptScriptSaveDirectory({
-        projectPath: candidateProjectPath ?? undefined,
-        settings,
-      });
-
-      const script =
-        await documentClientService.createPromptScript(saveDirectory);
-
-      if (candidateProjectPath) {
-        try {
-          await projectService.refreshProjectTreeForFile(script.absolutePath);
-        } catch (refreshError) {
-          logger.warn("Failed to refresh project tree", refreshError);
-        }
-        await projectService.selectFile(script.absolutePath);
-      } else {
-        await documentClientService.openDocument(script.absolutePath, {
-          focus: true,
-        });
-      }
-
-      showToast("New prompt created", "success");
-    } catch (error) {
-      logger.error("Failed to create prompt script", error);
-      showToast(
-        error instanceof Error
-          ? error.message
-          : "Failed to create prompt script",
-        "error",
-      );
-    }
-  }
-
   function handleTerminate(session: ChatSessionData): void {
     const updated: ChatSessionData = {
       ...session,
@@ -228,6 +160,16 @@
     };
     setChatSession(updated);
     logger.debug("Marked session as terminated", { sessionId: session.id });
+  }
+
+  function handleResume(session: ChatSessionData): void {
+    const updated: ChatSessionData = {
+      ...session,
+      state: "active:generating",
+      updatedAt: new Date(),
+    };
+    setChatSession(updated);
+    logger.debug("Resuming session", { sessionId: session.id });
   }
 
   async function handleEditPrompt(session: ChatSessionData): Promise<void> {
@@ -298,43 +240,9 @@
   }
 </script>
 
-<div class="bg-background text-foreground flex h-full flex-col">
-  <header class="flex h-12 flex-shrink-0 items-center justify-between px-4">
-    <div class="flex items-center gap-3">
-      <button
-        class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
-        title="Home"
-        onclick={handleGoHome}
-      >
-        <House class="text-lg" />
-      </button>
-      <button
-        class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
-        title="Search"
-        onclick={handleOpenSearch}
-      >
-        <Search class="text-lg" />
-      </button>
-      <button
-        class="bg-surface text-muted hover:text-accent flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-medium"
-        title="New Prompt"
-        onclick={() => {
-          void handleCreatePrompt();
-        }}
-      >
-        <Plus class="text-sm" />
-        <span>Prompt</span>
-      </button>
-    </div>
-    <div class="flex items-center">
-      <button
-        class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
-        title="Settings"
-        onclick={() => showToast("Settings coming soon", "info")}
-      >
-        <Gear class="text-lg" />
-      </button>
-    </div>
+<div class="flex h-full w-screen flex-col">
+  <header class="flex h-12 shrink-0 items-center justify-between px-4">
+    <NavigationButtonsNew />
   </header>
 
   <div class="scrollbar-thin flex-1 overflow-y-auto">
@@ -386,7 +294,9 @@
 
         <div class="mt-4 space-y-1">
           {#if visibleSessions().length === 0}
-            <div class="text-muted px-4 py-8 text-sm">No chats to display</div>
+            <div class="text-muted px-4 py-8 text-center text-sm">
+              No chats to display
+            </div>
           {:else}
             {#each visibleSessions() as session (session.id)}
               {@const Icon = getStatusIcon(session)}
@@ -395,59 +305,88 @@
               >
                 <Icon class={`text-base ${getStatusIconClass(session)}`} />
                 <div class="min-w-0 flex-1">
-                  <button
+                  <a
+                    href="#"
                     class="text-foreground hover:text-accent block w-full truncate text-left font-medium"
                     title={formatSessionTitle(session)}
-                    onclick={() => {
+                    onclick={(e) => {
+                      e.preventDefault();
                       void handleEditPrompt(session);
                     }}
                   >
                     {formatSessionTitle(session)}
-                  </button>
+                  </a>
                   <div
                     class="text-muted mt-1.5 flex flex-wrap items-center gap-3 text-xs"
                   >
                     {#if getProjectName(session)}
-                      <span class="flex items-center gap-1.5">
+                      <button
+                        class="hover:text-foreground flex items-center gap-1.5"
+                      >
                         <Folder class="text-xs" />
                         <span>{getProjectName(session)}</span>
-                      </span>
+                      </button>
                     {/if}
                     {#if getModelLabel(session)}
-                      <span class="flex items-center gap-1.5">
+                      <div class="flex items-center gap-1.5">
                         <Cpu class="text-xs" />
                         <span>{getModelLabel(session)}</span>
-                      </span>
+                      </div>
                     {/if}
-                    <span class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-1.5">
                       <Clock class="text-xs" />
                       <span>{formatRelativeTime(session.updatedAt)}</span>
-                    </span>
+                    </div>
+
                     <span
                       class="border-border rounded border px-2 py-0.5 font-medium"
                     >
-                      {stateLabels[session.state]}
+                      {stateLabels[session.state] ?? session.state}
                     </span>
-                    {#if shouldShowActions(session)}
+
+                    {#if session.state === "active:generating"}
                       <button
-                        class="border-border bg-surface hover:text-accent flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
-                        title={getTerminateLabel(session)}
+                        class="border-border bg-surface hover:text-accent flex items-center gap-1.5 rounded-md border px-2 py-1"
+                        title="Stop"
                         onclick={() => handleTerminate(session)}
                       >
                         <StopFill class="text-xs" />
-                        <span>{getTerminateLabel(session)}</span>
+                        <span>Stop</span>
                       </button>
                     {/if}
-                    <button
-                      class="border-border bg-surface hover:text-accent flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
-                      title="Edit prompt"
-                      onclick={() => {
-                        void handleEditPrompt(session);
-                      }}
-                    >
-                      <Pencil class="text-xs" />
-                      <span>Edit Prompt</span>
-                    </button>
+
+                    {#if session.state === "active:awaiting_input"}
+                      <button
+                        class="border-border bg-surface hover:text-accent flex items-center gap-1.5 rounded-md border px-2 py-1"
+                        title="Resume"
+                        onclick={() => handleResume(session)}
+                      >
+                        <PlayFill class="text-xs" />
+                        <span>Resume</span>
+                      </button>
+                    {/if}
+
+                    {#if session.state === "active"}
+                      <button
+                        class="border-border bg-surface hover:text-accent flex items-center gap-1.5 rounded-md border px-2 py-1"
+                        title="Terminate"
+                        onclick={() => handleTerminate(session)}
+                      >
+                        <StopFill class="text-xs" />
+                        <span>Terminate</span>
+                      </button>
+                    {/if}
+
+                    {#if session.state !== "terminated"}
+                      <button
+                        class="border-border bg-surface hover:text-accent flex items-center gap-1.5 rounded-md border px-2 py-1"
+                        title="Edit prompt"
+                        onclick={() => handleEditPrompt(session)}
+                      >
+                        <Pencil class="text-xs" />
+                        <span>Edit Prompt</span>
+                      </button>
+                    {/if}
                   </div>
                 </div>
               </div>
@@ -472,15 +411,17 @@
                   <Terminal class="text-sm" />
                 </span>
                 <div class="min-w-0 flex-1">
-                  <button
+                  <a
+                    href="#"
                     class="text-foreground hover:text-accent block w-full truncate text-left font-medium"
                     title={script.title}
-                    onclick={() => {
+                    onclick={(e) => {
+                      e.preventDefault();
                       void projectService.selectFile(script.absolutePath);
                     }}
                   >
                     {script.title}
-                  </button>
+                  </a>
                   <div class="text-muted truncate text-xs">
                     {script.relativePath}
                   </div>
@@ -495,16 +436,16 @@
 </div>
 
 <style>
-  :global(.scrollbar-thin::-webkit-scrollbar) {
+  .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
   }
 
-  :global(.scrollbar-thin::-webkit-scrollbar-thumb) {
+  .scrollbar-thin::-webkit-scrollbar-thumb {
     background: #2c2c2e;
     border-radius: 3px;
   }
 
-  :global(.scrollbar-thin::-webkit-scrollbar-track) {
+  .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
 </style>

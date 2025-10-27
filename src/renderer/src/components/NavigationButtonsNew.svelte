@@ -1,0 +1,61 @@
+<!-- src/renderer/src/components/NavigationButtonsNew.svelte -->
+<script lang="ts">
+  import { House, Search, Plus, Gear } from "svelte-bootstrap-icons";
+  import { ui } from "../stores/ui.svelte.js";
+  import { showToast } from "../stores/ui-store.svelte.js";
+
+  function handleGoHome(): void {
+    ui.activeFilePath = null;
+    ui.promptEditorOpen = false;
+  }
+
+  function handleSearch(): void {
+    showToast("Search is not implemented yet.", "info");
+  }
+
+  async function handleNewPrompt(): Promise<void> {
+    try {
+      await window.api.quickPromptWindow.toggle();
+    } catch (error) {
+      console.error("Failed to toggle quick prompt window:", error);
+      showToast("Failed to open quick prompt", "error");
+    }
+  }
+
+  function handleOpenSettings(): void {
+    ui.settingsPanelOpen = true;
+  }
+</script>
+
+<div class="flex items-center gap-3">
+  <button
+    onclick={handleGoHome}
+    class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+    title="Home"
+  >
+    <House class="text-lg" />
+  </button>
+  <button
+    onclick={handleSearch}
+    class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+    title="Search"
+  >
+    <Search class="text-lg" />
+  </button>
+  <button
+    onclick={handleNewPrompt}
+    class="bg-surface text-muted hover:text-accent flex items-center gap-0.5 rounded-md px-2.5 py-1 text-sm font-medium"
+  >
+    <Plus />
+    <span>Prompt</span>
+  </button>
+</div>
+<div class="flex items-center">
+  <button
+    onclick={handleOpenSettings}
+    class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
+    title="Settings"
+  >
+    <Gear class="text-lg" />
+  </button>
+</div>

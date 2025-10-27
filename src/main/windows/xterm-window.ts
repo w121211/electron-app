@@ -7,13 +7,20 @@ import { Logger } from "tslog";
 
 const logger = new Logger({ name: "XtermWindow" });
 
+let windowOffset = 0;
+const CASCADE_STEP = 30;
+const MAX_CASCADE = 10;
+
 export function createXtermWindow(
   ptySessionId: string,
   context: MainProcessContext,
 ): BrowserWindow {
+  const offset = (windowOffset % MAX_CASCADE) * CASCADE_STEP;
+  windowOffset++;
+
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 600,
+    height: 400,
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -23,7 +30,9 @@ export function createXtermWindow(
     },
   });
 
-  win.on("ready-to-show", () => {
+  win.once("ready-to-show", () => {
+    const [x, y] = win.getPosition();
+    win.setPosition(x + offset, y + offset);
     win.show();
   });
 
@@ -48,7 +57,7 @@ export function createXtermWindow(
     win.loadURL(
       `${process.env["ELECTRON_RENDERER_URL"]}/src/windows/xterm-window/index.html#${urlHash}`,
     );
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
   } else {
     win.loadFile(
       join(__dirname, "../renderer/src/windows/xterm-window/index.html"),

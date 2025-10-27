@@ -2,16 +2,13 @@
 <script lang="ts">
   import { Logger } from "tslog";
   import { projectService } from "../services/project-service.js";
-
   import { getSelectedDocContext, ui } from "../stores/ui.svelte.js";
-  import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
   import ChatDashboard from "./chat/ChatDashboard.svelte";
-  // import ApiChatPanel from "./chat/ChatPanel.svelte";
-  import RightPanel from "./RightPanel.svelte";
-  import QuickLauncher from "./QuickLauncher.svelte";
   import FilePanel from "./document/FilePanel.svelte";
   import PromptEditorPanel from "./document/PromptEditorPanel.svelte";
-  import PtyChatPanel from "./pty-chat/PtyChatPanel.svelte";
+  import ExplorerPanel from "./file-explorer/ExplorerPanel.svelte";
+  import QuickLauncher from "./QuickLauncher.svelte";
+  import UserSettings from "./UserSettings.svelte";
 
   const logger = new Logger({ name: "NewMainLayout" });
 
@@ -20,11 +17,16 @@
     | "apiChatPanel"
     | "ptyChatPanel"
     | "filePanel"
-    | "promptEditorPanel";
+    | "promptEditorPanel"
+    | "settingsPanel";
 
   const docContext = $derived.by(getSelectedDocContext);
 
   const centerPanelView: CenterPanelView = $derived.by(() => {
+    if (ui.settingsPanelOpen) {
+      return "settingsPanel";
+    }
+
     const scriptLink = docContext?.documentState.data.promptScriptLink;
     const chatSession = docContext?.chatSessionState?.data;
 
@@ -48,9 +50,7 @@
   $effect(() => {
     async function initializeData(): Promise<void> {
       // Initialize core application data
-      await Promise.all([
-        projectService.loadProjectFolders(),
-      ]);
+      await Promise.all([projectService.loadProjectFolders()]);
       logger.info("App data initialization complete");
     }
 
@@ -66,30 +66,32 @@
 >
   <div class="flex h-screen">
     <!-- Sidebar -->
-    {#if ui.leftPanelOpen}
+    {#if ui.leftPanelOpen && centerPanelView !== "dashboard" && centerPanelView !== "settingsPanel"}
       <ExplorerPanel />
     {/if}
 
     <!-- Main Workspace -->
     <div class="relative flex flex-1">
-      <main class="flex min-w-0 flex-1">
+      <main>
         {#if centerPanelView === "promptEditorPanel"}
           <PromptEditorPanel />
           <!-- {:else if centerPanelView === "apiChatPanel"}
           <ApiChatPanel /> -->
         {:else if centerPanelView === "filePanel"}
           <FilePanel />
+        {:else if centerPanelView === "settingsPanel"}
+          <UserSettings />
         {:else if centerPanelView === "dashboard"}
           <ChatDashboard />
         {/if}
 
         <!-- Keep PTY terminal mounted so the underlying xterm stream is not disposed while hidden -->
-        <PtyChatPanel hidden={centerPanelView !== "ptyChatPanel"} />
+        <!-- <PtyChatPanel hidden={centerPanelView !== "ptyChatPanel"} /> -->
 
         <!-- Right Panel -->
-        {#if ui.rightPanelOpen}
+        <!-- {#if ui.rightPanelOpen && centerPanelView !== "dashboard" && centerPanelView !== "settingsPanel"}
           <RightPanel />
-        {/if}
+        {/if} -->
       </main>
 
       <!-- Prompt Editor Overlay -->

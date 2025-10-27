@@ -11,6 +11,7 @@ export interface UiState {
   rightPanelOpen: boolean;
   previewPaneOpen: boolean;
   promptEditorOpen: boolean;
+  settingsPanelOpen: boolean;
   // promptConsoleOpen: boolean;
 }
 
@@ -21,6 +22,7 @@ export const ui = $state<UiState>({
   rightPanelOpen: false,
   previewPaneOpen: false,
   promptEditorOpen: false,
+  settingsPanelOpen: false,
   // promptConsoleOpen: false,
 });
 

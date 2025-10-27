@@ -5,12 +5,8 @@
   import { userSettingsService } from "../services/user-settings-service.js";
   import { projectState } from "../stores/project-store.svelte.js";
   import { userSettingsState } from "../stores/user-settings-store.svelte.js";
+  import { ui } from "../stores/ui.svelte.js";
   import ProviderApiKeyRow from "./ProviderApiKeyRow.svelte";
-
-  let {
-    showSettings = false,
-    onClose,
-  }: { showSettings?: boolean; onClose?: () => void } = $props();
 
   let newProjectFolder = $state("");
   let showAddProjectFolder = $state(false);
@@ -34,10 +30,8 @@
     userSettingsService.loadSettings();
   });
 
-  function toggleSettings(): void {
-    if (onClose) {
-      onClose();
-    }
+  function closeSettings(): void {
+    ui.settingsPanelOpen = false;
   }
 
   function toggleAddProjectFolder(): void {
@@ -65,37 +59,24 @@
   }
 </script>
 
-<button
-  onclick={toggleSettings}
-  class="p-2 text-gray-400 transition-colors hover:text-gray-300"
-  title="User Settings"
-  aria-label="Open settings"
->
-  <Gear class="h-5 w-5" />
-</button>
-
-{#if showSettings}
-  <div class="bg-opacity-50 fixed inset-0 z-50 bg-black">
-    <div class="bg-background text-foreground h-screen overflow-hidden">
-      <!-- Header -->
-      <header
-        class="bg-background border-border flex h-12 shrink-0 items-center gap-2 border-b px-4"
-      >
-        <Gear class="text-muted h-5 w-5" />
-        <span class="font-semibold">Settings</span>
-        <div class="flex-1"></div>
-        <button
-          onclick={toggleSettings}
-          class="text-muted hover:text-foreground cursor-pointer transition-colors"
-          aria-label="Close settings"
-        >
-          <X class="h-6 w-6" />
-        </button>
-      </header>
+<div class="flex h-full w-screen flex-col">
+  <!-- Header -->
+  <header class="flex h-12 shrink-0 items-center gap-2 px-4">
+    <Gear class="text-muted h-5 w-5" />
+    <span class="font-semibold">Settings</span>
+    <div class="flex-1"></div>
+    <button
+      onclick={closeSettings}
+      class="text-muted hover:text-foreground cursor-pointer transition-colors"
+      aria-label="Close settings"
+    >
+      <X class="h-6 w-6" />
+    </button>
+  </header>
 
       <!-- Settings Content -->
-      <div class="overflow-y-auto p-6" style="height: calc(100vh - 48px);">
-        <div class="mx-auto max-w-3xl space-y-10">
+      <div class="scrollbar-thin flex-1 overflow-y-auto">
+        <div class="mx-auto max-w-3xl space-y-10 p-4 lg:p-6">
           {#if userSettingsState.loading}
             <div class="py-4 text-center">
               <div
@@ -298,6 +279,4 @@
           {/if}
         </div>
       </div>
-    </div>
-  </div>
-{/if}
+</div>

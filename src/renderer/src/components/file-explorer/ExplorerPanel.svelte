@@ -16,6 +16,7 @@
     // showToast, // COMMENTED OUT: Workspace setup not needed
     toggleLeftPanel,
   } from "../../stores/ui-store.svelte.js";
+  import { ui } from "../../stores/ui.svelte.js";
   import { projectService } from "../../services/project-service.js";
   // import { userSettingsService } from "../../services/user-settings-service.js"; // COMMENTED OUT: Workspace setup not needed
   import {
@@ -30,7 +31,6 @@
   import FileIcon from "./FileIcon.svelte";
   import ContextMenu from "./ContextMenu.svelte";
   import RenameDialog from "./RenameDialog.svelte";
-  import UserSettings from "../UserSettings.svelte";
   // import RunningChats from "./RunningChats.svelte";
 
   // @ts-expect-error - Intentionally unused for future use
@@ -48,7 +48,6 @@
     uiState.loadingStates["projectFolders"] || false,
   );
 
-  let showSettings = $state(false);
   // let newProjectFolderInput = $state<HTMLInputElement>(); // COMMENTED OUT: New project folder not needed
 
   // COMMENTED OUT: New project folder feature not needed
@@ -61,6 +60,11 @@
   //     newProjectFolderInput.select();
   //   }
   // });
+
+  function handleGoHome(): void {
+    ui.activeFilePath = null;
+    ui.promptEditorOpen = false;
+  }
 
   async function handleAddProjectFolder(): Promise<void> {
     const folderPath = await window.api.showOpenDialog();
@@ -75,7 +79,7 @@
   // }
 
   function handleOpenSettings(): void {
-    showSettings = true;
+    ui.settingsPanelOpen = true;
   }
 
   // COMMENTED OUT: New project folder feature not needed
@@ -113,6 +117,7 @@
   <div class="flex h-12 items-center justify-start px-4">
     <div class="flex items-center gap-2">
       <button
+        onclick={handleGoHome}
         class="text-muted hover:text-accent cursor-pointer rounded p-1.5"
         title="Home"
       >
@@ -247,9 +252,4 @@
 
   <!-- Rename Dialog -->
   <RenameDialog />
-
-  <!-- Settings Modal -->
-  {#if showSettings}
-    <UserSettings {showSettings} onClose={() => (showSettings = false)} />
-  {/if}
 </aside>
