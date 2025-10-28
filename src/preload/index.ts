@@ -11,6 +11,17 @@ const api = {
     ipcRenderer.invoke("show-in-folder", filePath),
   mainWindow: {
     focus: () => ipcRenderer.invoke("main-window:focus"),
+    showDashboard: () => ipcRenderer.invoke("main-window:show-dashboard"),
+    onNavigate: (
+      callback: (payload: { target: "dashboard" | string }) => void,
+    ) => {
+      const handler = (_: unknown, payload: { target: string }) =>
+        callback(payload);
+      ipcRenderer.on("main-window:navigate", handler);
+      return () => {
+        ipcRenderer.removeListener("main-window:navigate", handler);
+      };
+    },
   },
   quickPromptWindow: {
     toggle: () => ipcRenderer.invoke("quick-prompt-window:toggle"),

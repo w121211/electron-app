@@ -448,7 +448,7 @@
       promptValue = "";
       applyStatus("Chat launched in the main window.", "success", 0);
 
-      await window.api.mainWindow.focus();
+      await window.api.mainWindow.showDashboard();
       await window.api.quickPromptWindow.hide();
     } catch (error) {
       logger.error("Failed to launch chat", error);

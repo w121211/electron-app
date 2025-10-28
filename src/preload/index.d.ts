@@ -12,6 +12,10 @@ declare global {
       showInFolder: (filePath: string) => Promise<void>;
       mainWindow: {
         focus: () => Promise<boolean>;
+        showDashboard: () => Promise<boolean>;
+        onNavigate: (
+          callback: (payload: { target: string }) => void,
+        ) => () => void;
       };
       quickPromptWindow: {
         toggle: () => Promise<boolean>;

@@ -42,6 +42,21 @@ export function registerQuickPromptIpcHandlers(
     return false;
   });
 
+  ipcMain.handle("main-window:show-dashboard", () => {
+    const mainWindow = context.getMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+      }
+      mainWindow.focus();
+      mainWindow.webContents.send("main-window:navigate", {
+        target: "dashboard",
+      });
+      return true;
+    }
+    return false;
+  });
+
   ipcMain.handle(
     "quick-prompt:select-files",
     async (
