@@ -1,5 +1,6 @@
 // src/core/services/prompt-script/prompt-script-service.ts
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { Logger } from "tslog";
 import {
   createDirectory,
@@ -24,12 +25,16 @@ import { getModelSurface } from "../../utils/model-utils.js";
 import type { ApiChatClient } from "../chat-engine/api-chat-client.js";
 import type { TerminalChatClient } from "../external-chat/terminal-chat-client.js";
 import type { WebChatClient } from "../external-chat/web-chat-client.js";
+import type { PromptEditRepository, PromptEdit } from "../prompt/prompt-edit-repository.js";
+import type { DocumentFileWithPromptScript } from "../document/document-service.js";
+import { saveDocument } from "../document/document-repository.js";
 
 const logger = new Logger({ name: "PromptScriptService" });
 
 export class PromptScriptService {
   private readonly promptScriptRepo: PromptScriptRepository;
   private readonly chatSessionRepo: ChatSessionRepository;
+  private readonly promptEditRepo: PromptEditRepository;
   private readonly apiChatClient: ApiChatClient;
   private readonly terminalChatClient: TerminalChatClient;
   private readonly webChatClient: WebChatClient;
@@ -37,12 +42,14 @@ export class PromptScriptService {
   constructor(options: {
     promptScriptRepo: PromptScriptRepository;
     chatSessionRepo: ChatSessionRepository;
+    promptEditRepo: PromptEditRepository;
     apiChatClient: ApiChatClient;
     terminalChatClient: TerminalChatClient;
     webChatClient: WebChatClient;
   }) {
     this.promptScriptRepo = options.promptScriptRepo;
     this.chatSessionRepo = options.chatSessionRepo;
+    this.promptEditRepo = options.promptEditRepo;
     this.apiChatClient = options.apiChatClient;
     this.terminalChatClient = options.terminalChatClient;
     this.webChatClient = options.webChatClient;
@@ -57,8 +64,9 @@ export class PromptScriptService {
     options?: {
       templatePath?: string;
       args?: string[];
+      promptEditId?: string;
     },
-  ): Promise<PromptScriptFile> {
+  ): Promise<{ script: PromptScriptFile; edit: PromptEdit }> {
     const trimmedDirectory = directory?.trim();
     if (trimmedDirectory.length === 0) {
       throw new Error(
@@ -89,7 +97,31 @@ export class PromptScriptService {
       content = substituteArgs(templateFile.content, options.args ?? []);
     }
 
-    return this.promptScriptRepo.create(filePath, content);
+    const script = await this.promptScriptRepo.create(filePath, content);
+    const now = new Date();
+
+    let edit: PromptEdit;
+    if (options?.promptEditId) {
+      const existing = await this.promptEditRepo.findById(options.promptEditId);
+      if (!existing) {
+        throw new Error(`Prompt edit ${options.promptEditId} not found`);
+      }
+
+      edit = await this.promptEditRepo.update(options.promptEditId, {
+        promptScriptPath: script.absolutePath,
+        contentDraft: null,
+        updatedAt: now,
+      });
+    } else {
+      edit = await this.promptEditRepo.create({
+        id: randomUUID(),
+        promptScriptPath: script.absolutePath,
+        contentDraft: null,
+        updatedAt: now,
+      });
+    }
+
+    return { script, edit };
   }
 
   /**
@@ -325,6 +357,102 @@ export class PromptScriptService {
     // }
 
     return Promise.resolve();
+  }
+
+  /**
+   * Open a prompt script and ensure a prompt edit record exists
+   */
+  async openPromptScript(scriptPath: string): Promise<{
+    document: DocumentFileWithPromptScript;
+    edit: PromptEdit;
+  }> {
+    const absolutePath = path.resolve(scriptPath);
+    const promptScript = await this.promptScriptRepo.read(absolutePath);
+    const linkResult = await this.findLinkedChatSession(absolutePath);
+
+    const document: DocumentFileWithPromptScript = {
+      ...promptScript,
+      promptScriptLink: linkResult,
+    };
+
+    let edit = await this.promptEditRepo.findByScriptPath(absolutePath);
+    const now = new Date();
+
+    if (!edit) {
+      edit = await this.promptEditRepo.create({
+        id: randomUUID(),
+        promptScriptPath: absolutePath,
+        contentDraft: null,
+        updatedAt: now,
+      });
+    }
+
+    return { document, edit };
+  }
+
+  /**
+   * Save a prompt script and update the prompt edit record
+   */
+  async savePromptScript(params: {
+    scriptPath: string;
+    content: string;
+    editId?: string;
+  }): Promise<{
+    document: DocumentFileWithPromptScript;
+    edit: PromptEdit;
+  }> {
+    const absolutePath = path.resolve(params.scriptPath);
+    const promptScript = await this.promptScriptRepo.read(absolutePath);
+
+    const savedDoc = await saveDocument(promptScript, {
+      content: params.content,
+    });
+
+    const linkResult = await this.findLinkedChatSession(absolutePath);
+    const document: DocumentFileWithPromptScript = {
+      ...savedDoc,
+      kind: "promptScript",
+      promptScriptLink: linkResult,
+    };
+
+    const now = new Date();
+    let edit: PromptEdit;
+
+    if (params.editId) {
+      const existing = await this.promptEditRepo.findById(params.editId);
+      if (!existing) {
+        throw new Error(`Prompt edit ${params.editId} not found`);
+      }
+
+      if (existing.promptScriptPath !== absolutePath) {
+        throw new Error(
+          `Prompt edit path mismatch: expected ${existing.promptScriptPath}, got ${absolutePath}`,
+        );
+      }
+
+      edit = await this.promptEditRepo.update(params.editId, {
+        contentDraft: null,
+        updatedAt: now,
+      });
+    } else {
+      const existingEdit = await this.promptEditRepo.findByScriptPath(absolutePath);
+
+      if (existingEdit) {
+        edit = await this.promptEditRepo.update(existingEdit.id, {
+          contentDraft: null,
+          updatedAt: now,
+        });
+      } else {
+        edit = await this.promptEditRepo.create({
+          id: randomUUID(),
+          promptScriptPath: absolutePath,
+          contentDraft: null,
+          updatedAt: now,
+        });
+      }
+    }
+
+    return { document, edit };
   }
 
   private async updateSessionMetadata(

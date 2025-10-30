@@ -64,9 +64,9 @@ export function ensureQuickPromptWindow(
   });
 
   // Open DevTools in development
-  if (is.dev) {
-    window.webContents.openDevTools();
-  }
+  // if (is.dev) {
+  //   window.webContents.openDevTools();
+  // }
 
   return window;
 }
@@ -115,7 +115,12 @@ export function registerQuickPromptWindowShortcut(
       : "Control+Shift+.";
 
   const registered = globalShortcut.register(accelerator, () => {
-    toggleQuickPromptWindow(context);
+    const window = ensureQuickPromptWindow(context);
+    if (window.isFocused()) {
+      hideQuickPromptWindow(context);
+    } else {
+      showQuickPromptWindow(context);
+    }
   });
 
   if (!registered) {

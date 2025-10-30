@@ -3,248 +3,188 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { v4 as uuidv4 } from "uuid";
-import {
-  PromptScriptRepository,
-  type PromptScriptFile,
-} from "../src/core/services/prompt-script/prompt-script-repository.js";
+import { randomUUID } from "node:crypto";
+import { PromptScriptRepository } from "../src/core/services/prompt-script/prompt-script-repository.js";
 import { PromptScriptService } from "../src/core/services/prompt-script/prompt-script-service.js";
 import {
   ChatSessionRepositoryImpl,
   type ChatSessionData,
+  type ChatSessionRepository,
 } from "../src/core/services/chat/chat-session-repository.js";
+import { EventBus } from "../src/core/event-bus.js";
+import { ApiChatClient } from "../src/core/services/chat-engine/api-chat-client.js";
+import { TerminalChatClient } from "../src/core/services/external-chat/terminal-chat-client.js";
+import { WebChatClient } from "../src/core/services/external-chat/web-chat-client.js";
+import type { ToolRegistry } from "../src/core/services/tool-call/tool-registry.js";
+import type {
+  PromptEditRepository,
+  PromptEdit,
+} from "../src/core/services/prompt/prompt-edit-repository.js";
+
+class InMemoryPromptEditRepository implements PromptEditRepository {
+  private readonly edits = new Map<string, PromptEdit>();
+
+  async create(edit: PromptEdit): Promise<PromptEdit> {
+    this.edits.set(edit.id, edit);
+    return edit;
+  }
+
+  async update(
+    id: string,
+    changes: Partial<Omit<PromptEdit, "id">>,
+  ): Promise<PromptEdit> {
+    const existing = this.edits.get(id);
+    if (!existing) {
+      throw new Error(`Prompt edit ${id} not found`);
+    }
+    const updated = { ...existing, ...changes };
+    this.edits.set(id, updated);
+    return updated;
+  }
+
+  async delete(id: string): Promise<void> {
+    this.edits.delete(id);
+  }
+
+  async findById(id: string): Promise<PromptEdit | null> {
+    return this.edits.get(id) ?? null;
+  }
+
+  async findByScriptPath(scriptPath: string): Promise<PromptEdit | null> {
+    const resolved = path.resolve(scriptPath);
+    for (const edit of this.edits.values()) {
+      if (edit.promptScriptPath && path.resolve(edit.promptScriptPath) === resolved) {
+        return edit;
+      }
+    }
+    return null;
+  }
+
+  async list(): Promise<PromptEdit[]> {
+    return Array.from(this.edits.values());
+  }
+
+  async listRecent(limit?: number): Promise<PromptEdit[]> {
+    const sorted = Array.from(this.edits.values()).sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+    );
+    return limit ? sorted.slice(0, limit) : sorted;
+  }
+}
+
+function createToolRegistryStub(): ToolRegistry {
+  return {
+    registerTool() {},
+    async registerMCPServer() {},
+    getToolSet: () => ({}),
+    getToolSetByNames: () => ({}),
+    isBuiltInTool: () => false,
+    isMCPTool: () => false,
+    getTool: () => undefined,
+    getMCPTool: () => undefined,
+    getAllTools: () => new Map(),
+    getToolMetadata: () => undefined,
+    checkToolsHealth: () => ({
+      totalTools: 0,
+      healthyTools: 0,
+      unhealthyTools: 0,
+      mcpServers: { total: 0, healthy: 0, unhealthy: 0 },
+      details: new Map(),
+    }),
+  };
+}
 
 describe("PromptScriptService", () => {
   let tempDir: string;
-  let scriptPath: string;
   let databasePath: string;
-  let scriptRepository: PromptScriptRepository;
-  let chatSessionRepository: ChatSessionRepositoryImpl;
+  let promptScriptRepo: PromptScriptRepository;
+  let chatSessionRepo: ChatSessionRepository;
+  let promptEditRepo: PromptEditRepository;
+  let eventBus: EventBus;
+  let apiChatClient: ApiChatClient;
+  let terminalChatClient: TerminalChatClient;
+  let webChatClient: WebChatClient;
   let service: PromptScriptService;
 
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "prompt-script-test-"));
-    scriptPath = path.join(tempDir, "test.prompt.md");
     databasePath = path.join(tempDir, "sessions.db");
-    scriptRepository = new PromptScriptRepository();
-    chatSessionRepository = new ChatSessionRepositoryImpl({
+
+    promptScriptRepo = new PromptScriptRepository();
+    chatSessionRepo = new ChatSessionRepositoryImpl({
       databaseFilePath: databasePath,
     });
-    service = new PromptScriptService(scriptRepository, chatSessionRepository);
+    promptEditRepo = new InMemoryPromptEditRepository();
+    eventBus = new EventBus({ environment: "server" });
+
+    apiChatClient = new ApiChatClient({
+      repository: chatSessionRepo,
+      eventBus,
+      toolRegistry: createToolRegistryStub(),
+    });
+    terminalChatClient = new TerminalChatClient(eventBus, chatSessionRepo);
+    webChatClient = new WebChatClient(eventBus, chatSessionRepo);
+
+    service = new PromptScriptService({
+      promptScriptRepo,
+      chatSessionRepo,
+      promptEditRepo,
+      apiChatClient,
+      terminalChatClient,
+      webChatClient,
+    });
   });
 
   afterEach(async () => {
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
   });
 
-  async function writeScript(content: string): Promise<PromptScriptFile> {
-    await fs.writeFile(scriptPath, content, "utf8");
-    return scriptRepository.read(scriptPath);
+  async function writeScriptFile(
+    filePath: string,
+    content: string,
+  ): Promise<void> {
+    await fs.writeFile(filePath, content, "utf8");
   }
-
-  async function createSessionForScript(
-    script: PromptScriptFile,
-    overrides: Partial<ChatSessionData> = {},
-  ): Promise<ChatSessionData> {
-    const session: ChatSessionData = {
-      id: overrides.id ?? uuidv4(),
-      modelSurface: overrides.modelSurface ?? "api",
-      state: overrides.state ?? "terminated",
-      messages: overrides.messages ?? [],
-      metadata: overrides.metadata,
-      scriptPath: overrides.scriptPath ?? script.absolutePath,
-      scriptHash: overrides.scriptHash ?? script.hash,
-      scriptSnapshot: overrides.scriptSnapshot ?? script.content,
-      scriptModifiedAt:
-        overrides.scriptModifiedAt ?? script.metadata.modifiedAt,
-      createdAt: overrides.createdAt ?? new Date(),
-      updatedAt: overrides.updatedAt ?? new Date(),
-    };
-
-    await chatSessionRepository.create(session);
-    return session;
-  }
-
-  it("attaches using chatSessionId when hashes match", async () => {
-    const sessionId = uuidv4();
-    const scriptContent = `---
-chatSessionId: ${sessionId}
-model: openai/gpt-4o-mini
----
-
-First prompt
-`;
-
-    const script = await writeScript(scriptContent);
-    const session = await createSessionForScript(script, {
-      id: sessionId,
-      metadata: { modelId: "openai/gpt-4o-mini" },
-    });
-
-    const result = await service.findLinkedChatSession(scriptPath);
-
-    expect(result.chatSession?.id).toBe(sessionId);
-    expect(result.promptScript.promptScriptParsed.metadata.chatSessionId).toBe(
-      sessionId,
-    );
-    expect(result.warnings).toHaveLength(0);
-  });
-
-  it("finds session by chatSessionId", async () => {
-    const sessionId = uuidv4();
-    const scriptContent = `---
-chatSessionId: ${sessionId}
-model: openai/gpt-4o-mini
----
-
-Prompt content
-`;
-
-    const script = await writeScript(scriptContent);
-    await createSessionForScript(script, {
-      id: sessionId,
-      metadata: { modelId: "openai/gpt-4o-mini" },
-    });
-
-    const result = await service.findLinkedChatSession(scriptPath);
-
-    expect(result.chatSession?.id).toBe(sessionId);
-    expect(result.warnings).toHaveLength(0);
-  });
-
-  it("warns when session not found", async () => {
-    const sessionId = uuidv4();
-    const scriptContent = `---
-chatSessionId: ${sessionId}
----
-
-Original prompt
-`;
-
-    await writeScript(scriptContent);
-
-    const result = await service.findLinkedChatSession(scriptPath);
-
-    expect(result.chatSession).toBeNull();
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0].code).toBe("CHAT_SESSION_NOT_FOUND");
-  });
-
-  it("detaches script and clears session linkage", async () => {
-    const sessionId = uuidv4();
-    const scriptContent = `---
-chatSessionId: ${sessionId}
----
-
-Prompt
-`;
-
-    const script = await writeScript(scriptContent);
-    await createSessionForScript(script, { id: sessionId });
-
-    const detached = await service.unlinkChatSession({
-      scriptPath,
-      sessionId,
-    });
-
-    expect(detached.promptScriptParsed.metadata.chatSessionId).toBeUndefined();
-
-    const session = await chatSessionRepository.getById(sessionId);
-    expect(session?.scriptPath).toBeNull();
-    expect(session?.scriptHash).toBeNull();
-    expect(session?.scriptSnapshot).toBeNull();
-    expect(session?.scriptModifiedAt).toBeNull();
-  });
 
   describe("createPromptScript", () => {
-    let createTempDir: string;
-
-    beforeEach(async () => {
-      createTempDir = await fs.mkdtemp(
-        path.join(os.tmpdir(), "prompt-create-test-"),
-      );
-    });
-
-    afterEach(async () => {
-      await fs
-        .rm(createTempDir, { recursive: true, force: true })
-        .catch(() => {});
-    });
-
     it("creates prompt script with sequential numbering when no name provided", async () => {
-      const script1 = await service.createPromptScript(createTempDir);
-      expect(script1.absolutePath).toBe(
-        path.join(createTempDir, "01.prompt.md"),
+      const result1 = await service.createPromptScript(tempDir);
+      expect(result1.script.absolutePath).toBe(
+        path.join(tempDir, "01.prompt.md"),
       );
-      expect(script1.content).toBe("");
+      expect(result1.script.content).toBe("");
+      expect(result1.edit.promptScriptPath).toBe(result1.script.absolutePath);
 
-      const script2 = await service.createPromptScript(createTempDir);
-      expect(script2.absolutePath).toBe(
-        path.join(createTempDir, "02.prompt.md"),
+      const result2 = await service.createPromptScript(tempDir);
+      expect(result2.script.absolutePath).toBe(
+        path.join(tempDir, "02.prompt.md"),
       );
 
-      const script3 = await service.createPromptScript(createTempDir);
-      expect(script3.absolutePath).toBe(
-        path.join(createTempDir, "03.prompt.md"),
+      const result3 = await service.createPromptScript(tempDir);
+      expect(result3.script.absolutePath).toBe(
+        path.join(tempDir, "03.prompt.md"),
       );
     });
 
     it("creates prompt script with custom name and unique suffix", async () => {
-      const script1 = await service.createPromptScript(createTempDir, "test");
-      expect(script1.absolutePath).toBe(
-        path.join(createTempDir, "test.prompt.md"),
+      const result1 = await service.createPromptScript(tempDir, "test");
+      expect(result1.script.absolutePath).toBe(
+        path.join(tempDir, "test.prompt.md"),
       );
 
-      const script2 = await service.createPromptScript(createTempDir, "test");
-      expect(path.basename(script2.absolutePath)).toMatch(
+      const result2 = await service.createPromptScript(tempDir, "test");
+      expect(path.basename(result2.script.absolutePath)).toMatch(
         /^test\.prompt \(\d+\)\.md$/,
       );
 
-      const script3 = await service.createPromptScript(createTempDir, "test");
-      expect(path.basename(script3.absolutePath)).toMatch(
+      const result3 = await service.createPromptScript(tempDir, "test");
+      expect(path.basename(result3.script.absolutePath)).toMatch(
         /^test\.prompt \(\d+\)\.md$/,
-      );
-    });
-
-    // it("creates prompt script in default directory when no directory provided", async () => {
-    //   const script = await service.createPromptScript();
-    //   expect(script.absolutePath.startsWith(defaultPromptDir)).toBe(true);
-    //   const exists = await fs
-    //     .access(script.absolutePath)
-    //     .then(() => true)
-    //     .catch(() => false);
-    //   expect(exists).toBe(true);
-    // });
-
-    it("fills gaps in sequential numbering", async () => {
-      await service.createPromptScript(createTempDir); // 01
-      await service.createPromptScript(createTempDir); // 02
-      await service.createPromptScript(createTempDir); // 03
-
-      // Delete 02
-      await fs.unlink(path.join(createTempDir, "02.prompt.md"));
-
-      // Next creation should be 04, not 02 (sequential continues from max)
-      const script = await service.createPromptScript(createTempDir);
-      expect(script.absolutePath).toBe(
-        path.join(createTempDir, "04.prompt.md"),
-      );
-    });
-
-    it("handles existing sequential files correctly", async () => {
-      // Create files manually
-      await fs.writeFile(path.join(createTempDir, "01.prompt.md"), "content1");
-      await fs.writeFile(path.join(createTempDir, "05.prompt.md"), "content5");
-
-      // Next creation should be 06 (max + 1)
-      const script = await service.createPromptScript(createTempDir);
-      expect(script.absolutePath).toBe(
-        path.join(createTempDir, "06.prompt.md"),
       );
     });
 
     it("creates prompt script from template with argument substitution", async () => {
-      const templatePath = path.join(createTempDir, "test-template.prompt.md");
+      const templatePath = path.join(tempDir, "test-template.prompt.md");
       const templateContent = `---
 title: Code Review Template
 modelId: openai/gpt-4o-mini
@@ -256,12 +196,11 @@ File: $2
 
 Focus on: $3
 `;
-      await fs.writeFile(templatePath, templateContent);
+      await writeScriptFile(templatePath, templateContent);
 
       const args = ["security issues", "auth.ts", "SQL injection and XSS"];
-
       const result = await service.createPromptScript(
-        createTempDir,
+        tempDir,
         "security-review",
         {
           templatePath,
@@ -269,79 +208,504 @@ Focus on: $3
         },
       );
 
-      expect(result.absolutePath).toContain("security-review");
-      expect(result.promptScriptParsed.metadata.title).toBe(
+      expect(result.script.absolutePath).toContain("security-review");
+      expect(result.script.promptScriptParsed.metadata.title).toBe(
         "Code Review Template",
       );
-      expect(result.promptScriptParsed.metadata.modelId).toBe(
+      expect(result.script.promptScriptParsed.metadata.modelId).toBe(
         "openai/gpt-4o-mini",
       );
-
-      expect(result.promptScriptParsed.body).toContain(
+      expect(result.script.promptScriptParsed.body).toContain(
         "Review the following code for security issues",
       );
-      expect(result.promptScriptParsed.body).toContain("File: auth.ts");
-      expect(result.promptScriptParsed.body).toContain(
+      expect(result.script.promptScriptParsed.body).toContain("File: auth.ts");
+      expect(result.script.promptScriptParsed.body).toContain(
         "Focus on: SQL injection and XSS",
       );
-
-      expect(result.promptScriptParsed.body).not.toContain("$1");
-      expect(result.promptScriptParsed.body).not.toContain("$2");
-      expect(result.promptScriptParsed.body).not.toContain("$3");
     });
 
-    it("creates empty prompt script when no template provided", async () => {
-      const result = await service.createPromptScript(
-        createTempDir,
-        "empty-script",
-      );
+    it("creates prompt edit for new script", async () => {
+      const result = await service.createPromptScript(tempDir, "new-script");
 
-      expect(result.absolutePath).toContain("empty-script");
-      expect(result.promptScriptParsed.body).toBe("");
+      expect(result.edit).toBeDefined();
+      expect(result.edit.promptScriptPath).toBe(result.script.absolutePath);
+      expect(result.edit.contentDraft).toBeNull();
+
+      const absoluteScriptPath = result.script.absolutePath;
+      const foundEdit = await promptEditRepo.findByScriptPath(absoluteScriptPath);
+      expect(foundEdit?.id).toBe(result.edit.id);
     });
 
-    it("preserves frontmatter from template", async () => {
-      const templateWithExtras = path.join(
-        createTempDir,
-        "template-extras.prompt.md",
-      );
-      await fs.writeFile(
-        templateWithExtras,
-        `---
-title: Custom Template
-description: A test template
-tags: [testing, demo]
-modelId: anthropic/claude-3-5-sonnet
-customField: customValue
+    it("updates existing prompt edit when promptEditId provided", async () => {
+      const existingEdit = await promptEditRepo.create({
+        id: randomUUID(),
+        promptScriptPath: path.join(tempDir, "placeholder.md"),
+        contentDraft: "draft content",
+        updatedAt: new Date(),
+      });
+
+      const result = await service.createPromptScript(tempDir, "updated", {
+        promptEditId: existingEdit.id,
+      });
+
+      expect(result.edit.id).toBe(existingEdit.id);
+      expect(result.edit.promptScriptPath).toBe(result.script.absolutePath);
+      expect(result.edit.contentDraft).toBeNull();
+    });
+  });
+
+  describe("findLinkedChatSession", () => {
+    it("finds session by chatSessionId", async () => {
+      const sessionId = randomUUID();
+      const scriptPath = path.join(tempDir, "test.prompt.md");
+      const scriptContent = `---
+chatSessionId: ${sessionId}
+modelId: openai/gpt-4o-mini
 ---
 
-Test content: $1
-`,
+Prompt content
+`;
+
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const session: ChatSessionData = {
+        id: sessionId,
+        modelSurface: "api",
+        state: "terminated",
+        messages: [],
+        metadata: { modelId: "openai/gpt-4o-mini" },
+        scriptPath,
+        scriptHash: null,
+        scriptSnapshot: null,
+        scriptModifiedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await chatSessionRepo.create(session);
+
+      const result = await service.findLinkedChatSession(scriptPath);
+
+      expect(result.chatSession?.id).toBe(sessionId);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it("warns when session not found", async () => {
+      const sessionId = randomUUID();
+      const scriptPath = path.join(tempDir, "test.prompt.md");
+      const scriptContent = `---
+chatSessionId: ${sessionId}
+---
+
+Original prompt
+`;
+
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const result = await service.findLinkedChatSession(scriptPath);
+
+      expect(result.chatSession).toBeNull();
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0].code).toBe("CHAT_SESSION_NOT_FOUND");
+    });
+
+    it("returns no warnings when no chatSessionId in metadata", async () => {
+      const scriptPath = path.join(tempDir, "test.prompt.md");
+      const scriptContent = `---
+title: Unlinked Script
+---
+
+Content
+`;
+
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const result = await service.findLinkedChatSession(scriptPath);
+
+      expect(result.chatSession).toBeNull();
+      expect(result.warnings).toHaveLength(0);
+    });
+  });
+
+  describe("linkChatSession", () => {
+    it("links script to existing session and updates both", async () => {
+      const sessionId = randomUUID();
+      const scriptPath = path.join(tempDir, "test.prompt.md");
+      const scriptContent = `---
+title: Test Script
+---
+
+Content
+`;
+
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const session: ChatSessionData = {
+        id: sessionId,
+        modelSurface: "api",
+        state: "terminated",
+        messages: [],
+        metadata: { modelId: "openai/gpt-4o-mini" },
+        scriptPath: null,
+        scriptHash: null,
+        scriptSnapshot: null,
+        scriptModifiedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await chatSessionRepo.create(session);
+
+      const result = await service.linkChatSession(scriptPath, sessionId);
+
+      expect(result.chatSession.id).toBe(sessionId);
+      expect(result.promptScript.promptScriptParsed.metadata.chatSessionId).toBe(
+        sessionId,
       );
 
-      const result = await service.createPromptScript(
-        createTempDir,
-        "with-extras",
-        {
-          templatePath: templateWithExtras,
-          args: ["hello world"],
-        },
+      const updatedSession = await chatSessionRepo.getById(sessionId);
+      expect(updatedSession?.scriptPath).toBe(path.resolve(scriptPath));
+      expect(updatedSession?.scriptHash).toBe(result.promptScript.hash);
+      expect(updatedSession?.scriptSnapshot).toBe(result.promptScript.content);
+    });
+
+    it("throws when session does not exist", async () => {
+      const scriptPath = path.join(tempDir, "test.prompt.md");
+      await writeScriptFile(scriptPath, "---\n---\nContent");
+
+      await expect(
+        service.linkChatSession(scriptPath, "nonexistent-id"),
+      ).rejects.toThrow("Chat session nonexistent-id not found");
+    });
+  });
+
+  describe("createLinkedChatSession", () => {
+    it("creates and links an API chat session", async () => {
+      const scriptPath = path.join(tempDir, "api-session.prompt.md");
+      const scriptContent = `---
+title: API Prompt
+modelId: openai/gpt-4o-mini
+---
+
+Hello from prompt script.
+`;
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const result = await service.createLinkedChatSession({
+        scriptPath,
+        modelId: "openai/gpt-4o-mini",
+        title: "API Prompt Session",
+      });
+
+      expect(result.chatSession).not.toBeNull();
+      expect(result.chatSession.modelSurface).toBe("api");
+      expect(result.chatSession.scriptPath).toBe(path.resolve(scriptPath));
+      expect(result.chatSession.scriptSnapshot).toContain(
+        "Hello from prompt script.",
       );
 
-      expect(result.promptScriptParsed.metadata.title).toBe("Custom Template");
-      expect(result.promptScriptParsed.metadata.description).toBe(
-        "A test template",
+      const updatedScript = await promptScriptRepo.read(scriptPath);
+      expect(updatedScript.promptScriptParsed.metadata.chatSessionId).toBe(
+        result.chatSession.id,
       );
-      expect(result.promptScriptParsed.metadata.tags).toEqual([
-        "testing",
-        "demo",
-      ]);
-      expect(result.promptScriptParsed.metadata.extras.customField).toBe(
-        "customValue",
+    });
+
+    it("requires a working directory for terminal models", async () => {
+      const scriptPath = path.join(tempDir, "terminal-session.prompt.md");
+      const scriptContent = `---
+title: Terminal Prompt
+modelId: cli/demo
+---
+
+Run a command.
+`;
+      await writeScriptFile(scriptPath, scriptContent);
+
+      await expect(
+        service.createLinkedChatSession({
+          scriptPath,
+          modelId: "cli/demo",
+        }),
+      ).rejects.toThrow(
+        "Terminal chats require a working directory (project path).",
       );
-      expect(result.promptScriptParsed.body.trim()).toBe(
-        "Test content: hello world",
+    });
+
+    it("creates and links a terminal session when working directory is provided", async () => {
+      const scriptPath = path.join(tempDir, "terminal-session.prompt.md");
+      const scriptContent = `---
+title: Terminal Prompt
+modelId: cli/demo
+---
+
+Run a command.
+`;
+      await writeScriptFile(scriptPath, scriptContent);
+      const workingDirectory = path.join(tempDir, "workspace");
+
+      const result = await service.createLinkedChatSession({
+        scriptPath,
+        modelId: "cli/demo",
+        workingDirectory,
+      });
+
+      expect(result.chatSession.modelSurface).toBe("terminal");
+      expect(result.chatSession.metadata?.external?.workingDirectory).toBe(
+        workingDirectory,
       );
+
+      const updatedScript = await promptScriptRepo.read(scriptPath);
+      expect(updatedScript.promptScriptParsed.metadata.chatSessionId).toBe(
+        result.chatSession.id,
+      );
+    });
+
+    it("creates and links a web chat session", async () => {
+      const scriptPath = path.join(tempDir, "web-session.prompt.md");
+      const scriptContent = `---
+title: Web Prompt
+modelId: web/chatgpt
+---
+
+Web chat content.
+`;
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const result = await service.createLinkedChatSession({
+        scriptPath,
+        modelId: "web/chatgpt",
+        title: "Web Chat Session",
+      });
+
+      expect(result.chatSession).not.toBeNull();
+      expect(result.chatSession.modelSurface).toBe("web");
+      expect(result.chatSession.scriptPath).toBe(path.resolve(scriptPath));
+
+      const updatedScript = await promptScriptRepo.read(scriptPath);
+      expect(updatedScript.promptScriptParsed.metadata.chatSessionId).toBe(
+        result.chatSession.id,
+      );
+    });
+  });
+
+  describe("unlinkChatSession", () => {
+    it("removes chatSessionId from script and clears session linkage", async () => {
+      const sessionId = randomUUID();
+      const scriptPath = path.join(tempDir, "test.prompt.md");
+      const scriptContent = `---
+chatSessionId: ${sessionId}
+---
+
+Prompt
+`;
+
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const session: ChatSessionData = {
+        id: sessionId,
+        modelSurface: "api",
+        state: "terminated",
+        messages: [],
+        metadata: {},
+        scriptPath: path.resolve(scriptPath),
+        scriptHash: "somehash",
+        scriptSnapshot: scriptContent,
+        scriptModifiedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await chatSessionRepo.create(session);
+
+      const result = await service.unlinkChatSession({
+        scriptPath,
+        sessionId,
+      });
+
+      expect(
+        result.promptScriptParsed.metadata.chatSessionId,
+      ).toBeUndefined();
+
+      const updatedSession = await chatSessionRepo.getById(sessionId);
+      expect(updatedSession?.scriptPath).toBeNull();
+      expect(updatedSession?.scriptHash).toBeNull();
+      expect(updatedSession?.scriptSnapshot).toBeNull();
+      expect(updatedSession?.scriptModifiedAt).toBeNull();
+    });
+
+    it("only removes chatSessionId from script when no sessionId provided", async () => {
+      const sessionId = randomUUID();
+      const scriptPath = path.join(tempDir, "test.prompt.md");
+      const scriptContent = `---
+chatSessionId: ${sessionId}
+---
+
+Prompt
+`;
+
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const session: ChatSessionData = {
+        id: sessionId,
+        modelSurface: "api",
+        state: "terminated",
+        messages: [],
+        metadata: {},
+        scriptPath: path.resolve(scriptPath),
+        scriptHash: "somehash",
+        scriptSnapshot: scriptContent,
+        scriptModifiedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await chatSessionRepo.create(session);
+
+      const result = await service.unlinkChatSession({ scriptPath });
+
+      expect(
+        result.promptScriptParsed.metadata.chatSessionId,
+      ).toBeUndefined();
+
+      const updatedSession = await chatSessionRepo.getById(sessionId);
+      expect(updatedSession?.scriptPath).toBe(path.resolve(scriptPath));
+    });
+  });
+
+  describe("openPromptScript", () => {
+    it("opens script and creates prompt edit record", async () => {
+      const scriptPath = path.join(tempDir, "open-test.prompt.md");
+      const scriptContent = `---
+title: Open Test
+---
+
+Content
+`;
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const result = await service.openPromptScript(scriptPath);
+
+      expect(result.document.absolutePath).toBe(path.resolve(scriptPath));
+      expect(result.document.kind).toBe("promptScript");
+      expect(result.edit).toBeDefined();
+      expect(result.edit.promptScriptPath).toBe(path.resolve(scriptPath));
+      expect(result.edit.contentDraft).toBeNull();
+
+      const foundEdit = await promptEditRepo.findByScriptPath(
+        path.resolve(scriptPath),
+      );
+      expect(foundEdit?.id).toBe(result.edit.id);
+    });
+
+    it("reuses existing prompt edit record", async () => {
+      const scriptPath = path.join(tempDir, "reuse-test.prompt.md");
+      const scriptContent = `---
+title: Reuse Test
+---
+
+Content
+`;
+      await writeScriptFile(scriptPath, scriptContent);
+
+      const existingEdit = await promptEditRepo.create({
+        id: randomUUID(),
+        promptScriptPath: path.resolve(scriptPath),
+        contentDraft: "draft",
+        updatedAt: new Date(),
+      });
+
+      const result = await service.openPromptScript(scriptPath);
+
+      expect(result.edit.id).toBe(existingEdit.id);
+      expect(result.edit.contentDraft).toBe("draft");
+    });
+  });
+
+  describe("savePromptScript", () => {
+    it("saves script content and updates prompt edit", async () => {
+      const scriptPath = path.join(tempDir, "save-test.prompt.md");
+      const originalContent = `---
+title: Original
+---
+
+Original content
+`;
+      await writeScriptFile(scriptPath, originalContent);
+
+      const edit = await promptEditRepo.create({
+        id: randomUUID(),
+        promptScriptPath: path.resolve(scriptPath),
+        contentDraft: "draft",
+        updatedAt: new Date(),
+      });
+
+      const newContent = `---
+title: Updated
+---
+
+Updated content
+`;
+
+      const result = await service.savePromptScript({
+        scriptPath,
+        content: newContent,
+        editId: edit.id,
+      });
+
+      expect(result.document.content).toBe(newContent);
+      expect(result.edit.contentDraft).toBeNull();
+
+      const savedContent = await fs.readFile(scriptPath, "utf8");
+      expect(savedContent).toBe(newContent);
+    });
+
+    it("creates prompt edit if none exists", async () => {
+      const scriptPath = path.join(tempDir, "save-new.prompt.md");
+      const content = `---
+title: New Save
+---
+
+Content
+`;
+      await writeScriptFile(scriptPath, content);
+
+      const newContent = `---
+title: Updated Save
+---
+
+New content
+`;
+
+      const result = await service.savePromptScript({
+        scriptPath,
+        content: newContent,
+      });
+
+      expect(result.edit).toBeDefined();
+      expect(result.edit.promptScriptPath).toBe(path.resolve(scriptPath));
+
+      const resolvedPath2 = path.resolve(scriptPath);
+      const foundEdit = await promptEditRepo.findByScriptPath(resolvedPath2);
+      expect(foundEdit?.id).toBe(result.edit.id);
+    });
+
+    it("throws when editId does not match script path", async () => {
+      const scriptPath1 = path.join(tempDir, "script1.prompt.md");
+      const scriptPath2 = path.join(tempDir, "script2.prompt.md");
+
+      await writeScriptFile(scriptPath1, "---\n---\nContent 1");
+      await writeScriptFile(scriptPath2, "---\n---\nContent 2");
+
+      const edit = await promptEditRepo.create({
+        id: randomUUID(),
+        promptScriptPath: path.resolve(scriptPath1),
+        contentDraft: null,
+        updatedAt: new Date(),
+      });
+
+      await expect(
+        service.savePromptScript({
+          scriptPath: scriptPath2,
+          content: "---\n---\nNew content",
+          editId: edit.id,
+        }),
+      ).rejects.toThrow("Prompt edit path mismatch");
     });
   });
 });

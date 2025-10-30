@@ -18,6 +18,7 @@ export function createPromptScriptRouter(
           name: z.string().optional(),
           templatePath: z.string().optional(),
           args: z.array(z.string()).optional(),
+          promptEditId: z.string().optional(),
         }),
       )
       .mutation(async ({ input }) => {
@@ -27,8 +28,31 @@ export function createPromptScriptRouter(
           {
             templatePath: input.templatePath,
             args: input.args,
+            promptEditId: input.promptEditId,
           },
         );
+      }),
+
+    open: publicProcedure
+      .input(z.object({ scriptPath: z.string() }))
+      .query(async ({ input }) => {
+        return promptScriptService.openPromptScript(input.scriptPath);
+      }),
+
+    save: publicProcedure
+      .input(
+        z.object({
+          scriptPath: z.string(),
+          content: z.string(),
+          editId: z.string().optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        return promptScriptService.savePromptScript({
+          scriptPath: input.scriptPath,
+          content: input.content,
+          editId: input.editId,
+        });
       }),
     createLinkedChatSession: publicProcedure
       .input(

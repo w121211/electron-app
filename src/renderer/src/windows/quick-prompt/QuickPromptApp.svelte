@@ -494,6 +494,11 @@
     const handleVisibilityChange = (): void => {
       if (document.hidden) {
         closeMenus();
+      } else {
+        if (textareaElement) {
+          textareaElement.focus();
+          textareaElement.setSelectionRange(promptValue.length, promptValue.length);
+        }
       }
     };
 

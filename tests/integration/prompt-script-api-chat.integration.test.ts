@@ -25,6 +25,10 @@ import { PromptScriptRepository } from "../../src/core/services/prompt-script/pr
 import { PromptScriptService } from "../../src/core/services/prompt-script/prompt-script-service.js";
 import { TerminalChatClient } from "../../src/core/services/external-chat/terminal-chat-client.js";
 import { WebChatClient } from "../../src/core/services/external-chat/web-chat-client.js";
+import {
+  PromptEditRepositoryImpl,
+  type PromptEditRepository,
+} from "../../src/core/services/prompt/prompt-edit-repository.js";
 import { substituteArgs } from "../../src/core/services/prompt-script/prompt-script-parser.js";
 import { getModelMessageContentString } from "../../src/core/utils/message-utils.js";
 import { getModelSurface } from "../../src/core/utils/model-utils.js";
@@ -39,6 +43,7 @@ describeIntegration("Prompt script API chat integration", () => {
   let toolRegistry: ToolRegistry;
   let databasePath: string;
   let promptScriptRepo: PromptScriptRepository;
+  let promptEditRepo: PromptEditRepository;
   let promptScriptService: PromptScriptService;
   let terminalChatClient: TerminalChatClient;
   let webChatClient: WebChatClient;
@@ -74,11 +79,15 @@ describeIntegration("Prompt script API chat integration", () => {
     });
 
     promptScriptRepo = new PromptScriptRepository();
+    promptEditRepo = new PromptEditRepositoryImpl({
+      databaseFilePath: databasePath,
+    });
     terminalChatClient = new TerminalChatClient(eventBus, repository);
     webChatClient = new WebChatClient(eventBus, repository);
     promptScriptService = new PromptScriptService({
       promptScriptRepo,
       chatSessionRepo: repository,
+      promptEditRepo,
       apiChatClient: client,
       terminalChatClient,
       webChatClient,
@@ -118,14 +127,14 @@ modelId: api/openai:gpt-4o-mini
 <!-- user input="true" label="Name" -->
 Say hello to $1 and mention this is a prompt script integration test.
 `;
-    const createdScript = await promptScriptService.createPromptScript(
+    const createResult = await promptScriptService.createPromptScript(
       promptScriptDirectory,
       "prompt-script-integration-test",
     );
-    await fs.writeFile(createdScript.absolutePath, scriptMarkdown);
+    await fs.writeFile(createResult.script.absolutePath, scriptMarkdown);
 
     const preparedScript = await promptScriptRepo.read(
-      createdScript.absolutePath,
+      createResult.script.absolutePath,
     );
     const modelId = ModelIdSchema.parse(
       preparedScript.promptScriptParsed.metadata.modelId,
@@ -231,14 +240,14 @@ modelId: api/aigateway:google/gemini-2.5-flash-lite
 <!-- user input="true" label="Topic" -->
 Generate a focused system prompt for $1 that emphasizes integration reliability.
 `;
-    const createdScript = await promptScriptService.createPromptScript(
+    const createResult = await promptScriptService.createPromptScript(
       promptScriptDirectory,
       "prompt-script-api-model-id-test",
     );
-    await fs.writeFile(createdScript.absolutePath, scriptMarkdown);
+    await fs.writeFile(createResult.script.absolutePath, scriptMarkdown);
 
     const preparedScript = await promptScriptRepo.read(
-      createdScript.absolutePath,
+      createResult.script.absolutePath,
     );
     const modelId = ModelIdSchema.parse(
       preparedScript.promptScriptParsed.metadata.modelId,

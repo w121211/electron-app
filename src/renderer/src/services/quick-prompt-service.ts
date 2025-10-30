@@ -127,14 +127,14 @@ export async function generatePrompt(
   );
 
   // Step 2: Create prompt script with template substitution (backend handles it)
-  const script = await trpcClient.promptScript.create.mutate({
+  const result = await trpcClient.promptScript.create.mutate({
     directory: saveDirectory,
     templatePath,
     args: [userInput],
   });
 
   // Step 3: Extract modelId from the created prompt script
-  const modelId = script.promptScriptParsed.metadata.modelId;
+  const modelId = result.script.promptScriptParsed.metadata.modelId;
   if (!modelId) {
     throw new Error(
       `generate-prompt template not define the modelId, path: ${templatePath}`,
@@ -148,16 +148,16 @@ export async function generatePrompt(
 
   // Step 4: Create chat session
   const linked = await trpcClient.promptScript.createLinkedChatSession.mutate({
-    promptScriptPath: script.absolutePath,
+    promptScriptPath: result.script.absolutePath,
     modelId: modelId as `${string}/${string}`,
   });
 
   // Step 5: Send the first message (the substituted prompt content)
-  if (!script.promptScriptParsed.prompts[0].content) {
-    throw new Error(`Prompt is empty: ${script.promptScriptParsed.prompts}`);
+  if (!result.script.promptScriptParsed.prompts[0].content) {
+    throw new Error(`Prompt is empty: ${result.script.promptScriptParsed.prompts}`);
   }
 
-  const firstPrompt = script.promptScriptParsed.prompts[0].content;
+  const firstPrompt = result.script.promptScriptParsed.prompts[0].content;
 
   // Step 6: Send message and wait for AI response
   const { session } = await apiChatService.sendMessage({

@@ -172,8 +172,8 @@ export class DocumentService {
       payload.name = name;
     }
 
-    const script = await trpcClient.promptScript.create.mutate(payload);
-    return script;
+    const result = await trpcClient.promptScript.create.mutate(payload);
+    return result.script;
   }
 
   async createPromptScriptWithContent(

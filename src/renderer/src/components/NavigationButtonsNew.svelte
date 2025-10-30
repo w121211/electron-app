@@ -15,9 +15,9 @@
 
   async function handleNewPrompt(): Promise<void> {
     try {
-      await window.api.quickPromptWindow.toggle();
+      await window.api.quickPromptWindow.show();
     } catch (error) {
-      console.error("Failed to toggle quick prompt window:", error);
+      console.error("Failed to show quick prompt window:", error);
       showToast("Failed to open quick prompt", "error");
     }
   }

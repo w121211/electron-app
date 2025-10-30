@@ -1,7 +1,7 @@
 // src/main/index.ts
 import path from "node:path";
 import fs from "node:fs/promises";
-import { app, BrowserWindow } from "electron";
+import { app } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
 import { requestRendererSnapshot } from "../core/services/chat/pty-chat/pty-snapshot-provider.js";
@@ -88,8 +88,11 @@ app.on("activate", () => {
   if (!context) {
     return;
   }
-  if (BrowserWindow.getAllWindows().length === 0) {
+  const mainWindow = context.getMainWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) {
     createMainWindow(context);
+  } else {
+    mainWindow.show();
   }
 });
 

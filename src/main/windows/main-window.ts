@@ -27,9 +27,9 @@ export function createMainWindow(context: MainProcessContext): BrowserWindow {
 
   window.on("ready-to-show", () => {
     window.show();
-    if (is.dev) {
-      window.webContents.openDevTools();
-    }
+    // if (is.dev) {
+    //   window.webContents.openDevTools();
+    // }
   });
 
   window.webContents.setWindowOpenHandler((details) => {
