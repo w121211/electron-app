@@ -1,0 +1,203 @@
+<!-- notes/ui_design/design-ui-v15_1_prompt_centric.html -->
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Chat App - Prompt-Centric UI v15.1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+  <style type="text/tailwindcss">
+    @theme {
+        --color-background: #181818;
+        --color-surface: #1f1f1f;
+        --color-border: #2b2b2b;
+        --color-muted: #9d9d9d;
+        --color-hover: #2b2b2b;
+        --color-accent: #4a90e2;
+        --color-foreground: #cccccc;
+      }
+      .filter-chip {
+        @apply flex items-center rounded-xl bg-border px-2 py-1 text-xs uppercase text-muted transition-colors;
+      }
+      .filter-chip:hover {
+        @apply text-foreground;
+      }
+      .filter-chip.is-active {
+        @apply text-accent;
+      } 
+    </style>
+</head>
+
+<body class="bg-background text-foreground h-screen overflow-hidden">
+  <div class="flex h-screen">
+    <!-- Left Navigator -->
+    <nav class="w-10 flex flex-col items-center gap-3 py-2 pl-1">
+      <div class="flex flex-1 flex-col items-center gap-3 text-base text-muted">
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+          title="New Prompt">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="flex h-8 w-8 items-center justify-center rounded-lg  hover:bg-hover hover:text-foreground"
+          title="Prompts">
+          <i class="bi bi-stars text-accent"></i>
+        </button>
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+          title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+          title="Projects">
+          <i class="bi bi-folder"></i>
+        </button>
+      </div>
+
+      <!-- <div class="flex flex-1 flex-col items-center gap-3 pt-2 text-xs text-muted">
+        <button class="flex h-9 w-9 items-center justify-center rounded-lg bg-border text-foreground hover:bg-hover"
+          title="Prompts">
+          <i class="bi bi-stars"></i>
+        </button>
+        <button class="relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-hover" title="Search">
+          <i class="bi bi-search"></i>
+          <span class="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-accent"></span>
+        </button>
+        <button class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-hover" title="Projects">
+          <i class="bi bi-grid"></i>
+        </button>
+      </div> -->
+
+
+      <button
+        class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+        title="Settings">
+        <i class="bi bi-gear"></i>
+      </button>
+    </nav>
+
+    <!-- Prompt Panel -->
+    <aside class="w-64 flex flex-col border-r border-border bg-background/40">
+      <div class=" px-3 py-3">
+        <div class="flex min-w-0 items-center gap-1 overflow-x-auto">
+          <button class="filter-chip is-active shrink-0">
+            <span>All</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Active</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Terminated</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Queued</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Draft</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Web</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>CLI</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto pr-2">
+        <nav class="text-xs flex flex-col gap-0.5">
+          <a href="#" class="group flex flex-col gap-1 bg-border rounded-lg p-2">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-openai text-muted"></i>
+                <span class="truncate pr-1 font-medium text-foreground">Scan Reddit for hot topics</span>
+              </div>
+              <span class="flex items-center gap-1 text-[10px] uppercase text-accent">
+                <i class="bi bi-stars"></i>
+                <span>Running</span>
+              </span>
+            </div>
+            <div class="text-[11px] text-muted">WEB · my-ai-project</div>
+          </a>
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 hover:bg-border ">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-terminal text-muted"></i>
+                <span class="truncate pr-1 font-medium text-foreground">Research AI automation competitors</span>
+              </div>
+              <span class="flex items-center gap-1 text-[10px] uppercase text-accent">
+                <i class="bi bi-person-raised-hand"></i>
+                <span>Awaiting</span>
+              </span>
+            </div>
+            <div class="text-[11px] text-muted">CLI · demo-project/competitor-research.prompt.md</div>
+          </a>
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 hover:bg-border">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-robot text-muted"></i>
+                <span class="truncate pr-2 font-medium text-foreground">Automate daily stand-up summaries</span>
+              </div>
+              <span class="flex items-center gap-1 text-[10px] uppercase text-muted">
+                <i class="bi bi-moon-fill"></i>
+                <span>Idle</span>
+              </span>
+            </div>
+            <div class="text-[11px] text-muted">Automation · team-ops/daily-standup.prompt.md</div>
+          </a>
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 hover:bg-border">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-file-text text-muted"></i>
+                <span class="truncate pr-2 font-medium text-foreground">Draft a 60-second video script</span>
+              </div>
+            </div>
+            <div class="text-[11px] text-muted">Draft</div>
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main Panel -->
+    <main class="flex-1 flex flex-col bg-surface">
+      <div class="flex h-11 shrink-0 items-center justify-between px-4 text-xs">
+        <div class="flex items-center gap-3">
+          <button class="flex cursor-pointer items-center gap-1  hover:text-accent" title="Select Project">
+            <i class="bi bi-folder"></i>
+            <span>my-ai-project</span>
+          </button>
+          <button class="flex cursor-pointer items-center gap-1  hover:text-accent" title="Select Model">
+            <i class="bi bi-cpu"></i>
+            <span>Claude 3.5</span>
+          </button>
+          <button title="Attach Files" class="cursor-pointer  hover:text-accent">
+            <i class="bi bi-paperclip text-sm"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="cursor-pointer rounded p-1.5  hover:text-accent" title="Record Audio">
+            <i class="bi bi-mic-fill"></i>
+          </button>
+          <button class="cursor-pointer rounded p-1.5  hover:text-accent" title="Generate Prompt">
+            <i class="bi bi-stars"></i>
+          </button>
+          <button class="flex items-center gap-1.5 rounded-md pr-3 pl-1.5 py-1.5 hover:text-accent" title="Send Prompt">
+            <i class="bi bi-send"></i>
+            <span>Send</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-1 flex-col p-3">
+        <textarea id="edit-textarea"
+          placeholder="Enter your prompt here. Use '/' for commands, or @path/to/file to reference files."
+          class="h-full w-full resize-none bg-surface px-3 py-2 text-sm leading-6 text-foreground outline-none placeholder-muted">Scan Reddit and Hacker News for hot topics on productivity tools, then summarize the top user pain points.
+
+@/Users/cw/Documents/GitHub/electron-app/src/core/services/chat/chat-service.ts
+</textarea>
+      </div>
+    </main>
+  </div>
+</body>
+
+</html>

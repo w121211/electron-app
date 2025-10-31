@@ -2,15 +2,16 @@
 <script lang="ts">
   import { House, Search, Plus, Gear } from "svelte-bootstrap-icons";
   import { ui } from "../stores/ui.svelte.js";
-  import { showToast } from "../stores/ui-store.svelte.js";
+  import { showToast, uiState } from "../stores/ui-store.svelte.js";
+  import { resetQuickLauncher } from "../stores/quick-launcher-store.svelte.js";
 
   function handleGoHome(): void {
-    ui.activeFilePath = null;
-    ui.promptEditorOpen = false;
+    window.location.reload();
   }
 
   function handleSearch(): void {
-    showToast("Search is not implemented yet.", "info");
+    resetQuickLauncher();
+    uiState.quickLauncherOpen = true;
   }
 
   async function handleNewPrompt(): Promise<void> {

@@ -17,6 +17,18 @@ import {
 import { fileSearchService } from "./file-search-service.js";
 import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
 import { documentClientService } from "./document-client-service.js";
+import { trpcClient } from "../lib/trpc-client.js";
+import type { PromptEdit } from "../../../core/services/prompt/prompt-edit-repository.js";
+
+export interface PromptEditSummary {
+  id: string;
+  title: string;
+  preview: string | null;
+  scriptPath: string | null;
+  relativePath: string | null;
+  updatedAt: Date;
+  isDraft: boolean;
+}
 
 class QuickLauncherService {
   private logger = new Logger({ name: "QuickLauncherService" });
@@ -25,60 +37,116 @@ class QuickLauncherService {
   async loadRecentPromptScripts(): Promise<void> {
     try {
       this.logger.debug("Loading recent prompt scripts");
-      const scripts: PromptScriptSearchResult[] = [];
+      const edits = await trpcClient.promptEdit.getRecentEdits.query({
+        limit: 50,
+      });
 
-      // Scan project folders for .prompt.md files
-      for (const projectFolder of projectState.projectFolders) {
-        const folderTree = projectState.folderTrees[projectFolder.path];
-        if (folderTree) {
-          const items = await this.findPromptScripts(folderTree, projectFolder.path);
-          scripts.push(...items);
-        }
-      }
-
-      scripts.sort(
-        (a, b) => b.lastModified.getTime() - a.lastModified.getTime(),
-      );
-
-      const limited = scripts.slice(0, 10);
-
-      setRecentPromptScripts(limited);
-      this.logger.debug(`Loaded ${limited.length} recent prompt scripts`);
+      const scripts = this.toPromptScriptResults(edits);
+      setRecentPromptScripts(scripts);
+      this.logger.debug(`Loaded ${scripts.length} recent prompt scripts`);
     } catch (error) {
       this.logger.error("Failed to load recent prompt scripts:", error);
       setRecentPromptScripts([]);
     }
   }
 
-  private async findPromptScripts(
-    node: any,
-    projectRoot: string,
-    results: PromptScriptSearchResult[] = [],
-  ): Promise<PromptScriptSearchResult[]> {
-    if (!node) return results;
+  private toPromptScriptResults(edits: PromptEdit[]): PromptScriptSearchResult[] {
+    const seen = new Set<string>();
+    const results: PromptScriptSearchResult[] = [];
 
-    if (!node.isDirectory && node.name?.endsWith(".prompt.md")) {
-      const relativePath = path.relative(projectRoot, node.path);
-      const title = node.name.replace(/\.prompt\.md$/, "");
+    for (const edit of edits) {
+      const scriptPath = edit.promptScriptPath;
+      if (!scriptPath || seen.has(scriptPath)) {
+        continue;
+      }
+
+      const title = this.resolveTitle(scriptPath);
+      const relativePath = this.resolveRelativePath(scriptPath);
 
       results.push({
-        id: node.path,
+        id: edit.id,
         title,
         relativePath,
-        absolutePath: node.path,
-        lastModified: new Date(node.lastModified || Date.now()),
+        absolutePath: scriptPath,
+        lastModified: new Date(edit.updatedAt),
         highlightTokens: [{ text: relativePath, isHighlighted: false }],
       });
+
+      seen.add(scriptPath);
     }
 
-    // Recursively search children
-    if (node.children && Array.isArray(node.children)) {
-      for (const child of node.children) {
-        await this.findPromptScripts(child, projectRoot, results);
+    results.sort(
+      (a, b) => b.lastModified.getTime() - a.lastModified.getTime(),
+    );
+
+    return results.slice(0, 10);
+  }
+
+  async fetchRecentPromptEdits(limit = 20): Promise<PromptEditSummary[]> {
+    try {
+      const edits = await trpcClient.promptEdit.getRecentEdits.query({ limit });
+      return edits.map((edit) => this.toPromptEditSummary(edit));
+    } catch (error) {
+      this.logger.error("Failed to fetch recent prompt edits:", error);
+      return [];
+    }
+  }
+
+  private toPromptEditSummary(edit: PromptEdit): PromptEditSummary {
+    const scriptPath = edit.promptScriptPath;
+    const preview = this.normalizePreview(edit.contentDraft);
+    const relativePath = scriptPath ? this.resolveRelativePath(scriptPath) : null;
+    const isDraft = !scriptPath;
+
+    const title = scriptPath
+      ? this.resolveTitle(scriptPath)
+      : preview ?? "Quick Prompt Draft";
+
+    return {
+      id: edit.id,
+      title,
+      preview,
+      scriptPath,
+      relativePath,
+      updatedAt: new Date(edit.updatedAt),
+      isDraft,
+    };
+  }
+
+  private normalizePreview(preview: string | null | undefined): string | null {
+    if (!preview) {
+      return null;
+    }
+
+    const condensed = preview.replace(/\s+/g, " ").trim();
+    if (condensed.length === 0) {
+      return null;
+    }
+
+    const maxLength = 200;
+    if (condensed.length > maxLength) {
+      return `${condensed.slice(0, maxLength).trimEnd()}...`;
+    }
+
+    return condensed;
+  }
+
+  private resolveTitle(scriptPath: string): string {
+    const filename = path.basename(scriptPath);
+    return filename.replace(/\.prompt\.md$/i, "") || filename;
+  }
+
+  private resolveRelativePath(scriptPath: string): string {
+    for (const projectFolder of projectState.projectFolders) {
+      const relative = path.relative(projectFolder.path, scriptPath);
+      if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) {
+        return relative;
+      }
+      if (relative === "") {
+        return path.basename(scriptPath);
       }
     }
-
-    return results;
+    return scriptPath;
   }
 
   async performSearch(query: string): Promise<void> {

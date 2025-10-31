@@ -9,7 +9,7 @@ import {
 export interface PromptEdit {
   id: string;
   promptScriptPath: string | null; // NULL = pure draft, non-NULL = linked to script
-  contentDraft: string | null; // Only used when path=null (pure draft state)
+  contentDraft: string | null; // Stores draft text or preview snippet
   updatedAt: Date;
 }
 

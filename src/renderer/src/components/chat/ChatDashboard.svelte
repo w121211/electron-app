@@ -25,9 +25,13 @@
     type ChatSessionState,
   } from "../../stores/chat.svelte.js";
   import { projectState } from "../../stores/project-store.svelte.js";
-  import { quickLauncherService } from "../../services/quick-launcher-service.js";
-  import { quickLauncherState } from "../../stores/quick-launcher-store.svelte.js";
+  import {
+    quickLauncherService,
+    type PromptEditSummary,
+  } from "../../services/quick-launcher-service.js";
   import NavigationButtonsNew from "../NavigationButtonsNew.svelte";
+  import { apiChatService } from "../../services/api-chat-service.js";
+  import { ptyChatService } from "../../services/pty-chat-service.js";
 
   type TabKey = "active" | "queued" | "terminated";
 
@@ -35,6 +39,10 @@
 
   let selectedTab = $state<TabKey>("active");
   let hasLoadedPrompts = $state(false);
+  let lastProjectFolderKey = $state<string | null>(null);
+  let hasLoadedSessions = $state(false);
+  let recentPromptEdits = $state<PromptEditSummary[]>([]);
+  let isLoadingRecentPromptEdits = $state(false);
 
   const sessionStates = $derived(
     Object.values(chatSessions) as ChatSessionState[],
@@ -87,17 +95,82 @@
 
   const recentPromptsLimit = 6;
   const recentPrompts = $derived(
-    quickLauncherState.recentPromptScripts.slice(0, recentPromptsLimit),
+    recentPromptEdits.slice(0, recentPromptsLimit),
   );
 
   $effect(() => {
-    if (
-      !hasLoadedPrompts &&
-      projectState.projectFolders.length > 0 &&
-      Object.keys(projectState.folderTrees).length > 0
-    ) {
+    const projectFolderKey = projectState.projectFolders
+      .map((folder) => folder.path)
+      .sort()
+      .join("|");
+
+    if (!hasLoadedPrompts || projectFolderKey !== lastProjectFolderKey) {
       hasLoadedPrompts = true;
+      lastProjectFolderKey = projectFolderKey;
       void quickLauncherService.loadRecentPromptScripts();
+      void loadRecentPromptEdits();
+    }
+  });
+
+  async function loadChatSessions(): Promise<void> {
+    const results = await Promise.allSettled([
+      apiChatService.listSessions(),
+      ptyChatService.listSessions(),
+    ]);
+
+    let hadError = false;
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logger.error("Failed to load chat sessions", result.reason);
+        hadError = true;
+      }
+    }
+
+    if (hadError) {
+      showToast("Failed to load some chat sessions", "error");
+    }
+  }
+
+  async function loadRecentPromptEdits(): Promise<void> {
+    try {
+      isLoadingRecentPromptEdits = true;
+      const summaries = await quickLauncherService.fetchRecentPromptEdits(24);
+      recentPromptEdits = summaries
+        .slice()
+        .sort(
+          (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+        );
+    } catch (error) {
+      logger.error("Failed to load recent prompt edits", error);
+      recentPromptEdits = [];
+    } finally {
+      isLoadingRecentPromptEdits = false;
+    }
+  }
+
+  async function handlePromptEditSelect(entry: PromptEditSummary): Promise<void> {
+    if (entry.scriptPath) {
+      try {
+        await projectService.selectFile(entry.scriptPath);
+      } catch (error) {
+        logger.error("Failed to open prompt script", error);
+        showToast("Failed to open prompt script", "error");
+      }
+      return;
+    }
+
+    try {
+      await window.api.quickPromptWindow.show();
+    } catch (error) {
+      logger.error("Failed to open quick prompt window", error);
+      showToast("Failed to open quick prompt window", "error");
+    }
+  }
+
+  $effect(() => {
+    if (!hasLoadedSessions) {
+      hasLoadedSessions = true;
+      void loadChatSessions();
     }
   });
 
@@ -217,17 +290,6 @@
     return "text-muted";
   }
 
-  function getTerminateLabel(session: ChatSessionData): string {
-    if (session.state === "active:generating") {
-      return "Stop";
-    }
-    return "Terminate";
-  }
-
-  function shouldShowActions(session: ChatSessionData): boolean {
-    return session.state !== "terminated";
-  }
-
   function formatSessionTitle(session: ChatSessionData): string {
     if (session.metadata?.title) {
       return session.metadata.title;
@@ -305,17 +367,16 @@
               >
                 <Icon class={`text-base ${getStatusIconClass(session)}`} />
                 <div class="min-w-0 flex-1">
-                  <a
-                    href="#"
+                  <button
+                    type="button"
                     class="text-foreground hover:text-accent block w-full truncate text-left font-medium"
                     title={formatSessionTitle(session)}
-                    onclick={(e) => {
-                      e.preventDefault();
+                    onclick={() => {
                       void handleEditPrompt(session);
                     }}
                   >
                     {formatSessionTitle(session)}
-                  </a>
+                  </button>
                   <div
                     class="text-muted mt-1.5 flex flex-wrap items-center gap-3 text-xs"
                   >
@@ -400,33 +461,48 @@
         <div class="mt-2 space-y-1">
           {#if recentPrompts.length === 0}
             <div class="text-muted px-2 py-4 text-sm">
-              No recent prompt scripts found
+              {isLoadingRecentPromptEdits
+                ? "Loading recent prompts..."
+                : "No recent prompts found"}
             </div>
           {:else}
-            {#each recentPrompts as script (script.id)}
-              <div
-                class="group hover:bg-surface flex items-center gap-3 rounded-lg p-2"
+            {#each recentPrompts as entry (entry.id)}
+              <button
+                type="button"
+                class="group hover:bg-surface flex w-full items-start gap-3 rounded-lg p-2 text-left transition-colors"
+                onclick={() => void handlePromptEditSelect(entry)}
               >
                 <span class="text-muted">
-                  <Terminal class="text-sm" />
+                  {#if entry.scriptPath}
+                    <Terminal class="text-sm" />
+                  {:else}
+                    <Stars class="text-sm" />
+                  {/if}
                 </span>
-                <div class="min-w-0 flex-1">
-                  <a
-                    href="#"
-                    class="text-foreground hover:text-accent block w-full truncate text-left font-medium"
-                    title={script.title}
-                    onclick={(e) => {
-                      e.preventDefault();
-                      void projectService.selectFile(script.absolutePath);
-                    }}
-                  >
-                    {script.title}
-                  </a>
+                <div class="min-w-0 flex-1 space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="text-foreground truncate font-medium"
+                      title={entry.title}
+                    >
+                      {entry.title}
+                    </span>
+                    <span class="text-muted text-xs">
+                      {formatRelativeTime(entry.updatedAt)}
+                    </span>
+                  </div>
+                  {#if entry.preview}
+                    <div class="text-muted truncate text-xs">
+                      {entry.preview}
+                    </div>
+                  {/if}
                   <div class="text-muted truncate text-xs">
-                    {script.relativePath}
+                    {entry.scriptPath
+                      ? entry.relativePath ?? entry.scriptPath
+                      : "Quick prompt draft"}
                   </div>
                 </div>
-              </div>
+              </button>
             {/each}
           {/if}
         </div>

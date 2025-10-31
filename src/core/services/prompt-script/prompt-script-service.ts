@@ -99,6 +99,7 @@ export class PromptScriptService {
 
     const script = await this.promptScriptRepo.create(filePath, content);
     const now = new Date();
+    const preview = this.extractEditPreview(script.content);
 
     let edit: PromptEdit;
     if (options?.promptEditId) {
@@ -109,14 +110,14 @@ export class PromptScriptService {
 
       edit = await this.promptEditRepo.update(options.promptEditId, {
         promptScriptPath: script.absolutePath,
-        contentDraft: null,
+        contentDraft: preview,
         updatedAt: now,
       });
     } else {
       edit = await this.promptEditRepo.create({
         id: randomUUID(),
         promptScriptPath: script.absolutePath,
-        contentDraft: null,
+        contentDraft: preview,
         updatedAt: now,
       });
     }
@@ -377,12 +378,18 @@ export class PromptScriptService {
 
     let edit = await this.promptEditRepo.findByScriptPath(absolutePath);
     const now = new Date();
+    const preview = this.extractEditPreview(promptScript.content);
 
     if (!edit) {
       edit = await this.promptEditRepo.create({
         id: randomUUID(),
         promptScriptPath: absolutePath,
-        contentDraft: null,
+        contentDraft: preview,
+        updatedAt: now,
+      });
+    } else if (edit.contentDraft !== preview) {
+      edit = await this.promptEditRepo.update(edit.id, {
+        contentDraft: preview,
         updatedAt: now,
       });
     }
@@ -417,6 +424,7 @@ export class PromptScriptService {
 
     const now = new Date();
     let edit: PromptEdit;
+    const preview = this.extractEditPreview(params.content);
 
     if (params.editId) {
       const existing = await this.promptEditRepo.findById(params.editId);
@@ -431,7 +439,7 @@ export class PromptScriptService {
       }
 
       edit = await this.promptEditRepo.update(params.editId, {
-        contentDraft: null,
+        contentDraft: preview,
         updatedAt: now,
       });
     } else {
@@ -439,20 +447,35 @@ export class PromptScriptService {
 
       if (existingEdit) {
         edit = await this.promptEditRepo.update(existingEdit.id, {
-          contentDraft: null,
+          contentDraft: preview,
           updatedAt: now,
         });
       } else {
         edit = await this.promptEditRepo.create({
           id: randomUUID(),
           promptScriptPath: absolutePath,
-          contentDraft: null,
+          contentDraft: preview,
           updatedAt: now,
         });
       }
     }
 
     return { document, edit };
+  }
+
+  private extractEditPreview(content: string): string | null {
+    const withoutFrontMatter = content.replace(/^---[\s\S]*?---\s*/, "");
+    const normalized = withoutFrontMatter.replace(/\s+/g, " ").trim();
+    if (normalized.length === 0) {
+      return null;
+    }
+
+    const maxLength = 280;
+    if (normalized.length > maxLength) {
+      return `${normalized.slice(0, maxLength).trimEnd()}...`;
+    }
+
+    return normalized;
   }
 
   private async updateSessionMetadata(

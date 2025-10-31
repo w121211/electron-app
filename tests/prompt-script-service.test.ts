@@ -585,7 +585,7 @@ Content
       expect(result.document.kind).toBe("promptScript");
       expect(result.edit).toBeDefined();
       expect(result.edit.promptScriptPath).toBe(path.resolve(scriptPath));
-      expect(result.edit.contentDraft).toBeNull();
+      expect(result.edit.contentDraft).toBe("Content");
 
       const foundEdit = await promptEditRepo.findByScriptPath(
         path.resolve(scriptPath),
@@ -613,7 +613,7 @@ Content
       const result = await service.openPromptScript(scriptPath);
 
       expect(result.edit.id).toBe(existingEdit.id);
-      expect(result.edit.contentDraft).toBe("draft");
+      expect(result.edit.contentDraft).toBe("Content");
     });
   });
 
@@ -649,7 +649,7 @@ Updated content
       });
 
       expect(result.document.content).toBe(newContent);
-      expect(result.edit.contentDraft).toBeNull();
+      expect(result.edit.contentDraft).toBe("Updated content");
 
       const savedContent = await fs.readFile(scriptPath, "utf8");
       expect(savedContent).toBe(newContent);
@@ -679,6 +679,7 @@ New content
 
       expect(result.edit).toBeDefined();
       expect(result.edit.promptScriptPath).toBe(path.resolve(scriptPath));
+      expect(result.edit.contentDraft).toBe("New content");
 
       const resolvedPath2 = path.resolve(scriptPath);
       const foundEdit = await promptEditRepo.findByScriptPath(resolvedPath2);

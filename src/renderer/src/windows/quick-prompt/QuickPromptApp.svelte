@@ -15,6 +15,7 @@
     LightningChargeFill,
     Cone,
     MicFill,
+    PlusCircle,
   } from "svelte-bootstrap-icons";
   import {
     chatSettings,
@@ -26,6 +27,8 @@
   import {
     launchChat,
     generatePrompt,
+    loadQuickPromptDraft,
+    saveQuickPromptDraft,
   } from "../../services/quick-prompt-service.js";
   import type { ProjectFolder } from "../../stores/project-store.svelte.js";
   import { createFileMention } from "../../../../core/utils/message-utils.js";
@@ -43,9 +46,14 @@
   let hasFocusedEditor = $state(false);
   let status = $state<{ message: string; type: StatusType } | null>(null);
   let statusTimeout = $state<number | null>(null);
+  let promptEditId = $state<string | null>(null);
+  let lastPersistedDraft = $state("");
   let recordingState = $state<"idle" | "recording" | "unavailable">("idle");
   let mediaRecorder: MediaRecorder | null = null;
   let audioChunks = $state<Blob[]>([]);
+  let saveQueue: Promise<void> = Promise.resolve();
+  let latestScheduledSaveId = 0;
+  let autoSaveTimer: number | null = null;
 
   const projects = $derived(projectState.projectFolders);
   const allModels = $derived.by(getAvailableModelsAsList);
@@ -60,6 +68,11 @@
   };
 
   const handleKeyDown = (event: KeyboardEvent): void => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "n") {
+      event.preventDefault();
+      void handleCreateNewPrompt();
+      return;
+    }
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
       void handleLaunchChat();
@@ -357,6 +370,69 @@
     status = null;
   };
 
+  const enqueueDraftSave = (draft: string): void => {
+    const requestId = ++latestScheduledSaveId;
+    const targetEditId = promptEditId;
+    saveQueue = saveQueue
+      .catch(() => {})
+      .then(async () => {
+        try {
+          const saved = await saveQuickPromptDraft({
+            editId: targetEditId ?? undefined,
+            content: draft,
+          });
+
+          if (requestId === latestScheduledSaveId) {
+            promptEditId = saved.editId;
+            lastPersistedDraft = saved.content;
+          }
+        } catch (error) {
+          logger.error("Failed to auto-save quick prompt draft", error);
+        }
+      });
+  };
+
+  const handleCreateNewPrompt = async (): Promise<void> => {
+    try {
+      if (autoSaveTimer !== null) {
+        window.clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+      }
+
+      await saveQueue.catch(() => {});
+
+      if (promptEditId !== null || promptValue !== lastPersistedDraft) {
+        const savedCurrent = await saveQuickPromptDraft({
+          editId: promptEditId ?? undefined,
+          content: promptValue,
+        });
+        promptEditId = savedCurrent.editId;
+        lastPersistedDraft = savedCurrent.content;
+      }
+
+      const newDraft = await saveQuickPromptDraft({ content: "" });
+      promptEditId = newDraft.editId;
+      lastPersistedDraft = newDraft.content;
+      promptValue = newDraft.content;
+
+      latestScheduledSaveId++;
+      saveQueue = Promise.resolve();
+
+      queueMicrotask(() => {
+        textareaElement?.focus();
+      });
+    } catch (error) {
+      logger.error("Failed to create new prompt draft", error);
+      applyStatus(
+        error instanceof Error
+          ? error.message
+          : "Failed to create a new prompt draft.",
+        "error",
+        0,
+      );
+    }
+  };
+
   const loadInitialData = async (): Promise<void> => {
     try {
       const shouldLoadProjects = projectState.projectFolders.length === 0;
@@ -403,6 +479,16 @@
         if (fallback) {
           modelClientService.selectModel(fallback);
         }
+      }
+
+      const draft = await loadQuickPromptDraft();
+      if (draft) {
+        promptEditId = draft.editId;
+        lastPersistedDraft = draft.content;
+        promptValue = draft.content;
+      } else {
+        promptEditId = null;
+        lastPersistedDraft = "";
       }
     } catch (error) {
       logger.error("Failed to load quick prompt metadata", error);
@@ -464,6 +550,30 @@
     }
   };
 
+  $effect(() => {
+    const currentDraft = promptValue;
+
+    if (autoSaveTimer !== null) {
+      window.clearTimeout(autoSaveTimer);
+      autoSaveTimer = null;
+    }
+
+    if (currentDraft === lastPersistedDraft) {
+      return;
+    }
+
+    autoSaveTimer = window.setTimeout(() => {
+      enqueueDraftSave(currentDraft);
+    }, 1000);
+
+    return () => {
+      if (autoSaveTimer !== null) {
+        window.clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+      }
+    };
+  });
+
   onMount(() => {
     loadInitialData().catch((error) => {
       logger.error("Quick prompt initialization failed", error);
@@ -517,6 +627,10 @@
     }
     if (statusTimeout) {
       clearTimeout(statusTimeout);
+    }
+    if (autoSaveTimer !== null) {
+      window.clearTimeout(autoSaveTimer);
+      autoSaveTimer = null;
     }
   });
 
@@ -664,6 +778,14 @@
         {:else}
           <Mic class="text-base" />
         {/if}
+      </button>
+      <button
+        type="button"
+        class="text-muted hover:text-accent rounded-md p-1.5 transition-colors"
+        title="New prompt (Cmd/Ctrl+N)"
+        onclick={() => void handleCreateNewPrompt()}
+      >
+        <PlusCircle class="text-base" />
       </button>
       <button
         type="button"

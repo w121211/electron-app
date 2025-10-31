@@ -22,6 +22,40 @@ export interface LaunchChatParams {
   projectPath: string | null;
 }
 
+export interface QuickPromptDraft {
+  editId: string;
+  content: string;
+}
+
+export async function loadQuickPromptDraft(): Promise<QuickPromptDraft | null> {
+  const edits = await trpcClient.promptEdit.getRecentEdits.query({ limit: 20 });
+  const draft = edits.find((edit) => edit.promptScriptPath === null);
+
+  if (!draft) {
+    return null;
+  }
+
+  return {
+    editId: draft.id,
+    content: draft.contentDraft ?? "",
+  };
+}
+
+export async function saveQuickPromptDraft(params: {
+  editId?: string;
+  content: string;
+}): Promise<QuickPromptDraft> {
+  const saved = await trpcClient.promptEdit.saveEdit.mutate({
+    editId: params.editId,
+    draftContent: params.content,
+  });
+
+  return {
+    editId: saved.id,
+    content: saved.contentDraft ?? "",
+  };
+}
+
 export async function launchChat(
   params: LaunchChatParams,
 ): Promise<ChatSessionData> {
