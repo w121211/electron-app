@@ -47,12 +47,8 @@ export class PtyChatSession {
   private state: ChatState;
   private readonly createdAt: Date;
   private updatedAt: Date;
-
-  // Script-related fields
-  private scriptPath: string | null;
-  private scriptModifiedAt: Date | null;
-  private scriptHash: string | null;
-  private scriptSnapshot: string | null;
+  private readonly sourcePromptId: string | null;
+  private lastSnapshot: string | null;
 
   constructor(data: ChatSessionData, eventBus: IEventBus) {
     if (data.modelSurface !== "pty") {
@@ -69,14 +65,13 @@ export class PtyChatSession {
     this.state = data.state;
     this.createdAt = new Date(data.createdAt);
     this.updatedAt = new Date(data.updatedAt);
-
-    // Initialize script-related fields
-    this.scriptPath = data.scriptPath ?? null;
-    this.scriptModifiedAt = data.scriptModifiedAt
-      ? new Date(data.scriptModifiedAt)
-      : null;
-    this.scriptHash = data.scriptHash ?? null;
-    this.scriptSnapshot = data.scriptSnapshot ?? null;
+    this.sourcePromptId = data.sourcePromptId ?? null;
+    const existingSnapshots =
+      this.metadata.external?.ptySnapshots ?? ([] as { snapshot: string }[]);
+    this.lastSnapshot =
+      existingSnapshots.length > 0
+        ? existingSnapshots[existingSnapshots.length - 1]!.snapshot
+        : null;
   }
 
   get chatState(): ChatState {
@@ -148,8 +143,10 @@ export class PtyChatSession {
       ...this.metadata,
       external: {
         ...this.metadata.external,
+        ptySnapshots: this.appendSnapshot(snapshot),
       },
     };
+    this.lastSnapshot = snapshot;
     this.updatedAt = new Date();
     void this.emitUpdate("MESSAGE_ADDED", {});
   }
@@ -204,13 +201,35 @@ export class PtyChatSession {
         },
       })),
       metadata: structuredClone(this.metadata),
-      scriptPath: this.scriptPath,
-      scriptModifiedAt: this.scriptModifiedAt,
-      scriptHash: this.scriptHash,
-      scriptSnapshot: this.scriptSnapshot,
+      sourcePromptId: this.sourcePromptId,
       createdAt: this.createdAt,
       updatedAt: new Date(this.updatedAt),
     };
+  }
+
+  getLastSnapshot(): string | null {
+    return this.lastSnapshot;
+  }
+
+  private appendSnapshot(snapshot: string) {
+    const currentSnapshots = this.metadata.external?.ptySnapshots ?? [];
+    const trimmed =
+      currentSnapshots.length >= 20
+        ? currentSnapshots.slice(currentSnapshots.length - 19)
+        : currentSnapshots.slice();
+
+    if (!this.metadata.modelId) {
+      return [...trimmed];
+    }
+
+    return [
+      ...trimmed,
+      {
+        modelId: this.metadata.modelId,
+        snapshot,
+        timestamp: new Date(),
+      },
+    ];
   }
 
   private async emitUpdate(

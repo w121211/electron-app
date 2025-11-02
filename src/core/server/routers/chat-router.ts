@@ -1,16 +1,11 @@
 // src/core/server/routers/chat-router.ts
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc-init.js";
-import { ApiChatClient } from "../../services/chat-engine/api-chat-client.js";
-import { TerminalChatClient } from "../../services/external-chat/terminal-chat-client.js";
-import { WebChatClient } from "../../services/external-chat/web-chat-client.js";
 import type { ChatMetadata } from "../../services/chat/chat-session-repository.js";
-import { getModelSurface } from "../../utils/model-utils.js";
+import { ChatService } from "../../services/chat/chat-service.js";
 
 interface CreateChatRouterDependencies {
-  apiChatClient: ApiChatClient;
-  terminalChatClient: TerminalChatClient;
-  webChatClient: WebChatClient;
+  chatService: ChatService;
 }
 
 const modelIdSchema = z
@@ -21,70 +16,36 @@ const modelIdSchema = z
 const chatMetadataInputSchema =
   z.object({}).passthrough() as z.ZodType<Partial<ChatMetadata>>;
 
-const sessionScriptSchema = z
-  .object({
-    path: z.string().nullable().optional(),
-    snapshot: z.string().nullable().optional(),
-    hash: z.string().nullable().optional(),
-    modifiedAt: z.coerce.date().nullable().optional(),
-  })
-  .optional();
-
 const createChatSessionInputSchema = z.object({
   modelId: modelIdSchema,
   title: z.string().optional(),
   workingDirectory: z.string().optional(),
   metadata: chatMetadataInputSchema.optional(),
-  script: sessionScriptSchema,
+  sourcePromptId: z.string().optional(),
+  promptArgs: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .transform((value) => value ?? undefined),
 });
 
 export function createChatRouter({
-  apiChatClient,
-  terminalChatClient,
-  webChatClient,
+  chatService,
 }: CreateChatRouterDependencies) {
   return router({
     createSession: publicProcedure
       .input(createChatSessionInputSchema)
       .mutation(async ({ input }) => {
-        const surface = getModelSurface(input.modelId);
+        const metadata: Partial<ChatMetadata> | undefined = input.metadata
+          ? { ...input.metadata }
+          : undefined;
 
-        if (surface === "terminal") {
-          if (!input.workingDirectory) {
-            throw new Error(
-              "Terminal chats require a working directory (project path).",
-            );
-          }
-
-          return terminalChatClient.createSession({
-            modelId: input.modelId,
-            title: input.title,
-            workingDirectory: input.workingDirectory,
-            metadata: input.metadata,
-            script: input.script,
-          });
-        }
-
-        if (surface === "web") {
-          return webChatClient.createSession({
-            modelId: input.modelId,
-            title: input.title,
-            metadata: input.metadata,
-            script: input.script,
-          });
-        }
-
-        const metadata: Partial<ChatMetadata> = {
-          ...input.metadata,
-          title: input.title ?? input.metadata?.title,
+        return chatService.createChat({
           modelId: input.modelId,
-          modelSurface: surface,
-        };
-
-        return apiChatClient.createSession({
-          modelSurface: "api",
+          title: input.title,
+          sourcePromptId: input.sourcePromptId ?? null,
+          promptArgs: input.promptArgs,
           metadata,
-          script: input.script,
+          workingDirectory: input.workingDirectory ?? null,
         });
       }),
   });

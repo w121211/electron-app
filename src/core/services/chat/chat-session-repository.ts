@@ -1,5 +1,4 @@
 // src/core/services/chat/chat-session-repository.ts
-import path from "node:path";
 import { Kysely, type Insertable, type Selectable } from "kysely";
 import { z } from "zod";
 import {
@@ -9,12 +8,13 @@ import {
   type TypedToolCall,
 } from "ai";
 import {
-  openAppDatabase,
-  type AppDatabase,
-} from "../../database/sqlite-client.js";
+  openAppDatabaseV2,
+  type AppDatabaseV2,
+} from "../../database/sqlite-client-v2.js";
 import type { ToolCallConfirmation } from "../tool-call/tool-call-confirmation.js";
 import type { ToolAlwaysAllowRule } from "../tool-call/tool-call-runner.js";
 import type { ModelSurface } from "../../utils/model-utils.js";
+import type { PromptMetadata, PromptSnapshot } from "../prompt/prompt-types.js";
 
 const modelSurfaceValues = ["api", "terminal", "web", "pty"] as const;
 
@@ -76,6 +76,7 @@ export interface ChatMetadata {
   toolCallConfirmations?: Array<ToolCallConfirmation>;
   toolAlwaysAllowRules?: Array<ToolAlwaysAllowRule>;
   projectPath?: string;
+  promptSnapshot?: PromptSnapshot;
 }
 
 export interface ChatSessionData {
@@ -84,10 +85,7 @@ export interface ChatSessionData {
   state: ChatState;
   messages: ChatMessage[];
   metadata?: ChatMetadata;
-  scriptPath?: string | null;
-  scriptModifiedAt?: Date | null;
-  scriptHash?: string | null;
-  scriptSnapshot?: string | null;
+  sourcePromptId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -113,6 +111,24 @@ export const ExternalChatMetadataSchema: z.ZodType<ExternalChatMetadata> =
     windowTitle: z.string().optional(),
     webChatId: z.string().optional(),
   });
+
+const PromptSnapshotSchema: z.ZodType<PromptSnapshot> = z
+  .object({
+    promptId: z.string(),
+    slug: z.string().nullable(),
+    content: z.string(),
+    metadata: z
+      .record(z.string(), z.unknown())
+      .transform((value) => value as PromptMetadata)
+      .nullable()
+      .optional(),
+    capturedAt: z.string(),
+    args: z.record(z.string(), z.unknown()).optional(),
+  })
+  .transform((value) => ({
+    ...value,
+    metadata: value.metadata ?? null,
+  }));
 
 export const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
   title: z.string().optional(),
@@ -149,6 +165,7 @@ export const ChatMetadataSchema: z.ZodType<ChatMetadata> = z.object({
     )
     .optional(),
   projectPath: z.string().optional(),
+  promptSnapshot: PromptSnapshotSchema.optional(),
 });
 
 export const ChatMessageMetadataSchema: z.ZodType<ChatMessageMetadata> =
@@ -185,10 +202,7 @@ export const ChatSessionDataSchema: z.ZodType<ChatSessionData> = z.object({
   state: ChatStateSchema,
   messages: z.array(ChatMessageSchema),
   metadata: ChatMetadataSchema.optional(),
-  scriptPath: z.string().nullable().optional(),
-  scriptModifiedAt: z.coerce.date().nullable().optional(),
-  scriptHash: z.string().nullable().optional(),
-  scriptSnapshot: z.string().nullable().optional(),
+  sourcePromptId: z.string().nullable().optional(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
@@ -199,25 +213,23 @@ export interface ChatSessionRepository {
   delete(sessionId: string): Promise<void>;
   getById(sessionId: string): Promise<ChatSessionData | null>;
   list(): Promise<ChatSessionData[]>;
-  findByScriptPath(scriptPath: string): Promise<ChatSessionData | null>;
-  findByScriptHash(scriptHash: string): Promise<ChatSessionData[]>;
 }
 
-type ChatSessionRow = Selectable<AppDatabase["chat_sessions"]>;
-type NewChatSessionRow = Insertable<AppDatabase["chat_sessions"]>;
+type ChatSessionRow = Selectable<AppDatabaseV2["chat_sessions"]>;
+type NewChatSessionRow = Insertable<AppDatabaseV2["chat_sessions"]>;
 
-type ChatMessageRow = Selectable<AppDatabase["chat_messages"]>;
-type NewChatMessageRow = Insertable<AppDatabase["chat_messages"]>;
+type ChatMessageRow = Selectable<AppDatabaseV2["chat_messages"]>;
+type NewChatMessageRow = Insertable<AppDatabaseV2["chat_messages"]>;
 
 interface ChatSessionRepositoryOptions {
   databaseFilePath: string;
 }
 
 export class ChatSessionRepositoryImpl implements ChatSessionRepository {
-  private readonly db: Kysely<AppDatabase>;
+  private readonly db: Kysely<AppDatabaseV2>;
 
   constructor(options: ChatSessionRepositoryOptions) {
-    this.db = openAppDatabase(options.databaseFilePath);
+    this.db = openAppDatabaseV2(options.databaseFilePath);
   }
 
   async create(session: ChatSessionData): Promise<void> {
@@ -248,10 +260,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
           modelSurface: sessionRow.modelSurface,
           sessionStatus: sessionRow.sessionStatus,
           metadata: sessionRow.metadata,
-          scriptPath: sessionRow.scriptPath,
-          scriptModifiedAt: sessionRow.scriptModifiedAt,
-          scriptHash: sessionRow.scriptHash,
-          scriptSnapshot: sessionRow.scriptSnapshot,
+          sourcePromptId: sessionRow.sourcePromptId,
           updatedAt: sessionRow.updatedAt,
         })
         .where("id", "=", session.id)
@@ -346,68 +355,6 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
     });
   }
 
-  async findByScriptPath(scriptPath: string): Promise<ChatSessionData | null> {
-    const sessionRow = await this.db
-      .selectFrom("chat_sessions")
-      .selectAll()
-      .where("scriptPath", "=", path.resolve(scriptPath))
-      .orderBy("updatedAt", "desc")
-      .executeTakeFirst();
-
-    if (!sessionRow) {
-      return null;
-    }
-
-    const messageRows = await this.db
-      .selectFrom("chat_messages")
-      .selectAll()
-      .where("chatSessionId", "=", sessionRow.id)
-      .orderBy("messageIndex")
-      .execute();
-
-    return this.deserializeSession(sessionRow, messageRows);
-  }
-
-  async findByScriptHash(scriptHash: string): Promise<ChatSessionData[]> {
-    if (!scriptHash) {
-      return [];
-    }
-
-    const sessionRows = await this.db
-      .selectFrom("chat_sessions")
-      .selectAll()
-      .where("scriptHash", "=", scriptHash)
-      .orderBy("updatedAt", "desc")
-      .execute();
-
-    if (sessionRows.length === 0) {
-      return [];
-    }
-
-    const messages = await this.db
-      .selectFrom("chat_messages")
-      .selectAll()
-      .where(
-        "chatSessionId",
-        "in",
-        sessionRows.map((row) => row.id),
-      )
-      .execute();
-
-    const groupedMessages = new Map<string, ChatMessageRow[]>();
-    for (const message of messages) {
-      const group = groupedMessages.get(message.chatSessionId) ?? [];
-      group.push(message);
-      groupedMessages.set(message.chatSessionId, group);
-    }
-
-    return sessionRows.map((row) => {
-      const messageRows = groupedMessages.get(row.id) ?? [];
-      messageRows.sort((a, b) => a.messageIndex - b.messageIndex);
-      return this.deserializeSession(row, messageRows);
-    });
-  }
-
   private serializeSession(session: ChatSessionData): NewChatSessionRow {
     const metadata = this.safeJsonStringify(session.metadata);
 
@@ -416,10 +363,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
       modelSurface: session.modelSurface,
       sessionStatus: session.state,
       metadata,
-      scriptPath: session.scriptPath ? path.resolve(session.scriptPath) : null,
-      scriptModifiedAt: session.scriptModifiedAt?.toISOString() ?? null,
-      scriptHash: session.scriptHash ?? null,
-      scriptSnapshot: session.scriptSnapshot ?? null,
+      sourcePromptId: session.sourcePromptId ?? null,
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
     } satisfies NewChatSessionRow;
@@ -470,12 +414,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
         .sort((a, b) => a.messageIndex - b.messageIndex)
         .map((row) => this.deserializeMessage(row)),
       metadata,
-      scriptPath: sessionRow.scriptPath ?? null,
-      scriptModifiedAt: sessionRow.scriptModifiedAt
-        ? new Date(sessionRow.scriptModifiedAt)
-        : null,
-      scriptHash: sessionRow.scriptHash ?? null,
-      scriptSnapshot: sessionRow.scriptSnapshot ?? null,
+      sourcePromptId: sessionRow.sourcePromptId ?? null,
       createdAt: new Date(sessionRow.createdAt),
       updatedAt: new Date(sessionRow.updatedAt),
     };

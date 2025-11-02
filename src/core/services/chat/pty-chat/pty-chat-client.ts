@@ -13,11 +13,15 @@ import type {
 } from "../chat-session-repository.js";
 import type { PtyOnExitEvent } from "../../../pty/events.js";
 
+import type { PromptSnapshot } from "../../prompt/prompt-types.js";
+
 interface CreatePtyChatInput {
   workingDirectory: string;
   modelId: `${string}/${string}`;
   initialPrompt?: string;
   metadata?: Partial<ChatMetadata>;
+  sourcePromptId?: string | null;
+  promptSnapshot?: PromptSnapshot;
 }
 
 export type SnapshotTriggerKind =
@@ -58,16 +62,20 @@ export class PtyChatClient {
 
   async createSession(input: CreatePtyChatInput): Promise<ChatSessionData> {
     const timestamp = new Date();
-    const metadata = {
+    const metadata: ChatMetadata = {
       ...input.metadata,
       modelId: input.modelId,
       modelSurface: "pty" as const,
-      mode: "agent" as const,
+      mode: "agent",
       external: {
         ...input.metadata?.external,
         workingDirectory: input.workingDirectory,
       },
     };
+
+    if (input.promptSnapshot) {
+      metadata.promptSnapshot = input.promptSnapshot;
+    }
 
     const sessionData: ChatSessionData = {
       id: uuidv4(),
@@ -75,10 +83,7 @@ export class PtyChatClient {
       state: "active",
       messages: [],
       metadata,
-      scriptPath: null,
-      scriptModifiedAt: null,
-      scriptHash: null,
-      scriptSnapshot: null,
+      sourcePromptId: input.sourcePromptId ?? null,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -251,7 +256,7 @@ export class PtyChatClient {
     }
 
     const cleanSnapshot = stripAnsi(rawSnapshot);
-    const lastSnapshot = session.toChatSessionData().scriptSnapshot;
+    const lastSnapshot = session.getLastSnapshot();
 
     if (cleanSnapshot === lastSnapshot) {
       return;

@@ -1,20 +1,21 @@
 // src/core/services/external-chat/web-chat-client.ts
-import { v4 as uuidv4 } from 'uuid';
-import { Logger } from 'tslog';
-import type { IEventBus } from '../../event-bus.js';
+import { v4 as uuidv4 } from "uuid";
+import { Logger } from "tslog";
+import type { IEventBus } from "../../event-bus.js";
 import type {
+  ChatMetadata,
   ChatSessionData,
   ChatSessionRepository,
-} from '../chat/chat-session-repository.js';
+} from "../chat/chat-session-repository.js";
 import {
   type IExternalChatClient,
   type CreateExternalSessionInput,
-} from './external-chat-client.interface.js';
+} from "./external-chat-client.interface.js";
 
-import { ExternalChatSession } from './external-chat-session.js';
-import { getModelSurface } from '../../utils/model-utils.js';
+import { ExternalChatSession } from "./external-chat-session.js";
+import { getModelSurface } from "../../utils/model-utils.js";
 
-const logger = new Logger({ name: 'WebChatClient' });
+const logger = new Logger({ name: "WebChatClient" });
 
 export class WebChatClient implements IExternalChatClient {
   private readonly sessions = new Map<string, ExternalChatSession>();
@@ -27,30 +28,28 @@ export class WebChatClient implements IExternalChatClient {
   async createSession(
     input: CreateExternalSessionInput,
   ): Promise<ChatSessionData> {
-    logger.info('Creating a tracking session for a web chat...');
+    logger.info("Creating a tracking session for a web chat...");
     const timestamp = new Date();
     const modelSurface = getModelSurface(input.modelId);
-    const metadata = {
+    const metadata: ChatMetadata = {
       ...input.metadata,
-      title: input.title ?? input.metadata?.title ?? 'Web Chat Session',
+      title: input.title ?? input.metadata?.title ?? "Web Chat Session",
       modelId: input.modelId,
       modelSurface,
-      mode: 'agent' as const,
+      mode: "agent",
       external: input.metadata?.external,
+      promptSnapshot: input.promptSnapshot ?? input.metadata?.promptSnapshot,
     };
 
     const sessionData: ChatSessionData = {
       id: uuidv4(),
       modelSurface,
-      state: 'active',
+      state: "active",
       messages: [],
       metadata,
+      sourcePromptId: input.sourcePromptId ?? null,
       createdAt: timestamp,
       updatedAt: timestamp,
-      scriptPath: input.script?.path ?? null,
-      scriptHash: input.script?.hash ?? null,
-      scriptSnapshot: input.script?.snapshot ?? null,
-      scriptModifiedAt: input.script?.modifiedAt ?? null,
     };
 
     await this.repository.create(sessionData);

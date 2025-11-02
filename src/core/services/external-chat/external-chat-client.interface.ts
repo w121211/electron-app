@@ -2,19 +2,16 @@
 import type {
   ChatMetadata,
   ChatSessionData,
-} from '../chat/chat-session-repository.js';
+} from "../chat/chat-session-repository.js";
+import type { PromptSnapshot } from "../prompt/prompt-types.js";
 
 export interface CreateExternalSessionInput {
   modelId: `${string}/${string}`;
   title?: string;
   workingDirectory?: string;
   metadata?: Partial<ChatMetadata>;
-  script?: {
-    path?: string | null;
-    snapshot?: string | null;
-    modifiedAt?: Date | null;
-    hash?: string | null;
-  };
+  sourcePromptId?: string | null;
+  promptSnapshot?: PromptSnapshot;
 }
 
 export interface IExternalChatClient {

@@ -207,11 +207,6 @@ export class PromptScriptService {
       this.mergeWarnings(warnings, promptScript.promptScriptParsed.warnings);
     }
 
-    const resolvedSession = await this.updateSessionMetadata(
-      session,
-      promptScript,
-    );
-
     if (warnings.length > 0) {
       promptScript = {
         ...promptScript,
@@ -224,7 +219,7 @@ export class PromptScriptService {
 
     return {
       promptScript,
-      chatSession: resolvedSession,
+      chatSession: session,
       warnings,
     };
   }
@@ -238,13 +233,6 @@ export class PromptScriptService {
   }): Promise<PromptScriptLinkResult & { chatSession: ChatSessionData }> {
     const promptScript = await this.promptScriptRepo.read(input.scriptPath);
     const surface = getModelSurface(input.modelId);
-
-    const scriptPayload = {
-      path: promptScript.absolutePath,
-      hash: promptScript.hash,
-      snapshot: promptScript.content,
-      modifiedAt: promptScript.metadata.modifiedAt,
-    };
 
     const metadata: Partial<ChatMetadata> = {
       ...input.metadata,
@@ -267,20 +255,17 @@ export class PromptScriptService {
         title: input.title,
         workingDirectory: input.workingDirectory,
         metadata,
-        script: scriptPayload,
       });
     } else if (surface === "web") {
       session = await this.webChatClient.createSession({
         modelId: input.modelId,
         title: input.title,
         metadata,
-        script: scriptPayload,
       });
     } else {
       session = await this.apiChatClient.createSession({
         modelSurface: "api",
         metadata,
-        script: scriptPayload,
       });
     }
 
@@ -303,21 +288,6 @@ export class PromptScriptService {
         metadata,
       });
       this.mergeWarnings(warnings, promptScript.promptScriptParsed.warnings);
-    }
-
-    if (options.sessionId) {
-      const session = await this.chatSessionRepo.getById(options.sessionId);
-      if (session) {
-        const updated: ChatSessionData = {
-          ...session,
-          scriptPath: null,
-          scriptHash: null,
-          scriptSnapshot: null,
-          scriptModifiedAt: null,
-          updatedAt: new Date(),
-        };
-        await this.chatSessionRepo.update(updated);
-      }
     }
 
     return {
@@ -476,23 +446,6 @@ export class PromptScriptService {
     }
 
     return normalized;
-  }
-
-  private async updateSessionMetadata(
-    session: ChatSessionData,
-    promptScript: PromptScriptFile,
-  ): Promise<ChatSessionData> {
-    const updatedSession: ChatSessionData = {
-      ...session,
-      scriptPath: path.resolve(promptScript.absolutePath),
-      scriptHash: promptScript.hash,
-      scriptModifiedAt: promptScript.metadata.modifiedAt,
-      scriptSnapshot: promptScript.content,
-      updatedAt: new Date(),
-    };
-
-    await this.chatSessionRepo.update(updatedSession);
-    return updatedSession;
   }
 
   private mergeWarnings(

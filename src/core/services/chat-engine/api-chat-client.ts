@@ -55,12 +55,7 @@ export interface CreateChatSessionInput {
   metadata?: Partial<ChatMetadata>;
   messages?: ChatMessage[];
   state?: ChatState;
-  script?: {
-    path?: string | null;
-    modifiedAt?: Date | null;
-    hash?: string | null;
-    snapshot?: string | null;
-  };
+  sourcePromptId?: string | null;
 }
 
 export const CreateChatSessionInputSchema: z.ZodType<CreateChatSessionInput> = z
@@ -69,14 +64,7 @@ export const CreateChatSessionInputSchema: z.ZodType<CreateChatSessionInput> = z
     metadata: ChatMetadataSchema.optional(),
     messages: z.array(ChatMessageSchema).optional(),
     state: ChatStateSchema.optional(),
-    script: z
-      .object({
-        path: z.string().nullable().optional(),
-        modifiedAt: z.coerce.date().nullable().optional(),
-        hash: z.string().nullable().optional(),
-        snapshot: z.string().nullable().optional(),
-      })
-      .optional(),
+    sourcePromptId: z.string().nullable().optional(),
   })
   .transform((value) => ({
     ...value,
@@ -126,10 +114,7 @@ class ApiChatSession {
   private state: ChatState;
   private readonly createdAt: Date;
   private updatedAt: Date;
-  private scriptPath: string | null;
-  private scriptModifiedAt: Date | null;
-  private scriptHash: string | null;
-  private scriptSnapshot: string | null;
+  private readonly sourcePromptId: string | null;
   private readonly toolCallRunner: ToolCallRunner<ToolSet>;
   private readonly toolRegistry: ToolRegistry;
   private readonly eventBus: IEventBus;
@@ -160,10 +145,7 @@ class ApiChatSession {
     this.state = data.state;
     this.createdAt = new Date(data.createdAt);
     this.updatedAt = new Date(data.updatedAt);
-    this.scriptPath = data.scriptPath ?? null;
-    this.scriptModifiedAt = data.scriptModifiedAt ?? null;
-    this.scriptHash = data.scriptHash ?? null;
-    this.scriptSnapshot = data.scriptSnapshot ?? null;
+    this.sourcePromptId = data.sourcePromptId ?? null;
     this.toolRegistry = dependencies.toolRegistry;
     this.eventBus = dependencies.eventBus;
     this.cacheMiddleware = dependencies.cacheMiddleware;
@@ -416,10 +398,7 @@ class ApiChatSession {
           },
         })),
       },
-      scriptPath: this.scriptPath,
-      scriptModifiedAt: this.scriptModifiedAt,
-      scriptHash: this.scriptHash,
-      scriptSnapshot: this.scriptSnapshot,
+      sourcePromptId: this.sourcePromptId,
       createdAt: this.createdAt,
       updatedAt: new Date(this.updatedAt),
     };
@@ -637,10 +616,7 @@ export class ApiChatClient {
         metadata: ensureTimestamp(message.metadata),
       })),
       metadata: this.initializeMetadata(input.metadata),
-      scriptPath: input.script?.path ?? null,
-      scriptModifiedAt: input.script?.modifiedAt ?? null,
-      scriptHash: input.script?.hash ?? null,
-      scriptSnapshot: input.script?.snapshot ?? null,
+      sourcePromptId: input.sourcePromptId ?? null,
       createdAt: timestamp,
       updatedAt: timestamp,
     };

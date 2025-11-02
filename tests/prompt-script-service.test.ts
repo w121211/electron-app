@@ -147,6 +147,12 @@ describe("PromptScriptService", () => {
   }
 
   describe("createPromptScript", () => {
+    it("throws when directory path is empty after trimming", async () => {
+      await expect(service.createPromptScript("   ")).rejects.toThrow(
+        "Save directory must be a valid path",
+      );
+    });
+
     it("creates prompt script with sequential numbering when no name provided", async () => {
       const result1 = await service.createPromptScript(tempDir);
       expect(result1.script.absolutePath).toBe(
@@ -252,6 +258,16 @@ Focus on: $3
       expect(result.edit.promptScriptPath).toBe(result.script.absolutePath);
       expect(result.edit.contentDraft).toBeNull();
     });
+
+    it("throws when provided promptEditId does not exist", async () => {
+      const missingId = randomUUID();
+
+      await expect(
+        service.createPromptScript(tempDir, "missing-edit", {
+          promptEditId: missingId,
+        }),
+      ).rejects.toThrow(`Prompt edit ${missingId} not found`);
+    });
   });
 
   describe("findLinkedChatSession", () => {
@@ -274,10 +290,6 @@ Prompt content
         state: "terminated",
         messages: [],
         metadata: { modelId: "openai/gpt-4o-mini" },
-        scriptPath,
-        scriptHash: null,
-        scriptSnapshot: null,
-        scriptModifiedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -345,10 +357,6 @@ Content
         state: "terminated",
         messages: [],
         metadata: { modelId: "openai/gpt-4o-mini" },
-        scriptPath: null,
-        scriptHash: null,
-        scriptSnapshot: null,
-        scriptModifiedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -360,11 +368,6 @@ Content
       expect(result.promptScript.promptScriptParsed.metadata.chatSessionId).toBe(
         sessionId,
       );
-
-      const updatedSession = await chatSessionRepo.getById(sessionId);
-      expect(updatedSession?.scriptPath).toBe(path.resolve(scriptPath));
-      expect(updatedSession?.scriptHash).toBe(result.promptScript.hash);
-      expect(updatedSession?.scriptSnapshot).toBe(result.promptScript.content);
     });
 
     it("throws when session does not exist", async () => {
@@ -397,11 +400,6 @@ Hello from prompt script.
 
       expect(result.chatSession).not.toBeNull();
       expect(result.chatSession.modelSurface).toBe("api");
-      expect(result.chatSession.scriptPath).toBe(path.resolve(scriptPath));
-      expect(result.chatSession.scriptSnapshot).toContain(
-        "Hello from prompt script.",
-      );
-
       const updatedScript = await promptScriptRepo.read(scriptPath);
       expect(updatedScript.promptScriptParsed.metadata.chatSessionId).toBe(
         result.chatSession.id,
@@ -477,8 +475,6 @@ Web chat content.
 
       expect(result.chatSession).not.toBeNull();
       expect(result.chatSession.modelSurface).toBe("web");
-      expect(result.chatSession.scriptPath).toBe(path.resolve(scriptPath));
-
       const updatedScript = await promptScriptRepo.read(scriptPath);
       expect(updatedScript.promptScriptParsed.metadata.chatSessionId).toBe(
         result.chatSession.id,
@@ -505,10 +501,6 @@ Prompt
         state: "terminated",
         messages: [],
         metadata: {},
-        scriptPath: path.resolve(scriptPath),
-        scriptHash: "somehash",
-        scriptSnapshot: scriptContent,
-        scriptModifiedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -523,11 +515,6 @@ Prompt
         result.promptScriptParsed.metadata.chatSessionId,
       ).toBeUndefined();
 
-      const updatedSession = await chatSessionRepo.getById(sessionId);
-      expect(updatedSession?.scriptPath).toBeNull();
-      expect(updatedSession?.scriptHash).toBeNull();
-      expect(updatedSession?.scriptSnapshot).toBeNull();
-      expect(updatedSession?.scriptModifiedAt).toBeNull();
     });
 
     it("only removes chatSessionId from script when no sessionId provided", async () => {
@@ -548,10 +535,6 @@ Prompt
         state: "terminated",
         messages: [],
         metadata: {},
-        scriptPath: path.resolve(scriptPath),
-        scriptHash: "somehash",
-        scriptSnapshot: scriptContent,
-        scriptModifiedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -563,8 +546,6 @@ Prompt
         result.promptScriptParsed.metadata.chatSessionId,
       ).toBeUndefined();
 
-      const updatedSession = await chatSessionRepo.getById(sessionId);
-      expect(updatedSession?.scriptPath).toBe(path.resolve(scriptPath));
     });
   });
 
@@ -707,6 +688,21 @@ New content
           editId: edit.id,
         }),
       ).rejects.toThrow("Prompt edit path mismatch");
+    });
+
+    it("throws when editId does not exist", async () => {
+      const scriptPath = path.join(tempDir, "unknown-edit.prompt.md");
+      await writeScriptFile(scriptPath, "---\n---\nContent");
+
+      const missingId = randomUUID();
+
+      await expect(
+        service.savePromptScript({
+          scriptPath,
+          content: "---\n---\nUpdated",
+          editId: missingId,
+        }),
+      ).rejects.toThrow(`Prompt edit ${missingId} not found`);
     });
   });
 });

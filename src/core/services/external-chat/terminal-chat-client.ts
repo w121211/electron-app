@@ -1,16 +1,17 @@
 // src/core/services/external-chat/terminal-chat-client.ts
-import { v4 as uuidv4 } from 'uuid';
-import type { IEventBus } from '../../event-bus.js';
+import { v4 as uuidv4 } from "uuid";
+import type { IEventBus } from "../../event-bus.js";
 import type {
+  ChatMetadata,
   ChatSessionData,
   ChatSessionRepository,
-} from '../chat/chat-session-repository.js';
+} from "../chat/chat-session-repository.js";
 import {
   type IExternalChatClient,
   type CreateExternalSessionInput,
-} from './external-chat-client.interface.js';
-import { TerminalChatSession } from './terminal-chat-session.js';
-import { getModelSurface } from '../../utils/model-utils.js';
+} from "./external-chat-client.interface.js";
+import { TerminalChatSession } from "./terminal-chat-session.js";
+import { getModelSurface } from "../../utils/model-utils.js";
 
 export class TerminalChatClient implements IExternalChatClient {
   private readonly sessions = new Map<string, TerminalChatSession>();
@@ -25,34 +26,32 @@ export class TerminalChatClient implements IExternalChatClient {
   ): Promise<ChatSessionData> {
     const timestamp = new Date();
     const modelSurface = getModelSurface(input.modelId);
-    const metadata = {
+    const metadata: ChatMetadata = {
       ...input.metadata,
-      title: input.title ?? input.metadata?.title ?? 'Terminal Session',
+      title: input.title ?? input.metadata?.title ?? "Terminal Session",
       modelId: input.modelId,
       modelSurface,
-      mode: 'agent' as const,
+      mode: "agent",
       external: {
         ...input.metadata?.external,
         workingDirectory: input.workingDirectory,
       },
+      promptSnapshot: input.promptSnapshot ?? input.metadata?.promptSnapshot,
     };
 
     const sessionData: ChatSessionData = {
       id: uuidv4(),
       modelSurface,
-      state: 'active',
+      state: "active",
       messages: [],
       metadata,
+      sourcePromptId: input.sourcePromptId ?? null,
       createdAt: timestamp,
       updatedAt: timestamp,
-      scriptPath: input.script?.path ?? null,
-      scriptHash: input.script?.hash ?? null,
-      scriptSnapshot: input.script?.snapshot ?? null,
-      scriptModifiedAt: input.script?.modifiedAt ?? null,
     };
 
     if (!input.workingDirectory) {
-      throw new Error('Working directory is required for a terminal session.');
+      throw new Error("Working directory is required for a terminal session.");
     }
 
     await this.repository.create(sessionData);

@@ -65,14 +65,10 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
     // Arrange: Create a non-PTY chat session
     const apiChatSession: ChatSessionData = {
       id: "test-session-123",
-      sessionType: "api_chat", // Not a PTY chat!
+      modelSurface: "api",
       state: "active",
       messages: [],
       metadata: {},
-      scriptPath: null,
-      scriptModifiedAt: null,
-      scriptHash: null,
-      scriptSnapshot: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -107,10 +103,6 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
           ptySnapshots: [],
         },
       },
-      scriptPath: null,
-      scriptModifiedAt: null,
-      scriptHash: null,
-      scriptSnapshot: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -156,15 +148,15 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
       chatSessionId: "pty-session-456",
       updates: {
         metadata: expect.objectContaining({
+          modelId: "anthropic/claude-3-5-sonnet-20241022",
           external: expect.objectContaining({
-            pty: expect.objectContaining({
-              snapshots: expect.arrayContaining([
-                expect.objectContaining({
-                  modelId: "anthropic/claude-3-5-sonnet-20241022",
-                  snapshot: "Terminal output here",
-                }),
-              ]),
-            }),
+            ptyInstanceId: "pty-instance-789",
+            ptySnapshots: expect.arrayContaining([
+              expect.objectContaining({
+                modelId: "anthropic/claude-3-5-sonnet-20241022",
+                snapshot: "Terminal output here",
+              }),
+            ]),
           }),
         }),
       },
@@ -189,10 +181,6 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
         modelId: "anthropic/claude-3-5-sonnet-20241022",
         external: {},
       },
-      scriptPath: null,
-      scriptModifiedAt: null,
-      scriptHash: null,
-      scriptSnapshot: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -229,10 +217,6 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
           ptyInstanceId: "pty-instance-123",
         },
       },
-      scriptPath: null,
-      scriptModifiedAt: null,
-      scriptHash: null,
-      scriptSnapshot: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -258,10 +242,6 @@ describe("PtyChatService - terminateSessionWithSnapshot", () => {
           ptyInstanceId: "pty-instance-fail",
         },
       },
-      scriptPath: null,
-      scriptModifiedAt: null,
-      scriptHash: null,
-      scriptSnapshot: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

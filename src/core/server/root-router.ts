@@ -35,6 +35,9 @@ import { DocumentService } from "../services/document/document-service.js";
 import { TerminalChatClient } from "../services/external-chat/terminal-chat-client.js";
 import { WebChatClient } from "../services/external-chat/web-chat-client.js";
 import { createChatRouter } from "./routers/chat-router.js";
+import { PromptRepositoryImpl } from "../services/prompt/prompt-repository.js";
+import { PromptService } from "../services/prompt/prompt-service.js";
+import { ChatService } from "../services/chat/chat-service.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
@@ -129,6 +132,11 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
   });
   const promptEditService = new PromptEditService(promptEditRepository);
 
+  const promptRepository = new PromptRepositoryImpl({
+    databaseFilePath,
+  });
+  const promptService = new PromptService({ repository: promptRepository });
+
   const promptScriptRepository = new PromptScriptRepository();
   const promptScriptService = new PromptScriptService({
     promptScriptRepo: promptScriptRepository,
@@ -148,12 +156,28 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
       logger.error("Failed to start watching project folders:", err),
     );
 
+  const resourcesTemplatesPath =
+    config.appResourcesPath !== undefined
+      ? path.join(config.appResourcesPath, "resources", "templates")
+      : path.join(process.cwd(), "resources", "templates");
+
+  promptService
+    .seedBuiltInPrompts(resourcesTemplatesPath)
+    .catch((error) =>
+      logger.error("Failed to seed built-in prompts:", error),
+    );
+
+  const chatService = new ChatService({
+    promptService,
+    apiChatClient,
+    terminalChatClient,
+    webChatClient,
+  });
+
   // Create the application router
   const appRouter = router({
     chat: createChatRouter({
-      apiChatClient,
-      terminalChatClient,
-      webChatClient,
+      chatService,
     }),
     apiChat: createApiChatRouter(apiChatClient),
     // toolCall: createToolCallRouter(toolCallScheduler, toolRegistry),
