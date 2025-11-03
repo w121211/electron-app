@@ -1,0 +1,270 @@
+<!-- notes/ui_design/design-ui-v16_2_vertical_navigators_compact.html -->
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Chat App - Compact Vertical Navigators UI v16.2 (Light Theme)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+  <style type="text/tailwindcss">
+    @theme {
+        /* Light theme */
+        --color-background: #ffffff;
+        --color-surface: #f0f0f0;
+        --color-border: #e0e0e0;
+        --color-muted: #666666;
+        --color-hover: #e0e0e0;
+        --color-accent: #4a90e2;
+        --color-foreground: #333333;
+
+        /* Dark theme */
+        /* --color-background: #181818;
+        --color-surface: #1f1f1f;
+        --color-border: #2b2b2b;
+        --color-muted: #9d9d9d;
+        --color-hover: #2b2b2b;
+        --color-accent: #4a90e2;
+        --color-foreground: #cccccc; */
+      }
+      .filter-chip {
+        @apply flex items-center rounded-xl bg-surface px-2 py-1 text-xs uppercase text-muted transition-colors;
+      }
+      .filter-chip:hover {
+        @apply text-foreground;
+      }
+      .filter-chip.is-active {
+        @apply text-accent;
+      }
+    </style>
+</head>
+
+<body class="bg-background text-foreground h-screen overflow-hidden">
+  <div class="flex h-screen">
+    <!-- Left Navigator -->
+    <nav class="bg-surface w-12 flex flex-col items-center gap-3 py-2 px-1">
+      <div class="flex flex-col items-center gap-3 text-xl text-muted">
+        <button class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-hover hover:text-foreground"
+          title="New Prompt">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="flex h-9 w-9 items-center justify-center rounded-lg text-accent" title="Chats">
+          <i class="bi bi-chat-dots"></i>
+        </button>
+        <button class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-hover hover:text-foreground"
+          title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-hover hover:text-foreground"
+          title="Projects">
+          <i class="bi bi-folder"></i>
+        </button>
+      </div>
+
+      <!-- Divider -->
+      <div class="h-px w-8 bg-border my-1"></div>
+
+      <!-- Channel Group 1 -->
+      <div class="flex flex-col items-center gap-2 text-xs">
+        <button class="group relative" title="ChatGPT">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-background font-medium text-foreground hover:bg-hover">
+            <span>GPT</span>
+          </div>
+          <div
+            class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-surface text-foreground text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+            ChatGPT
+          </div>
+        </button>
+        <button class="group relative" title="Claude">
+          <div
+            class="relative flex h-9 w-9 items-center justify-center rounded-lg bg-background font-medium text-foreground hover:bg-hover">
+            <span>CLD</span>
+            <div
+              class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-1 ring-surface">
+              2</div>
+          </div>
+          <div
+            class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+            Claude
+          </div>
+        </button>
+        <button class="group relative" title="Gemini">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-lg bg-background font-medium text-foreground hover:bg-hover">
+            <span>GMN</span>
+          </div>
+          <div
+            class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+            Gemini
+          </div>
+        </button>
+        <button class="group relative" title="Grok">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-lg bg-background font-medium text-foreground hover:bg-hover">
+            <span>GRK</span>
+          </div>
+          <div
+            class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+            Grok
+          </div>
+        </button>
+      </div>
+
+      <!-- Divider -->
+      <div class="h-px w-8 bg-border my-1"></div>
+
+      <!-- Channel Group 2 -->
+      <div class="flex flex-col items-center gap-2 text-xs">
+        <button class="group relative" title="Codex">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-lg bg-background font-medium text-foreground hover:bg-hover">
+            <span>CX</span>
+          </div>
+          <div
+            class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+        </button>
+        <button class="group relative" title="Gemini-CLI">
+          <div
+            class="relative flex h-9 w-9 items-center justify-center rounded-lg bg-background font-medium text-foreground hover:bg-hover">
+            <span>GC</span>
+            <div
+              class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-1 ring-surface">
+              1</div>
+          </div>
+          <div
+            class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+            Gemini-CLI
+          </div>
+        </button>
+        <button class="group relative" title="Claude Code">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-lg bg-background font-medium text-foreground hover:bg-hover">
+            <span>CC</span>
+          </div>
+          <div
+            class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+            Claude Code
+          </div>
+        </button>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <!-- Bottom Icons -->
+      <div class="flex flex-col items-center gap-3 text-xl text-muted">
+        <button class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-hover hover:text-foreground"
+          title="Settings">
+          <i class="bi bi-gear"></i>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Entry List Panel -->
+    <aside class="w-64 flex flex-col border-r border-border ">
+      <div class="px-3 py-3">
+        <div class="flex min-w-0 items-center gap-1 overflow-x-auto">
+          <button class="filter-chip is-active shrink-0">
+            <span>All</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Active</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Chats</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Prompts</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto px-2">
+        <nav class="text-xs flex flex-col gap-0.5">
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 hover:bg-surface">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-openai text-muted"></i>
+                <span class="truncate pr-1 font-medium text-foreground">Productivity tools research</span>
+              </div>
+              <span class="flex items-center gap-1 text-[10px] uppercase text-muted">
+                <span>Today</span>
+              </span>
+            </div>
+            <div class="text-[11px] text-muted truncate">Summarize the top user pain points...</div>
+          </a>
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 hover:bg-surface ">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-terminal text-muted"></i>
+                <span class="truncate pr-1 font-medium text-foreground">Research AI automation competitors</span>
+              </div>
+
+            </div>
+
+            <div class="flex items-start justify-between">
+              <div class="text-[11px] text-muted">Codex · demo-project</div>
+              <span class="flex items-center gap-1 text-[10px] uppercase text-accent">
+                <i class="bi bi-person-raised-hand"></i>
+                <span>Awaiting</span>
+              </span>
+            </div>
+
+          </a>
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 bg-surface">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-file-text text-muted"></i>
+                <span class="truncate pr-2 font-medium text-foreground">Scan Reddit and Hacker News for hot topics on
+                  productivity tools</span>
+              </div>
+            </div>
+            <div class="text-[11px] text-muted">Prompt · my-ai-project</div>
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main Panel (Prompt Editor) -->
+    <main class="flex-1 flex flex-col bg-background">
+      <div class="flex h-11 shrink-0 items-center justify-between px-4 text-xs">
+        <div class="flex items-center gap-3">
+          <button class="flex cursor-pointer items-center gap-1  hover:text-accent" title="Select Project">
+            <i class="bi bi-folder"></i>
+            <span>my-ai-project</span>
+          </button>
+          <button class="flex cursor-pointer items-center gap-1  hover:text-accent" title="Select Model">
+            <i class="bi bi-cpu"></i>
+            <span>Claude 3.5</span>
+          </button>
+          <button title="Attach Files" class="cursor-pointer  hover:text-accent">
+            <i class="bi bi-paperclip text-sm"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="cursor-pointer rounded p-1.5  hover:text-accent" title="Record Audio">
+            <i class="bi bi-mic"></i>
+          </button>
+          <button class="cursor-pointer rounded p-1.5  hover:text-accent" title="Generate Prompt">
+            <i class="bi bi-stars"></i>
+          </button>
+          <button class="flex items-center gap-1.5 rounded-md pr-3 pl-1.5 py-1.5 hover:text-accent" title="Send Prompt">
+            <i class="bi bi-send"></i>
+            <span>Send</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-1 flex-col p-3">
+        <textarea id="edit-textarea"
+          placeholder="Enter your prompt here. Use '/' for commands, or @path/to/file to reference files."
+          class="h-full w-full resize-none bg-background px-3 py-2 text-sm leading-6 text-foreground outline-none placeholder-muted">Scan Reddit and Hacker News for hot topics on productivity tools, then summarize the top user pain points.
+
+@/Users/cw/Documents/GitHub/electron-app/src/core/services/chat/chat-service.ts
+</textarea>
+      </div>
+    </main>
+  </div>
+
+</body>
+
+</html>

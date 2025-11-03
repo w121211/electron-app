@@ -38,6 +38,8 @@ import { createChatRouter } from "./routers/chat-router.js";
 import { PromptRepositoryImpl } from "../services/prompt/prompt-repository.js";
 import { PromptService } from "../services/prompt/prompt-service.js";
 import { ChatService } from "../services/chat/chat-service.js";
+import { createPromptRouter } from "./routers/prompt-router.js";
+import { createChatSessionRouter } from "./routers/chat-session-router.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
@@ -189,6 +191,10 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     model: createModelRouter(modelService),
     document: createDocumentRouter(documentService),
     promptScript: createPromptScriptRouter(promptScriptService),
+    prompt: createPromptRouter({ promptService }),
+    chatSession: createChatSessionRouter({
+      chatSessionRepository,
+    }),
     promptEdit: createPromptEditRouter(promptEditService),
   });
 

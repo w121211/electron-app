@@ -208,7 +208,7 @@
   }
 
   function getProjectName(session: ChatSessionData): string | null {
-    const projectPath = session.metadata?.projectPath ?? session.scriptPath;
+    const projectPath = session.metadata?.projectPath ?? null;
     if (!projectPath) return null;
     const parts = projectPath.split(/[/\\]/).filter(Boolean);
     return parts.length > 0 ? (parts[parts.length - 1] ?? null) : null;
@@ -246,18 +246,17 @@
   }
 
   async function handleEditPrompt(session: ChatSessionData): Promise<void> {
-    const scriptPath = session.scriptPath;
-    if (!scriptPath) {
-      showToast("No prompt script linked to this chat", "warning");
+    const promptSnapshot = session.metadata?.promptSnapshot;
+    if (!promptSnapshot) {
+      showToast("No prompt linked to this chat", "warning");
       return;
     }
 
-    try {
-      await projectService.selectFile(scriptPath);
-    } catch (error) {
-      logger.error("Failed to open prompt script", error);
-      showToast("Failed to open prompt script", "error");
-    }
+    showToast("Prompt editing coming soon", "info");
+    logger.info("Prompt edit requested", {
+      chatId: session.id,
+      promptId: promptSnapshot.promptId,
+    });
   }
 
   type StatusIcon = typeof Stars | typeof PersonRaisedHand | typeof MoonFill;
@@ -294,11 +293,11 @@
     if (session.metadata?.title) {
       return session.metadata.title;
     }
-    if (session.scriptPath) {
-      const parts = session.scriptPath.split(/[/\\]/);
-      return parts[parts.length - 1] ?? session.id;
+    const promptSlug = session.metadata?.promptSnapshot?.slug;
+    if (promptSlug) {
+      return promptSlug;
     }
-    return session.id;
+    return session.id.slice(0, 8);
   }
 </script>
 

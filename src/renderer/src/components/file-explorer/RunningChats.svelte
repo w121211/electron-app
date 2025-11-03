@@ -10,12 +10,12 @@
   import type { ChatSessionData } from "../../../../core/services/chat/chat-session-repository.js";
   import { apiChatService } from "../../services/api-chat-service.js";
   import { ptyChatService } from "../../services/pty-chat-service.js";
-  import { projectService } from "../../services/project-service.js";
-  import {
-    getRunningChatSessionStates,
-    type ChatSessionState,
-  } from "../../stores/chat.svelte.js";
-  import { getSelectedDocContext } from "../../stores/ui.svelte.js";
+import {
+  getRunningChatSessionStates,
+  type ChatSessionState,
+} from "../../stores/chat.svelte.js";
+import { getSelectedDocContext } from "../../stores/ui.svelte.js";
+import { showToast } from "../../stores/ui-store.svelte.js";
 
   const logger = new Logger({ name: "RunningChats" });
 
@@ -67,9 +67,9 @@
       return session.metadata.title;
     }
 
-    if (session.scriptPath) {
-      const parts = session.scriptPath.split(/[/\\]/);
-      return parts[parts.length - 1] ?? session.id;
+    const promptSlug = session.metadata?.promptSnapshot?.slug;
+    if (promptSlug) {
+      return promptSlug;
     }
 
     if (session.modelSurface === "pty" && session.metadata?.modelId) {
@@ -92,17 +92,11 @@
 
   function handleSelect(sessionState: ChatSessionState): void {
     const session = sessionState.data;
-    const scriptPath = session.scriptPath;
-
-    if (scriptPath) {
-      void projectService.selectFile(scriptPath);
-      return;
-    }
-
-    logger.warn("No script path available for chat session", {
+    logger.info("Chat session selected", {
       chatId: session.id,
       modelSurface: session.modelSurface,
     });
+    showToast("Chat activation coming soon", "info");
   }
 
   function shouldShowStop(session: ChatSessionData): boolean {

@@ -5,7 +5,7 @@
   import { userSettingsService } from "../services/user-settings-service.js";
   import { projectState } from "../stores/project-store.svelte.js";
   import { userSettingsState } from "../stores/user-settings-store.svelte.js";
-  import { ui } from "../stores/ui.svelte.js";
+  import { closeSettings as closeSettingsPanel } from "../stores/inbox-ui-store.svelte.js";
   import ProviderApiKeyRow from "./ProviderApiKeyRow.svelte";
 
   let newProjectFolder = $state("");
@@ -31,7 +31,7 @@
   });
 
   function closeSettings(): void {
-    ui.settingsPanelOpen = false;
+    closeSettingsPanel();
   }
 
   function toggleAddProjectFolder(): void {

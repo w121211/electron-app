@@ -52,9 +52,7 @@
   const selectedEntry = $derived.by(getSelectedPrompt);
   const projects = $derived(projectState.projectFolders);
 
-  const filteredEntries = $derived.by(() =>
-    applyFilter(entries, filter),
-  );
+  const filteredEntries = $derived.by(() => applyFilter(entries, filter));
 
   onMount(() => {
     let cancelled = false;
@@ -134,15 +132,11 @@
     }
 
     if (activeFilter === "queued") {
-      return input.filter(
-        (entry) => entry.chatSession?.state === "queued",
-      );
+      return input.filter((entry) => entry.chatSession?.state === "queued");
     }
 
     if (activeFilter === "terminated") {
-      return input.filter(
-        (entry) => entry.chatSession?.state === "terminated",
-      );
+      return input.filter((entry) => entry.chatSession?.state === "terminated");
     }
 
     if (activeFilter === "web") {
@@ -305,30 +299,32 @@
   }
 </script>
 
-<div class="bg-background text-foreground flex h-screen overflow-hidden font-sans">
-  <nav class="w-10 flex flex-col items-center gap-3 py-2 pl-1">
-    <div class="flex flex-1 flex-col items-center gap-3 text-base text-muted">
+<div
+  class="bg-background text-foreground flex h-screen overflow-hidden font-sans"
+>
+  <nav class="flex w-10 flex-col items-center gap-3 py-2 pl-1">
+    <div class="text-muted flex flex-1 flex-col items-center gap-3 text-base">
       <button
-        class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+        class="text-muted hover:bg-hover hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
         title="New Prompt"
         onclick={() => void handleCreateDraft()}
       >
         <PencilSquare />
       </button>
       <button
-        class="flex h-8 w-8 items-center justify-center rounded-lg bg-border text-foreground"
+        class="bg-border text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
         title="Prompts"
       >
         <Stars class="text-accent" />
       </button>
       <button
-        class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+        class="text-muted hover:bg-hover hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
         title="Search"
       >
         <Search />
       </button>
       <button
-        class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+        class="text-muted hover:bg-hover hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
         title="Projects"
       >
         <Folder />
@@ -336,14 +332,14 @@
     </div>
 
     <button
-      class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+      class="text-muted hover:bg-hover hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
       title="Settings"
     >
       <Gear />
     </button>
   </nav>
 
-  <aside class="w-64 flex flex-col border-r border-border bg-background/40">
+  <aside class="border-border bg-background/40 flex w-64 flex-col border-r">
     <div class="px-3 py-3">
       <div class="flex min-w-0 items-center gap-1 overflow-x-auto">
         {#each filterOptions as option (option.key)}
@@ -370,17 +366,16 @@
             <button
               type="button"
               class={`group flex flex-col gap-1 rounded-lg p-2 text-left transition-colors ${
-                entry.editId === selectedEditId ? "bg-border" : "hover:bg-border"
+                entry.editId === selectedEditId
+                  ? "bg-border"
+                  : "hover:bg-border"
               }`}
               onclick={() => handleSelect(entry)}
             >
               <div class="flex items-start justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
+                <div class="flex min-w-0 items-center gap-2">
                   <Icon class="text-muted text-base" />
-                  <span
-                    class="truncate pr-1 font-medium"
-                    title={entry.title}
-                  >
+                  <span class="truncate pr-1 font-medium" title={entry.title}>
                     {entry.title}
                   </span>
                 </div>
@@ -399,10 +394,10 @@
                   <span>{status.label}</span>
                 </span>
               </div>
-              <div class="text-[11px] text-muted">
+              <div class="text-muted text-[11px]">
                 {resolveMetadataLine(entry)}
               </div>
-              <div class="flex items-center gap-2 text-[11px] text-muted">
+              <div class="text-muted flex items-center gap-2 text-[11px]">
                 <Clock class="text-xs" />
                 <span>{formatRelativeTime(entry.updatedAt)}</span>
                 {#if entry.modelId}
@@ -419,10 +414,7 @@
     </div>
   </aside>
 
-  <main class="flex-1 flex flex-col bg-surface">
-    <PromptComposer
-      entry={selectedEntry}
-      refreshEntries={refreshEntries}
-    />
+  <main class="bg-surface flex flex-1 flex-col">
+    <PromptComposer entry={selectedEntry} {refreshEntries} />
   </main>
 </div>

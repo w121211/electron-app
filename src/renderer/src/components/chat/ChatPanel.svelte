@@ -177,6 +177,23 @@
     showToast("Edit functionality coming soon", "info");
   }
 
+  function resolveBreadcrumbPath(session: ChatSessionData | null): string {
+    if (!session) {
+      return "";
+    }
+
+    if (session.metadata?.projectPath) {
+      return session.metadata.projectPath;
+    }
+
+    const slug = session.metadata?.promptSnapshot?.slug;
+    if (typeof slug === "string" && slug.length > 0) {
+      return slug;
+    }
+
+    return "";
+  }
+
   const selectedModelLabel = $derived(() => {
     if (!chatState.selectedModel) return "";
     return chatState.selectedModel;
@@ -206,7 +223,7 @@
         {#if chatState.currentChat}
           <div class={!ui.leftPanelOpen ? "ml-3" : ""}>
             <Breadcrumb
-              filePath={chatState.currentChat.scriptPath || ""}
+              filePath={resolveBreadcrumbPath(chatState.currentChat)}
               modelInfo={currentChatMessages.length > 0
                 ? selectedModelLabel()
                 : undefined}
@@ -261,7 +278,7 @@
             currentChatMessages[currentChatMessages.length - 1]?.message}
           <ToolCallConfirmation
             chatId={chatState.currentChat.id}
-            absoluteFilePath={chatState.currentChat.scriptPath || ""}
+            absoluteFilePath={resolveBreadcrumbPath(chatState.currentChat)}
             lastAssistantMessage={lastMessage}
           />
         {/if}

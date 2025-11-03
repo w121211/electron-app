@@ -3,6 +3,7 @@
   import { Search, Hash, FileText } from "svelte-bootstrap-icons";
   import { quickLauncherService } from "../services/quick-launcher-service.js";
   import { uiState } from "../stores/ui-store.svelte.js";
+  import { closeQuickLauncher } from "../stores/inbox-ui-store.svelte.js";
   import {
     quickLauncherState,
     resetQuickLauncher,
@@ -16,25 +17,29 @@
   } from "../stores/quick-launcher-store.svelte.js";
   import type { ProjectFileSearchResult } from "../../../core/services/project-folder-service.js";
 
+  let { isOpen }: { isOpen?: boolean } = $props();
+
   let searchInput = $state<HTMLInputElement | null>(null);
+
+  const isQuickLauncherOpen = $derived(isOpen ?? uiState.quickLauncherOpen);
 
   // Focus search input when launcher opens
   $effect(() => {
-    if (uiState.quickLauncherOpen && searchInput) {
+    if (isQuickLauncherOpen && searchInput) {
       searchInput.focus();
     }
   });
 
   // Load recent prompt scripts when launcher opens
   $effect(() => {
-    if (uiState.quickLauncherOpen) {
+    if (isQuickLauncherOpen) {
       quickLauncherService.loadRecentPromptScripts();
     }
   });
 
   // Perform search when query changes
   $effect(() => {
-    if (uiState.quickLauncherOpen) {
+    if (isQuickLauncherOpen) {
       quickLauncherService.performSearch(quickLauncherState.searchQuery);
     }
   });
@@ -43,7 +48,7 @@
     switch (event.key) {
       case "Escape":
         event.preventDefault();
-        uiState.quickLauncherOpen = false;
+        closeQuickLauncher();
         resetQuickLauncher();
         break;
       case "ArrowUp":
@@ -68,7 +73,7 @@
 
   function handleBackdropClick(event: MouseEvent): void {
     if (event.target === event.currentTarget) {
-      uiState.quickLauncherOpen = false;
+      closeQuickLauncher();
       resetQuickLauncher();
     }
   }
@@ -82,7 +87,7 @@
     if (selectedResult) {
       try {
         await quickLauncherService.selectResult(selectedResult);
-        uiState.quickLauncherOpen = false;
+        closeQuickLauncher();
         resetQuickLauncher();
       } catch (error) {
         console.error("Failed to select result:", error);
@@ -114,7 +119,7 @@
   }
 </script>
 
-{#if uiState.quickLauncherOpen}
+{#if isQuickLauncherOpen}
   <div
     class="fixed inset-0 z-50 flex items-start justify-center"
     onclick={handleBackdropClick}
