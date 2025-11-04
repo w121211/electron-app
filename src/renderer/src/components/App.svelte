@@ -47,7 +47,6 @@
   });
 </script>
 
-<!-- Main App -->
 <div class="bg-bg flex h-screen flex-col overflow-hidden font-sans">
   <div class="grow overflow-hidden">
     <MainLayout />

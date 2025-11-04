@@ -3,7 +3,9 @@ export interface PromptMetadata {
   title?: string;
   description?: string;
   tags?: string[];
+  modelId?: string;
   variables?: Record<string, unknown>;
+  projectPath?: string;
   [key: string]: unknown;
 }
 

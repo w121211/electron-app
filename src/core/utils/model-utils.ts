@@ -58,7 +58,9 @@ export function parseApiModelId(modelId: string): ParsedApiModelId {
   const rest = modelId.substring(firstSlashIndex + 1);
   const colonIndex = rest.indexOf(":");
   if (colonIndex === -1) {
-    throw new Error(`Invalid modelId format: ${modelId} (missing colon separator)`);
+    throw new Error(
+      `Invalid modelId format: ${modelId} (missing colon separator)`,
+    );
   }
 
   const provider = rest.substring(0, colonIndex);
@@ -111,17 +113,17 @@ export const presetExternalModels: Record<string, ExternalModel> = {
 };
 
 export const presetApiModels: Record<string, ApiModelConfig> = {
-  "api/openai:gpt-4o": {
-    modelId: "api/openai:gpt-4o",
-    enabled: false,
-  },
-  "api/anthropic:claude-3-5-sonnet": {
-    modelId: "api/anthropic:claude-3-5-sonnet",
-    enabled: false,
-    displayName: "Claude 3.5 Sonnet",
-  },
-  "api/ai-gateway:gemini-2.0-flash-exp": {
-    modelId: "api/ai-gateway:gemini-2.0-flash-exp",
+  // "api/openai:gpt-4o": {
+  //   modelId: "api/openai:gpt-4o",
+  //   enabled: false,
+  // },
+  // "api/anthropic:claude-3-5-sonnet": {
+  //   modelId: "api/anthropic:claude-3-5-sonnet",
+  //   enabled: false,
+  //   displayName: "Claude 3.5 Sonnet",
+  // },
+  "api/aigateway:gemini-2.0-flash-exp": {
+    modelId: "api/aigateway:gemini-2.0-flash-exp",
     enabled: false,
   },
   "api/openrouter:google/gemini-2.5-flash-preview-09-2025": {

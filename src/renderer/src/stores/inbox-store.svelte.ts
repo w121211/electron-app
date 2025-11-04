@@ -1,17 +1,18 @@
 // src/renderer/src/stores/inbox-store.svelte.ts
 import type { InboxEntry } from "../services/inbox-service.js";
-import { getEntryId } from "../services/inbox-service.js";
+import { getEntryId, fetchInboxEntries } from "../services/inbox-service.js";
+import { Logger } from "tslog";
+
+const logger = new Logger({ name: "InboxStore" });
 
 export type InboxFilter =
   | "all"
   | "active"
   | "terminated"
   | "queued"
-  | "prompt"
-  | "web"
-  | "cli";
+  | "prompts";
 
-interface InboxContextMenu {
+interface InboxEntryContextMenu {
   isVisible: boolean;
   x: number;
   y: number;
@@ -24,7 +25,7 @@ interface InboxState {
   filter: InboxFilter;
   selectedId: string | null;
   isLoading: boolean;
-  contextMenu: InboxContextMenu;
+  entryContextMenu: InboxEntryContextMenu;
 }
 
 export const inboxState = $state<InboxState>({
@@ -32,7 +33,7 @@ export const inboxState = $state<InboxState>({
   filter: "all",
   selectedId: null,
   isLoading: false,
-  contextMenu: {
+  entryContextMenu: {
     isVisible: false,
     x: 0,
     y: 0,
@@ -100,14 +101,32 @@ export function showInboxContextMenu(
   const finalX = x + menuWidth > window.innerWidth ? x - menuWidth : x;
   const finalY = y + menuHeight > window.innerHeight ? y - menuHeight : y;
 
-  inboxState.contextMenu.isVisible = true;
-  inboxState.contextMenu.x = finalX;
-  inboxState.contextMenu.y = finalY;
-  inboxState.contextMenu.targetEntryId = targetEntryId;
-  inboxState.contextMenu.isPrompt = isPrompt;
+  inboxState.entryContextMenu.isVisible = true;
+  inboxState.entryContextMenu.x = finalX;
+  inboxState.entryContextMenu.y = finalY;
+  inboxState.entryContextMenu.targetEntryId = targetEntryId;
+  inboxState.entryContextMenu.isPrompt = isPrompt;
 }
 
 export function hideInboxContextMenu(): void {
-  inboxState.contextMenu.isVisible = false;
-  inboxState.contextMenu.targetEntryId = null;
+  inboxState.entryContextMenu.isVisible = false;
+  inboxState.entryContextMenu.targetEntryId = null;
+}
+
+export async function refreshInboxEntries(options?: {
+  selectId?: string;
+}): Promise<void> {
+  setInboxLoading(true);
+  try {
+    const results = await fetchInboxEntries();
+    setInboxEntries(results);
+
+    if (options?.selectId) {
+      selectInboxEntry(options.selectId);
+    }
+  } catch (error) {
+    logger.error("Failed to load inbox entries", error);
+  } finally {
+    setInboxLoading(false);
+  }
 }

@@ -7,11 +7,11 @@
     hideInboxContextMenu,
     removeInboxEntry,
   } from "../../stores/inbox-store.svelte.js";
-  import { promptClientService } from "../../services/prompt-client-service.js";
+  import { rendererPromptService } from "../../services/renderer-prompt-service.js";
 
   const logger = new Logger({ name: "InboxContextMenu" });
 
-  const contextMenu = $derived(inboxState.contextMenu);
+  const contextMenu = $derived(inboxState.entryContextMenu);
 
   async function handleDelete(): Promise<void> {
     const targetId = contextMenu.targetEntryId;
@@ -20,7 +20,7 @@
     }
 
     try {
-      await promptClientService.deletePrompt(targetId);
+      await rendererPromptService.deletePrompt(targetId);
       removeInboxEntry(targetId);
       hideInboxContextMenu();
     } catch (error) {

@@ -118,10 +118,10 @@ export class PromptService {
         continue;
       }
 
-      const slug = deriveSlug(entry);
       const fileContent = await fs.readFile(absolutePath, "utf-8");
       const parsed = matter(fileContent);
 
+      const slug = deriveSlug(entry);
       const metadata = normalizeMetadata(parsed.data);
       const existing = await this.repository.findBySlug(slug);
 

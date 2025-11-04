@@ -27,9 +27,8 @@
   import {
     launchChat,
     generatePrompt,
-    loadQuickPromptDraft,
-    saveQuickPromptDraft,
   } from "../../services/quick-prompt-service.js";
+  import { trpcClient } from "../../lib/trpc-client.js";
   import type { ProjectFolder } from "../../stores/project-store.svelte.js";
   import { createFileMention } from "../../../../core/utils/message-utils.js";
 
@@ -46,7 +45,7 @@
   let hasFocusedEditor = $state(false);
   let status = $state<{ message: string; type: StatusType } | null>(null);
   let statusTimeout = $state<number | null>(null);
-  let promptEditId = $state<string | null>(null);
+  let currentPromptId = $state<string | null>(null);
   let lastPersistedDraft = $state("");
   let recordingState = $state<"idle" | "recording" | "unavailable">("idle");
   let mediaRecorder: MediaRecorder | null = null;
@@ -372,22 +371,36 @@
 
   const enqueueDraftSave = (draft: string): void => {
     const requestId = ++latestScheduledSaveId;
-    const targetEditId = promptEditId;
+    const targetPromptId = currentPromptId;
     saveQueue = saveQueue
       .catch(() => {})
       .then(async () => {
         try {
-          const saved = await saveQuickPromptDraft({
-            editId: targetEditId ?? undefined,
-            content: draft,
-          });
+          if (targetPromptId) {
+            // Update existing prompt
+            await trpcClient.prompt.update.mutate({
+              id: targetPromptId,
+              content: draft,
+            });
 
-          if (requestId === latestScheduledSaveId) {
-            promptEditId = saved.editId;
-            lastPersistedDraft = saved.content;
+            if (requestId === latestScheduledSaveId) {
+              lastPersistedDraft = draft;
+            }
+          } else {
+            // Create new prompt
+            const created = await trpcClient.prompt.create.mutate({
+              slug: null,
+              content: draft,
+              metadata: {},
+            });
+
+            if (requestId === latestScheduledSaveId) {
+              currentPromptId = created.id;
+              lastPersistedDraft = created.content;
+            }
           }
         } catch (error) {
-          logger.error("Failed to auto-save quick prompt draft", error);
+          logger.error("Failed to auto-save quick prompt", error);
         }
       });
   };
@@ -401,20 +414,18 @@
 
       await saveQueue.catch(() => {});
 
-      if (promptEditId !== null || promptValue !== lastPersistedDraft) {
-        const savedCurrent = await saveQuickPromptDraft({
-          editId: promptEditId ?? undefined,
+      // Save current prompt if it has changes
+      if (currentPromptId && promptValue !== lastPersistedDraft) {
+        await trpcClient.prompt.update.mutate({
+          id: currentPromptId,
           content: promptValue,
         });
-        promptEditId = savedCurrent.editId;
-        lastPersistedDraft = savedCurrent.content;
       }
 
-      const newDraft = await saveQuickPromptDraft({ content: "" });
-      promptEditId = newDraft.editId;
-      lastPersistedDraft = newDraft.content;
-      promptValue = newDraft.content;
-
+      // Reset for new prompt
+      currentPromptId = null;
+      lastPersistedDraft = "";
+      promptValue = "";
       latestScheduledSaveId++;
       saveQueue = Promise.resolve();
 
@@ -422,11 +433,11 @@
         textareaElement?.focus();
       });
     } catch (error) {
-      logger.error("Failed to create new prompt draft", error);
+      logger.error("Failed to create new prompt", error);
       applyStatus(
         error instanceof Error
           ? error.message
-          : "Failed to create a new prompt draft.",
+          : "Failed to create a new prompt.",
         "error",
         0,
       );
@@ -481,13 +492,14 @@
         }
       }
 
-      const draft = await loadQuickPromptDraft();
-      if (draft) {
-        promptEditId = draft.editId;
-        lastPersistedDraft = draft.content;
-        promptValue = draft.content;
+      const prompts = await trpcClient.prompt.list.query({ limit: 1 });
+      const recentPrompt = prompts[0];
+      if (recentPrompt) {
+        currentPromptId = recentPrompt.id;
+        lastPersistedDraft = recentPrompt.content;
+        promptValue = recentPrompt.content;
       } else {
-        promptEditId = null;
+        currentPromptId = null;
         lastPersistedDraft = "";
       }
     } catch (error) {

@@ -1,6 +1,6 @@
 <!-- src/renderer/src/components/prompt-centric/Inbox.svelte -->
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import {
     Stars,
     Terminal,
@@ -15,17 +15,14 @@
   import { Logger } from "tslog";
   import {
     inboxState,
-    setInboxEntries,
     setInboxFilter,
-    setInboxLoading,
     selectInboxEntry,
     getSelectedInboxEntry,
     showInboxContextMenu,
+    refreshInboxEntries,
     type InboxFilter,
   } from "../../stores/inbox-store.svelte.js";
-  import { closeAllOverlays } from "../../stores/inbox-ui-store.svelte.js";
   import {
-    fetchInboxEntries,
     isChatSession,
     isPrompt,
     getEntryId,
@@ -35,7 +32,6 @@
   import { projectState } from "../../stores/project-store.svelte.js";
   import PromptComposerV2 from "./PromptComposerV2.svelte";
   import InboxContextMenu from "./InboxContextMenu.svelte";
-  import { KeyboardV2 } from "../../lib/keyboard-v2.js";
 
   const logger = new Logger({ name: "Inbox" });
 
@@ -57,17 +53,6 @@
   const projects = $derived(projectState.projectFolders);
   const filteredEntries = $derived.by(() => applyFilter(entries, filter));
 
-  let keyboard: KeyboardV2 | null = null;
-
-  onMount(() => {
-    keyboard = new KeyboardV2();
-    keyboard.register("Escape", closeAllOverlays);
-  });
-
-  onDestroy(() => {
-    keyboard?.destroy();
-  });
-
   onMount(() => {
     let cancelled = false;
 
@@ -76,7 +61,7 @@
         if (cancelled) {
           return;
         }
-        await refreshEntries();
+        await refreshInboxEntries();
       } catch (error) {
         logger.error("Failed to load inbox entries", error);
       }
@@ -88,24 +73,6 @@
       cancelled = true;
     };
   });
-
-  async function refreshEntries(options?: {
-    selectId?: string;
-  }): Promise<void> {
-    setInboxLoading(true);
-    try {
-      const results = await fetchInboxEntries();
-      setInboxEntries(results);
-
-      if (options?.selectId) {
-        selectInboxEntry(options.selectId);
-      }
-    } catch (error) {
-      logger.error("Failed to load inbox entries", error);
-    } finally {
-      setInboxLoading(false);
-    }
-  }
 
   function applyFilter(
     input: InboxEntry[],
@@ -421,7 +388,7 @@
   </aside>
 
   <main class="bg-surface flex flex-1 flex-col">
-    <PromptComposerV2 entry={selectedEntry} {refreshEntries} />
+    <PromptComposerV2 entry={selectedEntry} />
   </main>
 
   <InboxContextMenu />

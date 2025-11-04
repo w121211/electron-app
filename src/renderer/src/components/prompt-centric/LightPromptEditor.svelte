@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/prompt-centric/PromptComposerV2.svelte -->
+<!-- src/renderer/src/components/prompt-centric/LightPromptEditor.svelte -->
 <script lang="ts">
   import path from "node:path";
   import { onMount, onDestroy } from "svelte";
@@ -6,10 +6,9 @@
     Folder,
     Cpu,
     Paperclip,
-    MicFill,
+    Mic,
     Stars,
     Send,
-    BoxArrowUpRight,
     PlusSquare,
     CheckLg,
   } from "svelte-bootstrap-icons";
@@ -40,7 +39,7 @@
   import { trpcClient } from "../../lib/trpc-client.js";
   import { generatePrompt } from "../../services/quick-prompt-service.js";
 
-  const logger = new Logger({ name: "PromptComposerV2" });
+  const logger = new Logger({ name: "LightPromptEditor" });
 
   type StatusTone = "info" | "success" | "error" | "warning";
 
@@ -77,6 +76,16 @@
     ),
   );
   const selectedModelId = $derived(chatSettings.selectedModel);
+  const selectedProjectName = $derived.by(() => {
+    if (!selectedProjectPath) return null;
+    const project = projects.find((p) => p.path === selectedProjectPath);
+    return project?.name ?? null;
+  });
+  const selectedModelName = $derived.by(() => {
+    if (!selectedModelId) return null;
+    const model = allModels.find((m) => m.modelId === selectedModelId);
+    return model?.modelId.split("/")[1] ?? selectedModelId;
+  });
 
   const projectPreferenceKey = "inboxProjectPath";
 
@@ -644,28 +653,18 @@
   };
 </script>
 
-<div class="flex h-full flex-col">
+<main class="bg-background flex flex-1 flex-col">
   <div class="flex h-11 shrink-0 items-center justify-between px-4 text-xs">
     <div class="flex items-center gap-3">
+      <span>Test</span>
       <div class="relative" data-project-menu>
         <button
-          class="hover:text-accent disabled:text-muted disabled:hover:text-muted flex cursor-pointer items-center gap-1 rounded px-1.5 py-1.5"
+          class="hover:text-accent flex cursor-pointer items-center gap-1"
           title="Select Project"
-          onclick={() => {
-            if (!entry) return;
-            projectMenuOpen = !projectMenuOpen;
-          }}
-          disabled={!entry}
+          onclick={() => (projectMenuOpen = !projectMenuOpen)}
         >
-          <Folder class="text-sm" />
-          <span>
-            {#if selectedProjectPath}
-              {projects.find((project) => project.path === selectedProjectPath)
-                ?.name ?? "Custom Project"}
-            {:else}
-              Select project
-            {/if}
-          </span>
+          <Folder />
+          <span>{selectedProjectName ?? "Select project"}</span>
         </button>
         {#if projectMenuOpen}
           <div
@@ -679,11 +678,10 @@
               {#each projects as project (project.path)}
                 <button
                   type="button"
-                  class={`hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left ${
-                    project.path === selectedProjectPath
-                      ? "text-accent"
-                      : "text-foreground"
-                  }`}
+                  class="hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left {project.path ===
+                  selectedProjectPath
+                    ? 'text-accent'
+                    : 'text-foreground'}"
                   onclick={() => selectProject(project.path)}
                 >
                   <span class="truncate">{project.name}</span>
@@ -703,22 +701,14 @@
           </div>
         {/if}
       </div>
-
       <div class="relative" data-model-menu>
         <button
-          class="hover:text-accent disabled:text-muted disabled:hover:text-muted flex cursor-pointer items-center gap-1 rounded px-1.5 py-1.5"
+          class="hover:text-accent flex cursor-pointer items-center gap-1"
           title="Select Model"
-          onclick={() => {
-            if (!entry) return;
-            modelMenuOpen = !modelMenuOpen;
-          }}
-          disabled={!entry}
+          onclick={() => (modelMenuOpen = !modelMenuOpen)}
         >
-          <Cpu class="text-sm" />
-          <span>
-            {enabledModels.find((item) => item.modelId === selectedModelId)
-              ?.modelId ?? "Select model"}
-          </span>
+          <Cpu />
+          <span>{selectedModelName ?? "Select model"}</span>
         </button>
         {#if modelMenuOpen}
           <div
@@ -732,11 +722,10 @@
               {#each enabledModels as model (model.modelId)}
                 <button
                   type="button"
-                  class={`hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left ${
-                    model.modelId === selectedModelId
-                      ? "text-accent"
-                      : "text-foreground"
-                  }`}
+                  class="hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left {model.modelId ===
+                  selectedModelId
+                    ? 'text-accent'
+                    : 'text-foreground'}"
                   onclick={() => selectModel(model.modelId)}
                 >
                   <span class="truncate">{model.modelId}</span>
@@ -749,78 +738,39 @@
           </div>
         {/if}
       </div>
-
       <button
         title="Attach Files"
-        class="hover:text-accent disabled:text-muted disabled:hover:text-muted cursor-pointer rounded p-1.5"
-        onclick={() => void handleAttach()}
-        disabled={!entry || isChatSession(entry)}
+        class="hover:text-accent cursor-pointer"
+        onclick={handleAttach}
       >
         <Paperclip class="text-sm" />
       </button>
     </div>
-
-    <div class="flex items-center gap-3">
-      {#if status}
-        <div
-          class={`text-xs ${
-            status.tone === "success"
-              ? "text-accent"
-              : status.tone === "error"
-                ? "text-red-400"
-                : status.tone === "warning"
-                  ? "text-yellow-400"
-                  : "text-muted"
-          }`}
-        >
-          {status.message}
-        </div>
-      {/if}
-      <div class="flex items-center gap-2">
-        <button
-          class={`cursor-pointer rounded p-1.5 ${
-            recordingState === "recording" ? "text-accent" : "hover:text-accent"
-          } disabled:text-muted disabled:hover:text-muted`}
-          title="Record Audio"
-          onclick={() => void startAudioRecording()}
-          disabled={!entry || isChatSession(entry)}
-        >
-          <MicFill class="text-sm" />
-        </button>
-        <button
-          class="hover:text-accent disabled:text-muted disabled:hover:text-muted cursor-pointer rounded p-1.5"
-          title="Generate Prompt"
-          onclick={() => void handleGeneratePrompt()}
-          disabled={!entry || isChatSession(entry) || isSubmitting}
-        >
-          <Stars class="text-sm" />
-        </button>
-        <button
-          class={`flex items-center gap-1.5 rounded-md px-3 py-1.5 ${
-            entry && isChatSession(entry)
-              ? "hover:text-accent"
-              : "hover:text-accent"
-          } disabled:text-muted disabled:hover:text-muted`}
-          title={entry
-            ? isChatSession(entry)
-              ? "Open Chat Surface"
-              : "Send Prompt"
-            : ""}
-          onclick={() => void handlePrimaryAction()}
-          disabled={!entry || isSubmitting}
-        >
-          {#if entry && isChatSession(entry)}
-            <BoxArrowUpRight class="text-sm" />
-            <span>Open</span>
-          {:else}
-            <Send class="text-sm" />
-            <span>Send</span>
-          {/if}
-        </button>
-      </div>
+    <div class="flex items-center gap-2">
+      <button
+        class="hover:text-accent cursor-pointer rounded p-1.5"
+        title="Record Audio"
+        onclick={startAudioRecording}
+      >
+        <Mic />
+      </button>
+      <button
+        class="hover:text-accent cursor-pointer rounded p-1.5"
+        title="Generate Prompt"
+        onclick={handleGeneratePrompt}
+      >
+        <Stars />
+      </button>
+      <button
+        class="hover:text-accent flex items-center gap-1.5 rounded-md py-1.5 pr-3 pl-1.5"
+        title="Send Prompt"
+        onclick={handlePrimaryAction}
+      >
+        <Send class="text-sm" />
+        <span>Send</span>
+      </button>
     </div>
   </div>
-
   <div class="flex flex-1 flex-col p-3">
     {#if !entry}
       <div class="text-muted flex h-full items-center justify-center text-sm">
@@ -835,16 +785,16 @@
       </div>
     {:else}
       <textarea
-        id="prompt-editor"
-        placeholder="Enter your prompt here. Use '/' for commands, or @path/to/file to reference files."
-        class="bg-background text-foreground placeholder:text-muted h-full w-full resize-none px-3 py-2 text-sm leading-6 outline-none"
+        id="edit-textarea"
         bind:this={textareaElement}
         value={promptValue}
-        oninput={(event) => {
-          promptValue = event.currentTarget.value;
+        oninput={(e) => {
+          promptValue = e.currentTarget.value;
         }}
         onkeydown={handleEditorKeydown}
+        placeholder="Enter your prompt here. Use '/' for commands, or '@path/to/file' to reference files."
+        class="bg-background text-foreground placeholder-muted h-full w-full resize-none px-3 py-2 text-sm leading-6 outline-none"
       ></textarea>
     {/if}
   </div>
-</div>
+</main>

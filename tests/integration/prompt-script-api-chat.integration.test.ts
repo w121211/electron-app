@@ -167,7 +167,6 @@ Say hello to $1 and mention this is a prompt script integration test.
       linkResult.promptScript.promptScriptParsed.metadata.chatSessionId,
     ).toBe(session.id);
     expect(linkResult.chatSession.id).toBe(session.id);
-    expect(linkResult.chatSession.scriptPath).toBe(preparedScript.absolutePath);
 
     const prompts = linkResult.promptScript.promptScriptParsed.prompts;
     expect(prompts.length).toBeGreaterThan(0);

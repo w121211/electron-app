@@ -3,7 +3,7 @@
   import { Search, Hash, FileText } from "svelte-bootstrap-icons";
   import { quickLauncherService } from "../services/quick-launcher-service.js";
   import { uiState } from "../stores/ui-store.svelte.js";
-  import { closeQuickLauncher } from "../stores/inbox-ui-store.svelte.js";
+  import { closeQuickLauncher } from "../stores/ui-v2-store.svelte.js";
   import {
     quickLauncherState,
     resetQuickLauncher,

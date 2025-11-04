@@ -1,4 +1,4 @@
-// src/renderer/src/services/prompt-client-service.ts
+// src/renderer/src/services/renderer-prompt-service.ts
 import type { Prompt } from "../../../core/services/prompt/prompt-types.js";
 import { trpcClient } from "../lib/trpc-client.js";
 
@@ -14,7 +14,7 @@ export interface UpdatePromptParams {
   metadata?: Record<string, unknown> | null;
 }
 
-class PromptClientService {
+class RendererPromptService {
   async getPrompt(id: string): Promise<Prompt | null> {
     return trpcClient.prompt.get.query({ id });
   }
@@ -41,4 +41,4 @@ class PromptClientService {
   }
 }
 
-export const promptClientService = new PromptClientService();
+export const rendererPromptService = new RendererPromptService();

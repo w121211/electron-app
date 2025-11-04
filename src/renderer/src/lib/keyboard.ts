@@ -1,15 +1,17 @@
 // src/renderer/src/lib/keyboard.ts
 import { treeState } from "../stores/tree-store.svelte.js";
+import { showToast, closeAllModals } from "../stores/ui-store.svelte.js";
 import {
-  showToast,
-  uiState,
-  closeAllModals,
-} from "../stores/ui-store.svelte.js";
+  openQuickLauncher,
+  closeAllOverlays,
+} from "../stores/ui-v2-store.svelte.js";
 import { documentClientService } from "../services/document-client-service.js";
 import { ui } from "../stores/ui.svelte.js";
 import { ptyChatService } from "../services/pty-chat-service.js";
+import { rendererPromptService } from "../services/renderer-prompt-service.js";
+import { refreshInboxEntries } from "../stores/inbox-store.svelte.js";
 
-// --- 1. Standalone Handlers ---
+// --- Standalone Handlers ---
 
 function handleSaveDocument() {
   if (ui.activeFilePath) {
@@ -23,17 +25,20 @@ function handleSaveDocument() {
   }
 }
 
-function handleNewPromptScript() {
-  const selected = treeState.selectedNode;
-  if (!selected) {
-    showToast("Select a folder first", "warning");
-    return;
+async function handleNewPrompt() {
+  try {
+    const prompt = await rendererPromptService.createPrompt({
+      content: "",
+    });
+    await refreshInboxEntries({ selectId: prompt.id });
+    showToast(`Created new prompt: ${prompt.id}`, "success");
+  } catch (err) {
+    console.error("Failed to create prompt", err);
+    showToast(
+      `Failed to create prompt: ${err instanceof Error ? err.message : String(err)}`,
+      "error",
+    );
   }
-
-  showToast(
-    "Prompt script creation is coming soon. Use the filesystem to add a .prompt.md file in the meantime.",
-    "info",
-  );
 }
 
 function handleEscape() {
@@ -43,10 +48,11 @@ function handleEscape() {
     return;
   }
   closeAllModals();
+  closeAllOverlays();
 }
 
 function handleQuickLauncher() {
-  uiState.quickLauncherOpen = true;
+  openQuickLauncher();
 }
 
 async function handleSavePtySnapshot() {
@@ -75,7 +81,7 @@ async function handleOpenXtermWindow() {
   }
 }
 
-// --- 2. Shortcut Definitions ---
+// --- Shortcut Definitions ---
 
 type ShortcutDefinition = {
   key: string;
@@ -119,24 +125,24 @@ const shortcutDefinitions: ShortcutDefinition[] = [
     key: "n",
     meta: true,
     os: "mac",
-    handler: handleNewPromptScript,
-    description: "Create new prompt script in selected folder",
+    handler: handleNewPrompt,
+    description: "Create new prompt",
     preventDefault: true,
   },
   {
     key: "n",
     ctrl: true,
     os: "windows",
-    handler: handleNewPromptScript,
-    description: "Create new prompt script in selected folder",
+    handler: handleNewPrompt,
+    description: "Create new prompt",
     preventDefault: true,
   },
   {
     key: "n",
     ctrl: true,
     os: "linux",
-    handler: handleNewPromptScript,
-    description: "Create new prompt script in selected folder",
+    handler: handleNewPrompt,
+    description: "Create new prompt",
     preventDefault: true,
   },
 
@@ -228,7 +234,7 @@ const shortcutDefinitions: ShortcutDefinition[] = [
   },
 ];
 
-// --- 3. KeyboardManager Class ---
+// --- KeyboardManager Class ---
 
 export interface KeyboardShortcut {
   key: string;

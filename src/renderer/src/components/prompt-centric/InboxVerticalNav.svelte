@@ -8,13 +8,12 @@
     Gear,
   } from "svelte-bootstrap-icons";
   import {
-    inboxUiState,
+    uiV2State,
     openQuickLauncher,
-    openSettings,
-    closeSettings,
-  } from "../../stores/inbox-ui-store.svelte.js";
+    setCenterPanelView,
+  } from "../../stores/ui-v2-store.svelte";
   import { Logger } from "tslog";
-  import { promptClientService } from "../../services/prompt-client-service.js";
+  import { rendererPromptService } from "../../services/renderer-prompt-service.js";
   import {
     inboxState,
     setInboxEntries,
@@ -44,7 +43,7 @@
     }
 
     try {
-      const newPrompt = await promptClientService.createPrompt({
+      const newPrompt = await rendererPromptService.createPrompt({
         content: "",
       });
       await refreshEntries(newPrompt.id);
@@ -70,7 +69,7 @@
   }
 </script>
 
-<nav class="flex w-10 flex-col items-center gap-3 py-2 pl-1">
+<nav class="bg-surface flex w-10 flex-col items-center gap-3 px-1 py-2">
   <div class="text-muted flex flex-1 flex-col items-center gap-3 text-base">
     <button
       class="text-muted hover:bg-hover hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
@@ -80,13 +79,15 @@
       <PencilSquare />
     </button>
     <button
-      class={inboxUiState.settingsPanelOpen
+      class={uiV2State.centerPanelView === "settings"
         ? "text-muted hover:bg-hover hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
-        : "bg-border text-foreground flex h-8 w-8 items-center justify-center rounded-lg"}
+        : "bg-surface text-foreground flex h-8 w-8 items-center justify-center rounded-lg"}
       title="Prompts"
-      onclick={closeSettings}
+      onclick={() => setCenterPanelView("inbox")}
     >
-      <Stars class={inboxUiState.settingsPanelOpen ? "" : "text-accent"} />
+      <Stars
+        class={uiV2State.centerPanelView === "settings" ? "" : "text-accent"}
+      />
     </button>
     <button
       class="text-muted hover:bg-hover hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
@@ -104,12 +105,14 @@
   </div>
 
   <button
-    class={inboxUiState.settingsPanelOpen
-      ? "bg-border text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
+    class={uiV2State.centerPanelView === "settings"
+      ? "bg-surface text-foreground flex h-8 w-8 items-center justify-center rounded-lg"
       : "text-muted hover:bg-hover hover:text-foreground flex h-8 w-8 items-center justify-center rounded-lg"}
     title="Settings"
-    onclick={openSettings}
+    onclick={() => setCenterPanelView("settings")}
   >
-    <Gear class={inboxUiState.settingsPanelOpen ? "text-accent" : ""} />
+    <Gear
+      class={uiV2State.centerPanelView === "settings" ? "text-accent" : ""}
+    />
   </button>
 </nav>
