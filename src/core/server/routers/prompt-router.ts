@@ -17,6 +17,10 @@ const getInputSchema = z.object({
   id: z.string(),
 });
 
+const findBySlugInputSchema = z.object({
+  slug: z.string(),
+});
+
 const createInputSchema = z.object({
   slug: z.string().nullable().optional(),
   content: z.string(),
@@ -50,6 +54,11 @@ export function createPromptRouter({
     get: publicProcedure.input(getInputSchema).query(async ({ input }) => {
       return promptService.getPrompt(input.id);
     }),
+    findBySlug: publicProcedure
+      .input(findBySlugInputSchema)
+      .query(async ({ input }) => {
+        return promptService.findBySlug(input.slug);
+      }),
     create: publicProcedure
       .input(createInputSchema)
       .mutation(async ({ input }) => {

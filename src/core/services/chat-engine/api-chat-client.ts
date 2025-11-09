@@ -293,6 +293,74 @@ class ApiChatSession {
     }
   }
 
+  async runTurnFromMessages(options?: RunTurnOptions): Promise<ApiTurnResult> {
+    if (options?.externalSignal?.aborted) {
+      throw new Error("Operation aborted");
+    }
+
+    if (this.currentTurn >= this.maxTurns) {
+      this.state = "terminated";
+      return {
+        state: this.state,
+        currentTurn: this.currentTurn,
+      };
+    }
+
+    const abortController = new AbortController();
+    this.currentAbortController = abortController;
+
+    const signal = options?.externalSignal
+      ? this.combineAbortSignals(options.externalSignal, abortController.signal)
+      : abortController.signal;
+
+    try {
+      this.state = "active:generating";
+      this.updatedAt = new Date();
+
+      // No input to append, we're using existing messages
+
+      const streamResult = await this.generateAssistantResponse(signal); // This already uses this.messages
+
+      this.metadata.currentTurn = this.currentTurn + 1;
+
+      if (this.toolCallsAwaitingConfirmation.length > 0) {
+        this.state = "active:awaiting_input";
+        this.metadata.toolCallsAwaitingConfirmation =
+          this.toolCallsAwaitingConfirmation.map((toolCall) => ({
+            ...toolCall,
+          }));
+        await this.emitStatusChange();
+        return {
+          state: this.state,
+          currentTurn: this.currentTurn,
+          streamResult,
+          toolCallsAwaitingConfirmation: this.toolCallsAwaitingConfirmation,
+        };
+      }
+
+      this.state = "active";
+      this.toolCallsAwaitingConfirmation = [];
+      this.metadata.toolCallsAwaitingConfirmation = [];
+      this.metadata.toolCallConfirmations = [];
+      await this.emitStatusChange();
+      return {
+        state: this.state,
+        currentTurn: this.currentTurn,
+        streamResult,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        this.state = "active";
+        await this.emitStatusChange();
+        throw new Error("Operation cancelled by user");
+      }
+      throw error;
+    } finally {
+      this.currentAbortController?.abort();
+      this.currentAbortController = null;
+    }
+  }
+
   async confirmToolCall(
     toolCallId: string,
     outcome: ToolCallConfirmationOutcome,
@@ -646,6 +714,24 @@ export class ApiChatClient {
     const result = await this.runTurn(session, input.input, {
       toolNames: input.toolNames,
     });
+    const sessionData = session.toChatSessionData();
+    await this.repository.update(sessionData);
+    return { turnResult: result, session: sessionData };
+  }
+
+  async runSession(
+    chatSessionId: string,
+    options?: { toolNames?: string[] },
+  ): Promise<{
+    turnResult: ApiTurnResult;
+    session: ChatSessionData;
+  }> {
+    const session = await this.loadSession(chatSessionId);
+
+    const result = await session.runTurnFromMessages({
+      toolNames: options?.toolNames,
+    });
+
     const sessionData = session.toChatSessionData();
     await this.repository.update(sessionData);
     return { turnResult: result, session: sessionData };

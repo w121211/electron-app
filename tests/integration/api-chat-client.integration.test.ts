@@ -22,6 +22,7 @@ import {
 } from "../../src/core/services/tool-call/tool-registry.js";
 
 const hasGatewayCredentials = Boolean(process.env.AI_GATEWAY_API_KEY);
+const hasOpenRouterCredentials = Boolean(process.env.OPENROUTER_API_KEY);
 
 const describeIntegration = describe.runIf(hasGatewayCredentials);
 
@@ -123,59 +124,63 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
     expect(hasNonEmptyResponse).toBe(true);
   });
 
-  it("streams a response through OpenRouter provider", async () => {
-    const modelId = "api/openrouter:deepseek/deepseek-chat-v3.1:free";
+  it.runIf(hasOpenRouterCredentials)(
+    "streams a response through OpenRouter provider",
+    async () => {
+      const modelId = "api/openrouter:deepseek/deepseek-chat-v3.1:free";
 
-    const sessionInput: CreateChatSessionInput = {
-      modelSurface: "api",
-      metadata: {
-        modelId,
-        maxTurns: 3,
-      },
-    };
+      const sessionInput: CreateChatSessionInput = {
+        modelSurface: "api",
+        metadata: {
+          modelId,
+          maxTurns: 3,
+        },
+      };
 
-    const session = await client.createSession(sessionInput);
+      const session = await client.createSession(sessionInput);
 
-    const messageInput: SendChatMessageInput = {
-      chatSessionId: session.id,
-      input: {
-        role: "user",
-        content: "Say a short hello and mention this is an integration test.",
-      },
-    };
+      const messageInput: SendChatMessageInput = {
+        chatSessionId: session.id,
+        input: {
+          role: "user",
+          content: "Say a short hello and mention this is an integration test.",
+        },
+      };
 
-    const result = await client.sendMessage(messageInput);
+      const result = await client.sendMessage(messageInput);
 
-    expect(result.turnResult.streamResult).toBeDefined();
-    expect(result.session.metadata?.currentTurn).toBe(1);
+      expect(result.turnResult.streamResult).toBeDefined();
+      expect(result.session.metadata?.currentTurn).toBe(1);
 
-    const assistantMessages = result.session.messages.filter(
-      (message) => message.message.role === "assistant",
-    );
+      const assistantMessages = result.session.messages.filter(
+        (message) => message.message.role === "assistant",
+      );
 
-    console.log(
-      "Assistant messages:",
-      JSON.stringify(assistantMessages, null, 2),
-    );
+      console.log(
+        "Assistant messages:",
+        JSON.stringify(assistantMessages, null, 2),
+      );
 
-    expect(assistantMessages.length).toBeGreaterThan(0);
+      expect(assistantMessages.length).toBeGreaterThan(0);
 
-    const hasNonEmptyResponse = assistantMessages.some((message) => {
-      const content = message.message.content;
-      if (typeof content === "string") {
-        return content.trim().length > 0;
-      }
-
-      return content.some((part) => {
-        if (part.type !== "text") {
-          return false;
+      const hasNonEmptyResponse = assistantMessages.some((message) => {
+        const content = message.message.content;
+        if (typeof content === "string") {
+          return content.trim().length > 0;
         }
-        return part.text.trim().length > 0;
-      });
-    });
 
-    expect(hasNonEmptyResponse).toBe(true);
-  });
+        return content.some((part) => {
+          if (part.type !== "text") {
+            return false;
+          }
+          return part.text.trim().length > 0;
+        });
+      });
+
+      expect(hasNonEmptyResponse).toBe(true);
+    },
+    20000,
+  );
 
   it("throws error for unsupported provider", async () => {
     const modelId = "api/openai:gpt-4o-mini";
@@ -201,6 +206,64 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
     await expect(client.sendMessage(messageInput)).rejects.toThrow(
       /No such provider: openai/,
     );
+  });
+
+  it("runs a session from existing messages", async () => {
+    const modelId = "api/aigateway:google/gemini-2.5-flash-lite";
+
+    const sessionInput: CreateChatSessionInput = {
+      modelSurface: "api",
+      metadata: {
+        modelId,
+        maxTurns: 3,
+      },
+      messages: [
+        {
+          id: randomUUID(),
+          message: {
+            role: "user",
+            content: "Say a short hello and mention this is from runSession.",
+          },
+          metadata: {
+            timestamp: new Date(),
+          },
+        },
+      ],
+    };
+
+    const session = await client.createSession(sessionInput);
+
+    const result = await client.runSession(session.id);
+
+    expect(result.turnResult.streamResult).toBeDefined();
+    expect(result.session.metadata?.currentTurn).toBe(1);
+
+    const assistantMessages = result.session.messages.filter(
+      (message) => message.message.role === "assistant",
+    );
+
+    console.log(
+      "runSession Assistant messages:",
+      JSON.stringify(assistantMessages, null, 2),
+    );
+
+    expect(assistantMessages.length).toBeGreaterThan(0);
+
+    const hasNonEmptyResponse = assistantMessages.some((message) => {
+      const content = message.message.content;
+      if (typeof content === "string") {
+        return content.trim().length > 0;
+      }
+
+      return content.some((part) => {
+        if (part.type !== "text") {
+          return false;
+        }
+        return part.text.trim().length > 0;
+      });
+    });
+
+    expect(hasNonEmptyResponse).toBe(true);
   });
 });
 

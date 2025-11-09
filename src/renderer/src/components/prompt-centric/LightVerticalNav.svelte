@@ -15,19 +15,10 @@
   } from "../../stores/ui-v2-store.svelte";
   import { rendererPromptService } from "../../services/renderer-prompt-service.js";
   import {
-    inboxState,
-    setInboxEntries,
-    setInboxLoading,
-    selectInboxEntry,
     getSelectedInboxEntry,
     refreshInboxEntries,
   } from "../../stores/inbox-store.svelte.js";
-  import {
-    fetchInboxEntries,
-    isPrompt,
-    getEntryId,
-  } from "../../services/inbox-service.js";
-  import { getSelectedPrompt } from "../../stores/prompt-centric-store.svelte";
+  import { isPrompt } from "../../services/inbox-service.js";
 
   const logger = new Logger({ name: "InboxVerticalNav" });
 
@@ -78,6 +69,7 @@
     <button
       class="hover:bg-hover hover:text-foreground flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg"
       title="Search"
+      onclick={openQuickLauncher}
     >
       <Search />
     </button>

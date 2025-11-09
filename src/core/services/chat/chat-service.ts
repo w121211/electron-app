@@ -99,7 +99,6 @@ export class ChatService {
         initialModelMessages,
       });
     }
-
     if (surface === "web") {
       return this.createWebChat({
         params,
@@ -109,12 +108,14 @@ export class ChatService {
         initialModelMessages,
       });
     }
-
-    return this.createApiChat({
-      metadata: resolvedMetadata,
-      sourcePromptId,
-      initialModelMessages,
-    });
+    if (surface === "api") {
+      return this.createApiChat({
+        metadata: resolvedMetadata,
+        sourcePromptId,
+        initialModelMessages,
+      });
+    }
+    throw new Error("");
   }
 
   private composeInitialMessages(
@@ -156,12 +157,15 @@ export class ChatService {
   }): Promise<ChatSessionData> {
     const chatMessages = this.createChatMessages(options.initialModelMessages);
 
-    return this.apiChatClient.createSession({
+    // Create the session with all initial messages
+    const session = await this.apiChatClient.createSession({
       modelSurface: "api",
       metadata: options.metadata,
-      messages: chatMessages,
+      messages: chatMessages, // Now we pass all messages directly
       sourcePromptId: options.sourcePromptId ?? null,
     });
+
+    return session;
   }
 
   private async createTerminalChat(options: {

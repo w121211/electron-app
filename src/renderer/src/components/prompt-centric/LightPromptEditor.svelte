@@ -38,6 +38,8 @@
   import { getModelSurface } from "../../../../core/utils/model-utils.js";
   import { trpcClient } from "../../lib/trpc-client.js";
   import { generatePrompt } from "../../services/quick-prompt-service.js";
+  import type { ProjectFileSearchResult } from "../../../../core/services/project-folder-service.js";
+  import FileMentionDropdown from "./FileMentionDropdown.svelte";
 
   const logger = new Logger({ name: "LightPromptEditor" });
 
@@ -64,6 +66,14 @@
   let audioChunks = $state<Blob[]>([]);
   let autoSaveTimer: number | null = null;
   let activeEntryId: string | null = null;
+
+  // File mention state
+  let fileMentionResults = $state<ProjectFileSearchResult[]>([]);
+  let fileMentionSelectedIndex = $state(0);
+  let fileMentionShowMenu = $state(false);
+  let fileMentionCursorPos = $state(-1);
+  let fileMentionStartPos = $state(-1);
+  let fileMentionDebounceTimer: number | null = null;
 
   const projects = $derived(projectState.projectFolders);
   const allModels = $derived.by(getAvailableModelsAsList);
@@ -154,6 +164,9 @@
       window.clearTimeout(autoSaveTimer);
       autoSaveTimer = null;
     }
+    if (fileMentionDebounceTimer !== null) {
+      clearTimeout(fileMentionDebounceTimer);
+    }
   });
 
   $effect(() => {
@@ -195,6 +208,113 @@
     projectMenuOpen = false;
     modelMenuOpen = false;
   };
+
+  // File mention functions
+  async function searchFilesForMention(query: string): Promise<void> {
+    if (!selectedProjectPath) {
+      applyStatus("Select a project to use file mentions.", "warning");
+      fileMentionResults = [];
+      return;
+    }
+
+    try {
+      const results = await trpcClient.projectFolder.searchFiles.query({
+        query: query || "",
+        projectPath: selectedProjectPath,
+        limit: 20,
+      });
+      fileMentionResults = results;
+      fileMentionSelectedIndex = 0;
+    } catch (error) {
+      logger.error("File mention search failed", error);
+      applyStatus(
+        error instanceof Error ? error.message : "File search failed.",
+        "error",
+      );
+      fileMentionResults = [];
+    }
+  }
+
+  function detectFileMention(): void {
+    if (!textareaElement) return;
+
+    const cursorPos = textareaElement.selectionStart;
+    const beforeCursor = promptValue.substring(0, cursorPos);
+    const atMatch = beforeCursor.match(/@([^@\s]*)$/);
+
+    if (fileMentionDebounceTimer !== null) {
+      clearTimeout(fileMentionDebounceTimer);
+    }
+
+    if (atMatch) {
+      const query = atMatch[1] || "";
+      fileMentionCursorPos = cursorPos;
+      fileMentionStartPos = cursorPos - atMatch[1].length;
+      fileMentionShowMenu = true;
+
+      fileMentionDebounceTimer = window.setTimeout(() => {
+        void searchFilesForMention(query);
+      }, 50);
+    } else {
+      fileMentionShowMenu = false;
+    }
+  }
+
+  function handleFileMentionSelect(file: ProjectFileSearchResult): void {
+    if (!textareaElement) return;
+
+    const beforeSearch = promptValue.substring(0, fileMentionStartPos - 1); // -1 removes @
+    const afterSearch = promptValue.substring(fileMentionCursorPos);
+    const mention = `@${file.relativePath} `;
+
+    promptValue = beforeSearch + mention + afterSearch;
+
+    const newCursorPos = beforeSearch.length + mention.length;
+    queueMicrotask(() => {
+      textareaElement?.setSelectionRange(newCursorPos, newCursorPos);
+      textareaElement?.focus();
+    });
+
+    fileMentionShowMenu = false;
+  }
+
+  function handleFileMentionKeydown(event: KeyboardEvent): boolean {
+    if (!fileMentionShowMenu) return false;
+
+    switch (event.key) {
+      case "ArrowUp":
+        event.preventDefault();
+        fileMentionSelectedIndex = Math.max(0, fileMentionSelectedIndex - 1);
+        return true;
+
+      case "ArrowDown":
+        event.preventDefault();
+        fileMentionSelectedIndex = Math.min(
+          fileMentionResults.length - 1,
+          fileMentionSelectedIndex + 1,
+        );
+        return true;
+
+      case "Enter":
+      case "Tab": {
+        event.preventDefault();
+        const selectedFile = fileMentionResults[fileMentionSelectedIndex];
+        if (selectedFile) {
+          handleFileMentionSelect(selectedFile);
+        }
+        return true;
+      }
+
+      case "Escape":
+        event.preventDefault();
+        fileMentionShowMenu = false;
+        textareaElement?.focus();
+        return true;
+
+      default:
+        return false;
+    }
+  }
 
   const initializeProjectPreference = (): void => {
     const stored = localStorage.getItem(projectPreferenceKey);
@@ -495,6 +615,11 @@
       return;
     }
 
+    // Handle file mention menu first
+    if (handleFileMentionKeydown(event)) {
+      return;
+    }
+
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
       void handlePrimaryAction();
@@ -656,7 +781,6 @@
 <main class="bg-background flex flex-1 flex-col">
   <div class="flex h-11 shrink-0 items-center justify-between px-4 text-xs">
     <div class="flex items-center gap-3">
-      <span>Test</span>
       <div class="relative" data-project-menu>
         <button
           class="hover:text-accent flex cursor-pointer items-center gap-1"
@@ -784,17 +908,34 @@
         <div class="text-xs">Click "Open" to view in the chat surface</div>
       </div>
     {:else}
-      <textarea
-        id="edit-textarea"
-        bind:this={textareaElement}
-        value={promptValue}
-        oninput={(e) => {
-          promptValue = e.currentTarget.value;
-        }}
-        onkeydown={handleEditorKeydown}
-        placeholder="Enter your prompt here. Use '/' for commands, or '@path/to/file' to reference files."
-        class="bg-background text-foreground placeholder-muted h-full w-full resize-none px-3 py-2 text-sm leading-6 outline-none"
-      ></textarea>
+      <div class="relative flex-1">
+        <textarea
+          id="edit-textarea"
+          bind:this={textareaElement}
+          value={promptValue}
+          oninput={(e) => {
+            promptValue = e.currentTarget.value;
+            detectFileMention();
+          }}
+          onkeydown={handleEditorKeydown}
+          placeholder="Enter your prompt here. Use '/' for commands, or '@path/to/file' to reference files."
+          class="bg-background text-foreground placeholder-muted h-full w-full resize-none px-3 py-2 text-sm leading-6 outline-none"
+        ></textarea>
+
+        {#if fileMentionShowMenu}
+          <FileMentionDropdown
+            results={fileMentionResults}
+            selectedIndex={fileMentionSelectedIndex}
+            onselect={handleFileMentionSelect}
+            oncancel={() => {
+              fileMentionShowMenu = false;
+              textareaElement?.focus();
+            }}
+            onhover={(index) => (fileMentionSelectedIndex = index)}
+            class="absolute right-3 bottom-2 left-3"
+          />
+        {/if}
+      </div>
     {/if}
   </div>
 </main>

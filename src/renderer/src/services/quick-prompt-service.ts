@@ -34,16 +34,18 @@ export async function launchChat(
   });
 
   // Step 2: Create chat session with prompt
-  const title = prompt
-    .split("\n")
-    .map((line) => line.trim())
-    .find((line) => line.length > 0) ?? "New Prompt";
+  const title =
+    prompt
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.length > 0) ?? "New Prompt";
 
   const session = await trpcClient.chat.createSession.mutate({
     modelId,
     sourcePromptId: savedPrompt.id,
     title: title.slice(0, 120),
-    workingDirectory: surface === "terminal" ? (projectPath ?? undefined) : undefined,
+    workingDirectory:
+      surface === "terminal" ? (projectPath ?? undefined) : undefined,
     metadata: projectPath !== null ? { projectPath } : undefined,
   });
 
@@ -76,8 +78,9 @@ export async function generatePrompt(
   userInput: string,
 ): Promise<{ session: ChatSessionData; generatedPrompt: string }> {
   // Step 1: Get prompt by slug
-  const prompts = await trpcClient.prompt.list.query();
-  const prompt = prompts.find((p) => p.slug === GENERATE_PROMPT_SLUG);
+  const prompt = await trpcClient.prompt.findBySlug.query({
+    slug: GENERATE_PROMPT_SLUG,
+  });
   if (!prompt) {
     throw new Error(
       `Prompt with slug "${GENERATE_PROMPT_SLUG}" not found. Make sure the template is seeded.`,
@@ -109,10 +112,11 @@ export async function generatePrompt(
     },
   });
 
-  // Step 4: Wait for initial message response (ChatService sends initial message automatically)
-  const updatedSession = await trpcClient.apiChat.getSession.query({
+  // Step 4: Trigger AI response for the initial message and get updated session
+  const result = await trpcClient.apiChat.runSession.mutate({
     chatSessionId: session.id,
   });
+  const updatedSession = result.session;
 
   // Step 5: Extract the generated prompt from the last assistant message
   const lastMessage =

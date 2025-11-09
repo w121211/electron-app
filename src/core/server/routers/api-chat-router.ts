@@ -141,6 +141,26 @@ export function createApiChatRouter(chatClient: ApiChatClient) {
         };
       }),
 
+    runSession: publicProcedure
+      .input(
+        z.object({
+          chatSessionId: z.string(),
+          toolNames: z.array(z.string()).optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        const result = await chatClient.runSession(input.chatSessionId, {
+          toolNames: input.toolNames,
+        });
+
+        const turnResult = await serializeTurnResult(result.turnResult);
+
+        return {
+          session: result.session,
+          turnResult,
+        };
+      }),
+
     abort: publicProcedure
       .input(z.object({ chatSessionId: z.string() }))
       .mutation(async ({ input }) => {
