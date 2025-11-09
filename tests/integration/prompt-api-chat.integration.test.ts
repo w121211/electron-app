@@ -1,5 +1,5 @@
 // tests/integration/prompt-api-chat.integration.test.ts
-// Run with: AI_GATEWAY_API_KEY=... npx vitest run tests/integration/prompt-api-chat.integration.test.ts
+// Run with: AI_GATEWAY_API_KEY=... npm test -- tests/integration/prompt-api-chat.integration.test.ts --run
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -27,7 +27,7 @@ import {
 } from "../../src/core/services/prompt/prompt-repository.js";
 import { PromptService } from "../../src/core/services/prompt/prompt-service.js";
 import { getModelMessageContentString } from "../../src/core/utils/message-utils.js";
-import { getModelSurface } from "../../src/core/utils/model-utils.js";
+import { parseModelId } from "../../src/core/utils/model-utils-v2.js";
 
 const hasGatewayCredentials = Boolean(process.env.AI_GATEWAY_API_KEY);
 
@@ -92,7 +92,7 @@ describeIntegration("Prompt API chat integration", () => {
         title: "Prompt Integration Test",
         description: "Test prompt for integration testing",
         tags: ["test", "integration"],
-        modelId: "api/aigateway:openai/gpt-4o-mini",
+        modelId: "api:aigateway:openai/gpt-4o-mini",
         variables: {
           name: {
             type: "string",
@@ -106,10 +106,10 @@ describeIntegration("Prompt API chat integration", () => {
     expect(prompt.id).toBeDefined();
     expect(prompt.slug).toBe("greeting-test");
     expect(prompt.metadata?.title).toBe("Prompt Integration Test");
-    expect(prompt.metadata?.modelId).toBe("api/aigateway:openai/gpt-4o-mini");
+    expect(prompt.metadata?.modelId).toBe("api:aigateway:openai/gpt-4o-mini");
 
     const modelId = ModelIdSchema.parse(prompt.metadata!.modelId!);
-    const modelSurface = getModelSurface(modelId);
+    const modelSurface = parseModelId(modelId).surface;
 
     const sessionInput: CreateChatSessionInput = {
       modelSurface,
@@ -268,7 +268,7 @@ describeIntegration("Prompt API chat integration", () => {
         "Generate a brief system prompt for {{topic}} focusing on reliability.",
       metadata: {
         title: "API Model Test",
-        modelId: "api/aigateway:openai/gpt-4o-mini",
+        modelId: "api:aigateway:openai/gpt-4o-mini",
         variables: {
           topic: {
             type: "string",
@@ -279,7 +279,7 @@ describeIntegration("Prompt API chat integration", () => {
     });
 
     const modelId = ModelIdSchema.parse(prompt.metadata!.modelId!);
-    const modelSurface = getModelSurface(modelId);
+    const modelSurface = parseModelId(modelId).surface;
 
     const sessionInput: CreateChatSessionInput = {
       modelSurface,
@@ -343,5 +343,5 @@ describeIntegration("Prompt API chat integration", () => {
     });
 
     expect(hasNonEmptyResponse).toBe(true);
-  });
+  }, 30000);
 });

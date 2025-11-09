@@ -58,7 +58,7 @@ describe("Prompt seeding integration", () => {
 slug: test-prompt-1
 title: Test Prompt 1
 description: A test prompt for seeding
-modelId: api/aigateway:openai/gpt-4o-mini
+modelId: api:aigateway:openai/gpt-4o-mini
 tags:
   - test
   - integration
@@ -69,7 +69,7 @@ This is a test prompt with variables: {{name}} and {{topic}}`;
     const template2 = `---
 slug: test-prompt-2
 title: Test Prompt 2
-modelId: api/aigateway:google/gemini-2.5-flash-lite
+modelId: api:aigateway:google/gemini-2.5-flash-lite
 ---
 
 Generate a response about {{subject}}`;
@@ -96,7 +96,7 @@ Generate a response about {{subject}}`;
     expect(prompt1?.content).toContain("{{topic}}");
     expect(prompt1?.metadata?.title).toBe("Test Prompt 1");
     expect(prompt1?.metadata?.description).toBe("A test prompt for seeding");
-    expect(prompt1?.metadata?.modelId).toBe("api/aigateway:openai/gpt-4o-mini");
+    expect(prompt1?.metadata?.modelId).toBe("api:aigateway:openai/gpt-4o-mini");
     expect(prompt1?.metadata?.tags).toEqual(["test", "integration"]);
 
     const prompt2 = await promptService.findBySlug("test-prompt-2");
@@ -105,7 +105,7 @@ Generate a response about {{subject}}`;
     expect(prompt2?.content).toContain("{{subject}}");
     expect(prompt2?.metadata?.title).toBe("Test Prompt 2");
     expect(prompt2?.metadata?.modelId).toBe(
-      "api/aigateway:google/gemini-2.5-flash-lite",
+      "api:aigateway:google/gemini-2.5-flash-lite",
     );
   });
 

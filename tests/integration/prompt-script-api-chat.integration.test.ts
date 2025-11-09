@@ -31,7 +31,7 @@ import {
 } from "../../src/core/services/prompt/prompt-edit-repository.js";
 import { substituteArgs } from "../../src/core/services/prompt-script/prompt-script-parser.js";
 import { getModelMessageContentString } from "../../src/core/utils/message-utils.js";
-import { getModelSurface } from "../../src/core/utils/model-utils.js";
+import { getModelSurface } from "../../core/utils/model-utils-v2.js";
 
 const hasGatewayCredentials = Boolean(process.env.AI_GATEWAY_API_KEY);
 
@@ -121,7 +121,7 @@ describeIntegration("Prompt script API chat integration", () => {
   it("creates, links, and executes a prompt script through the API chat engine", async () => {
     const scriptMarkdown = `---
 title: Prompt Script Integration Test
-modelId: api/openai:gpt-4o-mini
+modelId: api:openai:gpt-4o-mini
 ---
 
 <!-- user input="true" label="Name" -->
@@ -233,7 +233,7 @@ Say hello to $1 and mention this is a prompt script integration test.
   it("creates, links, and executes a prompt script that specifies an API modelId", async () => {
     const scriptMarkdown = `---
 title: Prompt Script API ModelId Test
-modelId: api/aigateway:google/gemini-2.5-flash-lite
+modelId: api:aigateway:google/gemini-2.5-flash-lite
 ---
 
 <!-- user input="true" label="Topic" -->

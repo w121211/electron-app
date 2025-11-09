@@ -102,7 +102,7 @@ describeIntegration("generatePrompt integration", () => {
       content: "Generate a prompt based on the user request: {{userInput}}",
       metadata: {
         title: "Generate Prompt",
-        modelId: "api/aigateway:google/gemini-2.0-flash-lite",
+        modelId: "api:aigateway:google/gemini-2.0-flash-lite",
         variables: {
           userInput: {
             type: "string",
@@ -116,12 +116,12 @@ describeIntegration("generatePrompt integration", () => {
     expect(generatePromptTemplate.id).toBeDefined();
     expect(generatePromptTemplate.slug).toBe("generate-prompt");
     expect(generatePromptTemplate.metadata?.modelId).toBe(
-      "api/aigateway:google/gemini-2.0-flash-lite",
+      "api:aigateway:google/gemini-2.0-flash-lite",
     );
 
     // Step 2: Create chat session with prompt args
     const session = await chatService.createChat({
-      modelId: "api/aigateway:google/gemini-2.0-flash-lite",
+      modelId: "api:aigateway:google/gemini-2.0-flash-lite",
       sourcePromptId: generatePromptTemplate.id,
       promptArgs: { userInput },
       metadata: {
@@ -135,7 +135,7 @@ describeIntegration("generatePrompt integration", () => {
     expect(session.id).toBeDefined();
     expect(session.sourcePromptId).toBe(generatePromptTemplate.id);
     expect(session.metadata?.modelId).toBe(
-      "api/aigateway:google/gemini-2.0-flash-lite",
+      "api:aigateway:google/gemini-2.0-flash-lite",
     );
     expect(session.metadata?.promptSnapshot).toBeDefined();
     expect(session.metadata?.promptSnapshot?.args?.userInput).toBe(userInput);
@@ -197,7 +197,7 @@ describeIntegration("generatePrompt integration", () => {
 
     // Step 2: Create chat session with the generate-prompt template
     const generateSession = await chatService.createChat({
-      modelId: "api/aigateway:google/gemini-2.0-flash-lite",
+      modelId: "api:aigateway:google/gemini-2.0-flash-lite",
       sourcePromptId: generatePromptTemplate.id,
       promptArgs: { userInput },
       metadata: {
@@ -215,7 +215,7 @@ describeIntegration("generatePrompt integration", () => {
 
     // Step 4: Create a new chat session with the generated prompt
     const newSession = await chatService.createChat({
-      modelId: "api/aigateway:openai/gpt-4o-mini",
+      modelId: "api:aigateway:openai/gpt-4o-mini",
       initialMessages: [
         {
           role: "user",

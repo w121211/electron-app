@@ -1,5 +1,6 @@
 // src/core/services/external-chat/terminal-chat-client.ts
 import { v4 as uuidv4 } from "uuid";
+import { parseModelId } from "../../utils/model-utils-v2.js";
 import type { IEventBus } from "../../event-bus.js";
 import type {
   ChatMetadata,
@@ -11,7 +12,6 @@ import {
   type CreateExternalSessionInput,
 } from "./external-chat-client.interface.js";
 import { TerminalChatSession } from "./terminal-chat-session.js";
-import { getModelSurface } from "../../utils/model-utils.js";
 
 export class TerminalChatClient implements IExternalChatClient {
   private readonly sessions = new Map<string, TerminalChatSession>();
@@ -25,12 +25,19 @@ export class TerminalChatClient implements IExternalChatClient {
     input: CreateExternalSessionInput,
   ): Promise<ChatSessionData> {
     const timestamp = new Date();
-    const modelSurface = getModelSurface(input.modelId);
+    const parsed = parseModelId(input.modelId);
+
+    if (parsed.surface !== "cli") {
+      throw new Error(
+        `Invalid model ID for TerminalChatClient: "${input.modelId}". Expected surface "cli", got "${parsed.surface}"`,
+      );
+    }
+
     const metadata: ChatMetadata = {
       ...input.metadata,
       title: input.title ?? input.metadata?.title ?? "Terminal Session",
       modelId: input.modelId,
-      modelSurface,
+      modelSurface: parsed.surface,
       mode: "agent",
       external: {
         ...input.metadata?.external,
@@ -41,7 +48,7 @@ export class TerminalChatClient implements IExternalChatClient {
 
     const sessionData: ChatSessionData = {
       id: uuidv4(),
-      modelSurface,
+      modelSurface: parsed.surface,
       state: "active",
       messages: [],
       metadata,
@@ -73,7 +80,9 @@ export class TerminalChatClient implements IExternalChatClient {
     return updatedData;
   }
 
-  private async getOrLoadSession(sessionId: string): Promise<TerminalChatSession> {
+  private async getOrLoadSession(
+    sessionId: string,
+  ): Promise<TerminalChatSession> {
     const existing = this.sessions.get(sessionId);
     if (existing) {
       return existing;

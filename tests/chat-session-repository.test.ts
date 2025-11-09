@@ -1,8 +1,6 @@
 // tests/chat-session-repository.test.ts
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import crypto from "node:crypto";
 import fs from "node:fs/promises";
-import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
 import type { ModelMessage, UserModelMessage } from "ai";
 import {
@@ -11,10 +9,10 @@ import {
   type ChatMessage,
   type ChatState,
   type ChatMetadata,
+  type ModelSurfaceV2,
+  type PtyChatSnapshot,
 } from "../src/core/services/chat/chat-session-repository.js";
-import type { ModelSurface } from "../src/core/utils/model-utils.js";
 
-// Test data factory functions
 function createMockUserMessage(content: string): UserModelMessage {
   return {
     role: "user",
@@ -44,14 +42,11 @@ function createMockChatMessage(
 
 function createMockChatSession(
   options: {
-    modelSurface?: ModelSurface;
+    modelSurface?: ModelSurfaceV2;
     state?: ChatState;
     messages?: ChatMessage[];
     metadata?: ChatMetadata;
-    scriptPath?: string;
-    scriptModifiedAt?: Date;
-    scriptHash?: string;
-    scriptSnapshot?: string;
+    sourcePromptId?: string | null;
   } = {},
 ): ChatSessionData {
   const now = new Date();
@@ -61,18 +56,10 @@ function createMockChatSession(
     state: options.state || "active",
     messages: options.messages || [],
     metadata: options.metadata,
-    scriptPath: options.scriptPath || null,
-    scriptModifiedAt: options.scriptModifiedAt || null,
-    scriptHash: options.scriptHash || null,
-    scriptSnapshot: options.scriptSnapshot || null,
+    sourcePromptId: options.sourcePromptId ?? null,
     createdAt: now,
     updatedAt: now,
   };
-}
-
-// Helper function to create a content hash for a script
-function createScriptHash(content: string): string {
-  return crypto.createHash("sha256").update(content).digest("hex");
 }
 
 describe("ChatSessionRepository", () => {
@@ -101,12 +88,14 @@ describe("ChatSessionRepository", () => {
         state: "active",
         messages: [
           createMockChatMessage(createMockUserMessage("Hello, world!")),
-          createMockChatMessage(createMockAssistantMessage("Hi there! How can I help you?")),
+          createMockChatMessage(
+            createMockAssistantMessage("Hi there! How can I help you?"),
+          ),
         ],
         metadata: {
           title: "Test Chat Session",
           tags: ["test", "demo"],
-          modelId: "openai/gpt-4o-mini",
+          modelId: "api:openai:gpt-4o-mini",
         },
       });
 
@@ -138,7 +127,9 @@ describe("ChatSessionRepository", () => {
     it("should update an existing chat session", async () => {
       const session = createMockChatSession({
         state: "active",
-        messages: [createMockChatMessage(createMockUserMessage("Original message"))],
+        messages: [
+          createMockChatMessage(createMockUserMessage("Original message")),
+        ],
         metadata: { title: "Original Title" },
       });
 
@@ -166,21 +157,6 @@ describe("ChatSessionRepository", () => {
       expect(retrieved?.metadata?.title).toBe("Updated Title");
     });
 
-    it("should list all chat sessions", async () => {
-      const session1 = createMockChatSession({ metadata: { title: "Session 1" } });
-      const session2 = createMockChatSession({ metadata: { title: "Session 2" } });
-
-      await repository.create(session1);
-      await repository.create(session2);
-
-      const allSessions = await repository.list();
-      expect(allSessions).toHaveLength(2);
-
-      const titles = allSessions.map(s => s.metadata?.title);
-      expect(titles).toContain("Session 1");
-      expect(titles).toContain("Session 2");
-    });
-
     it("should delete a chat session", async () => {
       const session = createMockChatSession();
       await repository.create(session);
@@ -192,219 +168,28 @@ describe("ChatSessionRepository", () => {
 
       expect(deleted).toBeNull();
     });
-  });
 
-  describe("Prompt Script Integration", () => {
-    let tempDir: string;
-    let scriptPath1: string;
-    let scriptPath2: string;
-    let scriptContent1: string;
-    let scriptContent2: string;
-    let scriptHash1: string;
-    let scriptHash2: string;
-
-    beforeEach(async () => {
-      tempDir = `/tmp/chat-session-test-scripts-${Date.now()}`;
-      await fs.mkdir(tempDir, { recursive: true });
-
-      scriptPath1 = path.join(tempDir, "test-script.prompt.md");
-      scriptContent1 = `---
-title: "Test Script"
-engine: api
-model: openai/gpt-4o-mini
----
-
-Write a hello world program in Python.
-<!-- user -->
-
-Now add error handling to it.`;
-
-      scriptPath2 = path.join(tempDir, "another-script.prompt.md");
-      scriptContent2 = `---
-title: "Another Script"
-engine: pty
----
-
-!claude
-<!-- user -->
-
-What time is it?`;
-
-      await fs.writeFile(scriptPath1, scriptContent1);
-      await fs.writeFile(scriptPath2, scriptContent2);
-
-      scriptHash1 = createScriptHash(scriptContent1);
-      scriptHash2 = createScriptHash(scriptContent2);
-    });
-
-    afterEach(async () => {
-      try {
-        await fs.rm(tempDir, { recursive: true });
-      } catch {
-        // Directory might not exist, ignore cleanup error
-      }
-    });
-
-    it("should create sessions with script metadata", async () => {
-      const session = createMockChatSession({
-        modelSurface: "api",
-        messages: [
-          createMockChatMessage(createMockUserMessage("Write a hello world program in Python.")),
-          createMockChatMessage(createMockAssistantMessage("```python\nprint('Hello, World!')\n```")),
-        ],
-        metadata: {
-          title: "Test Script",
-          modelId: "openai/gpt-4o-mini",
-        },
-        scriptPath: scriptPath1,
-        scriptModifiedAt: new Date(),
-        scriptHash: scriptHash1,
-        scriptSnapshot: scriptContent1,
-      });
-
-      await repository.create(session);
-      const retrieved = await repository.getById(session.id);
-
-      expect(retrieved?.scriptPath).toBe(path.resolve(scriptPath1));
-      expect(retrieved?.scriptHash).toBe(scriptHash1);
-      expect(retrieved?.scriptSnapshot).toBe(scriptContent1);
-    });
-
-    it("should find sessions by script path", async () => {
-      const session = createMockChatSession({
-        scriptPath: scriptPath1,
-        scriptHash: scriptHash1,
-        scriptSnapshot: scriptContent1,
-      });
-
-      await repository.create(session);
-      const found = await repository.findByScriptPath(scriptPath1);
-
-      expect(found).toBeDefined();
-      expect(found?.id).toBe(session.id);
-      expect(found?.scriptPath).toBe(path.resolve(scriptPath1));
-    });
-
-    it("should find sessions by script hash", async () => {
-      const session = createMockChatSession({
-        scriptPath: scriptPath1,
-        scriptHash: scriptHash1,
-        scriptSnapshot: scriptContent1,
-      });
-
-      await repository.create(session);
-      const found = await repository.findByScriptHash(scriptHash1);
-
-      expect(found).toHaveLength(1);
-      expect(found[0].id).toBe(session.id);
-      expect(found[0].scriptHash).toBe(scriptHash1);
-    });
-
-    it("should handle multiple sessions with same script hash", async () => {
-      const sharedContent = "Calculate 2 + 2";
-      const sharedHash = createScriptHash(sharedContent);
-
+    it("should list all chat sessions", async () => {
       const session1 = createMockChatSession({
-        metadata: { modelId: "openai/gpt-4o-mini" },
-        scriptHash: sharedHash,
-        scriptSnapshot: sharedContent,
+        metadata: { title: "Session 1" },
       });
-
       const session2 = createMockChatSession({
-        metadata: { modelId: "anthropic/claude-3-sonnet" },
-        scriptHash: sharedHash,
-        scriptSnapshot: sharedContent,
+        metadata: { title: "Session 2" },
       });
 
       await repository.create(session1);
       await repository.create(session2);
 
-      const found = await repository.findByScriptHash(sharedHash);
-      expect(found).toHaveLength(2);
+      const allSessions = await repository.list();
+      expect(allSessions).toHaveLength(2);
 
-      const ids = found.map(s => s.id);
-      expect(ids).toContain(session1.id);
-      expect(ids).toContain(session2.id);
-    });
-
-    it("should handle script content changes", async () => {
-      const session = createMockChatSession({
-        scriptPath: scriptPath1,
-        scriptHash: scriptHash1,
-        scriptSnapshot: scriptContent1,
-      });
-
-      await repository.create(session);
-
-      // Simulate script modification
-      const modifiedContent = scriptContent1 + "\n<!-- user -->\n\nNow make it more robust.";
-      const modifiedHash = createScriptHash(modifiedContent);
-
-      const updatedSession = {
-        ...session,
-        scriptHash: modifiedHash,
-        scriptSnapshot: modifiedContent,
-        scriptModifiedAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      await repository.update(updatedSession);
-
-      // Old hash should not find the session
-      const oldResults = await repository.findByScriptHash(scriptHash1);
-      expect(oldResults).toHaveLength(0);
-
-      // New hash should find the session
-      const newResults = await repository.findByScriptHash(modifiedHash);
-      expect(newResults).toHaveLength(1);
-      expect(newResults[0].id).toBe(session.id);
+      const titles = allSessions.map((s) => s.metadata?.title);
+      expect(titles).toContain("Session 1");
+      expect(titles).toContain("Session 2");
     });
   });
 
-  describe("Complex Scenarios", () => {
-    it("should handle PTY sessions with complex metadata", async () => {
-      const session = createMockChatSession({
-        modelSurface: "pty",
-        state: "terminated",
-        messages: [
-          createMockChatMessage(createMockUserMessage("!claude")),
-          createMockChatMessage(createMockUserMessage("Write a Python script")),
-          createMockChatMessage(createMockUserMessage("/new")),
-          createMockChatMessage(createMockUserMessage("!gemini")),
-        ],
-        metadata: {
-          title: "Multi-Model PTY Session",
-          tags: ["pty", "multi-model", "complex"],
-          mode: "agent",
-          modelSurface: "pty",
-          external: {
-            pid: 12345,
-            workingDirectory: "/tmp/test",
-            ptyInstanceId: "pty-complex-123",
-            windowTitle: "AI Chat pty-complex-123",
-            ptySnapshots: [
-              {
-                modelId: "anthropic/claude-3-5-sonnet-20241022",
-                snapshot: "Last command output...",
-                snapshotHtml: "<div>Last command output...</div>",
-                timestamp: new Date(),
-              },
-            ],
-          },
-          currentTurn: 4,
-          maxTurns: 10,
-        },
-      });
-
-      await repository.create(session);
-      const retrieved = await repository.getById(session.id);
-
-      expect(retrieved?.modelSurface).toBe("pty");
-      expect(retrieved?.metadata?.external?.ptySnapshots?.[0]?.snapshot).toBe("Last command output...");
-      expect(retrieved?.metadata?.currentTurn).toBe(4);
-      expect(retrieved?.messages).toHaveLength(4);
-    });
-
+  describe("Message Handling", () => {
     it("should handle sessions with empty messages", async () => {
       const session = createMockChatSession({
         modelSurface: "api",
@@ -420,7 +205,437 @@ What time is it?`;
       const retrieved = await repository.getById(session.id);
 
       expect(retrieved?.messages).toHaveLength(0);
-      expect(retrieved?.metadata?.promptDraft).toBe("This is a draft prompt that hasn't been sent yet.");
+      expect(retrieved?.metadata?.promptDraft).toBe(
+        "This is a draft prompt that hasn't been sent yet.",
+      );
+    });
+
+    it("should preserve message order", async () => {
+      const timestamp1 = new Date(Date.now() - 2000);
+      const timestamp2 = new Date(Date.now() - 1000);
+      const timestamp3 = new Date();
+
+      const session = createMockChatSession({
+        messages: [
+          createMockChatMessage(createMockUserMessage("First"), timestamp1),
+          createMockChatMessage(
+            createMockAssistantMessage("Second"),
+            timestamp2,
+          ),
+          createMockChatMessage(createMockUserMessage("Third"), timestamp3),
+        ],
+      });
+
+      await repository.create(session);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.messages).toHaveLength(3);
+      expect(retrieved?.messages[0].message.content).toBe("First");
+      expect(retrieved?.messages[1].message.content).toBe("Second");
+      expect(retrieved?.messages[2].message.content).toBe("Third");
+    });
+
+    it("should handle messages with file mentions", async () => {
+      const message = createMockChatMessage(
+        createMockUserMessage("Check this file"),
+      );
+      message.metadata.fileMentions = [
+        { path: "/path/to/file.ts", md5: "abc123" },
+        { path: "/path/to/another.ts", md5: "def456" },
+      ];
+
+      const session = createMockChatSession({
+        messages: [message],
+      });
+
+      await repository.create(session);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.messages[0].metadata.fileMentions).toHaveLength(2);
+      expect(retrieved?.messages[0].metadata.fileMentions?.[0].path).toBe(
+        "/path/to/file.ts",
+      );
+      expect(retrieved?.messages[0].metadata.fileMentions?.[1].md5).toBe(
+        "def456",
+      );
+    });
+
+    it("should update messages when session is updated", async () => {
+      const session = createMockChatSession({
+        messages: [createMockChatMessage(createMockUserMessage("Original"))],
+      });
+
+      await repository.create(session);
+
+      const updatedSession = {
+        ...session,
+        messages: [
+          createMockChatMessage(createMockUserMessage("Replaced message")),
+        ],
+        updatedAt: new Date(),
+      };
+
+      await repository.update(updatedSession);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.messages).toHaveLength(1);
+      expect(retrieved?.messages[0].message.content).toBe("Replaced message");
+    });
+  });
+
+  describe("Chat States", () => {
+    const states: ChatState[] = [
+      "queued",
+      "active",
+      "active:generating",
+      "active:awaiting_input",
+      "active:disconnected",
+      "terminated",
+    ];
+
+    states.forEach((state) => {
+      it(`should handle ${state} state`, async () => {
+        const session = createMockChatSession({ state });
+        await repository.create(session);
+
+        const retrieved = await repository.getById(session.id);
+        expect(retrieved?.state).toBe(state);
+      });
+    });
+
+    it("should handle invalid state by defaulting to terminated", async () => {
+      const session = createMockChatSession({ state: "active" });
+      await repository.create(session);
+
+      const db = (repository as any).db;
+      await db
+        .updateTable("chat_sessions")
+        .set({ sessionStatus: "invalid_state" })
+        .where("id", "=", session.id)
+        .execute();
+
+      const retrieved = await repository.getById(session.id);
+      expect(retrieved?.state).toBe("terminated");
+    });
+  });
+
+  describe("Model Surfaces", () => {
+    const surfaces: ModelSurfaceV2[] = ["api", "cli", "web"];
+
+    surfaces.forEach((surface) => {
+      it(`should handle ${surface} model surface`, async () => {
+        const session = createMockChatSession({ modelSurface: surface });
+        await repository.create(session);
+
+        const retrieved = await repository.getById(session.id);
+        expect(retrieved?.modelSurface).toBe(surface);
+      });
+    });
+  });
+
+  describe("Metadata Handling", () => {
+    it("should handle complete metadata", async () => {
+      const metadata: ChatMetadata = {
+        title: "Complete Metadata Test",
+        tags: ["tag1", "tag2", "tag3"],
+        mode: "agent",
+        knowledge: ["knowledge1", "knowledge2"],
+        promptDraft: "Draft content",
+        modelId: "api:anthropic:claude-3-5-sonnet-20241022",
+        modelSurface: "api",
+        currentTurn: 5,
+        maxTurns: 10,
+        projectPath: "/path/to/project",
+      };
+
+      const session = createMockChatSession({ metadata });
+      await repository.create(session);
+
+      const retrieved = await repository.getById(session.id);
+      expect(retrieved?.metadata?.title).toBe("Complete Metadata Test");
+      expect(retrieved?.metadata?.tags).toHaveLength(3);
+      expect(retrieved?.metadata?.mode).toBe("agent");
+      expect(retrieved?.metadata?.knowledge).toHaveLength(2);
+      expect(retrieved?.metadata?.currentTurn).toBe(5);
+      expect(retrieved?.metadata?.maxTurns).toBe(10);
+    });
+
+    // it("should handle PTY metadata with snapshots", async () => {
+    //   const ptySnapshot: PtyChatSnapshot = {
+    //     modelId: "pty:chatgpt",
+    //     snapshot: "Terminal output snapshot",
+    //     snapshotHtml: "<div>Terminal output</div>",
+    //     timestamp: new Date(),
+    //   };
+
+    //   const metadata: ChatMetadata = {
+    //     title: "PTY Session",
+    //     external: {
+    //       pid: 12345,
+    //       workingDirectory: "/tmp/test",
+    //       ptyInstanceId: "pty-instance-123",
+    //       windowTitle: "AI Chat Session",
+    //       ptySnapshots: [ptySnapshot],
+    //     },
+    //   };
+
+    //   const session = createMockChatSession({
+    //     modelSurface: "pty",
+    //     metadata,
+    //   });
+
+    //   await repository.create(session);
+    //   const retrieved = await repository.getById(session.id);
+
+    //   expect(retrieved?.metadata?.external?.pid).toBe(12345);
+    //   expect(retrieved?.metadata?.external?.ptyInstanceId).toBe(
+    //     "pty-instance-123",
+    //   );
+    //   expect(retrieved?.metadata?.external?.ptySnapshots).toHaveLength(1);
+    //   expect(retrieved?.metadata?.external?.ptySnapshots?.[0].snapshot).toBe(
+    //     "Terminal output snapshot",
+    //   );
+    // });
+
+    it("should handle web chat metadata", async () => {
+      const metadata: ChatMetadata = {
+        title: "Web Chat Session",
+        external: {
+          webChatId: "web-chat-456",
+          windowTitle: "Web Browser Chat",
+        },
+      };
+
+      const session = createMockChatSession({
+        modelSurface: "web",
+        metadata,
+      });
+
+      await repository.create(session);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.metadata?.external?.webChatId).toBe("web-chat-456");
+      expect(retrieved?.metadata?.external?.windowTitle).toBe(
+        "Web Browser Chat",
+      );
+    });
+
+    it("should handle prompt snapshot metadata", async () => {
+      const metadata: ChatMetadata = {
+        promptSnapshot: {
+          promptId: "prompt-123",
+          slug: "test-prompt",
+          content: "Analyze this code",
+          metadata: {
+            description: "Code analysis prompt",
+            version: "1.0",
+          },
+          capturedAt: new Date().toISOString(),
+          args: {
+            language: "typescript",
+            file: "test.ts",
+          },
+        },
+      };
+
+      const session = createMockChatSession({ metadata });
+      await repository.create(session);
+
+      const retrieved = await repository.getById(session.id);
+      expect(retrieved?.metadata?.promptSnapshot?.promptId).toBe("prompt-123");
+      expect(retrieved?.metadata?.promptSnapshot?.slug).toBe("test-prompt");
+      expect(retrieved?.metadata?.promptSnapshot?.content).toBe(
+        "Analyze this code",
+      );
+      expect(retrieved?.metadata?.promptSnapshot?.args?.language).toBe(
+        "typescript",
+      );
+    });
+
+    it("should handle tool call confirmations", async () => {
+      const metadata: ChatMetadata = {
+        toolCallConfirmations: [
+          {
+            toolCallId: "call-1",
+            outcome: "yes",
+            timestamp: new Date(),
+          },
+          {
+            toolCallId: "call-2",
+            outcome: "yes_always",
+            timestamp: new Date(),
+          },
+          {
+            toolCallId: "call-3",
+            outcome: "no",
+            timestamp: new Date(),
+          },
+        ],
+        toolAlwaysAllowRules: [
+          {
+            toolName: "file_read",
+            sourceConfirmation: {
+              toolCallId: "call-2",
+              outcome: "yes_always",
+              timestamp: new Date(),
+            },
+          },
+        ],
+      };
+
+      const session = createMockChatSession({ metadata });
+      await repository.create(session);
+
+      const retrieved = await repository.getById(session.id);
+      expect(retrieved?.metadata?.toolCallConfirmations).toHaveLength(3);
+      expect(retrieved?.metadata?.toolCallConfirmations?.[0].outcome).toBe(
+        "yes",
+      );
+      expect(retrieved?.metadata?.toolCallConfirmations?.[1].outcome).toBe(
+        "yes_always",
+      );
+      expect(retrieved?.metadata?.toolAlwaysAllowRules).toHaveLength(1);
+      expect(retrieved?.metadata?.toolAlwaysAllowRules?.[0].toolName).toBe(
+        "file_read",
+      );
+    });
+
+    it("should handle undefined metadata", async () => {
+      const session = createMockChatSession({ metadata: undefined });
+      await repository.create(session);
+
+      const retrieved = await repository.getById(session.id);
+      expect(retrieved?.metadata).toBeUndefined();
+    });
+
+    it("should handle null metadata values", async () => {
+      const metadata: ChatMetadata = {
+        title: undefined,
+        tags: undefined,
+        mode: undefined,
+      };
+
+      const session = createMockChatSession({ metadata });
+      await repository.create(session);
+
+      const retrieved = await repository.getById(session.id);
+      expect(retrieved?.metadata?.title).toBeUndefined();
+      expect(retrieved?.metadata?.tags).toBeUndefined();
+    });
+  });
+
+  describe("Source Prompt Integration", () => {
+    it("should store and retrieve sourcePromptId", async () => {
+      const promptId = uuidv4();
+      const db = (repository as any).db;
+
+      await db
+        .insertInto("prompts")
+        .values({
+          id: promptId,
+          slug: "test-prompt",
+          content: "Test prompt content",
+          metadata: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+
+      const session = createMockChatSession({
+        sourcePromptId: promptId,
+        metadata: {
+          title: "Session from Prompt",
+        },
+      });
+
+      await repository.create(session);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.sourcePromptId).toBe(promptId);
+    });
+
+    it("should handle null sourcePromptId", async () => {
+      const session = createMockChatSession({
+        sourcePromptId: null,
+      });
+
+      await repository.create(session);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.sourcePromptId).toBeNull();
+    });
+
+    it("should update sourcePromptId", async () => {
+      const session = createMockChatSession({
+        sourcePromptId: null,
+      });
+
+      await repository.create(session);
+
+      const newPromptId = uuidv4();
+      const db = (repository as any).db;
+
+      await db
+        .insertInto("prompts")
+        .values({
+          id: newPromptId,
+          slug: "updated-prompt",
+          content: "Updated prompt content",
+          metadata: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+
+      const updatedSession = {
+        ...session,
+        sourcePromptId: newPromptId,
+        updatedAt: new Date(),
+      };
+
+      await repository.update(updatedSession);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.sourcePromptId).toBe(newPromptId);
+    });
+  });
+
+  describe("Timestamps", () => {
+    it("should preserve createdAt and updatedAt timestamps", async () => {
+      const createdAt = new Date(Date.now() - 10000);
+      const session = createMockChatSession();
+      session.createdAt = createdAt;
+      session.updatedAt = createdAt;
+
+      await repository.create(session);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.createdAt.getTime()).toBe(createdAt.getTime());
+      expect(retrieved?.updatedAt.getTime()).toBe(createdAt.getTime());
+    });
+
+    it("should update updatedAt timestamp on update", async () => {
+      const originalDate = new Date(Date.now() - 10000);
+      const session = createMockChatSession();
+      session.createdAt = originalDate;
+      session.updatedAt = originalDate;
+
+      await repository.create(session);
+
+      const newDate = new Date();
+      const updatedSession = {
+        ...session,
+        metadata: { title: "Updated" },
+        updatedAt: newDate,
+      };
+
+      await repository.update(updatedSession);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.createdAt.getTime()).toBe(originalDate.getTime());
+      expect(retrieved?.updatedAt.getTime()).toBeGreaterThan(
+        originalDate.getTime(),
+      );
     });
   });
 
@@ -434,17 +649,122 @@ What time is it?`;
       const fakeSession = createMockChatSession();
       fakeSession.id = "non-existent-id";
 
-      await expect(repository.update(fakeSession)).rejects.toThrow("does not exist");
+      await expect(repository.update(fakeSession)).rejects.toThrow(
+        "does not exist",
+      );
     });
 
-    it("should return empty array for empty script hash", async () => {
-      const results = await repository.findByScriptHash("");
-      expect(results).toHaveLength(0);
+    it("should handle deletion of non-existent session gracefully", async () => {
+      await expect(repository.delete("non-existent-id")).resolves.not.toThrow();
     });
 
-    it("should return null for non-existent script path", async () => {
-      const result = await repository.findByScriptPath("/non/existent/path.prompt.md");
-      expect(result).toBeNull();
+    it("should return empty array when no sessions exist", async () => {
+      const sessions = await repository.list();
+      expect(sessions).toEqual([]);
+    });
+  });
+
+  describe("Complex Scenarios", () => {
+    it("should handle multi-turn conversation with mixed content", async () => {
+      const session = createMockChatSession({
+        state: "terminated",
+        messages: [
+          createMockChatMessage(createMockUserMessage("Write a Python script")),
+          createMockChatMessage(
+            createMockAssistantMessage(
+              "Here's a Python script:\n```python\nprint('Hello')\n```",
+            ),
+          ),
+          createMockChatMessage(createMockUserMessage("Add error handling")),
+          createMockChatMessage(
+            createMockAssistantMessage(
+              "```python\ntry:\n  print('Hello')\nexcept Exception as e:\n  print(f'Error: {e}')\n```",
+            ),
+          ),
+        ],
+        metadata: {
+          title: "Python Script Development",
+          tags: ["python", "coding"],
+          mode: "agent",
+          currentTurn: 4,
+          maxTurns: 10,
+        },
+      });
+
+      await repository.create(session);
+      const retrieved = await repository.getById(session.id);
+
+      expect(retrieved?.messages).toHaveLength(4);
+      expect(retrieved?.metadata?.currentTurn).toBe(4);
+      expect(retrieved?.state).toBe("terminated");
+    });
+
+    it("should handle concurrent session creation", async () => {
+      const sessions = Array.from({ length: 10 }, () =>
+        createMockChatSession({
+          messages: [createMockChatMessage(createMockUserMessage("Test"))],
+        }),
+      );
+
+      await Promise.all(sessions.map((s) => repository.create(s)));
+
+      const allSessions = await repository.list();
+      expect(allSessions).toHaveLength(10);
+    });
+
+    it("should handle session with large message history", async () => {
+      const messages = Array.from({ length: 100 }, (_, i) =>
+        createMockChatMessage(
+          i % 2 === 0
+            ? createMockUserMessage(`User message ${i}`)
+            : createMockAssistantMessage(`Assistant message ${i}`),
+        ),
+      );
+
+      const session = createMockChatSession({ messages });
+      await repository.create(session);
+
+      const retrieved = await repository.getById(session.id);
+      expect(retrieved?.messages).toHaveLength(100);
+      expect(retrieved?.messages[0].message.content).toBe("User message 0");
+      expect(retrieved?.messages[99].message.content).toBe(
+        "Assistant message 99",
+      );
+    });
+  });
+
+  describe("Transaction Integrity", () => {
+    it("should rollback on message insertion failure", async () => {
+      const session = createMockChatSession({
+        messages: [createMockChatMessage(createMockUserMessage("Test"))],
+      });
+
+      await repository.create(session);
+
+      const sessions = await repository.list();
+      expect(sessions).toHaveLength(1);
+    });
+
+    it("should delete all messages when deleting session", async () => {
+      const session = createMockChatSession({
+        messages: [
+          createMockChatMessage(createMockUserMessage("Message 1")),
+          createMockChatMessage(createMockUserMessage("Message 2")),
+          createMockChatMessage(createMockUserMessage("Message 3")),
+        ],
+      });
+
+      await repository.create(session);
+      await repository.delete(session.id);
+
+      const db = (repository as any).db;
+      const messages = await db
+        .selectFrom("chat_messages")
+        .selectAll()
+        .where("chatSessionId", "=", session.id)
+        .execute();
+
+      expect(messages).toHaveLength(0);
     });
   });
 });

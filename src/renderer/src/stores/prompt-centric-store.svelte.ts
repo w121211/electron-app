@@ -1,7 +1,7 @@
 // src/renderer/src/stores/prompt-centric-store.svelte.ts
 
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
-import type { ModelSurface } from "../../../core/utils/model-utils.js";
+import type { ModelSurface } from "../../core/utils/model-utils-v2.js";
 import type {
   PromptScriptEngine,
   PromptScriptWarning,

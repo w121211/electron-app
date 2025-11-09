@@ -11,7 +11,7 @@ import {
   type IExternalChatClient,
   type CreateExternalSessionInput,
 } from "./external-chat-client.interface.js";
-import { getModelSurface } from "../../utils/model-utils.js";
+import { getModelSurface } from "../../core/utils/model-utils-v2.js";
 
 import { ExternalChatSession } from "./external-chat-session.js";
 

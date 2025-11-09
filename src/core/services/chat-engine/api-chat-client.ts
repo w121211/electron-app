@@ -13,6 +13,7 @@ import {
   type TypedToolCall,
   type UserModelMessage,
 } from "ai";
+import { parseModelId } from "../../utils/model-utils-v2.js";
 import type { IEventBus } from "../../event-bus.js";
 import type {
   ChatMessage,
@@ -21,6 +22,7 @@ import type {
   ChatSessionData,
   ChatSessionRepository,
   ChatState,
+  ModelSurfaceV2,
 } from "../chat/chat-session-repository.js";
 import {
   ChatMessageSchema,
@@ -28,8 +30,6 @@ import {
   ModelSurfaceSchema,
   ChatStateSchema,
 } from "../chat/chat-session-repository.js";
-import type { ModelSurface } from "../../utils/model-utils.js";
-import { parseApiModelId } from "../../utils/model-utils.js";
 import {
   extractChatFileMentions,
   getUserModelMessageContentString,
@@ -51,7 +51,7 @@ import type { ChatUpdatedEvent } from "./events.js";
 const DEFAULT_MAX_TURNS = 20;
 
 export interface CreateChatSessionInput {
-  modelSurface: ModelSurface;
+  modelSurface: ModelSurfaceV2;
   metadata?: Partial<ChatMetadata>;
   messages?: ChatMessage[];
   state?: ChatState;
@@ -108,7 +108,7 @@ function ensureTimestamp(metadata: ChatMessageMetadata): ChatMessageMetadata {
 
 class ApiChatSession {
   readonly id: string;
-  readonly modelSurface: ModelSurface;
+  readonly modelSurface: ModelSurfaceV2;
   private messages: ChatMessage[];
   private metadata: ChatMetadata;
   private state: ChatState;
@@ -174,7 +174,7 @@ class ApiChatSession {
     return this.metadata.currentTurn ?? 0;
   }
 
-  get modelId(): `${string}/${string}` {
+  get modelId(): `${string}:${string}` {
     const modelId = this.metadata.modelId;
     if (!modelId) {
       throw new Error("Chat session metadata is missing modelId");
@@ -550,8 +550,8 @@ class ApiChatSession {
   private async generateAssistantResponse(
     signal: AbortSignal,
   ): Promise<StreamTextResult<ToolSet, never>> {
-    const parsed = parseApiModelId(this.modelId);
-    const registryModelId = `${parsed.provider}:${parsed.modelIdForProvider}`;
+    const parsed = parseModelId(this.modelId);
+    const registryModelId = `${parsed.provider}:${parsed.providerModelId}`;
 
     // @ts-expect-error - Dynamic model ID from registry
     const baseModel = providerRegistry.languageModel(registryModelId);

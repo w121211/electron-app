@@ -39,7 +39,7 @@ import { onMount, onDestroy } from "svelte";
     type PromptListEntry,
   } from "../../stores/prompt-centric-store.svelte.js";
   import { createFileMention } from "../../../../core/utils/message-utils.js";
-  import { getModelSurface } from "../../../../core/utils/model-utils.js";
+  import { getModelSurface } from "../../core/utils/model-utils-v2.js";
   import type { ChatSessionData } from "../../../../core/services/chat/chat-session-repository.js";
 
   const logger = new Logger({ name: "PromptComposer" });

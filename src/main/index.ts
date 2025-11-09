@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { app } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { HttpTrpcServer } from "../core/server/trpc-server.js";
+import { WebSocketServer } from "../core/server/websocket-server.js";
 import { requestRendererSnapshot } from "../core/services/chat/pty-chat/pty-snapshot-provider.js";
 import {
   createMainProcessContext,
@@ -41,17 +42,23 @@ async function bootstrap(): Promise<MainProcessContext> {
     appResourcesPath,
   });
 
+  const websocketServer = new WebSocketServer({});
+
   try {
-    const port = await trpcServer.start(3333);
-    console.log(`tRPC server started on port ${port}`);
+    const trpcPort = await trpcServer.start(3333);
+    console.log(`tRPC server started on port ${trpcPort}`);
+
+    const wsPort = await websocketServer.start(3334);
+    console.log(`WebSocket server started on port ${wsPort}`);
   } catch (error) {
-    console.error("Failed to start tRPC server:", error);
+    console.error("Failed to start servers:", error);
     throw error;
   }
 
   const ptyInstanceManager = trpcServer.getPtyInstanceManager();
   const mainContext = createMainProcessContext({
     trpcServer,
+    websocketServer,
     ptyInstanceManager,
     userDataDir,
   });

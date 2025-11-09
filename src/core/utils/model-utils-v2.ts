@@ -1,4 +1,5 @@
 // src/core/utils/model-utils-v2.ts
+import type { ModelSurfaceV2 } from "../services/chat/chat-session-repository.js";
 
 /**
  * Model ID Format:
@@ -15,10 +16,8 @@
 // Core Types
 // ============================================================================
 
-export type ModelSurface = "api" | "cli" | "web";
-
 // Base model ID format - must contain at least 1 colon
-export type ModelId = `${ModelSurface}:${string}`;
+export type ModelId = `${ModelSurfaceV2}:${string}`;
 
 // Specific surface model IDs
 export type ApiModelId = `api:${string}`;
@@ -27,7 +26,7 @@ export type WebModelId = `web:${string}`;
 
 // Parsed model ID components
 export interface ParsedModelId {
-  surface: ModelSurface;
+  surface: ModelSurfaceV2;
   provider: string;
   providerModelId: string; // For simple format, equals provider
   raw: ModelId;
@@ -80,17 +79,15 @@ export function parseModelId(modelId: string): ParsedModelId {
 
   const [surface, provider, ...modelParts] = parts;
 
-  const validSurfaces: ModelSurface[] = ["api", "cli", "web"];
-  if (!validSurfaces.includes(surface as ModelSurface)) {
+  const validSurfaces: ModelSurfaceV2[] = ["api", "cli", "web", "pty"];
+  if (!validSurfaces.includes(surface as ModelSurfaceV2)) {
     throw new Error(
-      `Invalid surface: "${surface}". Must be one of: api, cli, web`,
+      `Invalid surface: "${surface}". Must be one of: api, cli, web, pty`,
     );
   }
 
   if (!provider) {
-    throw new Error(
-      `Invalid model ID: "${modelId}". Provider cannot be empty`,
-    );
+    throw new Error(`Invalid model ID: "${modelId}". Provider cannot be empty`);
   }
 
   // If no model parts, use provider as the model ID (simple format)
@@ -99,7 +96,7 @@ export function parseModelId(modelId: string): ParsedModelId {
     modelParts.length > 0 ? modelParts.join(":") : provider;
 
   return {
-    surface: surface as ModelSurface,
+    surface: surface as ModelSurfaceV2,
     provider,
     providerModelId,
     raw: modelId as ModelId,
@@ -241,4 +238,3 @@ export class ModelRegistry {
 
 // Singleton instance
 export const modelRegistry = new ModelRegistry();
-

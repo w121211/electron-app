@@ -19,10 +19,7 @@
     projectState,
     type ProjectFolder,
   } from "../../stores/project-store.svelte.js";
-  import {
-    chatSettings,
-    getAvailableModelsAsList,
-  } from "../../stores/chat.svelte.js";
+  import { uiV2State } from "../../stores/ui-v2-store.svelte.js";
   import { rendererPromptService } from "../../services/renderer-prompt-service.js";
   import {
     type InboxEntry,
@@ -35,7 +32,7 @@
     refreshInboxEntries,
   } from "../../stores/inbox-store.svelte.js";
   import { createFileMention } from "../../../../core/utils/message-utils.js";
-  import { getModelSurface } from "../../../../core/utils/model-utils.js";
+  import { isCliModel, isWebModel, parseModelId, type ModelId } from "../../../../core/utils/model-utils-v2.js";
   import { trpcClient } from "../../lib/trpc-client.js";
   import { generatePrompt } from "../../services/quick-prompt-service.js";
   import type { ProjectFileSearchResult } from "../../../../core/services/project-folder-service.js";
@@ -76,16 +73,15 @@
   let fileMentionDebounceTimer: number | null = null;
 
   const projects = $derived(projectState.projectFolders);
-  const allModels = $derived.by(getAvailableModelsAsList);
+  const allModels = $derived(uiV2State.availableModels);
   const enabledModels = $derived(
     allModels.filter(
       (model) =>
         model.enabled &&
-        (getModelSurface(model.modelId) === "terminal" ||
-          getModelSurface(model.modelId) === "web"),
+        (isCliModel(model.modelId) || isWebModel(model.modelId)),
     ),
   );
-  const selectedModelId = $derived(chatSettings.selectedModel);
+  const selectedModelId = $derived(uiV2State.selectedModel);
   const selectedProjectName = $derived.by(() => {
     if (!selectedProjectPath) return null;
     const project = projects.find((p) => p.path === selectedProjectPath);
@@ -94,7 +90,13 @@
   const selectedModelName = $derived.by(() => {
     if (!selectedModelId) return null;
     const model = allModels.find((m) => m.modelId === selectedModelId);
-    return model?.modelId.split("/")[1] ?? selectedModelId;
+    if (model?.displayName) return model.displayName;
+    try {
+      const parsed = parseModelId(selectedModelId);
+      return parsed.providerModelId;
+    } catch {
+      return selectedModelId;
+    }
   });
 
   const projectPreferenceKey = "inboxProjectPath";
@@ -109,7 +111,7 @@
     );
 
     if (!current) {
-      modelClientService.selectModel(enabledModels[0]?.modelId);
+      modelClientService.selectModelV2(enabledModels[0]?.modelId);
     }
   });
 
@@ -373,12 +375,12 @@
     );
 
     if (!current) {
-      modelClientService.selectModel(enabledModels[0]?.modelId);
+      modelClientService.selectModelV2(enabledModels[0]?.modelId);
     }
   };
 
-  const selectModel = (modelId: `${string}/${string}`): void => {
-    modelClientService.selectModel(modelId);
+  const selectModel = (modelId: ModelId): void => {
+    modelClientService.selectModelV2(modelId);
     closeMenus();
   };
 
@@ -861,7 +863,7 @@
                     : 'text-foreground'}"
                   onclick={() => selectModel(model.modelId)}
                 >
-                  <span class="truncate">{model.modelId}</span>
+                  <span class="truncate">{model.displayName ?? model.modelId}</span>
                   {#if model.modelId === selectedModelId}
                     <CheckLg class="text-[10px]" />
                   {/if}

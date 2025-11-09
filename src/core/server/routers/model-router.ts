@@ -41,5 +41,32 @@ export function createModelRouter(modelService: ModelService) {
       .query(async ({ input }) => {
         return modelService.isApiModelEnabled(input.modelId);
       }),
+
+    // V2 Endpoints
+    getAvailableModelsV2: publicProcedure.query(async () => {
+      return modelService.getAvailableModelsV2();
+    }),
+
+    getApiModelsV2: publicProcedure.query(async () => {
+      return modelService.getApiModelsV2();
+    }),
+
+    getCliModelsV2: publicProcedure.query(async () => {
+      return modelService.getCliModelsV2();
+    }),
+
+    getWebModelsV2: publicProcedure.query(async () => {
+      return modelService.getWebModelsV2();
+    }),
+
+    isModelEnabledV2: publicProcedure
+      .input(
+        z.object({
+          modelId: z.string(),
+        }),
+      )
+      .query(async ({ input }) => {
+        return modelService.isModelEnabledV2(input.modelId);
+      }),
   });
 }

@@ -1,17 +1,10 @@
 // tests/surface-launcher.test.ts
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   SurfaceLauncher,
   createSurfaceLauncher,
 } from "../src/core/services/surface-launcher/surface-launcher.js";
-import * as modelUtils from '../src/core/utils/model-utils.js';
+import * as modelUtils from "../src/core/utils/model-utils-v2.js";
 
 const surfaceMocks = vi.hoisted(() => ({
   launchTerminalFromConfigMock: vi.fn(),
@@ -44,9 +37,9 @@ const {
 } = surfaceMocks;
 
 function mockPlatform(platform: NodeJS.Platform): () => void {
-  const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue(
-    platform,
-  );
+  const platformSpy = vi
+    .spyOn(process, "platform", "get")
+    .mockReturnValue(platform);
   return () => platformSpy.mockRestore();
 }
 
@@ -107,9 +100,7 @@ describe("SurfaceLauncher", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe(
-      "Terminal models require a project directory.",
-    );
+    expect(result.error).toBe("Terminal models require a project directory.");
     expect(launchTerminalFromConfigMock).not.toHaveBeenCalled();
   });
 
@@ -152,9 +143,7 @@ describe("SurfaceLauncher", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe(
-      "No launch URL configured for model web/claude.",
-    );
+    expect(result.error).toBe("No launch URL configured for model web/claude.");
 
     restoreWebModel();
   });

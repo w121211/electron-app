@@ -6,18 +6,16 @@ import type {
   ChatMessage,
   ChatMetadata,
   ChatSessionData,
+  ModelSurfaceV2,
 } from "../src/core/services/chat/chat-session-repository.js";
 import type {
   CreateChatSessionInput,
-  ApiChatClient,
   ApiTurnResult,
 } from "../src/core/services/chat-engine/api-chat-client.js";
 import type {
   CreateExternalSessionInput,
   IExternalChatClient,
 } from "../src/core/services/external-chat/external-chat-client.interface.js";
-import type { TerminalChatClient } from "../src/core/services/external-chat/terminal-chat-client.js";
-import type { WebChatClient } from "../src/core/services/external-chat/web-chat-client.js";
 import { PromptService } from "../src/core/services/prompt/prompt-service.js";
 import type {
   Prompt,
@@ -67,7 +65,9 @@ class InMemoryPromptRepository implements PromptRepository {
       slug: updates.slug ?? existing.slug,
       content: updates.content ?? existing.content,
       metadata:
-        updates.metadata === undefined ? existing.metadata : updates.metadata ?? null,
+        updates.metadata === undefined
+          ? existing.metadata
+          : (updates.metadata ?? null),
       updatedAt: updates.updatedAt ?? new Date(),
     };
 
@@ -104,7 +104,9 @@ class InMemoryPromptRepository implements PromptRepository {
   }
 
   async list(): Promise<Prompt[]> {
-    return Array.from(this.prompts.values()).map((prompt) => this.clone(prompt));
+    return Array.from(this.prompts.values()).map((prompt) =>
+      this.clone(prompt),
+    );
   }
 
   async search(filters: PromptSearchFilters): Promise<Prompt[]> {
@@ -147,24 +149,23 @@ class InMemoryPromptRepository implements PromptRepository {
 
 type CreateSessionFactory = (input: CreateChatSessionInput) => ChatSessionData;
 
-class ApiChatClientStub implements ApiChatClient {
+class ApiChatClientStub {
   lastInput: CreateChatSessionInput | null = null;
   private readonly sessionFactory: CreateSessionFactory;
 
   constructor(sessionFactory?: CreateSessionFactory) {
     this.sessionFactory =
       sessionFactory ??
-      ((input) => createChatSessionData({
-        modelSurface: input.modelSurface,
-        metadata: input.metadata,
-        sourcePromptId: input.sourcePromptId ?? null,
-        messages: input.messages ?? [],
-      }));
+      ((input) =>
+        createChatSessionData({
+          modelSurface: input.modelSurface,
+          metadata: input.metadata,
+          sourcePromptId: input.sourcePromptId ?? null,
+          messages: input.messages ?? [],
+        }));
   }
 
-  async createSession(
-    input: CreateChatSessionInput,
-  ): Promise<ChatSessionData> {
+  async createSession(input: CreateChatSessionInput): Promise<ChatSessionData> {
     this.lastInput = input;
     const metadata: ChatMetadata | undefined = input.metadata
       ? { ...input.metadata }
@@ -206,9 +207,9 @@ class ApiChatClientStub implements ApiChatClient {
 
 class ExternalChatClientStub implements IExternalChatClient {
   lastInput: CreateExternalSessionInput | null = null;
-  private readonly surface: "terminal" | "web";
+  private readonly surface: "cli" | "web";
 
-  constructor(surface: "terminal" | "web") {
+  constructor(surface: "cli" | "web") {
     this.surface = surface;
   }
 
@@ -221,7 +222,7 @@ class ExternalChatClientStub implements IExternalChatClient {
       modelId: input.modelId,
       modelSurface: this.surface,
       external:
-        this.surface === "terminal"
+        this.surface === "cli"
           ? {
               ...input.metadata?.external,
               workingDirectory: input.workingDirectory,
@@ -241,26 +242,20 @@ class ExternalChatClientStub implements IExternalChatClient {
   }
 }
 
-class TerminalChatClientStub
-  extends ExternalChatClientStub
-  implements TerminalChatClient
-{
+class TerminalChatClientStub extends ExternalChatClientStub {
   constructor() {
-    super("terminal");
+    super("cli");
   }
 }
 
-class WebChatClientStub
-  extends ExternalChatClientStub
-  implements WebChatClient
-{
+class WebChatClientStub extends ExternalChatClientStub {
   constructor() {
     super("web");
   }
 }
 
 function createChatSessionData(options: {
-  modelSurface: "api" | "terminal" | "web";
+  modelSurface: ModelSurfaceV2;
   metadata?: ChatMetadata;
   messages?: ChatMessage[];
   sourcePromptId?: string | null;
@@ -273,10 +268,6 @@ function createChatSessionData(options: {
     messages: options.messages ?? [],
     metadata: options.metadata,
     sourcePromptId: options.sourcePromptId ?? null,
-    scriptPath: null,
-    scriptModifiedAt: null,
-    scriptHash: null,
-    scriptSnapshot: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -302,13 +293,13 @@ describe("ChatService", () => {
 
     const service = new ChatService({
       promptService,
-      apiChatClient: apiClient,
-      terminalChatClient: terminalClient,
-      webChatClient: webClient,
+      apiChatClient: apiClient as any,
+      terminalChatClient: terminalClient as any,
+      webChatClient: webClient as any,
     });
 
     const session = await service.createChat({
-      modelId: "openai/gpt-4o-mini",
+      modelId: "api:openai:gpt-4o-mini",
       sourcePromptId: promptId,
       promptArgs: { name: "Alice" },
       initialMessages: [{ role: "assistant", content: "Hi there" }],
@@ -319,7 +310,7 @@ describe("ChatService", () => {
     const input = apiClient.lastInput!;
 
     expect(input.modelSurface).toBe("api");
-    expect(input.metadata?.modelId).toBe("openai/gpt-4o-mini");
+    expect(input.metadata?.modelId).toBe("api:openai:gpt-4o-mini");
     expect(input.metadata?.modelSurface).toBe("api");
     expect(input.metadata?.title).toBe("Greeting Prompt");
     expect(input.sourcePromptId).toBe(promptId);
@@ -340,14 +331,14 @@ describe("ChatService", () => {
 
     const service = new ChatService({
       promptService,
-      apiChatClient: apiClient,
-      terminalChatClient: terminalClient,
-      webChatClient: webClient,
+      apiChatClient: apiClient as any,
+      terminalChatClient: terminalClient as any,
+      webChatClient: webClient as any,
     });
 
     await expect(
       service.createChat({
-        modelId: "cli/claude",
+        modelId: "cli:claude",
       }),
     ).rejects.toThrow("Terminal chats require a working directory.");
   });
@@ -361,23 +352,23 @@ describe("ChatService", () => {
 
     const service = new ChatService({
       promptService,
-      apiChatClient: apiClient,
-      terminalChatClient: terminalClient,
-      webChatClient: webClient,
+      apiChatClient: apiClient as any,
+      terminalChatClient: terminalClient as any,
+      webChatClient: webClient as any,
     });
 
     const session = await service.createChat({
-      modelId: "cli/claude",
+      modelId: "cli:claude",
       title: "Terminal Run",
       workingDirectory: "/tmp/project",
     });
 
-    expect(session.modelSurface).toBe("terminal");
+    expect(session.modelSurface).toBe("cli");
     expect(terminalClient.lastInput).not.toBeNull();
     const input = terminalClient.lastInput!;
-    expect(input.modelId).toBe("cli/claude");
+    expect(input.modelId).toBe("cli:claude");
     expect(input.workingDirectory).toBe("/tmp/project");
-    expect(input.metadata?.modelSurface).toBe("terminal");
+    expect(input.metadata?.modelSurface).toBe("cli");
     expect(input.metadata?.title).toBe("Terminal Run");
     expect(session.metadata?.external?.workingDirectory).toBe("/tmp/project");
   });
@@ -391,13 +382,13 @@ describe("ChatService", () => {
 
     const service = new ChatService({
       promptService,
-      apiChatClient: apiClient,
-      terminalChatClient: terminalClient,
-      webChatClient: webClient,
+      apiChatClient: apiClient as any,
+      terminalChatClient: terminalClient as any,
+      webChatClient: webClient as any,
     });
 
     const session = await service.createChat({
-      modelId: "web/chatgpt",
+      modelId: "web:chatgpt",
       title: "Browser Chat",
       metadata: { tags: ["exploration"] },
     });

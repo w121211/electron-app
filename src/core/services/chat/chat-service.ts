@@ -1,20 +1,20 @@
 // src/core/services/chat/chat-service.ts
 import { randomUUID } from "node:crypto";
+import { parseModelId } from "../../utils/model-utils-v2.js";
 import type { ModelMessage } from "ai";
-import { getModelSurface } from "../../utils/model-utils.js";
 import type { PromptService } from "../prompt/prompt-service.js";
 import type { PromptSnapshot } from "../prompt/prompt-types.js";
+import type { ApiChatClient } from "../chat-engine/api-chat-client.js";
+import type { TerminalChatClient } from "../external-chat/terminal-chat-client.js";
+import type { WebChatClient } from "../external-chat/web-chat-client.js";
 import type {
   ChatMessage,
   ChatMetadata,
   ChatSessionData,
 } from "./chat-session-repository.js";
-import type { ApiChatClient } from "../chat-engine/api-chat-client.js";
-import type { TerminalChatClient } from "../external-chat/terminal-chat-client.js";
-import type { WebChatClient } from "../external-chat/web-chat-client.js";
 
 export interface CreateChatParams {
-  modelId: `${string}/${string}`;
+  modelId: `${string}:${string}`;
   title?: string;
   sourcePromptId?: string | null;
   promptArgs?: Record<string, unknown>;
@@ -44,12 +44,12 @@ export class ChatService {
   }
 
   async createChat(params: CreateChatParams): Promise<ChatSessionData> {
-    const surface = getModelSurface(params.modelId);
+    const parsed = parseModelId(params.modelId);
 
     const resolvedMetadata: Partial<ChatMetadata> = {
       ...params.metadata,
       modelId: params.modelId,
-      modelSurface: surface,
+      modelSurface: parsed.surface,
     };
 
     if (params.title) {
@@ -90,7 +90,7 @@ export class ChatService {
       params.initialMessages,
     );
 
-    if (surface === "terminal") {
+    if (parsed.surface === "cli") {
       return this.createTerminalChat({
         params,
         metadata: resolvedMetadata,
@@ -99,7 +99,7 @@ export class ChatService {
         initialModelMessages,
       });
     }
-    if (surface === "web") {
+    if (parsed.surface === "web") {
       return this.createWebChat({
         params,
         metadata: resolvedMetadata,
@@ -108,7 +108,7 @@ export class ChatService {
         initialModelMessages,
       });
     }
-    if (surface === "api") {
+    if (parsed.surface === "api") {
       return this.createApiChat({
         metadata: resolvedMetadata,
         sourcePromptId,

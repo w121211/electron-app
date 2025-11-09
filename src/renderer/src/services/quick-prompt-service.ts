@@ -1,7 +1,7 @@
 // src/renderer/src/services/quick-prompt-service.ts
 
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
-import { getModelSurface } from "../../../core/utils/model-utils.js";
+import { getModelSurface } from "../../core/utils/model-utils-v2.js";
 import { getModelMessageContentString } from "../../../core/utils/message-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import { apiChatService } from "./api-chat-service.js";

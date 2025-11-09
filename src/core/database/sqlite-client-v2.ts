@@ -17,11 +17,9 @@ export interface PromptsTable {
   updated_at: ColumnType<string, string, string>;
 }
 
-export type ModelSurfaceV2 = "api" | "terminal" | "web" | "pty";
-
 export interface ChatSessionsTableV2 {
   id: ColumnType<string, string, never>;
-  modelSurface: ColumnType<ModelSurfaceV2, ModelSurfaceV2, ModelSurfaceV2>;
+  modelSurface: ColumnType<string, string, string>;
   sessionStatus: ColumnType<string, string, string>;
   metadata: ColumnType<string | null, string | null, string | null>;
   sourcePromptId: ColumnType<string | null, string | null, string | null>;

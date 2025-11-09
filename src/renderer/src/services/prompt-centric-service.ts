@@ -8,7 +8,7 @@ import type { ChatSessionData } from "../../../core/services/chat/chat-session-r
 import {
   getModelSurface,
   type ModelSurface,
-} from "../../../core/utils/model-utils.js";
+} from "../../core/utils/model-utils-v2.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import { projectState } from "../stores/project-store.svelte.js";
 import type { PromptListEntry } from "../stores/prompt-centric-store.svelte.js";

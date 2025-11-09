@@ -36,7 +36,7 @@
     refreshInboxEntries,
   } from "../../stores/inbox-store.svelte.js";
   import { createFileMention } from "../../../../core/utils/message-utils.js";
-  import { getModelSurface } from "../../../../core/utils/model-utils.js";
+  import { getModelSurface } from "../../core/utils/model-utils-v2.js";
   import { trpcClient } from "../../lib/trpc-client.js";
   import { generatePrompt } from "../../services/quick-prompt-service.js";
 

@@ -21,7 +21,7 @@ import type {
   PromptScriptWarning,
   PromptScriptPrompt,
 } from "./prompt-script-repository.js";
-import { getModelSurface } from "../../utils/model-utils.js";
+import { getModelSurface } from "../../core/utils/model-utils-v2.js";
 import type { ApiChatClient } from "../chat-engine/api-chat-client.js";
 import type { TerminalChatClient } from "../external-chat/terminal-chat-client.js";
 import type { WebChatClient } from "../external-chat/web-chat-client.js";

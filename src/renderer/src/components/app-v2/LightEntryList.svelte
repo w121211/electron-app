@@ -10,6 +10,7 @@
   } from "svelte-bootstrap-icons";
   import { SvelteDate } from "svelte/reactivity";
   import { Logger } from "tslog";
+  import { parseModelId } from "../../../../core/utils/model-utils-v2.js";
   import {
     inboxState,
     setInboxFilter,
@@ -195,8 +196,15 @@
       }
 
       // Fallback to model and project name
-      const modelId =
-        entry.metadata?.modelId?.split("/")[1] ?? entry.metadata?.modelId;
+      let modelId = entry.metadata?.modelId;
+      if (modelId) {
+        try {
+          const parsed = parseModelId(modelId);
+          modelId = parsed.providerModelId;
+        } catch {
+          // Keep original modelId if parsing fails
+        }
+      }
       const projectName = resolveProjectName(
         entry.metadata?.projectPath ?? null,
       );

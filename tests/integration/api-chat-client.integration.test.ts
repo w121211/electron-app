@@ -70,8 +70,8 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
     }
   });
 
-  it("streams a response through the real AI SDK", async () => {
-    const modelId = "api/aigateway:google/gemini-2.5-flash-lite";
+  it("streams a response through the real AI Gateway provider", async () => {
+    const modelId = "api:aigateway:google/gemini-2.5-flash-lite";
 
     const sessionInput: CreateChatSessionInput = {
       modelSurface: "api",
@@ -127,7 +127,7 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
   it.runIf(hasOpenRouterCredentials)(
     "streams a response through OpenRouter provider",
     async () => {
-      const modelId = "api/openrouter:deepseek/deepseek-chat-v3.1:free";
+      const modelId = "api:openrouter:deepseek/deepseek-chat-v3.1:free";
 
       const sessionInput: CreateChatSessionInput = {
         modelSurface: "api",
@@ -183,7 +183,7 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
   );
 
   it("throws error for unsupported provider", async () => {
-    const modelId = "api/openai:gpt-4o-mini";
+    const modelId = "api:openai:gpt-4o-mini";
 
     const sessionInput: CreateChatSessionInput = {
       modelSurface: "api",
@@ -209,7 +209,7 @@ describeIntegration("ApiChatClient (Gateway integration)", () => {
   });
 
   it("runs a session from existing messages", async () => {
-    const modelId = "api/aigateway:google/gemini-2.5-flash-lite";
+    const modelId = "api:aigateway:google/gemini-2.5-flash-lite";
 
     const sessionInput: CreateChatSessionInput = {
       modelSurface: "api",

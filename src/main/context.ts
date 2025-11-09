@@ -2,9 +2,11 @@
 import type { BrowserWindow } from "electron";
 import type { HttpTrpcServer } from "../core/server/trpc-server.js";
 import type { PtyInstanceManager } from "../core/pty/pty-instance-manager.js";
+import type { WebSocketServer } from "../core/server/websocket-server.js";
 
 export interface MainProcessContext {
   trpcServer: HttpTrpcServer;
+  websocketServer: WebSocketServer;
   ptyInstanceManager: PtyInstanceManager;
   userDataDir: string;
   getMainWindow(): BrowserWindow | null;
@@ -26,6 +28,7 @@ interface WindowRegistry {
 export function createMainProcessContext(
   dependencies: {
     trpcServer: HttpTrpcServer;
+    websocketServer: WebSocketServer;
     ptyInstanceManager: PtyInstanceManager;
     userDataDir: string;
   },
@@ -39,6 +42,7 @@ export function createMainProcessContext(
 
   return {
     trpcServer: dependencies.trpcServer,
+    websocketServer: dependencies.websocketServer,
     ptyInstanceManager: dependencies.ptyInstanceManager,
     userDataDir: dependencies.userDataDir,
     getMainWindow: () => windows.main,

@@ -45,7 +45,6 @@
     "gray-matter": "^4.0.3",
     "ignore": "^7.0.5",
     "kysely": "^0.28.7",
-    "level": "^10.0.0",
     "marked": "^16.2.1",
     "mime": "^4.1.0",
     "node-pty": "^1.1.0-beta33",
@@ -54,6 +53,7 @@
     "tailwindcss": "^4.1.12",
     "tslog": "^4.9.3",
     "uuid": "^11.1.0",
+    "ws": "^8.18.3",
     "zod": "^4.0.17"
   },
   "devDependencies": {
@@ -65,6 +65,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.19",
     "@types/node": "^22.16.5",
+    "@types/ws": "^8.18.1",
     "electron": "^37.2.3",
     "electron-builder": "^25.1.8",
     "electron-vite": "^4.0.0",

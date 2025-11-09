@@ -7,7 +7,7 @@
 // import type { IEventBus } from "../../../event-bus.js";
 // import type { ChatUpdatedEvent } from "../../chat-engine/events.js";
 // import type { UserModelMessage } from "ai";
-// import { isTerminalModel } from '../../../utils/model-utils.js';
+// import { isTerminalModel } from "../../core/utils/model-utils-v2.js';
 // import type { ApiTurnResult } from "../../chat-engine/api-chat-client.js";
 // import { ChatQueueRepository } from "./chat-queue-repository.js";
 

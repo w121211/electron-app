@@ -21,6 +21,9 @@ export function registerShutdownHooks(context: MainProcessContext): void {
       await context.trpcServer.stop();
       console.log("tRPC server stopped.");
 
+      await context.websocketServer.stop();
+      console.log("WebSocket server stopped.");
+
       console.log("Cleanup complete.");
     } catch (error) {
       console.error("Error during shutdown:", error);

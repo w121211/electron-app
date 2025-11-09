@@ -6,7 +6,7 @@ import type {
 import type { PromptSnapshot } from "../prompt/prompt-types.js";
 
 export interface CreateExternalSessionInput {
-  modelId: `${string}/${string}`;
+  modelId: `${string}:${string}`;
   title?: string;
   workingDirectory?: string;
   metadata?: Partial<ChatMetadata>;

@@ -13,10 +13,11 @@ import {
 } from "../../database/sqlite-client-v2.js";
 import type { ToolCallConfirmation } from "../tool-call/tool-call-confirmation.js";
 import type { ToolAlwaysAllowRule } from "../tool-call/tool-call-runner.js";
-import type { ModelSurface } from "../../utils/model-utils.js";
 import type { PromptMetadata, PromptSnapshot } from "../prompt/prompt-types.js";
 
-const modelSurfaceValues = ["api", "terminal", "web", "pty"] as const;
+export type ModelSurfaceV2 = "api" | "cli" | "web";
+
+const modelSurfaceValues = ["api", "cli", "web"] as const;
 
 export const ModelSurfaceSchema = z.enum(modelSurfaceValues);
 
@@ -45,7 +46,7 @@ export interface ChatMessage {
 }
 
 export interface PtyChatSnapshot {
-  modelId: `${string}/${string}`;
+  modelId: `${string}:${string}`;
   snapshot: string;
   snapshotHtml?: string;
   timestamp: Date;
@@ -67,8 +68,8 @@ export interface ChatMetadata {
   knowledge?: string[];
   promptDraft?: string;
   external?: ExternalChatMetadata;
-  modelId?: `${string}/${string}`;
-  modelSurface?: ModelSurface;
+  modelId?: `${string}:${string}`;
+  modelSurface?: ModelSurfaceV2;
   currentTurn?: number;
   maxTurns?: number;
   toolSet?: ToolSet;
@@ -81,7 +82,7 @@ export interface ChatMetadata {
 
 export interface ChatSessionData {
   id: string;
-  modelSurface: ModelSurface;
+  modelSurface: ModelSurfaceV2;
   state: ChatState;
   messages: ChatMessage[];
   metadata?: ChatMetadata;
@@ -92,8 +93,8 @@ export interface ChatSessionData {
 
 export const ModelIdSchema = z
   .string()
-  .regex(/^.+\/.+$/)
-  .transform((value) => value as `${string}/${string}`);
+  .regex(/^.+:.+$/)
+  .transform((value) => value as `${string}:${string}`);
 
 export const PtyChatSnapshotSchema: z.ZodType<PtyChatSnapshot> = z.object({
   modelId: ModelIdSchema,
@@ -395,6 +396,17 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
       ? ((JSON.parse(sessionRow.metadata) as ChatMetadata) ?? undefined)
       : undefined;
 
+    const parsedSurface = ModelSurfaceSchema.safeParse(sessionRow.modelSurface);
+    const modelSurface: ModelSurfaceV2 = parsedSurface.success
+      ? parsedSurface.data
+      : "api";
+
+    if (!parsedSurface.success) {
+      console.warn(
+        `Invalid model surface \"${sessionRow.modelSurface}\" for session ${sessionRow.id}. Defaulting to \"api\".`,
+      );
+    }
+
     const parsedState = ChatStateSchema.safeParse(sessionRow.sessionStatus);
     const state: ChatState = parsedState.success
       ? parsedState.data
@@ -408,7 +420,7 @@ export class ChatSessionRepositoryImpl implements ChatSessionRepository {
 
     const session: ChatSessionData = {
       id: sessionRow.id,
-      modelSurface: sessionRow.modelSurface,
+      modelSurface,
       state,
       messages: messageRows
         .sort((a, b) => a.messageIndex - b.messageIndex)

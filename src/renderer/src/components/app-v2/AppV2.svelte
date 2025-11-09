@@ -19,7 +19,7 @@
     const bootstrap = async (): Promise<void> => {
       try {
         await projectService.loadProjectFolders();
-        await modelClientService.hydrateAvailableModels();
+        await modelClientService.hydrateAvailableModelsV2();
         if (cancelled) {
           return;
         }
