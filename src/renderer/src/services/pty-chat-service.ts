@@ -28,7 +28,7 @@ export class PtyChatService {
 
   async createSession(
     workingDirectory: string,
-    modelId: `${string}/${string}`,
+    modelId: `${string}:${string}`,
     initialPrompt?: string,
     metadata?: Partial<ChatMetadata>,
   ): Promise<ChatSessionData> {
@@ -53,7 +53,7 @@ export class PtyChatService {
   }: {
     scriptPath: string;
     workingDirectory: string;
-    modelId: `${string}/${string}`;
+    modelId: `${string}:${string}`;
     initialPrompt: string;
     metadata?: Partial<ChatMetadata>;
   }): Promise<PromptScriptLinkResult> {

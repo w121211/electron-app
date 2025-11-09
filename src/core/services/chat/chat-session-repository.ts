@@ -15,9 +15,9 @@ import type { ToolCallConfirmation } from "../tool-call/tool-call-confirmation.j
 import type { ToolAlwaysAllowRule } from "../tool-call/tool-call-runner.js";
 import type { PromptMetadata, PromptSnapshot } from "../prompt/prompt-types.js";
 
-export type ModelSurfaceV2 = "api" | "cli" | "web";
+export type ModelSurfaceV2 = "api" | "cli" | "web" | "pty";
 
-const modelSurfaceValues = ["api", "cli", "web"] as const;
+const modelSurfaceValues = ["api", "cli", "web", "pty"] as const;
 
 export const ModelSurfaceSchema = z.enum(modelSurfaceValues);
 

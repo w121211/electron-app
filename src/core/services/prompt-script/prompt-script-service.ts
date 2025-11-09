@@ -21,11 +21,13 @@ import type {
   PromptScriptWarning,
   PromptScriptPrompt,
 } from "./prompt-script-repository.js";
-import { getModelSurface } from "../../core/utils/model-utils-v2.js";
 import type { ApiChatClient } from "../chat-engine/api-chat-client.js";
 import type { TerminalChatClient } from "../external-chat/terminal-chat-client.js";
 import type { WebChatClient } from "../external-chat/web-chat-client.js";
-import type { PromptEditRepository, PromptEdit } from "../prompt/prompt-edit-repository.js";
+import type {
+  PromptEditRepository,
+  PromptEdit,
+} from "../prompt/prompt-edit-repository.js";
 import type { DocumentFileWithPromptScript } from "../document/document-service.js";
 import { saveDocument } from "../document/document-repository.js";
 
@@ -226,50 +228,54 @@ export class PromptScriptService {
 
   async createLinkedChatSession(input: {
     scriptPath: string;
-    modelId: `${string}/${string}`;
+    modelId: `${string}:${string}`;
     title?: string;
     workingDirectory?: string;
     metadata?: Partial<ChatMetadata>;
   }): Promise<PromptScriptLinkResult & { chatSession: ChatSessionData }> {
-    const promptScript = await this.promptScriptRepo.read(input.scriptPath);
-    const surface = getModelSurface(input.modelId);
+    throw new Error("To be deprecated");
+    // const promptScript = await this.promptScriptRepo.read(input.scriptPath);
+    // const surface = getModelSurface(input.modelId);
 
-    const metadata: Partial<ChatMetadata> = {
-      ...input.metadata,
-      title: input.title ?? input.metadata?.title ?? promptScript.promptScriptParsed.metadata.title,
-      modelId: input.modelId,
-      modelSurface: surface,
-    };
+    // const metadata: Partial<ChatMetadata> = {
+    //   ...input.metadata,
+    //   title:
+    //     input.title ??
+    //     input.metadata?.title ??
+    //     promptScript.promptScriptParsed.metadata.title,
+    //   modelId: input.modelId,
+    //   modelSurface: surface,
+    // };
 
-    let session: ChatSessionData;
+    // let session: ChatSessionData;
 
-    if (surface === "terminal") {
-      if (!input.workingDirectory) {
-        throw new Error(
-          "Terminal chats require a working directory (project path).",
-        );
-      }
+    // if (surface === "terminal") {
+    //   if (!input.workingDirectory) {
+    //     throw new Error(
+    //       "Terminal chats require a working directory (project path).",
+    //     );
+    //   }
 
-      session = await this.terminalChatClient.createSession({
-        modelId: input.modelId,
-        title: input.title,
-        workingDirectory: input.workingDirectory,
-        metadata,
-      });
-    } else if (surface === "web") {
-      session = await this.webChatClient.createSession({
-        modelId: input.modelId,
-        title: input.title,
-        metadata,
-      });
-    } else {
-      session = await this.apiChatClient.createSession({
-        modelSurface: "api",
-        metadata,
-      });
-    }
+    //   session = await this.terminalChatClient.createSession({
+    //     modelId: input.modelId,
+    //     title: input.title,
+    //     workingDirectory: input.workingDirectory,
+    //     metadata,
+    //   });
+    // } else if (surface === "web") {
+    //   session = await this.webChatClient.createSession({
+    //     modelId: input.modelId,
+    //     title: input.title,
+    //     metadata,
+    //   });
+    // } else {
+    //   session = await this.apiChatClient.createSession({
+    //     modelSurface: "api",
+    //     metadata,
+    //   });
+    // }
 
-    return this.linkChatSession(input.scriptPath, session.id);
+    // return this.linkChatSession(input.scriptPath, session.id);
   }
 
   async unlinkChatSession(options: {
@@ -413,7 +419,8 @@ export class PromptScriptService {
         updatedAt: now,
       });
     } else {
-      const existingEdit = await this.promptEditRepo.findByScriptPath(absolutePath);
+      const existingEdit =
+        await this.promptEditRepo.findByScriptPath(absolutePath);
 
       if (existingEdit) {
         edit = await this.promptEditRepo.update(existingEdit.id, {

@@ -1,18 +1,19 @@
 // src/core/services/surface-launcher/surface-launcher.ts
 import { Logger, type ILogObj } from "tslog";
 import {
-  getModelSurface,
-  getWebModelUrl,
-  getWebModelWindowTitle,
-  type ModelSurface,
-} from "../../core/utils/model-utils-v2.js";
-import {
   launchTerminalFromConfig,
   type LaunchTerminalResult,
 } from "./terminal-launcher.js";
 import { focusMacBrowserTab } from "./os/macos.js";
 import { focusWindowsWindowByTitle } from "./os/windows.js";
 import { focusLinuxWindowByTitle } from "./os/linux.js";
+import { ModelSurfaceV2 } from "../chat/chat-session-repository.js";
+import {
+  parseModelId,
+  modelRegistry,
+  isWebModelConfig,
+  type ModelId,
+} from "../../utils/model-utils-v2.js";
 
 export interface SurfaceLaunchDependencies {
   openUrl: (url: string) => Promise<void> | void;
@@ -20,8 +21,8 @@ export interface SurfaceLaunchDependencies {
 
 export interface SurfaceLaunchRequest {
   sessionId: string;
-  modelId: `${string}/${string}`;
-  surface?: ModelSurface;
+  modelId: ModelId;
+  surface?: ModelSurfaceV2;
   projectPath?: string | null;
 }
 
@@ -38,13 +39,13 @@ export class SurfaceLauncher {
   constructor(private readonly deps: SurfaceLaunchDependencies) {}
 
   async launch(request: SurfaceLaunchRequest): Promise<SurfaceLaunchResult> {
-    const surface = request.surface ?? getModelSurface(request.modelId);
+    const surface = request.surface ?? parseModelId(request.modelId).surface;
 
     if (surface === "api") {
       return { success: true, message: "No surface launch required." };
     }
 
-    if (surface === "terminal") {
+    if (surface === "cli") {
       return this.launchTerminal(request);
     }
 
@@ -94,14 +95,22 @@ export class SurfaceLauncher {
   private async launchWeb(
     request: SurfaceLaunchRequest,
   ): Promise<SurfaceLaunchResult> {
-    const url = getWebModelUrl(request.modelId);
-    if (!url) {
+    const modelConfig = modelRegistry.get(request.modelId);
+    if (!modelConfig) {
       return {
         success: false,
-        error: `No launch URL configured for model ${request.modelId}.`,
+        error: `Model configuration not found for ${request.modelId}.`,
+      };
+    }
+    if (!isWebModelConfig(modelConfig)) {
+      return {
+        success: false,
+        error: `Model ${request.modelId} is not a web model.`,
       };
     }
 
+    const url = modelConfig.url;
+    const windowTitle = modelConfig.windowTitle;
     const platform = process.platform;
 
     if (platform === "darwin") {
@@ -129,7 +138,6 @@ export class SurfaceLauncher {
     }
 
     if (platform === "win32") {
-      const windowTitle = getWebModelWindowTitle(request.modelId);
       if (windowTitle) {
         try {
           if (focusWindowsWindowByTitle(windowTitle)) {
@@ -148,7 +156,6 @@ export class SurfaceLauncher {
     }
 
     if (platform === "linux") {
-      const windowTitle = getWebModelWindowTitle(request.modelId);
       if (windowTitle) {
         try {
           if (focusLinuxWindowByTitle(windowTitle)) {

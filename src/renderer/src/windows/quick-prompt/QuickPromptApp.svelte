@@ -121,7 +121,7 @@
     }
   };
 
-  const selectModel = (modelId: `${string}/${string}`): void => {
+  const selectModel = (modelId: `${string}:${string}`): void => {
     modelClientService.selectModel(modelId);
     closeMenus();
   };

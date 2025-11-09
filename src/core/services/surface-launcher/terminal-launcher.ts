@@ -1,11 +1,15 @@
 // src/core/services/surface-launcher/terminal-launcher.ts
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import { Logger, type ILogObj } from "tslog";
-import { presetExternalModels } from "../../core/utils/model-utils-v2.js";
 import { focusWindowsWindowByTitle } from "./os/windows.js";
 import { focusLinuxWindowByTitle } from "./os/linux.js";
 import itermAppleScriptTemplate from "./scripts/launch-iterm.applescript?raw";
 import terminalAppleScriptTemplate from "./scripts/launch-terminal.applescript?raw";
+import {
+  modelRegistry,
+  isCliModelConfig,
+  type ModelId,
+} from "../../utils/model-utils-v2.js";
 
 const logger: Logger<ILogObj> = new Logger({ name: "TerminalLauncher" });
 
@@ -32,10 +36,7 @@ export interface ExecuteCommandResult {
   error?: string;
 }
 
-const appleScriptTemplates: Record<
-  MacOSTerminal,
-  string
-> = Object.freeze({
+const appleScriptTemplates: Record<MacOSTerminal, string> = Object.freeze({
   iterm: itermAppleScriptTemplate,
   terminal: terminalAppleScriptTemplate,
 });
@@ -126,36 +127,32 @@ function launchMacOSTerminal(
   }
 }
 
-export function getCommandForModel(
-  modelId: string,
-): { command: string; args: string[] } | undefined {
-  const externalModel = Object.values(presetExternalModels).find(
-    (model) => model.modelId === modelId,
-  );
-  if (!externalModel) {
-    return undefined;
+export function getCommandForModel(modelId: string): {
+  command: string;
+  args: string[];
+} {
+  const modelConfig = modelRegistry.get(modelId as ModelId);
+
+  if (!modelConfig) {
+    throw new Error(`Model not found: ${modelId}`);
   }
-  if (!externalModel.command || externalModel.command.trim().length === 0) {
-    return undefined;
+  if (!isCliModelConfig(modelConfig)) {
+    throw new Error(`Model is not a CLI model: ${modelId}`);
   }
+  if (!modelConfig.command || modelConfig.command.trim().length === 0) {
+    throw new Error(`CLI model has no command configured: ${modelId}`);
+  }
+
   return {
-    command: externalModel.command,
-    args: externalModel.args ?? [],
+    command: modelConfig.command,
+    args: modelConfig.args ?? [],
   };
 }
 
 export function launchTerminalFromConfig(
   config: TerminalLaunchConfig,
 ): LaunchTerminalResult {
-  const modelInfo = getCommandForModel(config.modelId);
-  if (!modelInfo) {
-    return {
-      success: false,
-      error: `Invalid terminal model: ${config.modelId}`,
-    };
-  }
-
-  const { command: actualCommand, args } = modelInfo;
+  const { command: actualCommand, args } = getCommandForModel(config.modelId);
 
   return launchTerminal(
     actualCommand,
@@ -182,12 +179,7 @@ export function launchTerminal(
     const sessionTitle = createTerminalWindowTitle(sessionId);
 
     if (platform === "darwin") {
-      return launchMacOSTerminal(
-        macOSTerminal,
-        fullCommand,
-        cwd,
-        sessionTitle,
-      );
+      return launchMacOSTerminal(macOSTerminal, fullCommand, cwd, sessionTitle);
     } else if (platform === "win32") {
       try {
         if (focusWindowsWindowByTitle(sessionTitle)) {

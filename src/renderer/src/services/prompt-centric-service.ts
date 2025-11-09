@@ -6,9 +6,9 @@ import type { DocumentFileWithPromptScript } from "../../../core/services/docume
 import type { PromptScriptWarning } from "../../../core/services/prompt-script/prompt-script-repository.js";
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
 import {
-  getModelSurface,
-  type ModelSurface,
-} from "../../core/utils/model-utils-v2.js";
+  parseModelId,
+  type ModelSurfaceV2,
+} from "../../../core/utils/model-utils-v2.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import { projectState } from "../stores/project-store.svelte.js";
 import type { PromptListEntry } from "../stores/prompt-centric-store.svelte.js";
@@ -20,7 +20,7 @@ interface PromptScriptOpenResult {
 
 interface CreateLinkedSessionParams {
   scriptPath: string;
-  modelId: `${string}/${string}`;
+  modelId: `${string}:${string}`;
   projectPath: string | null;
   title?: string;
 }
@@ -172,7 +172,7 @@ function deriveFileTitle(filePath: string | null): string | null {
 function resolveModelSurface(
   chatSession: ChatSessionData | null,
   modelId: string | null,
-): ModelSurface | null {
+): ModelSurfaceV2 | null {
   if (chatSession) {
     return chatSession.modelSurface;
   }
@@ -181,7 +181,11 @@ function resolveModelSurface(
     return null;
   }
 
-  return getModelSurface(modelId);
+  try {
+    return parseModelId(modelId).surface;
+  } catch {
+    return null;
+  }
 }
 
 function resolveRelativePath(filePath: string | null): string | null {

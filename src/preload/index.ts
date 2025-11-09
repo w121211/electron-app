@@ -32,8 +32,8 @@ const api = {
   surface: {
     launch: (payload: {
       sessionId: string;
-      modelId: `${string}/${string}`;
-      modelSurface: "api" | "terminal" | "web" | "pty";
+      modelId: string;
+      modelSurface: "api" | "cli" | "web" | "pty";
       projectPath?: string | null;
     }) => ipcRenderer.invoke("surface:launch", payload),
   },

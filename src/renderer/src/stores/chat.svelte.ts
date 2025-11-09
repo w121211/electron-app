@@ -2,7 +2,7 @@
 import { Logger } from "tslog";
 import { getPreference } from "../lib/local-storage.js";
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
-import type { AvailableModels } from "../../core/utils/model-utils-v2.js';
+import type { ModelConfig } from "../../../core/utils/model-utils-v2.js";
 
 // @ts-expect-error - Intentionally unused for future use
 const logger = new Logger({ name: "chatStore" });
@@ -54,29 +54,26 @@ export const getRunningChatSessionStates = () => {
 // --- Global chat settings ---
 
 interface ChatGlobalSettings {
-  availableModels: AvailableModels;
-  selectedModel: `${string}/${string}`;
+  availableModels: ModelConfig[];
+  selectedModel: `${string}:${string}`;
 }
 
-const resolveInitialModel = (): `${string}/${string}` => {
-  const saved = getPreference("selectedModel") as `${string}/${string}` | null;
-  return saved ?? "cli/codex";
+const resolveInitialModel = (): `${string}:${string}` => {
+  const saved = getPreference("selectedModel") as `${string}:${string}` | null;
+  return saved ?? "cli:codex";
 };
 
 export const chatSettings = $state<ChatGlobalSettings>({
-  availableModels: { external: {}, api: {} },
+  availableModels: [],
   selectedModel: resolveInitialModel(),
 });
 
-export const getAvailableModelsAsList = () => [
-  ...Object.values(chatSettings.availableModels.external),
-  ...Object.values(chatSettings.availableModels.api),
-];
+export const getAvailableModelsAsList = () => chatSettings.availableModels;
 
-export const setAvailableModels = (models: AvailableModels) => {
+export const setAvailableModels = (models: ModelConfig[]) => {
   chatSettings.availableModels = models;
 };
 
-export const setSelectedModel = (modelId: `${string}/${string}`) => {
+export const setSelectedModel = (modelId: `${string}:${string}`) => {
   chatSettings.selectedModel = modelId;
 };

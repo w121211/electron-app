@@ -11,7 +11,7 @@ import {
   type IExternalChatClient,
   type CreateExternalSessionInput,
 } from "./external-chat-client.interface.js";
-import { getModelSurface } from "../../core/utils/model-utils-v2.js";
+import { parseModelId } from "../../utils/model-utils-v2.js";
 
 import { ExternalChatSession } from "./external-chat-session.js";
 
@@ -30,7 +30,7 @@ export class AppChatClient implements IExternalChatClient {
   ): Promise<ChatSessionData> {
     logger.info("Creating a tracking session for an app chat...");
     const timestamp = new Date();
-    const modelSurface = getModelSurface(input.modelId);
+    const modelSurface = parseModelId(input.modelId).surface;
     const metadata: ChatMetadata = {
       ...input.metadata,
       title: input.title ?? input.metadata?.title ?? "App Chat Session",

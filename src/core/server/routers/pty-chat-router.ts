@@ -19,8 +19,8 @@ const metadataSchema: z.ZodType<Partial<ChatMetadata>> = z.object({
   external: ExternalChatMetadataSchema.optional(),
   modelId: z
     .string()
-    .regex(/^.+\/.+$/)
-    .transform((value) => value as `${string}/${string}`)
+    .regex(/^.+:.+$/)
+    .transform((value) => value as `${string}:${string}`)
     .optional(),
   currentTurn: z.number().optional(),
   maxTurns: z.number().optional(),
@@ -28,8 +28,8 @@ const metadataSchema: z.ZodType<Partial<ChatMetadata>> = z.object({
 
 const modelIdSchema = z
   .string()
-  .regex(/^.+\/.+$/)
-  .transform((value) => value as `${string}/${string}`);
+  .regex(/^.+:.+$/)
+  .transform((value) => value as `${string}:${string}`);
 
 const chatStateSchema: z.ZodType<ChatState> = z.enum([
   "queued",

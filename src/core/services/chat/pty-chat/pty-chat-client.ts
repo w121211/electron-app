@@ -17,7 +17,7 @@ import type { PromptSnapshot } from "../../prompt/prompt-types.js";
 
 interface CreatePtyChatInput {
   workingDirectory: string;
-  modelId: `${string}/${string}`;
+  modelId: `${string}:${string}`;
   initialPrompt?: string;
   metadata?: Partial<ChatMetadata>;
   sourcePromptId?: string | null;

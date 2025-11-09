@@ -119,6 +119,24 @@ export function isWebModel(modelId: string): modelId is WebModelId {
   return modelId.startsWith("web:");
 }
 
+export function isWebModelConfig(
+  config: ModelConfig,
+): config is WebModelConfig {
+  return isWebModel(config.modelId);
+}
+
+export function isApiModelConfig(
+  config: ModelConfig,
+): config is ApiModelConfig {
+  return isApiModel(config.modelId);
+}
+
+export function isCliModelConfig(
+  config: ModelConfig,
+): config is CliModelConfig {
+  return isCliModel(config.modelId);
+}
+
 // ============================================================================
 // Preset Models
 // ============================================================================

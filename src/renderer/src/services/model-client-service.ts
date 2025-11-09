@@ -10,18 +10,15 @@ import type { ModelId } from "../../../core/utils/model-utils-v2.js";
 const logger = new Logger({ name: "ModelClientService" });
 
 export class ModelClientService {
-  selectModel(modelId: `${string}/${string}`): void {
+  selectModel(modelId: `${string}:${string}`): void {
     setSelectedModel(modelId);
     setPreference("selectedModel", modelId);
   }
 
   async hydrateAvailableModels(): Promise<void> {
-    const response = await trpcClient.model.getAvailableModels.query();
-    setAvailableModels(response);
-    const totalModels =
-      Object.keys(response.external).length +
-      Object.keys(response.api).length;
-    logger.info(`Loaded ${totalModels} available models.`);
+    const models = await trpcClient.model.getAvailableModelsV2.query();
+    setAvailableModels(models);
+    logger.info(`Loaded ${models.length} available models.`);
   }
 
   // V2 Methods

@@ -1,7 +1,7 @@
 // src/renderer/src/services/quick-prompt-service.ts
 
 import type { ChatSessionData } from "../../../core/services/chat/chat-session-repository.js";
-import { getModelSurface } from "../../core/utils/model-utils-v2.js";
+import { parseModelId } from "../../../core/utils/model-utils-v2.js";
 import { getModelMessageContentString } from "../../../core/utils/message-utils.js";
 import { trpcClient } from "../lib/trpc-client.js";
 import { apiChatService } from "./api-chat-service.js";
@@ -10,7 +10,7 @@ const GENERATE_PROMPT_SLUG = "generate-prompt";
 
 export interface LaunchChatParams {
   prompt: string;
-  modelId: `${string}/${string}`;
+  modelId: `${string}:${string}`;
   projectPath: string | null;
 }
 
@@ -19,9 +19,9 @@ export async function launchChat(
 ): Promise<ChatSessionData> {
   const { prompt, modelId, projectPath } = params;
 
-  const surface = getModelSurface(modelId);
-  if (surface === "terminal" && !projectPath) {
-    throw new Error("Terminal models require a project folder");
+  const { surface } = parseModelId(modelId);
+  if (surface === "cli" && !projectPath) {
+    throw new Error("CLI models require a project folder");
   }
 
   // Step 1: Save prompt to database
@@ -45,7 +45,7 @@ export async function launchChat(
     sourcePromptId: savedPrompt.id,
     title: title.slice(0, 120),
     workingDirectory:
-      surface === "terminal" ? (projectPath ?? undefined) : undefined,
+      surface === "cli" ? (projectPath ?? undefined) : undefined,
     metadata: projectPath !== null ? { projectPath } : undefined,
   });
 
@@ -57,7 +57,7 @@ export async function launchChat(
     });
   }
 
-  // Step 4: Launch surface (for terminal/web only)
+  // Step 4: Launch surface (for cli/web only)
   if (surface !== "api") {
     const result = await window.api.surface.launch({
       sessionId: session.id,
@@ -94,7 +94,7 @@ export async function generatePrompt(
       `Prompt "${GENERATE_PROMPT_SLUG}" does not define a valid modelId in metadata`,
     );
   }
-  if (getModelSurface(modelId as `${string}/${string}`) !== "api") {
+  if (parseModelId(modelId as `${string}:${string}`).surface !== "api") {
     throw new Error(
       `Prompt "${GENERATE_PROMPT_SLUG}" must use an API model, but got modelId: ${modelId}`,
     );
@@ -102,7 +102,7 @@ export async function generatePrompt(
 
   // Step 3: Create chat session with prompt
   const session = await trpcClient.chat.createSession.mutate({
-    modelId: modelId as `${string}/${string}`,
+    modelId: modelId as `${string}:${string}`,
     sourcePromptId: prompt.id,
     promptArgs: { userInput },
     metadata: {
