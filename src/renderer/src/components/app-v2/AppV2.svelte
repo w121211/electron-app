@@ -8,8 +8,8 @@
   import { modelClientService } from "../../services/model-client-service.js";
   import QuickLauncher from "../QuickLauncher.svelte";
   import UserSettings from "../UserSettings.svelte";
-  import LightVerticalNav from "../prompt-centric/LightVerticalNav.svelte";
-  import LightInbox from "../prompt-centric/LightInbox.svelte";
+  import LightVerticalNav from "./LightVerticalNav.svelte";
+  import LightInbox from "./LightInbox.svelte";
 
   const logger = new Logger({ name: "AppV2" });
 

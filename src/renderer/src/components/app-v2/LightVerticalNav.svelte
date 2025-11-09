@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/prompt-centric/LightVerticalNav.svelte -->
+<!-- src/renderer/src/components/app-v2/LightVerticalNav.svelte -->
 <script lang="ts">
   import {
     PencilSquare,

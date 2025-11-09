@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/prompt-centric/InboxContextMenu.svelte -->
+<!-- src/renderer/src/components/app-v2/InboxContextMenu.svelte -->
 <script lang="ts">
   import { Trash } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";

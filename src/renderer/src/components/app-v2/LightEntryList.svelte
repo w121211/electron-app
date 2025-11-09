@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/prompt-centric/LightEntryList.svelte -->
+<!-- src/renderer/src/components/app-v2/LightEntryList.svelte -->
 <script lang="ts">
   import { onMount } from "svelte";
   import {

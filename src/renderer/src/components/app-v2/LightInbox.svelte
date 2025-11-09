@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/prompt-centric/LightPromptCentricView.svelte -->
+<!-- src/renderer/src/components/app-v2/LightPromptCentricView.svelte -->
 <script lang="ts">
   import { getSelectedInboxEntry } from "../../stores/inbox-store.svelte.js";
   import LightEntryList from "./LightEntryList.svelte";

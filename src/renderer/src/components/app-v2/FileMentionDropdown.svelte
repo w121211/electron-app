@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/prompt-centric/FileMentionDropdown.svelte -->
+<!-- src/renderer/src/components/app-v2/FileMentionDropdown.svelte -->
 <script lang="ts">
   import type { ProjectFileSearchResult } from "../../../../core/services/project-folder-service.js";
 
@@ -25,6 +25,7 @@
   }
 
   // @ts-expect-error - Intentionally unused for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleCancel(): void {
     oncancel();
   }

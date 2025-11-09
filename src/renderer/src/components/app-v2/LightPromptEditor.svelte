@@ -1,4 +1,4 @@
-<!-- src/renderer/src/components/prompt-centric/LightPromptEditor.svelte -->
+<!-- src/renderer/src/components/app-v2/LightPromptEditor.svelte -->
 <script lang="ts">
   import path from "node:path";
   import { onMount, onDestroy } from "svelte";
@@ -178,6 +178,15 @@
     const entryId = getEntryId(entry);
     if (entryId === activeEntryId) {
       return;
+    }
+
+    // Save current prompt before switching to new one
+    if (
+      activeEntryId &&
+      promptValue !== lastPersistedContent &&
+      promptValue.trim()
+    ) {
+      void enqueueAutoSave(promptValue, activeEntryId);
     }
 
     loadEntryContent(entry);
