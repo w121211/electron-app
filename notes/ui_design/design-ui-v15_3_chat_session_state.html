@@ -1,0 +1,314 @@
+<!-- notes/ui_design/design-ui-v15_5_animated_unread.html -->
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Chat App - Animated Unread UI v15.5 (Light Theme)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+  <style type="text/tailwindcss">
+    @theme {
+        /* Light theme */
+        --color-background: #ffffff;
+        --color-surface: #f0f0f0;
+        --color-border: #e0e0e0;
+        --color-muted: #666666;
+        --color-hover: #e0e0e0;
+        --color-accent: #4a90e2;
+        --color-foreground: #333333;
+
+        /* Dark theme */
+        /* --color-background: #181818;
+        --color-surface: #1f1f1f;
+        --color-border: #2b2b2b;
+        --color-muted: #9d9d9d;
+        --color-hover: #2b2b2b;
+        --color-accent: #4a90e2;
+        --color-foreground: #cccccc; */
+      }
+      .filter-chip {
+        @apply flex items-center rounded-xl bg-surface px-2 py-1 text-xs uppercase text-muted transition-colors;
+      }
+      .filter-chip:hover {
+        @apply text-foreground;
+      }
+      .filter-chip.is-active {
+        @apply text-accent;
+      }
+    </style>
+</head>
+
+<body class="bg-background text-foreground h-screen overflow-hidden">
+  <div class="flex h-screen">
+    <!-- Left Navigator -->
+    <nav class="bg-surface w-10 flex flex-col items-center gap-3 py-2 px-1">
+      <div class="flex flex-1 flex-col items-center gap-3 text-base text-muted">
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+          title="New Prompt">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="flex h-8 w-8 items-center justify-center rounded-lg  hover:bg-hover hover:text-foreground"
+          title="Prompts">
+          <i class="bi bi-stars text-accent"></i>
+        </button>
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+          title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+          title="Projects">
+          <i class="bi bi-folder"></i>
+        </button>
+      </div>
+      <button
+        class="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-hover hover:text-foreground"
+        title="Settings">
+        <i class="bi bi-gear"></i>
+      </button>
+    </nav>
+
+    <!-- Entry List Panel -->
+    <aside class="w-64 flex flex-col border-r border-border ">
+      <div class="px-3 py-3">
+        <div class="flex min-w-0 items-center gap-1 overflow-x-auto">
+          <button class="filter-chip is-active shrink-0">
+            <span>All</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Unread</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Chats</span>
+          </button>
+          <button class="filter-chip shrink-0">
+            <span>Prompts</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto px-2">
+        <nav class="text-xs flex flex-col gap-0.5">
+          <!-- Chat Entry: Selected (implicitly Active) -->
+          <a href="#" class="group flex flex-col gap-1 bg-surface rounded-lg p-2">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-openai text-muted"></i>
+                <span class="truncate pr-1 font-medium text-foreground">Productivity tools research</span>
+              </div>
+              <div class="flex flex-col items-end gap-0.5">
+                <span class="text-[10px] uppercase text-muted">Today</span>
+              </div>
+            </div>
+            <div class="text-[11px] text-muted truncate">Summarize the top user pain points...</div>
+          </a>
+
+          <!-- Chat Entry: Unread -->
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 hover:bg-surface">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-openai text-muted"></i>
+                <span class="truncate pr-1 font-medium text-foreground">UI Design Feedback</span>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                <span class="text-[10px] uppercase text-muted">Yesterday</span>
+                <span class="w-3 h-3 rounded-full bg-accent animate-pulse" title="New Messages"></span>
+              </div>
+            </div>
+            <div class="text-[11px] text-muted truncate">Sure, I can help with that. What are...</div>
+          </a>
+
+          <!-- Prompt Entry -->
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 hover:bg-surface ">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-terminal text-muted"></i>
+                <span class="truncate pr-1 font-medium text-foreground">Research AI automation</span>
+              </div>
+              <div class="flex flex-col items-end gap-0.5">
+                <span class="text-[10px] uppercase text-muted">2d ago</span>
+              </div>
+            </div>
+            <div class="text-[11px] text-muted">CLI · demo-project/competitor-research.prompt.md</div>
+          </a>
+
+          <!-- Chat Entry: No unread -->
+          <a href="#" class="group flex flex-col gap-1 rounded-lg p-2 hover:bg-surface">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="bi bi-openai text-muted"></i>
+                <span class="truncate pr-1 font-medium text-foreground">Code Refactoring Ideas</span>
+              </div>
+              <div class="flex flex-col items-end gap-0.5">
+                <span class="text-[10px] uppercase text-muted">3d ago</span>
+              </div>
+            </div>
+            <div class="text-[11px] text-muted truncate">Let's brainstorm some ways to improve...</div>
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main Chat Panel -->
+    <main class="flex-1 flex flex-col">
+      <div class="flex h-11 shrink-0 items-center justify-between px-4 text-xs">
+        <div class="flex items-center gap-3">
+          <button class="flex cursor-pointer items-center gap-1  hover:text-accent" title="Select Project">
+            <i class="bi bi-folder"></i>
+            <span>my-ai-project</span>
+          </button>
+          <button class="flex cursor-pointer items-center gap-1  hover:text-accent" title="Select Model">
+            <i class="bi bi-openai"></i>
+            <span>GPT-5</span>
+          </button>
+          <!-- State for the current conversation -->
+          <span class="rounded-md bg-accent px-1.5 py-0.5 text-xs font-medium text-white">Active</span>
+          <!-- Inactive state example: <span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-700">Inactive</span> -->
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="cursor-pointer rounded p-1.5  hover:text-accent" title="More options">
+            <i class="bi bi-three-dots-vertical"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-6 py-4">
+        <div class="flex flex-col gap-6 text-sm">
+          <!-- User Message -->
+          <div class="group relative flex flex-col items-start gap-2">
+            <div class="rounded-lg bg-surface px-4 py-2.5">
+              <p>Please fix this <span class="text-accent">@helloworld.test</span>. Scan Reddit and Hacker News for hot
+                topics on productivity tools, then summarize the top user pain points. Also, please check <span
+                  class="text-accent">@/Users/cw/Documents/GitHub/electron-app/src/core/services/chat/chat-service.ts</span>
+              </p>
+            </div>
+            <div
+              class="absolute bottom-0 right-0 hidden group-hover:flex items-center gap-1 bg-background p-1 rounded-tl-lg">
+              <button class="cursor-pointer text-muted hover:text-accent p-1" title="Edit"><i
+                  class="bi bi-pencil"></i></button>
+              <button class="cursor-pointer text-muted hover:text-accent p-1" title="Copy"><i
+                  class="bi bi-clipboard"></i></button>
+            </div>
+          </div>
+
+          <!-- AI Message -->
+          <div class="group relative flex flex-col items-start gap-2">
+            <!--  
+              <div class="font-semibold text-foreground flex items-center gap-2">
+              <i class="bi bi-stars "></i>
+              <span>AI</span>
+            </div>
+              -->
+            <div class="w-full">
+              <p>Of course. I've scanned Reddit (subreddits like r/productivity, r/tools, etc.) and Hacker News for
+                recent discussions on productivity tools. Here is a summary of the top user pain points I found:</p>
+              <ul class="mt-2 list-disc list-inside space-y-1">
+                <li><strong>Tool Overload:</strong> Users feel overwhelmed by the sheer number of productivity apps
+                  available. They often use multiple tools that don't integrate well, leading to fragmented workflows.
+                </li>
+                <li><strong>High Cost:</strong> Many powerful tools are subscription-based, and the costs can add up
+                  quickly, especially for individuals or small teams.</li>
+                <li><strong>Steep Learning Curve:</strong> Complex tools with many features often require a significant
+                  time investment to learn, which detracts from actual productive work.</li>
+                <li><strong>Poor Mobile Experience:</strong> A common complaint is that the mobile versions of many
+                  desktop-first productivity tools are clunky, slow, or lack key features.</li>
+              </ul>
+              <p class="mt-2">It seems the ideal tool for many is something that is simple, affordable, cross-platform,
+                and integrates well with other services.</p>
+            </div>
+            <div
+              class="absolute bottom-0 right-0 hidden group-hover:flex items-center gap-1 bg-background p-1 rounded-tl-lg">
+              <button class="cursor-pointer text-muted hover:text-accent p-1" title="Copy"><i
+                  class="bi bi-clipboard"></i></button>
+            </div>
+          </div>
+
+          <!-- Another User Message -->
+          <div class="group relative flex flex-col items-start gap-2">
+            <div class="rounded-lg bg-surface px-4 py-2.5">
+              <p>Can you elaborate on the "Tool Overload" point? What are some common examples of this?</p>
+            </div>
+            <div
+              class="absolute bottom-0 right-0 hidden group-hover:flex items-center gap-1 bg-background p-1 rounded-tl-lg">
+              <button class="cursor-pointer text-muted hover:text-accent p-1" title="Edit"><i
+                  class="bi bi-pencil"></i></button>
+              <button class="cursor-pointer text-muted hover:text-accent p-1" title="Copy"><i
+                  class="bi bi-clipboard"></i></button>
+            </div>
+          </div>
+
+          <!-- Another AI Message (shorter) -->
+          <div class="group relative flex flex-col items-start gap-2">
+            <!-- 
+              <div class="font-semibold text-foreground flex items-center gap-2">
+              <i class="bi bi-stars "></i>
+              <span>AI</span>
+            </div>
+            -->
+
+            <div class="w-full">
+              <p>Certainly! <strong>Tool Overload</strong> often manifests as:</p>
+              <ul class="mt-2 list-disc list-inside space-y-1">
+                <li><strong>Context Switching:</strong> Juggling multiple apps</li>
+                <li><strong>Data Silos:</strong> Information gets stuck in one tool, making it hard to get a holistic
+                  view.</li>
+                <li><strong>Redundant Features:</strong> Many tools offer similar functionalities, leading to
+                  confusion about where to do what.</li>
+              </ul>
+              <p class="mt-2">Users desire a more unified experience.</p>
+            </div>
+            <div
+              class="absolute bottom-0 right-0 hidden group-hover:flex items-center gap-1 bg-background p-1 rounded-tl-lg">
+              <button class="cursor-pointer text-muted hover:text-accent p-1" title="Copy"><i
+                  class="bi bi-clipboard"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="shrink-0 border-t border-border">
+        <div class="relative">
+          <textarea id="chat-input" placeholder="Type a message..."
+            class="w-full resize-none bg-transparent py-4 pr-24 pl-12 text-sm text-foreground outline-none placeholder-muted"
+            rows="3"></textarea>
+          <div class="absolute left-4 top-4 flex items-center gap-2">
+            <button title="Attach Files" class="cursor-pointer text-muted hover:text-accent">
+              <i class="bi bi-paperclip text-base"></i>
+            </button>
+          </div>
+          <div class="absolute right-4 top-4 flex items-center gap-2">
+            <button class="cursor-pointer rounded p-1.5 text-muted hover:text-accent" title="Record Audio">
+              <i class="bi bi-mic-fill"></i>
+            </button>
+            <button class="flex items-center gap-1.5 rounded-md pr-3 pl-1.5 py-1.5 text-muted hover:text-accent"
+              title="Send Message">
+              <i class="bi bi-send"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  /*
+  <script>
+    const textarea = document.getElementById('chat-input');
+    // Function to adjust textarea height
+    const adjustTextareaHeight = () => {
+      textarea.style.height = 'auto';
+      // Use scrollHeight to set the height, but not less than its initial height
+      const initialHeight = 68; // approx 3 rows
+      textarea.style.height = Math.max(initialHeight, textarea.scrollHeight) + 'px';
+    };
+
+    // Adjust height on input
+    textarea.addEventListener('input', adjustTextareaHeight);
+
+    // Adjust height on page load in case of content from cache
+    window.addEventListener('load', adjustTextareaHeight);
+  </script> */
+</body>
+
+</html>

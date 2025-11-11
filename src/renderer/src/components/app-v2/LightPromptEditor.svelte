@@ -11,41 +11,44 @@
     Send,
     PlusSquare,
     CheckLg,
+    Download,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
+
+  import { createFileMention } from "../../../../core/utils/message-utils.js";
+  import {
+    isCliModel,
+    isWebModel,
+    parseModelId,
+    type ModelId,
+  } from "../../../../core/utils/model-utils-v2.js";
+  import { trpcClient } from "../../lib/trpc-client.js";
   import { projectService } from "../../services/project-service.js";
   import { modelClientService } from "../../services/model-client-service.js";
+  import { rendererPromptService } from "../../services/renderer-prompt-service.js";
+  import { getEntryId } from "../../services/inbox-service.js";
+  import { generatePrompt } from "../../services/quick-prompt-service.js";
   import {
     projectState,
     type ProjectFolder,
   } from "../../stores/project-store.svelte.js";
   import { uiV2State } from "../../stores/ui-v2-store.svelte.js";
-  import { rendererPromptService } from "../../services/renderer-prompt-service.js";
-  import {
-    type InboxEntry,
-    isChatSession,
-    isPrompt,
-    getEntryId,
-  } from "../../services/inbox-service.js";
   import {
     updateInboxEntry,
     refreshInboxEntries,
   } from "../../stores/inbox-store.svelte.js";
-  import { createFileMention } from "../../../../core/utils/message-utils.js";
-  import { isCliModel, isWebModel, parseModelId, type ModelId } from "../../../../core/utils/model-utils-v2.js";
-  import { trpcClient } from "../../lib/trpc-client.js";
-  import { generatePrompt } from "../../services/quick-prompt-service.js";
-  import type { ProjectFileSearchResult } from "../../../../core/services/project-folder-service.js";
   import FileMentionDropdown from "./FileMentionDropdown.svelte";
+  import type { ProjectFileSearchResult } from "../../../../core/services/project-folder-service.js";
+  import type { Prompt } from "../../../../core/services/prompt/prompt-types.js";
 
   const logger = new Logger({ name: "LightPromptEditor" });
 
   type StatusTone = "info" | "success" | "error" | "warning";
 
   let {
-    entry,
+    promptEntry,
   }: {
-    entry: InboxEntry | null;
+    promptEntry: Prompt;
   } = $props();
 
   let promptValue = $state("");
@@ -101,20 +104,6 @@
 
   const projectPreferenceKey = "inboxProjectPath";
 
-  $effect(() => {
-    if (enabledModels.length === 0) {
-      return;
-    }
-
-    const current = enabledModels.find(
-      (model) => model.modelId === selectedModelId,
-    );
-
-    if (!current) {
-      modelClientService.selectModelV2(enabledModels[0]?.modelId);
-    }
-  });
-
   onMount(() => {
     initializeProjectPreference();
     ensureExternalModelSelected();
@@ -135,7 +124,7 @@
     const handleVisibility = (): void => {
       if (!document.hidden) {
         queueMicrotask(() => {
-          if (textareaElement && entry) {
+          if (textareaElement && promptEntry) {
             textareaElement.focus();
             textareaElement.setSelectionRange(
               promptValue.length,
@@ -156,6 +145,17 @@
   });
 
   onDestroy(() => {
+    // Save content on destroy
+    if (
+      activeEntryId &&
+      promptValue !== lastPersistedContent &&
+      promptValue.trim()
+    ) {
+      // Fire-and-forget the save operation. Because the app isn't closing,
+      // the event loop will process this promise.
+      void saveContent(promptValue, activeEntryId);
+    }
+
     if (mediaRecorder && recordingState === "recording") {
       mediaRecorder.stop();
     }
@@ -172,33 +172,51 @@
   });
 
   $effect(() => {
-    if (!entry) {
-      resetEditorState();
+    if (enabledModels.length === 0) {
       return;
     }
 
-    const entryId = getEntryId(entry);
+    const current = enabledModels.find(
+      (model) => model.modelId === selectedModelId,
+    );
+
+    if (!current) {
+      modelClientService.selectModelV2(enabledModels[0]?.modelId);
+    }
+  });
+
+  $effect(() => {
+    const entryId = getEntryId(promptEntry);
     if (entryId === activeEntryId) {
       return;
     }
 
-    // Save current prompt before switching to new one
-    if (
-      activeEntryId &&
-      promptValue !== lastPersistedContent &&
-      promptValue.trim()
-    ) {
-      void enqueueAutoSave(promptValue, activeEntryId);
-    }
+    const switchEntry = async (): Promise<void> => {
+      // Cancel pending autosave timer
+      if (autoSaveTimer !== null) {
+        window.clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+      }
 
-    loadEntryContent(entry);
+      // Save current prompt before switching if content has changed
+      if (
+        activeEntryId &&
+        promptValue !== lastPersistedContent &&
+        promptValue.trim()
+      ) {
+        const previousEntryId = activeEntryId;
+        const contentToSave = promptValue;
+
+        await saveContent(contentToSave, previousEntryId);
+      }
+
+      loadEntryContent();
+    };
+
+    void switchEntry();
   });
 
   $effect(() => {
-    if (!entry || !isPrompt(entry)) {
-      return;
-    }
-
     const currentContent = promptValue;
     if (currentContent === lastPersistedContent) {
       return;
@@ -208,10 +226,10 @@
       window.clearTimeout(autoSaveTimer);
     }
 
-    const targetId = entry.id;
+    const targetId = promptEntry.id;
 
     autoSaveTimer = window.setTimeout(() => {
-      void enqueueAutoSave(currentContent, targetId);
+      void saveContent(currentContent, targetId);
     }, 1000);
   });
 
@@ -553,13 +571,7 @@
     }
   };
 
-  const resetEditorState = (): void => {
-    promptValue = "";
-    lastPersistedContent = "";
-    activeEntryId = null;
-  };
-
-  const loadEntryContent = (target: InboxEntry): void => {
+  const loadEntryContent = (): void => {
     hasFocusedEditor = false;
     clearStatus();
 
@@ -568,23 +580,12 @@
       autoSaveTimer = null;
     }
 
-    const entryId = getEntryId(target);
+    const entryId = getEntryId(promptEntry);
     activeEntryId = entryId;
 
-    if (isPrompt(target)) {
-      promptValue = target.content;
-      lastPersistedContent = target.content;
-      queueMicrotask(() => focusTextarea());
-      return;
-    }
-
-    if (isChatSession(target)) {
-      promptValue = "";
-      lastPersistedContent = "";
-      if (target.metadata?.projectPath) {
-        selectedProjectPath = target.metadata.projectPath;
-      }
-    }
+    promptValue = promptEntry.content;
+    lastPersistedContent = promptEntry.content;
+    queueMicrotask(() => focusTextarea());
   };
 
   const focusTextarea = (): void => {
@@ -601,7 +602,7 @@
     });
   };
 
-  const enqueueAutoSave = async (
+  const saveContent = async (
     content: string,
     promptId: string,
   ): Promise<void> => {
@@ -622,10 +623,6 @@
   };
 
   const handleEditorKeydown = (event: KeyboardEvent): void => {
-    if (!entry) {
-      return;
-    }
-
     // Handle file mention menu first
     if (handleFileMentionKeydown(event)) {
       return;
@@ -633,7 +630,7 @@
 
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
-      void handlePrimaryAction();
+      void handleLaunchPrompt();
     }
   };
 
@@ -659,24 +656,7 @@
     }
   };
 
-  const handlePrimaryAction = async (): Promise<void> => {
-    if (!entry) {
-      return;
-    }
-
-    if (isChatSession(entry)) {
-      await handleOpenSurface(entry);
-      return;
-    }
-
-    await handleLaunchPrompt();
-  };
-
   const handleLaunchPrompt = async (): Promise<void> => {
-    if (!entry || !isPrompt(entry)) {
-      return;
-    }
-
     const trimmedPrompt = promptValue.trim();
     if (!trimmedPrompt) {
       applyStatus("Write a prompt first.", "error");
@@ -701,8 +681,8 @@
     try {
       const session = await trpcClient.chat.createSession.mutate({
         modelId: model.modelId,
-        title: entry.metadata?.title || "Untitled Chat",
-        sourcePromptId: entry.id,
+        title: promptEntry.metadata?.title || "Untitled Chat",
+        sourcePromptId: promptEntry.id,
         workingDirectory: selectedProjectPath ?? undefined,
         metadata: {
           projectPath: selectedProjectPath ?? undefined,
@@ -722,43 +702,7 @@
     }
   };
 
-  const handleOpenSurface = async (session: InboxEntry): Promise<void> => {
-    if (!isChatSession(session)) {
-      return;
-    }
-
-    if (!session.metadata?.modelId) {
-      applyStatus("Session is missing model information.", "error");
-      return;
-    }
-
-    try {
-      const result = await window.api.surface.launch({
-        sessionId: session.id,
-        modelId: session.metadata.modelId,
-        modelSurface: session.modelSurface,
-        projectPath: session.metadata.projectPath ?? undefined,
-      });
-
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to open chat surface");
-      }
-      applyStatus("Chat surface opened.", "success");
-    } catch (error) {
-      logger.error("Failed to open surface", error);
-      applyStatus(
-        error instanceof Error ? error.message : "Failed to open surface.",
-        "error",
-        0,
-      );
-    }
-  };
-
   const handleGeneratePrompt = async (): Promise<void> => {
-    if (!entry || !isPrompt(entry)) {
-      return;
-    }
-
     const trimmedInput = promptValue.trim();
     if (!trimmedInput) {
       applyStatus("Write a prompt first.", "error");
@@ -787,6 +731,25 @@
       isSubmitting = false;
     }
   };
+
+  const handleDownloadPrompt = (): void => {
+    if (!promptValue.trim()) {
+      applyStatus("Nothing to download.", "warning");
+      return;
+    }
+
+    const filename = `${promptEntry.metadata?.title || "prompt"}.txt`;
+
+    const blob = new Blob([promptValue], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    applyStatus("Prompt downloaded.", "success");
+  };
 </script>
 
 <main class="bg-background flex flex-1 flex-col">
@@ -799,33 +762,40 @@
           onclick={() => (projectMenuOpen = !projectMenuOpen)}
         >
           <Folder />
-          <span>{selectedProjectName ?? "Select project"}</span>
+          <span>{selectedProjectName ?? "No project"}</span>
         </button>
         {#if projectMenuOpen}
           <div
             class="bg-surface border-border absolute top-full left-0 z-20 mt-1 w-52 rounded-md border p-1 text-xs shadow-lg"
           >
-            {#if projects.length === 0}
-              <div class="text-muted px-2 py-1.5">
-                No projects yet. Add one first.
-              </div>
-            {:else}
-              {#each projects as project (project.path)}
-                <button
-                  type="button"
-                  class="hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left {project.path ===
-                  selectedProjectPath
-                    ? 'text-accent'
-                    : 'text-foreground'}"
-                  onclick={() => selectProject(project.path)}
-                >
-                  <span class="truncate">{project.name}</span>
-                  {#if project.path === selectedProjectPath}
-                    <CheckLg class="text-[10px]" />
-                  {/if}
-                </button>
-              {/each}
-            {/if}
+            <button
+              type="button"
+              class="hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left {selectedProjectPath ===
+              null
+                ? 'text-accent'
+                : 'text-foreground'}"
+              onclick={() => selectProject(null)}
+            >
+              <span>No project</span>
+              {#if selectedProjectPath === null}
+                <CheckLg class="text-[10px]" />
+              {/if}
+            </button>
+            {#each projects as project (project.path)}
+              <button
+                type="button"
+                class="hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left {project.path ===
+                selectedProjectPath
+                  ? 'text-accent'
+                  : 'text-foreground'}"
+                onclick={() => selectProject(project.path)}
+              >
+                <span class="truncate">{project.name}</span>
+                {#if project.path === selectedProjectPath}
+                  <CheckLg class="text-[10px]" />
+                {/if}
+              </button>
+            {/each}
             <button
               class="text-muted hover:text-foreground flex w-full items-center gap-2 rounded px-2 py-1.5"
               onclick={() => void handleAddNewProject()}
@@ -863,7 +833,9 @@
                     : 'text-foreground'}"
                   onclick={() => selectModel(model.modelId)}
                 >
-                  <span class="truncate">{model.displayName ?? model.modelId}</span>
+                  <span class="truncate"
+                    >{model.displayName ?? model.modelId}</span
+                  >
                   {#if model.modelId === selectedModelId}
                     <CheckLg class="text-[10px]" />
                   {/if}
@@ -879,6 +851,13 @@
         onclick={handleAttach}
       >
         <Paperclip class="text-sm" />
+      </button>
+      <button
+        class="hover:text-accent cursor-pointer rounded p-1.5"
+        title="Download Prompt"
+        onclick={handleDownloadPrompt}
+      >
+        <Download />
       </button>
     </div>
     <div class="flex items-center gap-2">
@@ -899,7 +878,7 @@
       <button
         class="hover:text-accent flex items-center gap-1.5 rounded-md py-1.5 pr-3 pl-1.5"
         title="Send Prompt"
-        onclick={handlePrimaryAction}
+        onclick={handleLaunchPrompt}
       >
         <Send class="text-sm" />
         <span>Send</span>
@@ -907,46 +886,33 @@
     </div>
   </div>
   <div class="flex flex-1 flex-col p-3">
-    {#if !entry}
-      <div class="text-muted flex h-full items-center justify-center text-sm">
-        Select a prompt to start editing.
-      </div>
-    {:else if isChatSession(entry)}
-      <div
-        class="text-muted flex h-full flex-col items-center justify-center gap-2 text-sm"
-      >
-        <div>Chat Session</div>
-        <div class="text-xs">Click "Open" to view in the chat surface</div>
-      </div>
-    {:else}
-      <div class="relative flex-1">
-        <textarea
-          id="edit-textarea"
-          bind:this={textareaElement}
-          value={promptValue}
-          oninput={(e) => {
-            promptValue = e.currentTarget.value;
-            detectFileMention();
-          }}
-          onkeydown={handleEditorKeydown}
-          placeholder="Enter your prompt here. Use '/' for commands, or '@path/to/file' to reference files."
-          class="bg-background text-foreground placeholder-muted h-full w-full resize-none px-3 py-2 text-sm leading-6 outline-none"
-        ></textarea>
+    <div class="relative flex-1">
+      <textarea
+        id="edit-textarea"
+        bind:this={textareaElement}
+        value={promptValue}
+        oninput={(e) => {
+          promptValue = e.currentTarget.value;
+          detectFileMention();
+        }}
+        onkeydown={handleEditorKeydown}
+        placeholder="Enter your prompt here. Use '/' for commands, or '@path/to/file' to reference files."
+        class="bg-background text-foreground placeholder-muted h-full w-full resize-none px-3 py-2 text-sm leading-6 outline-none"
+      ></textarea>
 
-        {#if fileMentionShowMenu}
-          <FileMentionDropdown
-            results={fileMentionResults}
-            selectedIndex={fileMentionSelectedIndex}
-            onselect={handleFileMentionSelect}
-            oncancel={() => {
-              fileMentionShowMenu = false;
-              textareaElement?.focus();
-            }}
-            onhover={(index) => (fileMentionSelectedIndex = index)}
-            class="absolute right-3 bottom-2 left-3"
-          />
-        {/if}
-      </div>
-    {/if}
+      {#if fileMentionShowMenu}
+        <FileMentionDropdown
+          results={fileMentionResults}
+          selectedIndex={fileMentionSelectedIndex}
+          onselect={handleFileMentionSelect}
+          oncancel={() => {
+            fileMentionShowMenu = false;
+            textareaElement?.focus();
+          }}
+          onhover={(index) => (fileMentionSelectedIndex = index)}
+          class="absolute right-3 bottom-2 left-3"
+        />
+      {/if}
+    </div>
   </div>
 </main>
