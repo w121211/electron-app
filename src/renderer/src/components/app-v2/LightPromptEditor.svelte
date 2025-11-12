@@ -11,9 +11,10 @@
     Send,
     PlusSquare,
     CheckLg,
-    Download,
+    ThreeDotsVertical,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
+  import { toast } from "svelte-sonner";
 
   import { createFileMention } from "../../../../core/utils/message-utils.js";
   import {
@@ -24,7 +25,6 @@
   } from "../../../../core/utils/model-utils-v2.js";
   import { trpcClient } from "../../lib/trpc-client.js";
   import { projectService } from "../../services/project-service.js";
-  import { modelClientService } from "../../services/model-client-service.js";
   import { rendererPromptService } from "../../services/renderer-prompt-service.js";
   import { getEntryId } from "../../services/inbox-service.js";
   import { generatePrompt } from "../../services/quick-prompt-service.js";
@@ -43,8 +43,6 @@
 
   const logger = new Logger({ name: "LightPromptEditor" });
 
-  type StatusTone = "info" | "success" | "error" | "warning";
-
   let {
     promptEntry,
   }: {
@@ -57,9 +55,9 @@
   let projectMenuOpen = $state(false);
   let modelMenuOpen = $state(false);
   let isSubmitting = $state(false);
-  let status = $state<{ message: string; tone: StatusTone } | null>(null);
-  let statusTimeout = $state<number | null>(null);
   let lastPersistedContent = $state("");
+  let lastPersistedProjectPath = $state<string | null>(null);
+  let lastPersistedModelId = $state<ModelId | null>(null);
   let hasFocusedEditor = $state(false);
   let recordingState = $state<"idle" | "recording" | "unavailable">("idle");
   let mediaRecorder: MediaRecorder | null = null;
@@ -74,6 +72,7 @@
   let fileMentionCursorPos = $state(-1);
   let fileMentionStartPos = $state(-1);
   let fileMentionDebounceTimer: number | null = null;
+  let contextMenuOpen = $state(false);
 
   const projects = $derived(projectState.projectFolders);
   const allModels = $derived(uiV2State.availableModels);
@@ -84,7 +83,7 @@
         (isCliModel(model.modelId) || isWebModel(model.modelId)),
     ),
   );
-  const selectedModelId = $derived(uiV2State.selectedModel);
+  let selectedModelId = $state<ModelId | null>(null);
   const selectedProjectName = $derived.by(() => {
     if (!selectedProjectPath) return null;
     const project = projects.find((p) => p.path === selectedProjectPath);
@@ -103,11 +102,9 @@
   });
 
   const projectPreferenceKey = "inboxProjectPath";
+  const modelPreferenceKey = "inboxModelId";
 
   onMount(() => {
-    initializeProjectPreference();
-    ensureExternalModelSelected();
-
     const handleGlobalPointer = (event: PointerEvent): void => {
       if (!(event.target instanceof HTMLElement)) {
         closeMenus();
@@ -118,6 +115,9 @@
       }
       if (!event.target.closest("[data-model-menu]")) {
         modelMenuOpen = false;
+      }
+      if (!event.target.closest("[data-context-menu]")) {
+        contextMenuOpen = false;
       }
     };
 
@@ -146,21 +146,14 @@
 
   onDestroy(() => {
     // Save content on destroy
-    if (
-      activeEntryId &&
-      promptValue !== lastPersistedContent &&
-      promptValue.trim()
-    ) {
+    if (activeEntryId && hasUnsavedChanges()) {
       // Fire-and-forget the save operation. Because the app isn't closing,
       // the event loop will process this promise.
-      void saveContent(promptValue, activeEntryId);
+      void savePrompt(activeEntryId);
     }
 
     if (mediaRecorder && recordingState === "recording") {
       mediaRecorder.stop();
-    }
-    if (statusTimeout) {
-      clearTimeout(statusTimeout);
     }
     if (autoSaveTimer !== null) {
       window.clearTimeout(autoSaveTimer);
@@ -180,8 +173,11 @@
       (model) => model.modelId === selectedModelId,
     );
 
-    if (!current) {
-      modelClientService.selectModelV2(enabledModels[0]?.modelId);
+    if (!current && enabledModels.length > 0) {
+      const newModelId = enabledModels[0]?.modelId;
+      if (newModelId) {
+        selectedModelId = newModelId;
+      }
     }
   });
 
@@ -199,15 +195,8 @@
       }
 
       // Save current prompt before switching if content has changed
-      if (
-        activeEntryId &&
-        promptValue !== lastPersistedContent &&
-        promptValue.trim()
-      ) {
-        const previousEntryId = activeEntryId;
-        const contentToSave = promptValue;
-
-        await saveContent(contentToSave, previousEntryId);
+      if (activeEntryId && hasUnsavedChanges()) {
+        await savePrompt(activeEntryId);
       }
 
       loadEntryContent();
@@ -217,8 +206,7 @@
   });
 
   $effect(() => {
-    const currentContent = promptValue;
-    if (currentContent === lastPersistedContent) {
+    if (!hasUnsavedChanges()) {
       return;
     }
 
@@ -229,19 +217,47 @@
     const targetId = promptEntry.id;
 
     autoSaveTimer = window.setTimeout(() => {
-      void saveContent(currentContent, targetId);
+      void savePrompt(targetId);
     }, 1000);
   });
+
+  const hasUnsavedChanges = (): boolean => {
+    const contentChanged = promptValue !== lastPersistedContent;
+    const projectChanged = selectedProjectPath !== lastPersistedProjectPath;
+    const modelChanged = selectedModelId !== lastPersistedModelId;
+    return contentChanged || projectChanged || modelChanged;
+  };
+
+  const savePrompt = async (promptId: string): Promise<void> => {
+    try {
+      const updatedPrompt = await rendererPromptService.updatePrompt(promptId, {
+        content: promptValue,
+        metadata: {
+          ...(promptEntry.metadata || {}),
+          projectPath: selectedProjectPath,
+          modelId: selectedModelId,
+        },
+      });
+      lastPersistedContent = promptValue;
+      lastPersistedProjectPath = selectedProjectPath;
+      lastPersistedModelId = selectedModelId;
+      updateInboxEntry(promptId, () => updatedPrompt);
+    } catch (error) {
+      logger.error("Failed to save prompt", error);
+      toast.error(error instanceof Error ? error.message : "Auto-save failed.");
+    }
+  };
 
   const closeMenus = (): void => {
     projectMenuOpen = false;
     modelMenuOpen = false;
+    contextMenuOpen = false;
   };
 
   // File mention functions
   async function searchFilesForMention(query: string): Promise<void> {
     if (!selectedProjectPath) {
-      applyStatus("Select a project to use file mentions.", "warning");
+      toast.warning("Select a project to use file mentions.");
       fileMentionResults = [];
       return;
     }
@@ -256,9 +272,8 @@
       fileMentionSelectedIndex = 0;
     } catch (error) {
       logger.error("File mention search failed", error);
-      applyStatus(
+      toast.error(
         error instanceof Error ? error.message : "File search failed.",
-        "error",
       );
       fileMentionResults = [];
     }
@@ -345,18 +360,6 @@
     }
   }
 
-  const initializeProjectPreference = (): void => {
-    const stored = localStorage.getItem(projectPreferenceKey);
-    if (
-      stored &&
-      projects.some((project: ProjectFolder) => project.path === stored)
-    ) {
-      selectedProjectPath = stored;
-      return;
-    }
-    selectedProjectPath = projects[0]?.path ?? null;
-  };
-
   const getSelectedProject = (): ProjectFolder | null => {
     if (!selectedProjectPath) {
       return null;
@@ -378,53 +381,10 @@
     closeMenus();
   };
 
-  const ensureExternalModelSelected = (): void => {
-    if (enabledModels.length === 0) {
-      applyStatus(
-        "Enable a CLI or Web model in the main app to launch chats.",
-        "warning",
-        0,
-      );
-      return;
-    }
-
-    const current = enabledModels.find(
-      (model) => model.modelId === selectedModelId,
-    );
-
-    if (!current) {
-      modelClientService.selectModelV2(enabledModels[0]?.modelId);
-    }
-  };
-
   const selectModel = (modelId: ModelId): void => {
-    modelClientService.selectModelV2(modelId);
+    selectedModelId = modelId;
+    localStorage.setItem(modelPreferenceKey, modelId);
     closeMenus();
-  };
-
-  const applyStatus = (
-    message: string,
-    tone: StatusTone,
-    duration = 2500,
-  ): void => {
-    status = { message, tone };
-    if (statusTimeout) {
-      clearTimeout(statusTimeout);
-    }
-    if (duration > 0) {
-      statusTimeout = window.setTimeout(() => {
-        status = null;
-        statusTimeout = null;
-      }, duration);
-    }
-  };
-
-  const clearStatus = (): void => {
-    if (statusTimeout) {
-      clearTimeout(statusTimeout);
-      statusTimeout = null;
-    }
-    status = null;
   };
 
   const insertTextAtCursor = (text: string): void => {
@@ -484,10 +444,8 @@
       }
     } catch (error) {
       logger.error("Failed to attach files", error);
-      applyStatus(
+      toast.error(
         error instanceof Error ? error.message : "Failed to attach files.",
-        "error",
-        0,
       );
     }
   };
@@ -514,7 +472,7 @@
 
       mediaRecorder.onstart = () => {
         recordingState = "recording";
-        applyStatus("Recording audio…", "info", 0);
+        toast.info("Recording audio…");
       };
 
       mediaRecorder.onstop = async () => {
@@ -522,7 +480,7 @@
         stream.getTracks().forEach((track) => track.stop());
 
         if (audioChunks.length === 0) {
-          applyStatus("No audio recorded.", "warning");
+          toast.warning("No audio recorded.");
           mediaRecorder = null;
           return;
         }
@@ -536,13 +494,10 @@
             await window.api.quickPrompt.saveAudio(uint8Array);
 
           insertTextAtCursor(createFileMention(absolutePath));
-          clearStatus();
         } catch (error) {
           logger.error("Failed to save audio recording", error);
-          applyStatus(
+          toast.error(
             error instanceof Error ? error.message : "Failed to save audio.",
-            "error",
-            0,
           );
         } finally {
           mediaRecorder = null;
@@ -556,24 +511,21 @@
         mediaRecorder = null;
         audioChunks = [];
         stream.getTracks().forEach((track) => track.stop());
-        applyStatus("Audio recording failed.", "error", 0);
+        toast.error("Audio recording failed.");
       };
 
       mediaRecorder.start();
     } catch (error) {
       logger.error("Failed to access microphone", error);
       recordingState = "unavailable";
-      applyStatus(
+      toast.error(
         error instanceof Error ? error.message : "Microphone unavailable.",
-        "error",
-        0,
       );
     }
   };
 
   const loadEntryContent = (): void => {
     hasFocusedEditor = false;
-    clearStatus();
 
     if (autoSaveTimer !== null) {
       window.clearTimeout(autoSaveTimer);
@@ -585,6 +537,30 @@
 
     promptValue = promptEntry.content;
     lastPersistedContent = promptEntry.content;
+
+    // Initialize selected project
+    const storedProject = localStorage.getItem(projectPreferenceKey);
+    let newProjectPath =
+      promptEntry.metadata?.projectPath ?? storedProject ?? null;
+    if (newProjectPath && !projects.some((p) => p.path === newProjectPath)) {
+      logger.warn(`Stored project path not found: ${newProjectPath}`);
+      toast.warning(`Previous project no longer available: ${newProjectPath}`);
+      newProjectPath = null;
+    }
+    selectedProjectPath = newProjectPath;
+    lastPersistedProjectPath = promptEntry.metadata?.projectPath ?? null;
+
+    // Initialize selected model
+    const storedModel = localStorage.getItem(modelPreferenceKey);
+    let newModelId = promptEntry.metadata?.modelId ?? storedModel ?? null;
+    if (newModelId && !enabledModels.some((m) => m.modelId === newModelId)) {
+      newModelId = null;
+    }
+    selectedModelId =
+      (newModelId as ModelId | null) ?? enabledModels[0]?.modelId ?? null;
+    lastPersistedModelId =
+      (promptEntry.metadata?.modelId as ModelId | undefined) ?? null;
+
     queueMicrotask(() => focusTextarea());
   };
 
@@ -600,26 +576,6 @@
         promptValue.length,
       );
     });
-  };
-
-  const saveContent = async (
-    content: string,
-    promptId: string,
-  ): Promise<void> => {
-    try {
-      const updatedPrompt = await rendererPromptService.updatePrompt(promptId, {
-        content,
-      });
-      lastPersistedContent = content;
-      updateInboxEntry(promptId, () => updatedPrompt);
-    } catch (error) {
-      logger.error("Failed to save prompt", error);
-      applyStatus(
-        error instanceof Error ? error.message : "Auto-save failed.",
-        "error",
-        0,
-      );
-    }
   };
 
   const handleEditorKeydown = (event: KeyboardEvent): void => {
@@ -645,13 +601,11 @@
       await projectService.addProjectFolder(folderPath);
       selectedProjectPath = folderPath;
       localStorage.setItem(projectPreferenceKey, folderPath);
-      applyStatus(`Added project: ${folderPath}`, "success");
+      toast.success(`Added project: ${folderPath}`);
     } catch (error) {
       logger.error("Failed to add new project", error);
-      applyStatus(
+      toast.error(
         error instanceof Error ? error.message : "Failed to add project.",
-        "error",
-        0,
       );
     }
   };
@@ -659,7 +613,7 @@
   const handleLaunchPrompt = async (): Promise<void> => {
     const trimmedPrompt = promptValue.trim();
     if (!trimmedPrompt) {
-      applyStatus("Write a prompt first.", "error");
+      toast.error("Write a prompt first.");
       return;
     }
 
@@ -671,12 +625,12 @@
       (item) => item.modelId === selectedModelId,
     );
     if (!model) {
-      applyStatus("Select an external model first.", "error");
+      toast.error("Select an external model first.");
       return;
     }
 
     isSubmitting = true;
-    applyStatus("Launching chat…", "info", 0);
+    toast.info("Launching chat…");
 
     try {
       const session = await trpcClient.chat.createSession.mutate({
@@ -686,16 +640,15 @@
         workingDirectory: selectedProjectPath ?? undefined,
         metadata: {
           projectPath: selectedProjectPath ?? undefined,
+          modelId: selectedModelId ?? undefined,
         },
       });
-      applyStatus("Chat launched.", "success");
+      toast.success("Chat launched.");
       await refreshInboxEntries({ selectId: session.id });
     } catch (error) {
       logger.error("Failed to launch chat", error);
-      applyStatus(
+      toast.error(
         error instanceof Error ? error.message : "Failed to launch chat.",
-        "error",
-        0,
       );
     } finally {
       isSubmitting = false;
@@ -705,7 +658,7 @@
   const handleGeneratePrompt = async (): Promise<void> => {
     const trimmedInput = promptValue.trim();
     if (!trimmedInput) {
-      applyStatus("Write a prompt first.", "error");
+      toast.error("Write a prompt first.");
       return;
     }
 
@@ -714,18 +667,16 @@
     }
 
     isSubmitting = true;
-    applyStatus("Generating prompt…", "info", 0);
+    toast.info("Generating prompt…");
 
     try {
       const { generatedPrompt } = await generatePrompt(trimmedInput);
       promptValue = generatedPrompt;
-      applyStatus("Prompt generated.", "success");
+      toast.success("Prompt generated.");
     } catch (error) {
       logger.error("Failed to generate prompt", error);
-      applyStatus(
+      toast.error(
         error instanceof Error ? error.message : "Failed to generate prompt.",
-        "error",
-        0,
       );
     } finally {
       isSubmitting = false;
@@ -734,7 +685,7 @@
 
   const handleDownloadPrompt = (): void => {
     if (!promptValue.trim()) {
-      applyStatus("Nothing to download.", "warning");
+      toast.warning("Nothing to download.");
       return;
     }
 
@@ -748,7 +699,12 @@
     link.click();
     URL.revokeObjectURL(url);
 
-    applyStatus("Prompt downloaded.", "success");
+    toast.success("Prompt downloaded.");
+  };
+
+  const handleDeletePrompt = (): void => {
+    toast.info("Delete functionality not yet implemented.");
+    closeMenus();
   };
 </script>
 
@@ -852,37 +808,59 @@
       >
         <Paperclip class="text-sm" />
       </button>
-      <button
-        class="hover:text-accent cursor-pointer rounded p-1.5"
-        title="Download Prompt"
-        onclick={handleDownloadPrompt}
-      >
-        <Download />
-      </button>
     </div>
     <div class="flex items-center gap-2">
       <button
-        class="hover:text-accent cursor-pointer rounded p-1.5"
+        class="hover:text-accent cursor-pointer p-1"
         title="Record Audio"
         onclick={startAudioRecording}
       >
         <Mic />
       </button>
       <button
-        class="hover:text-accent cursor-pointer rounded p-1.5"
+        class="hover:text-accent cursor-pointer p-1"
         title="Generate Prompt"
         onclick={handleGeneratePrompt}
       >
         <Stars />
       </button>
       <button
-        class="hover:text-accent flex items-center gap-1.5 rounded-md py-1.5 pr-3 pl-1.5"
+        class="hover:text-accent flex cursor-pointer items-center gap-1 p-1"
         title="Send Prompt"
         onclick={handleLaunchPrompt}
       >
         <Send class="text-sm" />
         <span>Send</span>
       </button>
+      <div class="relative" data-context-menu>
+        <button
+          class="hover:text-accent cursor-pointer p-1"
+          title="More options"
+          onclick={() => (contextMenuOpen = !contextMenuOpen)}
+        >
+          <ThreeDotsVertical />
+        </button>
+        {#if contextMenuOpen}
+          <div
+            class="bg-surface border-border absolute top-full right-0 z-20 mt-1 w-32 rounded-md border p-1 text-xs shadow-lg"
+          >
+            <button
+              type="button"
+              class="hover:bg-border text-foreground flex w-full items-center justify-between rounded px-2 py-1.5 text-left"
+              onclick={handleDownloadPrompt}
+            >
+              <span>Download</span>
+            </button>
+            <button
+              type="button"
+              class="hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-red-500"
+              onclick={handleDeletePrompt}
+            >
+              <span>Delete</span>
+            </button>
+          </div>
+        {/if}
+      </div>
     </div>
   </div>
   <div class="flex flex-1 flex-col p-3">

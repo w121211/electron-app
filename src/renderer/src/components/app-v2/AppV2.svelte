@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { Logger } from "tslog";
+  import { Toaster } from "svelte-sonner";
   import { keyboardManager } from "../../lib/keyboard.js";
   import { uiV2State } from "../../stores/ui-v2-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
@@ -54,4 +55,6 @@
   {#if uiV2State.quickLauncherOpen}
     <QuickLauncher isOpen={uiV2State.quickLauncherOpen} />
   {/if}
+
+  <Toaster />
 </div>

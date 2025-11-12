@@ -7,10 +7,10 @@
     FileEarmarkText,
     PersonRaisedHand,
     type SvgComponent,
+    CodeSlash,
   } from "svelte-bootstrap-icons";
   import { SvelteDate } from "svelte/reactivity";
   import { Logger } from "tslog";
-  import { parseModelId } from "../../../../core/utils/model-utils-v2.js";
   import {
     inboxState,
     setInboxFilter,
@@ -106,11 +106,14 @@
     if (isPrompt(entry)) {
       return FileEarmarkText;
     }
-    if (entry.modelSurface === "terminal" || entry.modelSurface === "pty") {
+    if (entry.modelSurface === "cli" || entry.modelSurface === "pty") {
       return Terminal;
     }
     if (entry.modelSurface === "web") {
       return Globe; // Replacement for bi-openai
+    }
+    if (entry.modelSurface === "api") {
+      return CodeSlash;
     }
     return FileEarmarkText;
   }
@@ -197,14 +200,6 @@
 
       // Fallback to model and project name
       let modelId = entry.metadata?.modelId;
-      if (modelId) {
-        try {
-          const parsed = parseModelId(modelId);
-          modelId = parsed.providerModelId;
-        } catch {
-          // Keep original modelId if parsing fails
-        }
-      }
       const projectName = resolveProjectName(
         entry.metadata?.projectPath ?? null,
       );
