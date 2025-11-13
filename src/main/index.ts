@@ -35,14 +35,14 @@ async function bootstrap(): Promise<MainProcessContext> {
     ? process.resourcesPath
     : app.getAppPath();
 
+  const websocketServer = new WebSocketServer({});
   const trpcServer = new HttpTrpcServer({
     userDataDir,
     appDocumentsDir,
     snapshotProvider: requestRendererSnapshot,
     appResourcesPath,
+    websocketServer,
   });
-
-  const websocketServer = new WebSocketServer({});
 
   try {
     const trpcPort = await trpcServer.start(3333);

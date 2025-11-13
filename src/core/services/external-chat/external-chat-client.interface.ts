@@ -12,6 +12,7 @@ export interface CreateExternalSessionInput {
   metadata?: Partial<ChatMetadata>;
   sourcePromptId?: string | null;
   promptSnapshot?: PromptSnapshot;
+  initialPrompt?: string | null;
 }
 
 export interface IExternalChatClient {

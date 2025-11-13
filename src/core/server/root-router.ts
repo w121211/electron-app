@@ -41,6 +41,8 @@ import { PromptService } from "../services/prompt/prompt-service.js";
 import { ChatService } from "../services/chat/chat-service.js";
 import { createPromptRouter } from "./routers/prompt-router.js";
 import { createChatSessionRouter } from "./routers/chat-session-router.js";
+import { WebAutomatorBridge } from "../services/external-chat/web-automator-bridge.js";
+import type { WebSocketServer } from "./websocket-server.js";
 
 interface TrpcRouterConfig {
   userDataDir: string;
@@ -49,6 +51,7 @@ interface TrpcRouterConfig {
   ptyInstanceManager: PtyInstanceManager;
   snapshotProvider: SnapshotProvider;
   appResourcesPath?: string;
+  websocketServer: WebSocketServer;
 }
 
 export async function createTrpcRouter(config: TrpcRouterConfig) {
@@ -58,6 +61,7 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     eventBus,
     ptyInstanceManager,
     snapshotProvider,
+    websocketServer,
   } = config;
 
   // Setup logger
@@ -121,7 +125,17 @@ export async function createTrpcRouter(config: TrpcRouterConfig) {
     eventBus,
     chatSessionRepository,
   );
-  const webChatClient = new WebChatClient(eventBus, chatSessionRepository);
+
+  const automatorBridge = new WebAutomatorBridge(websocketServer, {
+    defaultAssistant: "chatgpt",
+    clientId: "electron-app",
+  });
+
+  const webChatClient = new WebChatClient(
+    eventBus,
+    chatSessionRepository,
+    automatorBridge,
+  );
 
   const ptyChatClient = new PtyChatClient(
     eventBus,

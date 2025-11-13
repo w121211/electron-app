@@ -20,6 +20,7 @@ import type {
   PromptEditRepository,
   PromptEdit,
 } from "../src/core/services/prompt/prompt-edit-repository.js";
+import { WebAutomatorBridgeStub } from "./helpers/web-automator-bridge.stub.js";
 
 class InMemoryPromptEditRepository implements PromptEditRepository {
   private readonly edits = new Map<string, PromptEdit>();
@@ -123,7 +124,12 @@ describe("PromptScriptService", () => {
       toolRegistry: createToolRegistryStub(),
     });
     terminalChatClient = new TerminalChatClient(eventBus, chatSessionRepo);
-    webChatClient = new WebChatClient(eventBus, chatSessionRepo);
+    const automatorBridge = new WebAutomatorBridgeStub();
+    webChatClient = new WebChatClient(
+      eventBus,
+      chatSessionRepo,
+      automatorBridge,
+    );
 
     service = new PromptScriptService({
       promptScriptRepo,

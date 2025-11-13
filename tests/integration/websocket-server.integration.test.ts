@@ -2,6 +2,7 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { WebSocketServer } from "../../src/core/server/websocket-server";
 import WebSocket from "ws";
+import type { ServerMessage } from "../../src/core/services/external-chat/websocket-protocol";
 
 describe("WebSocketServer Integration Test", () => {
   let server: WebSocketServer;
@@ -19,7 +20,7 @@ describe("WebSocketServer Integration Test", () => {
     }
   });
 
-  it("should start, accept a connection, echo messages, and stop", async () => {
+  it("should accept a connection and emit parsed messages", async () => {
     const client = new WebSocket(`ws://127.0.0.1:${port}`);
 
     await new Promise<void>((resolve, reject) => {
@@ -27,15 +28,23 @@ describe("WebSocketServer Integration Test", () => {
       client.on("error", reject);
     });
 
-    const messagePromise = new Promise<string>((resolve) => {
-      client.on("message", (data) => resolve(data.toString()));
+    const messagePromise = new Promise<void>((resolve) => {
+      server.onMessage((message) => {
+        if (message.type === "connection:status") {
+          expect(message.payload.status).toBe("open");
+          resolve();
+        }
+      });
     });
 
-    const testMessage = "Hello, WebSocket!";
-    client.send(testMessage);
+    client.send(
+      JSON.stringify({
+        type: "connection:status",
+        payload: { status: "open" },
+      }),
+    );
 
-    const receivedMessage = await messagePromise;
-    expect(receivedMessage).toBe(`Echo: ${testMessage}`);
+    await messagePromise;
 
     client.close();
     await new Promise<void>((resolve) => client.on("close", resolve));
@@ -57,16 +66,20 @@ describe("WebSocketServer Integration Test", () => {
       client2.on("message", (data) => resolve(data.toString())),
     );
 
-    const broadcastMessage = "This is a broadcast";
-    server.broadcast(broadcastMessage);
+    const outgoing: ServerMessage = {
+      type: "connection:hello",
+      assistant: "chatgpt",
+      client: "test",
+    };
+    server.broadcast(JSON.stringify(outgoing));
 
     const [received1, received2] = await Promise.all([
       messagePromise1,
       messagePromise2,
     ]);
 
-    expect(received1).toBe(broadcastMessage);
-    expect(received2).toBe(broadcastMessage);
+    expect(JSON.parse(received1)).toEqual(outgoing);
+    expect(JSON.parse(received2)).toEqual(outgoing);
 
     client1.close();
     client2.close();

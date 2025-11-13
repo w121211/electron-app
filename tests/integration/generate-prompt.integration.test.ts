@@ -25,6 +25,7 @@ import { ChatService } from "../../src/core/services/chat/chat-service.js";
 import { TerminalChatClient } from "../../src/core/services/external-chat/terminal-chat-client.js";
 import { WebChatClient } from "../../src/core/services/external-chat/web-chat-client.js";
 import { getModelMessageContentString } from "../../src/core/utils/message-utils.js";
+import { WebAutomatorBridgeStub } from "../helpers/web-automator-bridge.stub.js";
 
 const hasGatewayCredentials = Boolean(process.env.AI_GATEWAY_API_KEY);
 
@@ -75,7 +76,12 @@ describeIntegration("generatePrompt integration", () => {
       eventBus,
       chatSessionRepository,
     );
-    webChatClient = new WebChatClient(eventBus, chatSessionRepository);
+    const automatorBridge = new WebAutomatorBridgeStub();
+    webChatClient = new WebChatClient(
+      eventBus,
+      chatSessionRepository,
+      automatorBridge,
+    );
 
     chatService = new ChatService({
       promptService,

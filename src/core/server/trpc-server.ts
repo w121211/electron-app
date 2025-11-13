@@ -13,6 +13,7 @@ import {
   type PtyInstanceManager,
 } from "../pty/pty-instance-manager.js";
 import type { SnapshotProvider } from "../services/chat/pty-chat/pty-chat-client.js";
+import type { WebSocketServer } from "./websocket-server.js";
 import type { FileWatcherService } from "../services/file-watcher-service.js";
 import type { UserSettingsRepository } from "../services/user-settings-repository.js";
 
@@ -24,6 +25,7 @@ interface ServerConfig {
   appDocumentsDir: string;
   snapshotProvider: SnapshotProvider;
   appResourcesPath?: string;
+  websocketServer: WebSocketServer;
 }
 
 export class HttpTrpcServer {
@@ -37,6 +39,7 @@ export class HttpTrpcServer {
   private userSettingsRepo: UserSettingsRepository | null = null;
   private snapshotProvider: SnapshotProvider;
   private readonly appResourcesPath?: string;
+  private readonly websocketServer: WebSocketServer;
   private readonly connections = new Set<Socket>();
 
   constructor(config: ServerConfig) {
@@ -46,6 +49,7 @@ export class HttpTrpcServer {
     this.ptyInstanceManager = createPtyInstanceManager(this.eventBus);
     this.snapshotProvider = config.snapshotProvider;
     this.appResourcesPath = config.appResourcesPath;
+    this.websocketServer = config.websocketServer;
     logger.info(`App user data directory: ${this.userDataDir}`);
     logger.info(`App documents directory: ${this.appDocumentsDir}`);
   }
@@ -70,6 +74,7 @@ export class HttpTrpcServer {
       ptyInstanceManager: this.ptyInstanceManager,
       snapshotProvider: this.snapshotProvider,
       appResourcesPath: this.appResourcesPath,
+      websocketServer: this.websocketServer,
     });
     this.fileWatcherService = fileWatcherService;
     this.userSettingsRepo = userSettingsRepo;

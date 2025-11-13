@@ -12,6 +12,7 @@ import type {
   ChatMetadata,
   ChatSessionData,
 } from "./chat-session-repository.js";
+import { getModelMessageContentString } from "../../utils/message-utils.js";
 
 export interface CreateChatParams {
   modelId: `${string}:${string}`;
@@ -196,12 +197,30 @@ export class ChatService {
     sourcePromptId: string | null;
     initialModelMessages: ModelMessage[];
   }): Promise<ChatSessionData> {
+    const initialPrompt = this.extractInitialPrompt(
+      options.initialModelMessages,
+    );
+
     return this.webChatClient.createSession({
       modelId: options.params.modelId,
       title: options.metadata.title ?? options.params.title,
       metadata: options.metadata,
       sourcePromptId: options.sourcePromptId ?? null,
       promptSnapshot: options.promptSnapshot,
+      initialPrompt: initialPrompt ?? undefined,
     });
+  }
+
+  private extractInitialPrompt(messages: ModelMessage[]): string | null {
+    for (const message of messages) {
+      if (message.role !== "user") {
+        continue;
+      }
+      const content = getModelMessageContentString(message);
+      if (content && content.trim().length > 0) {
+        return content.trim();
+      }
+    }
+    return null;
   }
 }

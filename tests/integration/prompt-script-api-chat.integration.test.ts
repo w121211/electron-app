@@ -32,6 +32,7 @@ import {
 import { substituteArgs } from "../../src/core/services/prompt-script/prompt-script-parser.js";
 import { getModelMessageContentString } from "../../src/core/utils/message-utils.js";
 import { getModelSurface } from "../../core/utils/model-utils-v2.js";
+import { WebAutomatorBridgeStub } from "../helpers/web-automator-bridge.stub.js";
 
 const hasGatewayCredentials = Boolean(process.env.AI_GATEWAY_API_KEY);
 
@@ -83,7 +84,8 @@ describeIntegration("Prompt script API chat integration", () => {
       databaseFilePath: databasePath,
     });
     terminalChatClient = new TerminalChatClient(eventBus, repository);
-    webChatClient = new WebChatClient(eventBus, repository);
+    const automatorBridge = new WebAutomatorBridgeStub();
+    webChatClient = new WebChatClient(eventBus, repository, automatorBridge);
     promptScriptService = new PromptScriptService({
       promptScriptRepo,
       chatSessionRepo: repository,

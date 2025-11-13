@@ -1,9 +1,10 @@
 // src/core/services/external-chat/external-chat-session.ts
-import type { IEventBus } from '../../event-bus.js';
+import type { IEventBus } from "../../event-bus.js";
 import type {
+  ChatMetadata,
   ChatSessionData,
   ChatState,
-} from '../chat/chat-session-repository.js';
+} from "../chat/chat-session-repository.js";
 
 export class ExternalChatSession {
   readonly id: string;
@@ -24,7 +25,16 @@ export class ExternalChatSession {
     };
   }
 
+  public replace(data: ChatSessionData): void {
+    this.data = data;
+    this.state = data.state;
+  }
+
   public terminate(): void {
-    this.state = 'terminated';
+    this.state = "terminated";
+  }
+
+  public getMetadata(): ChatMetadata | undefined {
+    return this.data.metadata;
   }
 }
