@@ -101,8 +101,8 @@ export class WebSocketServer {
       throw new Error("Cannot send message: no active WebSocket connection.");
     }
 
+    logger.debug("Sending WS message:", message);
     const payload = JSON.stringify(message);
-    logger.debug("Sending WS message:", payload);
     this.activeSocket.send(payload);
   }
 
@@ -154,10 +154,14 @@ export class WebSocketServer {
 
     const normalized = this.normalizeMessage(parsed);
     if (!normalized) {
-      logger.warn("Received unsupported message from WebSocket client:", parsed);
+      logger.warn(
+        "Received unsupported message from WebSocket client:",
+        parsed,
+      );
       return;
     }
 
+    logger.debug("Received WS message:", normalized);
     this.messageListeners.forEach((listener) => listener(normalized));
   }
 

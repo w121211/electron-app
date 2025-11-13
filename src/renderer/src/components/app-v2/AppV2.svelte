@@ -4,6 +4,7 @@
   import { Logger } from "tslog";
   import { Toaster } from "svelte-sonner";
   import { keyboardManager } from "../../lib/keyboard.js";
+  import { eventService } from "../../services/event-service.js";
   import { uiV2State } from "../../stores/ui-v2-store.svelte.js";
   import { projectService } from "../../services/project-service.js";
   import { modelClientService } from "../../services/model-client-service.js";
@@ -19,6 +20,7 @@
 
     const bootstrap = async (): Promise<void> => {
       try {
+        eventService.start();
         await projectService.loadProjectFolders();
         await modelClientService.hydrateAvailableModelsV2();
         if (cancelled) {
@@ -38,6 +40,7 @@
 
   onDestroy(() => {
     keyboardManager.destroy();
+    eventService.stop();
   });
 </script>
 

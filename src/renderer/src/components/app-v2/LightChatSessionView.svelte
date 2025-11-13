@@ -23,6 +23,7 @@
   import { apiChatService } from "../../services/api-chat-service.js";
   import { projectState } from "../../stores/project-store.svelte.js";
   import { updateInboxEntry } from "../../stores/inbox-store.svelte.js";
+  import { toast } from "svelte-sonner";
 
   let {
     entry,
@@ -42,6 +43,7 @@
   let composerTextarea = $state<HTMLTextAreaElement | null>(null);
   let activeChatId = $state<string | null>(null);
   let isSending = $state(false);
+  let isLaunchingSurface = $state(false);
 
   $effect(() => {
     const currentId = selectedChat?.id ?? null;
@@ -225,6 +227,39 @@
     updateInboxEntry(selectedChat.id, () => result.session);
   }
 
+  async function handleOpenWebSurface(
+    chat: ChatSessionData | null,
+  ): Promise<void> {
+    if (!chat || chat.modelSurface !== "web" || isLaunchingSurface) {
+      return;
+    }
+    const modelId = chat.metadata?.modelId;
+    if (!modelId) {
+      toast.error("Session is missing model information.");
+      return;
+    }
+
+    isLaunchingSurface = true;
+    try {
+      const result = await window.api.surface.launch({
+        sessionId: chat.id,
+        modelId,
+        modelSurface: "web",
+        projectPath: chat.metadata?.projectPath ?? undefined,
+      });
+      if (!result.success) {
+        throw new Error(result.error ?? "Failed to open browser.");
+      }
+      toast.success("Browser ready.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to open browser.";
+      toast.error(message);
+    } finally {
+      isLaunchingSurface = false;
+    }
+  }
+
   function getChatTitle(chat: ChatSessionData | null): string {
     if (!chat) {
       return "Select a chat";
@@ -238,9 +273,18 @@
     }
     return getChatStatus(selectedChat.state);
   });
+  const isWebChat = $derived.by(() => selectedChat?.modelSurface === "web");
+  const webChatId = $derived.by(
+    () => selectedChat?.metadata?.external?.webChatId ?? null,
+  );
 
   const canSendMessage = $derived.by(() =>
-    Boolean(selectedChat && composerValue.trim() && !isSending),
+    Boolean(
+      selectedChat &&
+        !isWebChat &&
+        composerValue.trim() &&
+        !isSending,
+    ),
   );
 </script>
 
@@ -386,47 +430,82 @@
         </div>
       {/if}
     </div>
-    <div class="border-border shrink-0 border-t">
-      <div class="relative">
-        <textarea
-          placeholder="Type a message..."
-          bind:this={composerTextarea}
-          value={composerValue}
-          rows="3"
-          class="placeholder-muted w-full resize-none bg-transparent py-4 pr-24 pl-12 text-sm leading-relaxed outline-none"
-          oninput={handleComposerInput}
-          onkeydown={handleComposerKeydown}
-        ></textarea>
-        <div class="text-muted absolute top-4 left-4 flex items-center gap-2">
-          <button
-            type="button"
-            title="Attach files"
-            class="hover:text-accent cursor-pointer"
-          >
-            <Paperclip class="text-base" />
-          </button>
+    {#if isWebChat}
+      <div class="border-border text-muted bg-background/40 flex flex-col gap-2 border-t px-4 py-3 text-xs">
+        <div class="text-foreground text-sm">
+          This chat runs directly in the browser. Continue the conversation there—this view mirrors updates in real time.
         </div>
-        <div class="text-muted absolute top-4 right-4 flex items-center gap-2">
+        <div class="flex flex-wrap gap-2 text-[11px]">
+          <span>
+            Assistant: <span class="text-foreground">{resolveModelName(selectedChat)}</span>
+          </span>
+          <span>·</span>
+          <span>
+            Status:
+            <span class={chatStatus?.tone === "accent" ? "text-accent" : "text-foreground"}
+              >{chatStatus?.label ?? "Unknown"}</span
+            >
+          </span>
+          <span>·</span>
+          <span>
+            Chat ID:
+            <span class="text-foreground">{webChatId ?? "Waiting for automator"}</span>
+          </span>
+        </div>
+        <div class="flex flex-wrap gap-2">
           <button
             type="button"
-            class="hover:text-accent cursor-pointer rounded p-1.5"
-            title="Record audio"
+            class={`rounded-md border px-3 py-1.5 text-xs transition ${isLaunchingSurface ? "cursor-wait text-muted" : "hover:text-accent"}`}
+            disabled={isLaunchingSurface}
+            onclick={() => void handleOpenWebSurface(selectedChat)}
           >
-            <MicFill />
-          </button>
-          <button
-            type="button"
-            class={`flex items-center gap-1.5 rounded-md py-1.5 pr-3 pl-1.5 ${canSendMessage ? "hover:text-accent cursor-pointer" : "text-muted cursor-not-allowed opacity-60"}`}
-            title="Send message"
-            disabled={!canSendMessage}
-            onclick={() => void handleSendMessage()}
-          >
-            <Send class="text-sm" />
-            <span>Send</span>
+            {isLaunchingSurface ? "Opening browser…" : "Open in Browser"}
           </button>
         </div>
       </div>
-    </div>
+    {:else}
+      <div class="border-border shrink-0 border-t">
+        <div class="relative">
+          <textarea
+            placeholder="Type a message..."
+            bind:this={composerTextarea}
+            value={composerValue}
+            rows="3"
+            class="placeholder-muted w-full resize-none bg-transparent py-4 pr-24 pl-12 text-sm leading-relaxed outline-none"
+            oninput={handleComposerInput}
+            onkeydown={handleComposerKeydown}
+          ></textarea>
+          <div class="text-muted absolute top-4 left-4 flex items-center gap-2">
+            <button
+              type="button"
+              title="Attach files"
+              class="hover:text-accent cursor-pointer"
+            >
+              <Paperclip class="text-base" />
+            </button>
+          </div>
+          <div class="text-muted absolute top-4 right-4 flex items-center gap-2">
+            <button
+              type="button"
+              class="hover:text-accent cursor-pointer rounded p-1.5"
+              title="Record audio"
+            >
+              <MicFill />
+            </button>
+            <button
+              type="button"
+              class={`flex items-center gap-1.5 rounded-md py-1.5 pr-3 pl-1.5 ${canSendMessage ? "hover:text-accent cursor-pointer" : "text-muted cursor-not-allowed opacity-60"}`}
+              title="Send message"
+              disabled={!canSendMessage}
+              onclick={() => void handleSendMessage()}
+            >
+              <Send class="text-sm" />
+              <span>Send</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    {/if}
   </section>
 {:else}
   <div

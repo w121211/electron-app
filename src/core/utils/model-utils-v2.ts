@@ -191,20 +191,34 @@ export const presetCliModels: Record<string, CliModelConfig> = {
 };
 
 export const presetWebModels: Record<string, WebModelConfig> = {
-  "web:chatgpt": {
-    modelId: "web:chatgpt",
-    url: "https://chatgpt.com/",
-    windowTitle: "ChatGPT",
+  "web:gemini": {
+    modelId: "web:gemini",
+    url: "https://gemini.google.com/",
+    windowTitle: "gemini",
     enabled: true,
-    displayName: "ChatGPT",
+    displayName: "web:gemini",
   },
-  "web:claude": {
-    modelId: "web:claude",
-    url: "https://claude.ai/chat",
-    windowTitle: "Claude",
-    enabled: true,
-    displayName: "Claude",
-  },
+  // "web:claude": {
+  //   modelId: "web:claude",
+  //   url: "https://claude.ai/chat",
+  //   windowTitle: "Claude",
+  //   enabled: true,
+  //   displayName: "Claude",
+  // },
+  // "web:chatgpt": {
+  //   modelId: "web:chatgpt",
+  //   url: "https://chatgpt.com/",
+  //   windowTitle: "ChatGPT",
+  //   enabled: true,
+  //   displayName: "ChatGPT",
+  // },
+  // "web:claude": {
+  //   modelId: "web:claude",
+  //   url: "https://claude.ai/chat",
+  //   windowTitle: "Claude",
+  //   enabled: true,
+  //   displayName: "Claude",
+  // },
 };
 
 // ============================================================================

@@ -48,7 +48,7 @@ async function bootstrap(): Promise<MainProcessContext> {
     const trpcPort = await trpcServer.start(3333);
     console.log(`tRPC server started on port ${trpcPort}`);
 
-    const wsPort = await websocketServer.start(3334);
+    const wsPort = await websocketServer.start(3456);
     console.log(`WebSocket server started on port ${wsPort}`);
   } catch (error) {
     console.error("Failed to start servers:", error);

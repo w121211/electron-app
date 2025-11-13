@@ -18,11 +18,10 @@
 
   import { createFileMention } from "../../../../core/utils/message-utils.js";
   import {
-    isCliModel,
-    isWebModel,
     parseModelId,
     type ModelId,
   } from "../../../../core/utils/model-utils-v2.js";
+  import type { AiAssistantId } from "../../../../core/services/external-chat/automators-v2.js";
   import { trpcClient } from "../../lib/trpc-client.js";
   import { projectService } from "../../services/project-service.js";
   import { rendererPromptService } from "../../services/renderer-prompt-service.js";
@@ -42,6 +41,13 @@
   import type { Prompt } from "../../../../core/services/prompt/prompt-types.js";
 
   const logger = new Logger({ name: "LightPromptEditor" });
+
+  const SUPPORTED_WEB_ASSISTANTS: readonly AiAssistantId[] = [
+    "chatgpt",
+    "claude",
+    "gemini",
+    "grok",
+  ];
 
   let {
     promptEntry,
@@ -75,14 +81,8 @@
   let contextMenuOpen = $state(false);
 
   const projects = $derived(projectState.projectFolders);
-  const allModels = $derived(uiV2State.availableModels);
-  const enabledModels = $derived(
-    allModels.filter(
-      (model) =>
-        model.enabled &&
-        (isCliModel(model.modelId) || isWebModel(model.modelId)),
-    ),
-  );
+  const availableModels = $derived(uiV2State.availableModels);
+
   let selectedModelId = $state<ModelId | null>(null);
   const selectedProjectName = $derived.by(() => {
     if (!selectedProjectPath) return null;
@@ -91,7 +91,7 @@
   });
   const selectedModelName = $derived.by(() => {
     if (!selectedModelId) return null;
-    const model = allModels.find((m) => m.modelId === selectedModelId);
+    const model = availableModels.find((m) => m.modelId === selectedModelId);
     if (model?.displayName) return model.displayName;
     try {
       const parsed = parseModelId(selectedModelId);
@@ -165,19 +165,13 @@
   });
 
   $effect(() => {
-    if (enabledModels.length === 0) {
-      return;
-    }
-
-    const current = enabledModels.find(
+    const current = availableModels.find(
       (model) => model.modelId === selectedModelId,
     );
 
-    if (!current && enabledModels.length > 0) {
-      const newModelId = enabledModels[0]?.modelId;
-      if (newModelId) {
-        selectedModelId = newModelId;
-      }
+    if (!current) {
+      const nextModelId = availableModels[0]?.modelId ?? null;
+      selectedModelId = (nextModelId as ModelId | null) ?? null;
     }
   });
 
@@ -553,11 +547,11 @@
     // Initialize selected model
     const storedModel = localStorage.getItem(modelPreferenceKey);
     let newModelId = promptEntry.metadata?.modelId ?? storedModel ?? null;
-    if (newModelId && !enabledModels.some((m) => m.modelId === newModelId)) {
+    if (newModelId && !availableModels.some((m) => m.modelId === newModelId)) {
       newModelId = null;
     }
     selectedModelId =
-      (newModelId as ModelId | null) ?? enabledModels[0]?.modelId ?? null;
+      (newModelId as ModelId | null) ?? availableModels[0]?.modelId ?? null;
     lastPersistedModelId =
       (promptEntry.metadata?.modelId as ModelId | undefined) ?? null;
 
@@ -621,7 +615,7 @@
       return;
     }
 
-    const model = enabledModels.find(
+    const model = availableModels.find(
       (item) => item.modelId === selectedModelId,
     );
     if (!model) {
@@ -775,12 +769,12 @@
           <div
             class="bg-surface border-border absolute top-full left-0 z-20 mt-1 w-64 rounded-md border p-1 text-xs shadow-lg"
           >
-            {#if enabledModels.length === 0}
+            {#if availableModels.length === 0}
               <div class="text-muted px-2 py-1.5">
-                Enable CLI or Web models in settings.
+                Enable models in settings.
               </div>
             {:else}
-              {#each enabledModels as model (model.modelId)}
+              {#each availableModels as model (model.modelId)}
                 <button
                   type="button"
                   class="hover:bg-border flex w-full items-center justify-between rounded px-2 py-1.5 text-left {model.modelId ===
