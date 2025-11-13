@@ -15,13 +15,11 @@
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { toast } from "svelte-sonner";
-
   import { createFileMention } from "../../../../core/utils/message-utils.js";
   import {
     parseModelId,
     type ModelId,
   } from "../../../../core/utils/model-utils-v2.js";
-  import type { AiAssistantId } from "../../../../core/services/external-chat/automators-v2.js";
   import { trpcClient } from "../../lib/trpc-client.js";
   import { projectService } from "../../services/project-service.js";
   import { rendererPromptService } from "../../services/renderer-prompt-service.js";
@@ -41,13 +39,6 @@
   import type { Prompt } from "../../../../core/services/prompt/prompt-types.js";
 
   const logger = new Logger({ name: "LightPromptEditor" });
-
-  const SUPPORTED_WEB_ASSISTANTS: readonly AiAssistantId[] = [
-    "chatgpt",
-    "claude",
-    "gemini",
-    "grok",
-  ];
 
   let {
     promptEntry,
@@ -637,6 +628,7 @@
           modelId: selectedModelId ?? undefined,
         },
       });
+
       toast.success("Chat launched.");
       await refreshInboxEntries({ selectId: session.id });
     } catch (error) {

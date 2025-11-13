@@ -3,6 +3,7 @@ import { Logger } from "tslog";
 import { trpcClient } from "../lib/trpc-client.js";
 import { setConnectionState } from "../stores/ui-store.svelte.js";
 import { setChatSession } from "../stores/chat.svelte.js";
+import { updateInboxEntry } from "../stores/inbox-store.svelte.js";
 import { projectService } from "./project-service.js";
 
 interface Subscription {
@@ -91,9 +92,12 @@ class EventService {
             event.data.updateType,
             event.data.chatId,
           );
-          if (event.data.chat) {
-            setChatSession(event.data.chat);
+          if (!event.data.chat) {
+            return;
           }
+
+          const updated = setChatSession(event.data.chat).data;
+          updateInboxEntry(event.data.chatId, () => updated);
         },
         onError: (error) => {
           this.logger.error("Chat event subscription error:", error);

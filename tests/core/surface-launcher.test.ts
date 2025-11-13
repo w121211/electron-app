@@ -3,8 +3,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   SurfaceLauncher,
   createSurfaceLauncher,
-} from "../src/core/services/surface-launcher/surface-launcher.js";
-import * as modelUtils from "../src/core/utils/model-utils-v2.js";
+} from "../../src/core/services/surface-launcher/surface-launcher.js";
+import * as modelUtils from "../../src/core/utils/model-utils-v2.js";
 
 const surfaceMocks = vi.hoisted(() => ({
   launchTerminalFromConfigMock: vi.fn(),

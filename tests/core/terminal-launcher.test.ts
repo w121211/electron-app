@@ -1,23 +1,17 @@
 // tests/terminal-launcher.test.ts
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import * as terminalLauncher from "../../src/core/services/surface-launcher/terminal-launcher.js";
 
 const terminalMocks = vi.hoisted(() => {
   const readFileSyncMock = vi.fn((path: any) => {
     const pathStr = path.toString();
-    if (pathStr.includes('launch-iterm.applescript')) {
+    if (pathStr.includes("launch-iterm.applescript")) {
       return 'tell application "iTerm" to activate {{SESSION_TITLE}} from {{CWD}} running "{{FULL_COMMAND}}"';
     }
-    if (pathStr.includes('launch-terminal.applescript')) {
+    if (pathStr.includes("launch-terminal.applescript")) {
       return 'tell application "Terminal" to activate {{SESSION_TITLE}} from {{CWD}} running "{{FULL_COMMAND}}"';
     }
-    return '';
+    return "";
   });
 
   return {
@@ -46,8 +40,6 @@ vi.mock("child_process", () => ({
   spawnSync: terminalMocks.spawnSyncMock,
 }));
 
-import * as terminalLauncher from "../src/core/services/surface-launcher/terminal-launcher.js";
-
 const {
   spawnMock,
   spawnSyncMock,
@@ -67,9 +59,9 @@ function createChildProcessStub(pid: number = 4321): any {
 }
 
 function mockPlatform(platform: NodeJS.Platform): () => void {
-  const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue(
-    platform,
-  );
+  const platformSpy = vi
+    .spyOn(process, "platform", "get")
+    .mockReturnValue(platform);
   return () => platformSpy.mockRestore();
 }
 
@@ -127,10 +119,7 @@ describe("launchTerminalFromConfig", () => {
 
     expect(spawnSyncMock).toHaveBeenCalledWith(
       "osascript",
-      [
-        "-e",
-        expect.stringContaining("/tmp/project"),
-      ],
+      ["-e", expect.stringContaining("/tmp/project")],
       { stdio: "ignore" },
     );
 
@@ -163,10 +152,7 @@ describe("launchTerminal", () => {
 
     expect(spawnSyncMock).toHaveBeenCalledWith(
       "osascript",
-      [
-        "-e",
-        expect.stringContaining("/Users/dev/project"),
-      ],
+      ["-e", expect.stringContaining("/Users/dev/project")],
       { stdio: "ignore" },
     );
 
@@ -186,9 +172,7 @@ describe("launchTerminal", () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe(
-      "Terminal AppleScript exited with code 1",
-    );
+    expect(result.error).toBe("Terminal AppleScript exited with code 1");
 
     restorePlatform();
   });
