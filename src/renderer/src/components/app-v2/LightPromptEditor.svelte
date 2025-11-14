@@ -12,12 +12,15 @@
     PlusSquare,
     CheckLg,
     ThreeDotsVertical,
+    BoxArrowUp,
   } from "svelte-bootstrap-icons";
   import { Logger } from "tslog";
   import { toast } from "svelte-sonner";
   import { createFileMention } from "../../../../core/utils/message-utils.js";
   import {
     parseModelId,
+    isCliModel,
+    isWebModel,
     type ModelId,
   } from "../../../../core/utils/model-utils-v2.js";
   import { trpcClient } from "../../lib/trpc-client.js";
@@ -70,6 +73,7 @@
   let fileMentionStartPos = $state(-1);
   let fileMentionDebounceTimer: number | null = null;
   let contextMenuOpen = $state(false);
+  let isLaunchingSurface = $state(false);
 
   const projects = $derived(projectState.projectFolders);
   const availableModels = $derived(uiV2State.availableModels);
@@ -90,6 +94,10 @@
     } catch {
       return selectedModelId;
     }
+  });
+  const canLaunchSurface = $derived.by(() => {
+    if (!selectedModelId) return false;
+    return isCliModel(selectedModelId) || isWebModel(selectedModelId);
   });
 
   const projectPreferenceKey = "inboxProjectPath";
@@ -692,6 +700,53 @@
     toast.info("Delete functionality not yet implemented.");
     closeMenus();
   };
+
+  const handleOpenSurface = async (): Promise<void> => {
+    if (!selectedModelId || !canLaunchSurface || isLaunchingSurface) {
+      return;
+    }
+
+    const parsed = parseModelId(selectedModelId);
+    const modelSurface = parsed.surface;
+
+    if (modelSurface !== "cli" && modelSurface !== "web") {
+      return;
+    }
+
+    if (modelSurface === "cli" && !selectedProjectPath) {
+      toast.error("Select a project to launch CLI model.");
+      return;
+    }
+
+    isLaunchingSurface = true;
+    try {
+      const result = await window.api.surface.launch({
+        sessionId: "temp-surface-launch",
+        modelId: selectedModelId,
+        modelSurface,
+        projectPath: selectedProjectPath ?? undefined,
+      });
+
+      if (!result.success) {
+        throw new Error(
+          result.error ??
+            `Failed to open ${modelSurface === "cli" ? "terminal" : "browser"}.`,
+        );
+      }
+
+      toast.success(
+        modelSurface === "cli" ? "Terminal opened." : "Browser opened.",
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : `Failed to open ${modelSurface === "cli" ? "terminal" : "browser"}.`;
+      toast.error(message);
+    } finally {
+      isLaunchingSurface = false;
+    }
+  };
 </script>
 
 <main class="bg-background flex flex-1 flex-col">
@@ -787,6 +842,16 @@
           </div>
         {/if}
       </div>
+      {#if canLaunchSurface}
+        <button
+          title="Open"
+          class="hover:text-accent cursor-pointer px-1 disabled:cursor-not-allowed disabled:opacity-50"
+          onclick={handleOpenSurface}
+          disabled={isLaunchingSurface}
+        >
+          Open
+        </button>
+      {/if}
       <button
         title="Attach Files"
         class="hover:text-accent cursor-pointer"

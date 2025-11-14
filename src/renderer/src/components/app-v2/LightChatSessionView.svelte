@@ -279,12 +279,7 @@
   );
 
   const canSendMessage = $derived.by(() =>
-    Boolean(
-      selectedChat &&
-        !isWebChat &&
-        composerValue.trim() &&
-        !isSending,
-    ),
+    Boolean(selectedChat && !isWebChat && composerValue.trim() && !isSending),
   );
 </script>
 
@@ -431,31 +426,40 @@
       {/if}
     </div>
     {#if isWebChat}
-      <div class="border-border text-muted bg-background/40 flex flex-col gap-2 border-t px-4 py-3 text-xs">
+      <div
+        class="border-border text-muted bg-background/40 flex flex-col gap-2 border-t px-4 py-3 text-xs"
+      >
         <div class="text-foreground text-sm">
-          This chat runs directly in the browser. Continue the conversation there—this view mirrors updates in real time.
+          This chat runs directly in the browser. Continue the conversation
+          there—this view mirrors updates in real time.
         </div>
         <div class="flex flex-wrap gap-2 text-[11px]">
           <span>
-            Assistant: <span class="text-foreground">{resolveModelName(selectedChat)}</span>
+            Assistant: <span class="text-foreground"
+              >{resolveModelName(selectedChat)}</span
+            >
           </span>
           <span>·</span>
           <span>
             Status:
-            <span class={chatStatus?.tone === "accent" ? "text-accent" : "text-foreground"}
-              >{chatStatus?.label ?? "Unknown"}</span
+            <span
+              class={chatStatus?.tone === "accent"
+                ? "text-accent"
+                : "text-foreground"}>{chatStatus?.label ?? "Unknown"}</span
             >
           </span>
           <span>·</span>
           <span>
             Chat ID:
-            <span class="text-foreground">{webChatId ?? "Waiting for automator"}</span>
+            <span class="text-foreground"
+              >{webChatId ?? "Waiting for automator"}</span
+            >
           </span>
         </div>
         <div class="flex flex-wrap gap-2">
           <button
             type="button"
-            class={`rounded-md border px-3 py-1.5 text-xs transition ${isLaunchingSurface ? "cursor-wait text-muted" : "hover:text-accent"}`}
+            class={`rounded-md border px-3 py-1.5 text-xs transition ${isLaunchingSurface ? "text-muted cursor-wait" : "hover:text-accent"}`}
             disabled={isLaunchingSurface}
             onclick={() => void handleOpenWebSurface(selectedChat)}
           >
@@ -484,7 +488,9 @@
               <Paperclip class="text-base" />
             </button>
           </div>
-          <div class="text-muted absolute top-4 right-4 flex items-center gap-2">
+          <div
+            class="text-muted absolute top-4 right-4 flex items-center gap-2"
+          >
             <button
               type="button"
               class="hover:text-accent cursor-pointer rounded p-1.5"

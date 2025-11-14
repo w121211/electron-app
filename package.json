@@ -43,6 +43,7 @@
     "electron-updater": "^6.3.9",
     "es-toolkit": "^1.39.10",
     "fuzzysort": "^3.1.0",
+    "get-windows": "^9.2.3",
     "gray-matter": "^4.0.3",
     "ignore": "^7.0.5",
     "kysely": "^0.28.7",
